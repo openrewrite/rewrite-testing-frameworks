@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -30,16 +31,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UseAssertSame extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Use JUnit5's `assertSame` or `assertNotSame` instead of `assertTrue(... == ...)`";
-    }
+    @Getter
+    final String displayName = "Use JUnit5's `assertSame` or `assertNotSame` instead of `assertTrue(... == ...)`";
 
-    @Override
-    public String getDescription() {
-        return "Prefers the usage of `assertSame` or `assertNotSame` methods instead of using of vanilla `assertTrue` " +
-               "or `assertFalse` with a boolean comparison.";
-    }
+    @Getter
+    final String description = "Prefers the usage of `assertSame` or `assertNotSame` methods instead of using of vanilla `assertTrue` " +
+            "or `assertFalse` with a boolean comparison.";
 
     private static final MethodMatcher ASSERT_TRUE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(..)");
     private static final MethodMatcher ASSERT_FALSE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertFalse(..)");

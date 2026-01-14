@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -26,15 +27,11 @@ import org.openrewrite.java.tree.J;
 
 public class SimplifyRedundantAssertJChains extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Simplify redundant AssertJ assertion chains";
-    }
+    @Getter
+    final String displayName = "Simplify redundant AssertJ assertion chains";
 
-    @Override
-    public String getDescription() {
-        return "Removes redundant AssertJ assertions when chained methods already provide the same or stronger guarantees.";
-    }
+    @Getter
+    final String description = "Removes redundant AssertJ assertions when chained methods already provide the same or stronger guarantees.";
 
     // Matcher for hasSize() - redundant when followed by assertions that verify exact contents
     private static final MethodMatcher hasSizeMatcher = new MethodMatcher("org.assertj.core.api..* hasSize(..)");

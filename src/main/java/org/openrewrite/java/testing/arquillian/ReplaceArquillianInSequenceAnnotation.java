@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.arquillian;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -28,15 +29,11 @@ import java.util.Comparator;
 
 public class ReplaceArquillianInSequenceAnnotation extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Arquillian JUnit 4 `@InSequence` to JUnit Jupiter `@Order`";
-    }
+    @Getter
+    final String displayName = "Arquillian JUnit 4 `@InSequence` to JUnit Jupiter `@Order`";
 
-    @Override
-    public String getDescription() {
-        return "Transforms the Arquillian JUnit 4 `@InSequence` to the JUnit Jupiter `@Order`.";
-    }
+    @Getter
+    final String description = "Transforms the Arquillian JUnit 4 `@InSequence` to the JUnit Jupiter `@Order`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
@@ -38,17 +39,13 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
     private static final Pattern NUMBER_SUFFIX_PATTERN = Pattern.compile("^(.+?)(\\d+)$");
 
-    @Override
-    public String getDisplayName() {
-        return "Applies JUnit 5 `assertThrows` on last statement in lambda block only";
-    }
+    @Getter
+    final String displayName = "Applies JUnit 5 `assertThrows` on last statement in lambda block only";
 
-    @Override
-    public String getDescription() {
-        return "Applies JUnit 5 `assertThrows` on last statement in lambda block only. " +
-                "In rare cases may cause compilation errors if the lambda uses effectively non final variables. " +
-                "In some cases, tests might fail if earlier statements in the lambda block throw exceptions.";
-    }
+    @Getter
+    final String description = "Applies JUnit 5 `assertThrows` on last statement in lambda block only. " +
+            "In rare cases may cause compilation errors if the lambda uses effectively non final variables. " +
+            "In some cases, tests might fail if earlier statements in the lambda block throw exceptions.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

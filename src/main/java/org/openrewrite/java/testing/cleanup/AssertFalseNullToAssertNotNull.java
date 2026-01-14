@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -31,15 +32,11 @@ public class AssertFalseNullToAssertNotNull extends Recipe {
     private static final MethodMatcher ASSERT_FALSE = new MethodMatcher(
             "org.junit.jupiter.api.Assertions assertFalse(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace JUnit `assertFalse(a == null)` to `assertNotNull(a)`";
-    }
+    @Getter
+    final String displayName = "Replace JUnit `assertFalse(a == null)` to `assertNotNull(a)`";
 
-    @Override
-    public String getDescription() {
-        return "Using `assertNotNull(a)` is simpler and more clear.";
-    }
+    @Getter
+    final String description = "Using `assertNotNull(a)` is simpler and more clear.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

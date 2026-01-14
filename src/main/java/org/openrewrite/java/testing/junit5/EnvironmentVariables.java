@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -39,17 +40,13 @@ public class EnvironmentVariables extends Recipe {
     private static final String SYSTEM_STUB = "uk.org.webcompere.systemstubs.jupiter.SystemStub";
     private static final String SYSTEM_STUBS_EXTENSION = "uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension";
 
-    @Override
-    public @NonNull String getDisplayName() {
-        return "Migrate JUnit 4 environmentVariables rule to JUnit 5 system stubs extension";
-    }
+    @Getter
+    final String displayName = "Migrate JUnit 4 environmentVariables rule to JUnit 5 system stubs extension";
 
-    @Override
-    public @NonNull String getDescription() {
-        return "Replaces usage of the JUnit 4 `@Rule EnvironmentVariables` with the JUnit 5-compatible " +
-                "`SystemStubsExtension` and `@SystemStub EnvironmentVariables` from the System Stubs " +
-                "library.";
-    }
+    @Getter
+    final String description = "Replaces usage of the JUnit 4 `@Rule EnvironmentVariables` with the JUnit 5-compatible " +
+            "`SystemStubsExtension` and `@SystemStub EnvironmentVariables` from the System Stubs " +
+            "library.";
 
     @Override
     public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {

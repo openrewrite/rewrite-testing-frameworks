@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit6;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -30,16 +31,12 @@ public class RemoveInterceptDynamicTest extends Recipe {
     private static final MethodMatcher INTERCEPT_DYNAMIC_TEST_MATCHER = new MethodMatcher(
             "org.junit.jupiter.api.extension.InvocationInterceptor interceptDynamicTest(..)", true);
 
-    @Override
-    public String getDisplayName() {
-        return "Remove `InvocationInterceptor.interceptDynamicTest`";
-    }
+    @Getter
+    final String displayName = "Remove `InvocationInterceptor.interceptDynamicTest`";
 
-    @Override
-    public String getDescription() {
-        return "JUnit 6 removed the `interceptDynamicTest(Invocation, ExtensionContext)` method from " +
-                "`InvocationInterceptor`. This recipe removes implementations of this deprecated method.";
-    }
+    @Getter
+    final String description = "JUnit 6 removed the `interceptDynamicTest(Invocation, ExtensionContext)` method from " +
+            "`InvocationInterceptor`. This recipe removes implementations of this deprecated method.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

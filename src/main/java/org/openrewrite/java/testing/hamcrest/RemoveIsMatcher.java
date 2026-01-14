@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -25,15 +26,11 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 
 public class RemoveIsMatcher extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Remove Hamcrest `is(Matcher)`";
-    }
+    @Getter
+    final String displayName = "Remove Hamcrest `is(Matcher)`";
 
-    @Override
-    public String getDescription() {
-        return "Remove Hamcrest `is(Matcher)` ahead of migration.";
-    }
+    @Getter
+    final String description = "Remove Hamcrest `is(Matcher)` ahead of migration.";
 
     static final MethodMatcher IS_MATCHER = new MethodMatcher("org.hamcrest.*Matchers is(org.hamcrest.Matcher)");
     static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");

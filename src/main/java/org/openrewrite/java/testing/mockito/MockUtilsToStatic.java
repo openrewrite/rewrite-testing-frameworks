@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.DeleteStatement;
@@ -37,15 +38,11 @@ import org.openrewrite.java.tree.J;
  */
 public class MockUtilsToStatic extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Use static form of Mockito `MockUtil`";
-    }
+    @Getter
+    final String displayName = "Use static form of Mockito `MockUtil`";
 
-    @Override
-    public String getDescription() {
-        return "Best-effort attempt to remove Mockito `MockUtil` instances.";
-    }
+    @Getter
+    final String description = "Best-effort attempt to remove Mockito `MockUtil` instances.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

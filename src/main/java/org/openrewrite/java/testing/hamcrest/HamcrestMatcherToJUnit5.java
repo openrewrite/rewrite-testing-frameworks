@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -37,15 +38,11 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
 
     private static final MethodMatcher MATCHER_ASSERT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate from Hamcrest `Matcher` to JUnit 5";
-    }
+    @Getter
+    final String displayName = "Migrate from Hamcrest `Matcher` to JUnit 5";
 
-    @Override
-    public String getDescription() {
-        return "Migrate from Hamcrest `Matcher` to JUnit 5 assertions.";
-    }
+    @Getter
+    final String description = "Migrate from Hamcrest `Matcher` to JUnit 5 assertions.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

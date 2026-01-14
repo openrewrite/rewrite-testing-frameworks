@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -75,15 +76,11 @@ public class AdoptAssertJDurationAssertions extends Recipe {
         put("isEqualTo", "isZero");
     }};
 
-    @Override
-    public String getDisplayName() {
-        return "Adopt AssertJ Duration assertions";
-    }
+    @Getter
+    final String displayName = "Adopt AssertJ Duration assertions";
 
-    @Override
-    public String getDescription() {
-        return "Adopt AssertJ `DurationAssert` assertions for more expressive messages.";
-    }
+    @Getter
+    final String description = "Adopt AssertJ `DurationAssert` assertions for more expressive messages.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

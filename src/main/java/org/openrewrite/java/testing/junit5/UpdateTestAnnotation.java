@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -36,15 +37,11 @@ import static java.util.Collections.emptyList;
 
 public class UpdateTestAnnotation extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate JUnit 4 `@Test` annotations to JUnit 5";
-    }
+    @Getter
+    final String displayName = "Migrate JUnit 4 `@Test` annotations to JUnit 5";
 
-    @Override
-    public String getDescription() {
-        return "Update usages of JUnit 4's `@org.junit.Test` annotation to JUnit 5's `org.junit.jupiter.api.Test` annotation.";
-    }
+    @Getter
+    final String description = "Update usages of JUnit 4's `@org.junit.Test` annotation to JUnit 5's `org.junit.jupiter.api.Test` annotation.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

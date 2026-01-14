@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -38,16 +39,12 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
     private static final MethodMatcher JUNIT4_ASSERT_EQUALS_MATCHER = new MethodMatcher("org.junit.Assert assertEquals(..)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()", true);
 
-    @Override
-    public String getDisplayName() {
-        return "Convert try-catch-fail blocks to AssertJ's assertThatThrownBy";
-    }
+    @Getter
+    final String displayName = "Convert try-catch-fail blocks to AssertJ's assertThatThrownBy";
 
-    @Override
-    public String getDescription() {
-        return "Replace try-catch blocks where the try block ends with a `fail()` statement and the catch block optionally " +
-                "contains assertions, with AssertJ's `assertThatThrownBy()`.";
-    }
+    @Getter
+    final String description = "Replace try-catch blocks where the try block ends with a `fail()` statement and the catch block optionally " +
+            "contains assertions, with AssertJ's `assertThatThrownBy()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

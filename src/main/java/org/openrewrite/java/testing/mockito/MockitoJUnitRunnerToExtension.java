@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -40,17 +41,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class MockitoJUnitRunnerToExtension extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Replace JUnit 4 MockitoJUnitRunner with junit-jupiter MockitoExtension";
-    }
+    @Getter
+    final String displayName = "Replace JUnit 4 MockitoJUnitRunner with junit-jupiter MockitoExtension";
 
 
-    @Override
-    public String getDescription() {
-        return "Replace JUnit 4 MockitoJUnitRunner annotations with JUnit 5 `@ExtendWith(MockitoExtension.class)` " +
-                "using the appropriate strictness levels (LENIENT, WARN, STRICT_STUBS).";
-    }
+    @Getter
+    final String description = "Replace JUnit 4 MockitoJUnitRunner annotations with JUnit 5 `@ExtendWith(MockitoExtension.class)` " +
+            "using the appropriate strictness levels (LENIENT, WARN, STRICT_STUBS).";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -48,15 +49,11 @@ import static org.openrewrite.Tree.randomId;
  */
 public class ExpectedExceptionToAssertThrows extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `ExpectedException` To JUnit Jupiter's `assertThrows()`";
-    }
+    @Getter
+    final String displayName = "JUnit 4 `ExpectedException` To JUnit Jupiter's `assertThrows()`";
 
-    @Override
-    public String getDescription() {
-        return "Replace usages of JUnit 4's `@Rule ExpectedException` with JUnit 5's `Assertions.assertThrows()`.";
-    }
+    @Getter
+    final String description = "Replace usages of JUnit 4's `@Rule ExpectedException` with JUnit 5's `Assertions.assertThrows()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

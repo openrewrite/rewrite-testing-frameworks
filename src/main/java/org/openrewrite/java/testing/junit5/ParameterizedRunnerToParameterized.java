@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
@@ -45,15 +46,11 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
     private static final String BEFORE_METHOD_NAME = "before-method-name";
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `@RunWith(Parameterized.class)` to JUnit Jupiter parameterized tests";
-    }
+    @Getter
+    final String displayName = "JUnit 4 `@RunWith(Parameterized.class)` to JUnit Jupiter parameterized tests";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit 4 parameterized runner the JUnit Jupiter parameterized test equivalent.";
-    }
+    @Getter
+    final String description = "Convert JUnit 4 parameterized runner the JUnit Jupiter parameterized test equivalent.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -36,15 +37,11 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     private static final String ASSERTIONS_FOR_CLASS_TYPES = "org.assertj.core.api.AssertionsForClassTypes";
     private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher(JUNIT_ASSERTIONS + " assertThrows(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit AssertThrows to AssertJ exceptionType";
-    }
+    @Getter
+    final String displayName = "JUnit AssertThrows to AssertJ exceptionType";
 
-    @Override
-    public String getDescription() {
-        return "Convert `JUnit#AssertThrows` to `AssertJ#assertThatExceptionOfType` to allow for chained assertions on the thrown exception.";
-    }
+    @Getter
+    final String description = "Convert `JUnit#AssertThrows` to `AssertJ#assertThatExceptionOfType` to allow for chained assertions on the thrown exception.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

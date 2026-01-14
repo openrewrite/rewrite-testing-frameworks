@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -48,15 +49,11 @@ public class RemoveTestPrefix extends Recipe {
             // Non keywords that still result in an error
             "null", "clone", "finalize", "hashCode", "notify", "notifyAll", "toString", "wait");
 
-    @Override
-    public String getDisplayName() {
-        return "Remove `test` prefix from JUnit 5 tests";
-    }
+    @Getter
+    final String displayName = "Remove `test` prefix from JUnit 5 tests";
 
-    @Override
-    public String getDescription() {
-        return "Remove `test` from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest` or `@TestFactory`. They no longer have to prefix test to be usable by JUnit 5.";
-    }
+    @Getter
+    final String description = "Remove `test` from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest` or `@TestFactory`. They no longer have to prefix test to be usable by JUnit 5.";
 
     @Override
     public Duration getEstimatedEffortPerOccurrence() {

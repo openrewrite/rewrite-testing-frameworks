@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
@@ -47,15 +48,11 @@ public class JMockitMockUpToMockito extends Recipe {
     private static final String MOCKITO_CONSTRUCTION_PREFIX = "mockCons";
     private static final String MOCKITO_CONSTRUCTION_IMPORT = "org.mockito.MockedConstruction";
 
-    @Override
-    public String getDisplayName() {
-        return "Rewrite JMockit MockUp to Mockito statements";
-    }
+    @Getter
+    final String displayName = "Rewrite JMockit MockUp to Mockito statements";
 
-    @Override
-    public String getDescription() {
-        return "Rewrites JMockit `MockUp` blocks to Mockito statements. This recipe will not rewrite private methods in MockUp.";
-    }
+    @Getter
+    final String description = "Rewrites JMockit `MockUp` blocks to Mockito statements. This recipe will not rewrite private methods in MockUp.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

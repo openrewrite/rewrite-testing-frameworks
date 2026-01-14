@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -36,15 +37,11 @@ import static java.util.Comparator.comparing;
 import static org.openrewrite.Preconditions.*;
 
 public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Adds Mockito extensions to Mockito tests";
-    }
+    @Getter
+    final String displayName = "Adds Mockito extensions to Mockito tests";
 
-    @Override
-    public String getDescription() {
-        return "Adds `@ExtendWith(MockitoExtension.class)` to tests using `@Mock` or `@Captor`.";
-    }
+    @Getter
+    final String description = "Adds `@ExtendWith(MockitoExtension.class)` to tests using `@Mock` or `@Captor`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.jmockit;
 
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -35,15 +36,11 @@ import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
 
 @EqualsAndHashCode(callSuper = false)
 public class JMockitAnnotatedArgumentToMockito extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Convert JMockit `@Mocked` and `@Injectable` annotated arguments";
-    }
+    @Getter
+    final String displayName = "Convert JMockit `@Mocked` and `@Injectable` annotated arguments";
 
-    @Override
-    public String getDescription() {
-        return "Convert JMockit `@Mocked` and `@Injectable` annotated arguments into Mockito statements.";
-    }
+    @Getter
+    final String description = "Convert JMockit `@Mocked` and `@Injectable` annotated arguments into Mockito statements.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

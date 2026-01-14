@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -35,15 +36,11 @@ public class JUnitFailToAssertJFail extends Recipe {
     private static final String ASSERTJ = "org.assertj.core.api.Assertions";
     private static final MethodMatcher FAIL_MATCHER = new MethodMatcher(JUNIT + " fail(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit fail to AssertJ";
-    }
+    @Getter
+    final String displayName = "JUnit fail to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
-    }
+    @Getter
+    final String description = "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

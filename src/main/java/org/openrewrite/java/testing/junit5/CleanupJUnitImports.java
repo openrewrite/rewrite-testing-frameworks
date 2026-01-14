@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -25,15 +26,11 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
 public class CleanupJUnitImports extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Cleanup JUnit imports";
-    }
+    @Getter
+    final String displayName = "Cleanup JUnit imports";
 
-    @Override
-    public String getDescription() {
-        return "Removes unused `org.junit` import symbols.";
-    }
+    @Getter
+    final String description = "Removes unused `org.junit` import symbols.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

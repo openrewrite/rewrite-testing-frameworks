@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -30,15 +31,11 @@ import org.openrewrite.java.tree.J;
 
 public class RemoveInitMocksIfRunnersSpecified extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Remove `MockitoAnnotations.initMocks(this)` if specified JUnit runners";
-    }
+    @Getter
+    final String displayName = "Remove `MockitoAnnotations.initMocks(this)` if specified JUnit runners";
 
-    @Override
-    public String getDescription() {
-        return "Remove `MockitoAnnotations.initMocks(this)` if specified class-level JUnit runners `@RunWith(MockitoJUnitRunner.class)` or `@ExtendWith(MockitoExtension.class)`.";
-    }
+    @Getter
+    final String description = "Remove `MockitoAnnotations.initMocks(this)` if specified class-level JUnit runners `@RunWith(MockitoJUnitRunner.class)` or `@ExtendWith(MockitoExtension.class)`.";
 
     private static final String MOCKITO_EXTENSION = "org.mockito.junit.jupiter.MockitoExtension";
     private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";

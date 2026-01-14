@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,15 +34,11 @@ public class JUnitAssertSameToAssertThat extends Recipe {
 
     private static final MethodMatcher ASSERT_SAME_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertSame(..)", true);
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit `assertSame` to AssertJ";
-    }
+    @Getter
+    final String displayName = "JUnit `assertSame` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit-style `assertSame()` to AssertJ's `assertThat().isSameAs()`.";
-    }
+    @Getter
+    final String description = "Convert JUnit-style `assertSame()` to AssertJ's `assertThat().isSameAs()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

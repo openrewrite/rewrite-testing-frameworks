@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -29,15 +30,11 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
 public class RemoveTimesZeroAndOne extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Remove `Mockito.times(0)` and `Mockito.times(1)`";
-    }
+    @Getter
+    final String displayName = "Remove `Mockito.times(0)` and `Mockito.times(1)`";
 
-    @Override
-    public String getDescription() {
-        return "Remove `Mockito.times(0)` and `Mockito.times(1)` from `Mockito.verify()` calls.";
-    }
+    @Getter
+    final String description = "Remove `Mockito.times(0)` and `Mockito.times(1)` from `Mockito.verify()` calls.";
 
     private static final MethodMatcher verifyMatcher = new MethodMatcher("org.mockito.Mockito verify(..)", false);
     private static final MethodMatcher timesMatcher = new MethodMatcher("org.mockito.Mockito times(int)", false);

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.AnnotationMatcher;
@@ -35,17 +36,13 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
     private static final String TEST_ANNOTATION_PATTERN = "org..* *Test*";
     private static final JavaType.Class KOTLIN_UNIT = (JavaType.Class) JavaType.buildType("kotlin.Unit");
 
-    @Override
-    public String getDisplayName() {
-        return "Kotlin test methods should have return type `Unit`";
-    }
+    @Getter
+    final String displayName = "Kotlin test methods should have return type `Unit`";
 
-    @Override
-    public String getDescription() {
-        return "Kotlin test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
-                "should have `Unit` return type. Other return types can cause test discovery issues, " +
-                "and warnings as of JUnit 5.13+. This recipe changes the return type to `Unit` and removes `return` statements.";
-    }
+    @Getter
+    final String description = "Kotlin test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
+            "should have `Unit` return type. Other return types can cause test discovery issues, " +
+            "and warnings as of JUnit 5.13+. This recipe changes the return type to `Unit` and removes `return` statements.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

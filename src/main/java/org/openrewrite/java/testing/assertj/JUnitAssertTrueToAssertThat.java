@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,15 +34,11 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
 
     private static final MethodMatcher ASSERT_TRUE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(boolean, ..)");
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit `assertTrue` to AssertJ";
-    }
+    @Getter
+    final String displayName = "JUnit `assertTrue` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit-style `assertTrue()` to AssertJ's `assertThat().isTrue()`.";
-    }
+    @Getter
+    final String description = "Convert JUnit-style `assertTrue()` to AssertJ's `assertThat().isTrue()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

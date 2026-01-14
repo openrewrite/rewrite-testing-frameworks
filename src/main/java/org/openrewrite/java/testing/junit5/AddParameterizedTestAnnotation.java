@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -44,17 +45,13 @@ public class AddParameterizedTestAnnotation extends Recipe {
             "ArgumentsSource"
     ).map(annotation -> new AnnotationMatcher("@org.junit.jupiter.params.provider." + annotation)).collect(toList());
 
-    @Override
-    public String getDisplayName() {
-        return "Add missing `@ParameterizedTest` annotation when `@ValueSource` is used or " +
-               "replace `@Test` with `@ParameterizedTest`";
-    }
+    @Getter
+    final String displayName = "Add missing `@ParameterizedTest` annotation when `@ValueSource` is used or " +
+            "replace `@Test` with `@ParameterizedTest`";
 
-    @Override
-    public String getDescription() {
-        return "Add missing `@ParameterizedTest` annotation when `@ValueSource` is used or " +
-               "replace `@Test` with `@ParameterizedTest`.";
-    }
+    @Getter
+    final String description = "Add missing `@ParameterizedTest` annotation when `@ValueSource` is used or " +
+            "replace `@Test` with `@ParameterizedTest`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

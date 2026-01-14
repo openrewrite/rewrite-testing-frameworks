@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.easymock;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -28,15 +29,11 @@ public class RemoveExtendsEasyMockSupport extends Recipe {
 
     private static final String EASYMOCK = "org.easymock.EasyMockSupport";
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate Test classes that extend `org.easymock.EasyMockSupport` to use Mockito";
-    }
+    @Getter
+    final String displayName = "Migrate Test classes that extend `org.easymock.EasyMockSupport` to use Mockito";
 
-    @Override
-    public String getDescription() {
-        return "Modify test classes by removing extends EasyMockSupport and replacing EasyMock methods with Mockito equivalents.";
-    }
+    @Getter
+    final String description = "Modify test classes by removing extends EasyMockSupport and replacing EasyMock methods with Mockito equivalents.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

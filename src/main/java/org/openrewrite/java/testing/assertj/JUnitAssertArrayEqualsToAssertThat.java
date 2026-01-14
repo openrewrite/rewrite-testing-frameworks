@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -37,15 +38,11 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     private static final String ASSERTJ = "org.assertj.core.api.Assertions";
     private static final MethodMatcher ASSERT_ARRAY_EQUALS_MATCHER = new MethodMatcher(JUNIT + " assertArrayEquals(..)", true);
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit `assertArrayEquals` to assertJ";
-    }
+    @Getter
+    final String displayName = "JUnit `assertArrayEquals` to assertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit-style `assertArrayEquals()` to AssertJ's `assertThat().contains()` equivalents.";
-    }
+    @Getter
+    final String description = "Convert JUnit-style `assertArrayEquals()` to AssertJ's `assertThat().contains()` equivalents.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

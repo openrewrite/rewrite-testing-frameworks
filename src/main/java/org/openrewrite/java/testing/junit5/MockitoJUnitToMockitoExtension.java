@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -53,15 +54,11 @@ import static java.util.stream.Collectors.toList;
  */
 public class MockitoJUnitToMockitoExtension extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `MockitoJUnit` to JUnit Jupiter `MockitoExtension`";
-    }
+    @Getter
+    final String displayName = "JUnit 4 `MockitoJUnit` to JUnit Jupiter `MockitoExtension`";
 
-    @Override
-    public String getDescription() {
-        return "Replaces `MockitoJUnit` rules with `MockitoExtension`.";
-    }
+    @Getter
+    final String description = "Replaces `MockitoJUnit` rules with `MockitoExtension`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

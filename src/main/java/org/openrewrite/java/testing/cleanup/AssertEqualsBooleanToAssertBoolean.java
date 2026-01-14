@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -30,15 +31,11 @@ public class AssertEqualsBooleanToAssertBoolean extends Recipe {
     private static final MethodMatcher ASSERT_EQUALS = new MethodMatcher(
             "org.junit.jupiter.api.Assertions assertEquals(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace JUnit `assertEquals(false, <boolean>)` to `assertFalse(<boolean>)` / `assertTrue(<boolean>)`";
-    }
+    @Getter
+    final String displayName = "Replace JUnit `assertEquals(false, <boolean>)` to `assertFalse(<boolean>)` / `assertTrue(<boolean>)`";
 
-    @Override
-    public String getDescription() {
-        return "Using `assertFalse` or `assertTrue` is simpler and more clear.";
-    }
+    @Getter
+    final String description = "Using `assertFalse` or `assertTrue` is simpler and more clear.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

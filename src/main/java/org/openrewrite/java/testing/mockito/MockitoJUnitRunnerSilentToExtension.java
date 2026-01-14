@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -37,15 +38,11 @@ import static java.util.Collections.singletonList;
 @Deprecated
 public class MockitoJUnitRunnerSilentToExtension extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 MockitoJUnitRunner.Silent to JUnit Jupiter MockitoExtension with LENIENT settings";
-    }
+    @Getter
+    final String displayName = "JUnit 4 MockitoJUnitRunner.Silent to JUnit Jupiter MockitoExtension with LENIENT settings";
 
-    @Override
-    public String getDescription() {
-        return "Replace `@RunWith(MockitoJUnitRunner.Silent.class)` with `@ExtendWith(MockitoExtension.class)` and `@MockitoSettings(strictness = Strictness.LENIENT)`.";
-    }
+    @Getter
+    final String description = "Replace `@RunWith(MockitoJUnitRunner.Silent.class)` with `@ExtendWith(MockitoExtension.class)` and `@MockitoSettings(strictness = Strictness.LENIENT)`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

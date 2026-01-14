@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -29,15 +30,11 @@ public class RemoveDuplicateTestTemplates extends Recipe {
     private static final AnnotationMatcher TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
     private static final AnnotationMatcher REPEATED_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.RepeatedTest");
 
-    @Override
-    public String getDisplayName() {
-        return "Remove duplicates uses of @TestTemplate implementations for a single method";
-    }
+    @Getter
+    final String displayName = "Remove duplicates uses of @TestTemplate implementations for a single method";
 
-    @Override
-    public String getDescription() {
-        return "Remove duplicates uses of @TestTemplate implementations for a single method.";
-    }
+    @Getter
+    final String description = "Remove duplicates uses of @TestTemplate implementations for a single method.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

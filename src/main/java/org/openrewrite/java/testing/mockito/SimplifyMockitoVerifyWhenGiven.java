@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -42,15 +43,11 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
     private static final MethodMatcher EQ_MATCHER = new MethodMatcher("org.mockito.ArgumentMatchers eq(..)");
     private static final MethodMatcher MOCKITO_EQ_MATCHER = new MethodMatcher("org.mockito.Mockito eq(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified";
-    }
+    @Getter
+    final String displayName = "Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified";
 
-    @Override
-    public String getDescription() {
-        return "Fixes Sonar issue `java:S6068`: Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified.";
-    }
+    @Getter
+    final String description = "Fixes Sonar issue `java:S6068`: Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified.";
 
     @Override
     public Set<String> getTags() {

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -57,15 +58,11 @@ public class SimplifyAssertJAssertion extends Recipe {
             example = "java.lang.String")
     String requiredType;
 
-    @Override
-    public String getDisplayName() {
-        return "Simplify AssertJ assertions with literal arguments";
-    }
+    @Getter
+    final String displayName = "Simplify AssertJ assertions with literal arguments";
 
-    @Override
-    public String getDescription() {
-        return "Simplify AssertJ assertions by replacing them with more expressive dedicated assertions.";
-    }
+    @Getter
+    final String description = "Simplify AssertJ assertions by replacing them with more expressive dedicated assertions.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

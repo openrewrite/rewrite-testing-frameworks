@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -31,15 +32,11 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
     private static final MethodMatcher ASSERT_INSTANCE_OF_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertInstanceOf(..)", true);
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit `assertInstanceOf` to AssertJ";
-    }
+    @Getter
+    final String displayName = "JUnit `assertInstanceOf` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit-style `assertInstanceOf()` to AssertJ's `assertThat().isInstanceOf()`.";
-    }
+    @Getter
+    final String description = "Convert JUnit-style `assertInstanceOf()` to AssertJ's `assertThat().isInstanceOf()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

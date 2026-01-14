@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -33,15 +34,11 @@ import static java.util.stream.Collectors.toList;
 
 public class AssertToAssertions extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `Assert` To JUnit Jupiter `Assertions`";
-    }
+    @Getter
+    final String displayName = "JUnit 4 `Assert` To JUnit Jupiter `Assertions`";
 
-    @Override
-    public String getDescription() {
-        return "Change JUnit 4's `org.junit.Assert` into JUnit Jupiter's `org.junit.jupiter.api.Assertions`.";
-    }
+    @Getter
+    final String description = "Change JUnit 4's `org.junit.Assert` into JUnit Jupiter's `org.junit.jupiter.api.Assertions`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -34,15 +35,11 @@ import java.time.Duration;
 public class AnyStringToNullable extends Recipe {
     private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.Mockito anyString()");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace Mockito 1.x `anyString()` with `nullable(String.class)`";
-    }
+    @Getter
+    final String displayName = "Replace Mockito 1.x `anyString()` with `nullable(String.class)`";
 
-    @Override
-    public String getDescription() {
-        return "Since Mockito 2.10 `anyString()` no longer matches null values. Use `nullable(Class)` instead.";
-    }
+    @Getter
+    final String description = "Since Mockito 2.10 `anyString()` no longer matches null values. Use `nullable(Class)` instead.";
 
     @Override
     public Duration getEstimatedEffortPerOccurrence() {

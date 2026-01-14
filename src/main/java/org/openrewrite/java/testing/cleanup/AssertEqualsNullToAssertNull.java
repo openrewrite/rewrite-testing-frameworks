@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -32,15 +33,11 @@ public class AssertEqualsNullToAssertNull extends Recipe {
     private static final MethodMatcher ASSERT_EQUALS = new MethodMatcher(
             "org.junit.jupiter.api.Assertions assertEquals(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "`assertEquals(a, null)` to `assertNull(a)`";
-    }
+    @Getter
+    final String displayName = "`assertEquals(a, null)` to `assertNull(a)`";
 
-    @Override
-    public String getDescription() {
-        return "Using `assertNull(a)` is simpler and more clear.";
-    }
+    @Getter
+    final String description = "Using `assertNull(a)` is simpler and more clear.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

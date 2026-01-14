@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
@@ -42,15 +43,11 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
     private static final MethodMatcher MOCKITO_MOCK = new MethodMatcher("org.mockito.Mockito mock(..)");
     private static final MethodMatcher PM_MOCK = new MethodMatcher("org.powermock.api.mockito.PowerMockito mock(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace `PowerMockito.whenNew` with Mockito counterpart";
-    }
+    @Getter
+    final String displayName = "Replace `PowerMockito.whenNew` with Mockito counterpart";
 
-    @Override
-    public String getDescription() {
-        return "Replaces `PowerMockito.whenNew` calls with respective `Mockito.whenConstructed` calls.";
-    }
+    @Getter
+    final String description = "Replaces `PowerMockito.whenNew` calls with respective `Mockito.whenConstructed` calls.";
 
     private static String extractClassName(J.FieldAccess fieldAccess) {
         Expression target = fieldAccess.getTarget();

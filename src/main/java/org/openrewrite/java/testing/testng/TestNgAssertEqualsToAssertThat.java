@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.testng;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,15 +34,11 @@ import java.util.List;
 
 public class TestNgAssertEqualsToAssertThat extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "TestNG `assertEquals` to AssertJ";
-    }
+    @Getter
+    final String displayName = "TestNG `assertEquals` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert TestNG-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";
-    }
+    @Getter
+    final String description = "Convert TestNG-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";
 
     private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertEquals(..)");
 

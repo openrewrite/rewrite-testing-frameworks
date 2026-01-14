@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -56,15 +57,11 @@ public class HamcrestMatcherToAssertJ extends Recipe {
     @Nullable
     String argumentType;
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate from Hamcrest `Matcher` to AssertJ";
-    }
+    @Getter
+    final String displayName = "Migrate from Hamcrest `Matcher` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Migrate from Hamcrest `Matcher` to AssertJ assertions.";
-    }
+    @Getter
+    final String description = "Migrate from Hamcrest `Matcher` to AssertJ assertions.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

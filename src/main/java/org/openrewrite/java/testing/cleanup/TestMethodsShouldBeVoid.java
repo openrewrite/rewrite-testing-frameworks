@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -34,17 +35,13 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     private static final String TEST_ANNOTATION_TYPE_PATTERN = "org..*Test";
 
-    @Override
-    public String getDisplayName() {
-        return "Test methods should have void return type";
-    }
+    @Getter
+    final String displayName = "Test methods should have void return type";
 
-    @Override
-    public String getDescription() {
-        return "Test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
-                "should have `void` return type. Non-void return types can cause test discovery issues, " +
-                "and warnings as of JUnit 5.13+. This recipe changes the return type to `void` and removes `return` statements.";
-    }
+    @Getter
+    final String description = "Test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
+            "should have `void` return type. Non-void return types can cause test discovery issues, " +
+            "and warnings as of JUnit 5.13+. This recipe changes the return type to `void` and removes `return` statements.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

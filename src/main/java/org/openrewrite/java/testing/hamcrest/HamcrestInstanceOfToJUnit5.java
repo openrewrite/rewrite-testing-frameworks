@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -31,15 +32,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HamcrestInstanceOfToJUnit5 extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Migrate from Hamcrest `instanceOf` matcher to JUnit 5";
-    }
+    @Getter
+    final String displayName = "Migrate from Hamcrest `instanceOf` matcher to JUnit 5";
 
-    @Override
-    public String getDescription() {
-        return "Migrate from Hamcrest `instanceOf` and `isA` matcher to JUnit5 `assertInstanceOf` assertion.";
-    }
+    @Getter
+    final String description = "Migrate from Hamcrest `instanceOf` and `isA` matcher to JUnit5 `assertInstanceOf` assertion.";
 
     private static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers instanceOf(..)");
     private static final MethodMatcher IS_A_MATCHER = new MethodMatcher("org.hamcrest.Matchers isA(..)");

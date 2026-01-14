@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -36,15 +37,11 @@ import static java.util.Objects.requireNonNull;
 public class CollapseConsecutiveAssertThatStatements extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Collapse consecutive `assertThat` statements";
-    }
+    @Getter
+    final String displayName = "Collapse consecutive `assertThat` statements";
 
-    @Override
-    public String getDescription() {
-        return "Collapse consecutive `assertThat` statements into single `assertThat` chained statement. This recipe ignores `assertThat` statements that have method invocation as parameter.";
-    }
+    @Getter
+    final String description = "Collapse consecutive `assertThat` statements into single `assertThat` chained statement. This recipe ignores `assertThat` statements that have method invocation as parameter.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

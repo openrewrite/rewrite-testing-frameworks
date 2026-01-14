@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
@@ -31,15 +32,11 @@ public class TempDirNonFinal extends Recipe {
     private static final AnnotationMatcher TEMPDIR_ANNOTATION_MATCHER = new AnnotationMatcher(
             "@org.junit.jupiter.api.io.TempDir");
 
-    @Override
-    public String getDisplayName() {
-        return "Make `@TempDir` fields non final";
-    }
+    @Getter
+    final String displayName = "Make `@TempDir` fields non final";
 
-    @Override
-    public String getDescription() {
-        return "Make JUnit 5's `org.junit.jupiter.api.io.TempDir` fields non final.";
-    }
+    @Getter
+    final String description = "Make JUnit 5's `org.junit.jupiter.api.io.TempDir` fields non final.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

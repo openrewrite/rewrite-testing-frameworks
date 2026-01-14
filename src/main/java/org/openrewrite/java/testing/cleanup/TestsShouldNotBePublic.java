@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.cleanup;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -50,15 +51,11 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
     @Nullable
     private Boolean removeProtectedModifiers;
 
-    @Override
-    public String getDisplayName() {
-        return "Remove `public` visibility of JUnit 5 tests";
-    }
+    @Getter
+    final String displayName = "Remove `public` visibility of JUnit 5 tests";
 
-    @Override
-    public String getDescription() {
-        return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll`. They no longer have to be public visibility to be usable by JUnit 5.";
-    }
+    @Getter
+    final String description = "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll`. They no longer have to be public visibility to be usable by JUnit 5.";
 
     @Override
     public Set<String> getTags() {

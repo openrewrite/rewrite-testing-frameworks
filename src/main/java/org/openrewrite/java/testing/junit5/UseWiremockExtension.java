@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,15 +34,11 @@ public class UseWiremockExtension extends Recipe {
 
     private static final MethodMatcher newWiremockRule = new MethodMatcher("com.github.tomakehurst.wiremock.junit.WireMockRule <constructor>(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Use wiremock extension";
-    }
+    @Getter
+    final String displayName = "Use wiremock extension";
 
-    @Override
-    public String getDescription() {
-        return "As of 2.31.0, wiremock [supports JUnit 5](https://wiremock.org/docs/junit-jupiter/) via an extension.";
-    }
+    @Getter
+    final String description = "As of 2.31.0, wiremock [supports JUnit 5](https://wiremock.org/docs/junit-jupiter/) via an extension.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

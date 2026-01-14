@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -38,15 +39,11 @@ public class SimplifyHasSizeAssertion extends Recipe {
 
     private static final String HAS_SAME_SIZE_AS = "hasSameSizeAs";
 
-    @Override
-    public String getDisplayName() {
-        return "Simplify AssertJ assertions with `hasSize` argument";
-    }
+    @Getter
+    final String displayName = "Simplify AssertJ assertions with `hasSize` argument";
 
-    @Override
-    public String getDescription() {
-        return "Simplify AssertJ assertions by replacing `hasSize` with `hasSameSizeAs` dedicated assertions.";
-    }
+    @Getter
+    final String description = "Simplify AssertJ assertions by replacing `hasSize` with `hasSameSizeAs` dedicated assertions.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

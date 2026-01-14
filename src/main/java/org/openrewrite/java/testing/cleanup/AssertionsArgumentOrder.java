@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -83,15 +84,11 @@ public class AssertionsArgumentOrder extends Recipe {
         precondition = Preconditions.or(matchers.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new));
     }
 
-    @Override
-    public String getDisplayName() {
-        return "Assertion arguments should be passed in the correct order";
-    }
+    @Getter
+    final String displayName = "Assertion arguments should be passed in the correct order";
 
-    @Override
-    public String getDescription() {
-        return "Assertions such as `org.junit.Assert.assertEquals` expect the first argument to be the expected value and the second argument to be the actual value; for `org.testng.Assert`, it’s the other way around.  This recipe detects `J.Literal`, `J.NewArray`, and `java.util.Iterable` arguments swapping them if necessary so that the error messages won't be confusing.";
-    }
+    @Getter
+    final String description = "Assertions such as `org.junit.Assert.assertEquals` expect the first argument to be the expected value and the second argument to be the actual value; for `org.testng.Assert`, it’s the other way around.  This recipe detects `J.Literal`, `J.NewArray`, and `java.util.Iterable` arguments swapping them if necessary so that the error messages won't be confusing.";
 
     @Override
     public Set<String> getTags() {

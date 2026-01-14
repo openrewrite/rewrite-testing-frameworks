@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -42,15 +43,11 @@ public class CsvSourceToValueSource extends Recipe {
     private static final AnnotationMatcher CSV_SOURCE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.CsvSource");
     private static final AnnotationMatcher VALUE_SOURCE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.ValueSource");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace `@CsvSource` with `@ValueSource` for single method arguments";
-    }
+    @Getter
+    final String displayName = "Replace `@CsvSource` with `@ValueSource` for single method arguments";
 
-    @Override
-    public String getDescription() {
-        return "Replaces JUnit 5's `@CsvSource` annotation with `@ValueSource` when the parameterized test has only a single method argument.";
-    }
+    @Getter
+    final String description = "Replaces JUnit 5's `@CsvSource` annotation with `@ValueSource` when the parameterized test has only a single method argument.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

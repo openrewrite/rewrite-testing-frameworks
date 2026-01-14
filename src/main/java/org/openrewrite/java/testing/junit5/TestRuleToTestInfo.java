@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -33,15 +34,11 @@ import java.util.List;
 
 public class TestRuleToTestInfo extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit TestName @Rule to JUnit Jupiter TestInfo";
-    }
+    @Getter
+    final String displayName = "JUnit TestName @Rule to JUnit Jupiter TestInfo";
 
-    @Override
-    public String getDescription() {
-        return "Replace usages of JUnit 4's `@Rule TestName` with JUnit 5's TestInfo.";
-    }
+    @Getter
+    final String description = "Replace usages of JUnit 4's `@Rule TestName` with JUnit 5's TestInfo.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

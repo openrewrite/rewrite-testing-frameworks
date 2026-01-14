@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -49,15 +50,11 @@ public class HandleExternalResourceRules extends Recipe {
     private static final AnnotationMatcher EXTEND_WITH_ANNOTATION_MATCHER = new AnnotationMatcher(format("@%s(%s.class)", EXTEND_WITH, EXTERNAL_RESOURCE_SUPPORT), true);
     private static final String RULE = "org.junit.Rule";
 
-    @Override
-    public String getDisplayName() {
-        return "Handle the usage of ExternalResourceRule fields using @ExtendWith(ExternalResourceSupport.class)";
-    }
+    @Getter
+    final String displayName = "Handle the usage of ExternalResourceRule fields using @ExtendWith(ExternalResourceSupport.class)";
 
-    @Override
-    public String getDescription() {
-        return "Handles the usage of the ExternalResourceRule fields by adding the @ExtendWith(ExternalResourceSupport.class) annotation to the test class.";
-    }
+    @Getter
+    final String description = "Handles the usage of the ExternalResourceRule fields by adding the @ExtendWith(ExternalResourceSupport.class) annotation to the test class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
