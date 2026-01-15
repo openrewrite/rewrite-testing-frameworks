@@ -125,6 +125,81 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
         );
     }
 
+//    @Test
+//    void wip() {
+//        rewriteRun(
+//          //language=java
+//          java(
+//            """
+//              import okhttp3.Headers;
+//              import okhttp3.mockwebserver.MockResponse;
+//
+//              class A {
+//                  void someMethod() {
+//                      Headers headers = new Headers.Builder().build();
+//                      MockResponse a = new MockResponse();
+//                      // .status(String): void
+//                      // .getStatus(): String
+//                      // --
+//                      // .setStatus(String): MockResponse[this]
+//                      // ---
+//                      // .headers(Headers): void
+//                      // .setHeaders(Headers): MockResponse
+//                      // .getHeaders(): Headers
+//                      // ---
+//                      // .addHeader(String): MockResponse
+//                      // .addHeader(String,Object): MockResponse
+//                      // .addHeaderLenient(String,Object): MockResponse
+//                      // ---
+//                      // .setHeader(String,Object): MockResponse
+//                      // .removeHeader(String): MockResponse
+//                      // .clearHeaders(): MockResponse
+//                      a.header
+//                      a.trailers(headers);
+//                  }
+//              }
+//              """
+//          )
+//        );
+//    }
+
+    @DocumentExample
+    @Test
+    void shouldUpgradeMavenDependency() {
+        rewriteRun(
+          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer"),
+          mavenProject("project",
+            // TODO: handle solely J.NewClass and update declarative recipe to include new one.
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>com.squareup.okhttp3</groupId>
+                      <artifactId>mockwebserver</artifactId>
+                      <version>4.10.0</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom ->
+                assertThat(pom)
+                  .doesNotContain("<artifactId>mockwebserver</artifactId>")
+                  .contains("<artifactId>mockwebserver3</artifactId>")
+                  .containsPattern("<version>5\\.(.*)</version>")
+                  .actual()
+              )
+            )
+          )
+        );
+    }
+
     // TODO: methods receiving MockResponse - maybe add comment instructing to double check?
     @Test
     void shouldMigrateMockResponseToBuilder() {
