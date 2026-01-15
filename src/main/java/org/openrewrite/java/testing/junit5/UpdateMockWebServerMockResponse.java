@@ -30,11 +30,8 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
@@ -47,8 +44,6 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String OLD_PACKAGE_NAME = "okhttp3.mockwebserver";
@@ -59,22 +54,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String NEW_MOCKRESPONSE_FQN_BUILDER = NEW_MOCKRESPONSE_FQN + "$Builder";
 
     private static final JavaType.FullyQualified newMockResponseBuilderType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN_BUILDER);
-    private static final JavaType.FullyQualified newMockResponseType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
-
-    private static J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation method, JavaType.FullyQualified newDeclaringType, JavaType newReturnType, String newName) {
-        assert method.getMethodType() != null;
-        J.MethodInvocation updated = method.withMethodType(
-                method.getMethodType()
-                        .withDeclaringType(newDeclaringType)
-                        .withReturnType(newReturnType)
-                        .withName(newName)
-        );
-        return updated.withName(
-                updated.getName()
-                        .withSimpleName(newName)
-                        .withType(updated.getMethodType())
-        );
-    }
 
     private static class MethodInvocationReplacement {
         private final MethodMatcher methodMatcher;
@@ -89,11 +68,17 @@ public class UpdateMockWebServerMockResponse extends Recipe {
         }
 
         private J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation method) {
-            return UpdateMockWebServerMockResponse.patchReturnTypeAndName(
-                    method,
-                    newMockResponseBuilderType,
-                    newMockResponseBuilderType,
-                    newName
+            assert method.getMethodType() != null;
+            J.MethodInvocation updated = method.withMethodType(
+                    method.getMethodType()
+                            .withDeclaringType(UpdateMockWebServerMockResponse.newMockResponseBuilderType)
+                            .withReturnType(UpdateMockWebServerMockResponse.newMockResponseBuilderType)
+                            .withName(newName)
+            );
+            return updated.withName(
+                    updated.getName()
+                            .withSimpleName(newName)
+                            .withType(updated.getMethodType())
             );
         }
     }
@@ -189,7 +174,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         NEW_PACKAGE_NAME,
                         false
                 ).getVisitor().visit(j, ctx);
-                j = new JavaIsoVisitor<ExecutionContext>() {
+                return new JavaIsoVisitor<ExecutionContext>() {
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -236,7 +221,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         return replacement;
                     }
                 }.visit(j, ctx);
-                return j;
             }
         });
     }
