@@ -198,7 +198,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
 
                         // Wrap MockResponse.Builder arguments with .build()
                         Cursor methodCursor = getCursor();
-                        replacement = mi.withArguments(ListUtils.map(mi.getArguments(), (index, arg) -> {
+                        return mi.withArguments(ListUtils.map(mi.getArguments(), (index, arg) -> {
                             if (indices.contains(index) && TypeUtils.isAssignableTo(NEW_MOCKRESPONSE_FQN_BUILDER, arg.getType())) {
                                 Cursor argCursor = new Cursor(methodCursor, arg);
                                 boolean isChainedCall = arg instanceof J.MethodInvocation;
@@ -217,8 +217,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                             }
                             return arg;
                         }));
-
-                        return replacement;
                     }
                 }.visit(j, ctx);
             }
