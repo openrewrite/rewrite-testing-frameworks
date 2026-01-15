@@ -100,8 +100,8 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             J.ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
 
             if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface &&
-                    c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public) &&
-                    c.getModifiers().stream().noneMatch(mod -> mod.getType() == J.Modifier.Type.Abstract) &&
+                    c.hasModifier(J.Modifier.Type.Public) &&
+                    !c.hasModifier(J.Modifier.Type.Abstract) &&
                     !acc.extendedClasses.contains(String.valueOf(c.getType()))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
@@ -111,13 +111,13 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                 boolean hasPublicNonTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
-                        .filter(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public))
+                        .filter(m -> m.hasModifier(J.Modifier.Type.Public))
                         .anyMatch(method -> !hasJUnit5MethodAnnotation(method));
 
                 boolean hasPublicVariableDeclarations = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)
                         .map(J.VariableDeclarations.class::cast)
-                        .anyMatch(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public));
+                        .anyMatch(m -> m.hasModifier(J.Modifier.Type.Public));
 
                 if (hasTestMethods && !hasPublicNonTestMethods && !hasPublicVariableDeclarations) {
                     // Remove public modifier and move associated comment
