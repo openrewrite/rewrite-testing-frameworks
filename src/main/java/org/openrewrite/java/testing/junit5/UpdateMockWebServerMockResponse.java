@@ -32,7 +32,9 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
@@ -45,6 +47,8 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String OLD_PACKAGE_NAME = "okhttp3.mockwebserver";
@@ -202,17 +206,29 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                             return replacement;
                         }
 
+                        List<Integer> indices = methodInvocationsToAdjust.remove(mi.getId());
+                        if (indices == null || indices.isEmpty()) {
+                            return mi;
+                        }
+
                         // Wrap MockResponse.Builder arguments with .build()
                         Cursor methodCursor = getCursor();
-                        replacement = mi.withArguments(ListUtils.map(mi.getArguments(), arg -> {
-                            if (TypeUtils.isAssignableTo(NEW_MOCKRESPONSE_FQN_BUILDER, arg.getType())) {
+                        replacement = mi.withArguments(ListUtils.map(mi.getArguments(), (index, arg) -> {
+                            if (indices.contains(index) && TypeUtils.isAssignableTo(NEW_MOCKRESPONSE_FQN_BUILDER, arg.getType())) {
                                 Cursor argCursor = new Cursor(methodCursor, arg);
-                                return JavaTemplate
-                                        .builder("#{any(mockwebserver3.MockResponse$Builder)}.build()")
+                                boolean isChainedCall = arg instanceof J.MethodInvocation;
+                                String nl = isChainedCall ? "\n" : "";
+                                J.MethodInvocation transformed = JavaTemplate
+                                        .builder("#{any(mockwebserver3.MockResponse$Builder)}" + nl + ".build()")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
                                         .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
                                         .build()
                                         .apply(argCursor, arg.getCoordinates().replace(), arg);
+
+                                if (isChainedCall) {
+                                    transformed = transformed.withPrefix(arg.getPrefix());
+                                }
+                                return transformed;
                             }
                             return arg;
                         }));
