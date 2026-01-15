@@ -214,10 +214,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                                     transformed = transformed.withPrefix(arg.getPrefix());
                                 }
                                 return transformed;
-                            }
-                            return arg;
                         }));
-                    }
                 }.visit(j, ctx);
             }
         });
