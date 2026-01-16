@@ -62,10 +62,7 @@ public class AddMissingNested extends Recipe {
         return Duration.ofMinutes(1);
     }
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S5790");
-    }
+    Set<String> tags = singleton("RSPEC-S5790");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

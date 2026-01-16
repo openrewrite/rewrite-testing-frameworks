@@ -49,10 +49,8 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
     @Getter
     final String description = "Fixes Sonar issue `java:S6068`: Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified.";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-6068");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-6068");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

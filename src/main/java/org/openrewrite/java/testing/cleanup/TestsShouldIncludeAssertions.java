@@ -71,10 +71,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     String description = "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`.";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S2699");
-    }
+    Set<String> tags = singleton("RSPEC-S2699");
 
     @Override
     public Validated<Object> validate() {

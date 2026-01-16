@@ -44,10 +44,8 @@ public class RemoveEmptyTests extends Recipe {
         return Duration.ofMinutes(2);
     }
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S1186");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S1186");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

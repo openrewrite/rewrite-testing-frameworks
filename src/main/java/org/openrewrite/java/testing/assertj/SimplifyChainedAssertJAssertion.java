@@ -73,10 +73,8 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
     @Getter
     final String displayName = "Simplify AssertJ chained assertions";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S5838");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S5838");
 
     @Getter
     final String description = "Many AssertJ chained assertions have dedicated assertions that function the same. " +
