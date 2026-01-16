@@ -30,6 +30,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
@@ -54,6 +55,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String NEW_MOCKRESPONSE_FQN_BUILDER = NEW_MOCKRESPONSE_FQN + "$Builder";
 
     private static final JavaType.FullyQualified newMockResponseBuilderType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN_BUILDER);
+    private static final JavaType.FullyQualified newMockResponseType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
 
     private static class MethodInvocationReplacement {
         private final MethodMatcher methodMatcher;
@@ -213,10 +215,49 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                                 if (isChainedCall) {
                                     transformed = transformed.withPrefix(arg.getPrefix());
                                 }
-                                return transformed;
+                                return patchBuilderBuildReturnTypeAndName(transformed);
+                            }
+                            return arg;
                         }));
+                    }
                 }.visit(j, ctx);
             }
         });
+    }
+
+    private static J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation mi, JavaType.Method method, JavaType.FullyQualified declaringType, JavaType returnType, String newName) {
+        assert method != null;
+        J.MethodInvocation updated = mi.withMethodType(
+                method.withDeclaringType(declaringType)
+                        .withReturnType(returnType)
+                        .withName(newName)
+        );
+        return updated.withName(
+                updated.getName()
+                        .withSimpleName(newName)
+                        .withType(updated.getMethodType())
+        );
+    }
+
+    private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
+        return patchReturnTypeAndName(
+                builder,
+                new JavaType.Method(
+                        null,
+                        Flag.Public.getBitMask() | Flag.Final.getBitMask(),
+                        newMockResponseBuilderType,
+                        "build",
+                        newMockResponseType,
+                        (List<String>) null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                ),
+                newMockResponseBuilderType,
+                newMockResponseType,
+                "build"
+        );
     }
 }
