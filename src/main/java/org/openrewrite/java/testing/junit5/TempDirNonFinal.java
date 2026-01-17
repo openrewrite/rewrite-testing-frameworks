@@ -72,8 +72,6 @@ public class TempDirNonFinal extends Recipe {
         return true;
     }
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 }
