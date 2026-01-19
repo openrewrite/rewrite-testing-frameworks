@@ -62,9 +62,9 @@ recipeDependencies {
     testParserClasspath("org.testcontainers:testcontainers-localstack:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-mysql:2.0.1")
 
-
     testParserClasspath("com.squareup.okhttp3:okhttp:4.10.0")
     testParserClasspath("com.squareup.okhttp3:okhttp-jvm:5.1.0")
+    testParserClasspath("com.squareup.okio:okio:3.12.0")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()

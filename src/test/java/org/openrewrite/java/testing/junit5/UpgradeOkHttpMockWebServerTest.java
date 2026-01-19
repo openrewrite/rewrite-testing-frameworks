@@ -33,7 +33,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10", "okhttp-4.10", "junit-4"))
+            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10", "okhttp-4.10", "okio-jvm-3.12", "junit-4"))
           .recipeFromYaml(
             """
               ---
@@ -46,8 +46,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
               """,
             "org.openrewrite.test.MigrateMockResponse"
           );
-//          .recipe(new UpdateMockWebServerMockResponse());
-          //.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer");
     }
 
     @DocumentExample
@@ -108,6 +106,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                   private okhttp3.mockwebserver.MockResponse mockResponse2 = new okhttp3.mockwebserver.MockResponse();
                   {
                       mockResponse.status("b");
+                      mockResponse2.setBody("Lorem ipsum");
                       mockResponse.headers(headersBuilder.build());
                       mockWebServer.enqueue(mockResponse);
                       mockResponse.setStatus("c");
@@ -148,6 +147,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                   private MockResponse.Builder mockResponse2 = new MockResponse.Builder();
                   {
                       mockResponse.status("b");
+                      mockResponse2.body("Lorem ipsum");
                       mockResponse.headers(headersBuilder.build());
                       mockWebServer.enqueue(mockResponse.build());
                       mockResponse.status("c");
@@ -170,6 +170,116 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                                       .status("hi")
                                       .headers(headersBuilder.build())
                                       .build());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void adaptMockResponseArgToBuilder() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import okhttp3.Headers;
+              import okhttp3.mockwebserver.MockResponse;
+              import okhttp3.mockwebserver.MockWebServer;
+              import java.util.concurrent.TimeUnit;
+
+              class A {
+                  private MockResponse mockResponse;
+                  private MockWebServer mockWebServer = new MockWebServer();
+                  A() {
+                      mockWebServer.enqueue(createMockResponse());
+                  }
+                  MockResponse createMockResponse() {
+                      MockResponse mockResponse = new MockResponse();
+                      configure(mockResponse);
+                      return mockResponse;
+                  }
+                  void configure(MockResponse mockResponse) {
+                      mockResponse.setStatus("a");
+                      mockResponse.setChunkedBody("Lorem ipsum", 2048);
+                      mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
+                  }
+              }
+              """,
+            """
+              import mockwebserver3.MockResponse;
+              import okhttp3.Headers;
+              import mockwebserver3.MockWebServer;
+              import java.util.concurrent.TimeUnit;
+
+              class A {
+                  private MockResponse.Builder mockResponse;
+                  private MockWebServer mockWebServer = new MockWebServer();
+                  A() {
+                      mockResponse = createMockResponse();
+                  }
+                  MockResponse.Builder createMockResponse() {
+                      MockResponse mockResponse = new MockResponse.Builder();
+                      configure(mockResponse);
+                      return mockResponse;
+                  }
+                  void configure(MockResponse.Builder mockResponse) {
+                      mockResponse.status("a");
+                      mockResponse.chunkedBody("Lorem ipsum", 2048);
+                      mockResponse.headersDelay(30L, TimeUnit.SECONDS);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void verifyMockResponseToBuilderMethodCoverage() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import okhttp3.Headers;
+              import okhttp3.mockwebserver.MockResponse;
+              import java.util.concurrent.TimeUnit;
+              import okhttp3.mockwebserver.MockWebServer;
+              import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
+
+              class A {
+                  void configureFully(MockResponse mockResponse) {
+                      mockResponse.setBody("Lorem ipsum");
+                      mockResponse.setBodyDelay(30L, TimeUnit.SECONDS);
+                      mockResponse.setChunkedBody("Lorem ipsum", 2048);
+                      mockResponse.setHeaders(new Headers.Builder().add("accept:application/json").build());
+                      mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
+                      mockResponse.setHttp2ErrorCode(500);
+                      mockResponse.setResponseCode(200);
+                      mockResponse.setSocketPolicy(DISCONNECT_AT_START);
+                      mockResponse.setStatus("OK");
+                      mockResponse.setTrailers(new Headers.Builder().add("x-trailer:value").build());
+                  }
+              }
+              """,
+            """
+              import mockwebserver3.MockResponse;
+              import okhttp3.Headers;
+              import java.util.concurrent.TimeUnit;
+              import mockwebserver3.MockWebServer;
+              import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
+
+              class A {
+                  void configureFully(MockResponse mockResponse) {
+                      mockResponse.body("Lorem ipsum");
+                      mockResponse.bodyDelay(30L, TimeUnit.SECONDS);
+                      mockResponse.chunkedBody("Lorem ipsum", 2048);
+                      mockResponse.headers(new Headers.Builder().add("accept:application/json").build());
+                      mockResponse.headersDelay(30L, TimeUnit.SECONDS);
+                      mockResponse.code(500);
+                      mockResponse.code(200);
+                      mockResponse.socketPolicy(DISCONNECT_AT_START);
+                      mockResponse.status("OK");
+                      mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
                   }
               }
               """

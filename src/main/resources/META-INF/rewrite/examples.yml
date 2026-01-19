@@ -3478,23 +3478,6 @@ recipeName: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
 examples:
 - description: '`UpgradeOkHttpMockWebServerTest#shouldUpgradeMavenDependency`'
   sources:
-  - before: |
-      import okhttp3.mockwebserver.MockWebServer;
-
-      class Test {
-          void test() {
-              MockWebServer server = new MockWebServer();
-          }
-      }
-    after: |
-      import mockwebserver3.MockWebServer;
-
-      class Test {
-          void test() {
-              MockWebServer server = new MockWebServer();
-          }
-      }
-    language: java
   - before: project
     language: mavenProject
   - before: |
@@ -3508,6 +3491,7 @@ examples:
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
             <version>4.10.0</version>
+            <scope>test</scope>
           </dependency>
         </dependencies>
       </project>

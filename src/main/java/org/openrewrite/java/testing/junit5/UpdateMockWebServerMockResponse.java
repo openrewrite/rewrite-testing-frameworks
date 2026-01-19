@@ -86,14 +86,9 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     }
 
     private static final List<MethodInvocationReplacement> methodInvocationReplacements = Arrays.asList(
-            new MethodInvocationReplacement("addHeader(java.lang.String)", "addHeader"),
-            new MethodInvocationReplacement("addHeader(java.lang.String, ..)", "addHeader"),
-            new MethodInvocationReplacement("addHeaderLenient(java.lang.String, ..)", "addHeaderLenient"),
-            new MethodInvocationReplacement("setBody(okio.Buffer)", "body"),
-            new MethodInvocationReplacement("setBody(java.lang.String)", "body"),
+            new MethodInvocationReplacement("setBody(*)", "body"),
             new MethodInvocationReplacement("setBodyDelay(java.lang.Long, java.util.concurrent.TimeUnit)", "bodyDelay"),
-            new MethodInvocationReplacement("setChunkedBody(java.lang.String, java.lang.Integer)", "chunkedBody"),
-            new MethodInvocationReplacement("setChunkedBody(okio.Buffer, java.lang.Integer)", "chunkedBody"),
+            new MethodInvocationReplacement("setChunkedBody(*, java.lang.Integer)", "chunkedBody"),
             new MethodInvocationReplacement("setErrorCode(java.lang.Integer)", "code"),
             new MethodInvocationReplacement("setHeader(java.lang.String, ..)", "header"),
             new MethodInvocationReplacement("setHeaders(okhttp3.Headers)", "headers"),
@@ -220,6 +215,29 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                             return arg;
                         }));
                     }
+
+                    private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
+                        return patchReturnTypeAndName(
+                                builder,
+                                new JavaType.Method(
+                                        null,
+                                        Flag.Public.getBitMask() | Flag.Final.getBitMask(),
+                                        newMockResponseBuilderType,
+                                        "build",
+                                        newMockResponseType,
+                                        (List<String>) null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null
+                                ),
+                                newMockResponseBuilderType,
+                                newMockResponseType,
+                                "build"
+                        );
+                    }
+
                 }.visit(j, ctx);
             }
         });
@@ -236,28 +254,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                 updated.getName()
                         .withSimpleName(newName)
                         .withType(updated.getMethodType())
-        );
-    }
-
-    private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
-        return patchReturnTypeAndName(
-                builder,
-                new JavaType.Method(
-                        null,
-                        Flag.Public.getBitMask() | Flag.Final.getBitMask(),
-                        newMockResponseBuilderType,
-                        "build",
-                        newMockResponseType,
-                        (List<String>) null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                ),
-                newMockResponseBuilderType,
-                newMockResponseType,
-                "build"
         );
     }
 }
