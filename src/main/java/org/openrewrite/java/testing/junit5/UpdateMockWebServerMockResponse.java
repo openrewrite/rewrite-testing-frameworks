@@ -61,7 +61,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
         private final MethodMatcher methodMatcher;
         private final String newName;
         private MethodInvocationReplacement(String oldMethodPattern, String newName) {
-            this.methodMatcher = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER + "#" + oldMethodPattern);
+            this.methodMatcher = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER.replace("$",".") + "#" + oldMethodPattern);
             this.newName = newName;
         }
 
@@ -87,15 +87,15 @@ public class UpdateMockWebServerMockResponse extends Recipe {
 
     private static final List<MethodInvocationReplacement> methodInvocationReplacements = Arrays.asList(
             new MethodInvocationReplacement("setBody(*)", "body"),
-            new MethodInvocationReplacement("setBodyDelay(java.lang.Long, java.util.concurrent.TimeUnit)", "bodyDelay"),
-            new MethodInvocationReplacement("setChunkedBody(*, java.lang.Integer)", "chunkedBody"),
-            new MethodInvocationReplacement("setErrorCode(java.lang.Integer)", "code"),
-            new MethodInvocationReplacement("setHeader(java.lang.String, ..)", "header"),
+            new MethodInvocationReplacement("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay"),
+            new MethodInvocationReplacement("setChunkedBody(*, int)", "chunkedBody"),
+            new MethodInvocationReplacement("setErrorCode(int)", "code"),
             new MethodInvocationReplacement("setHeaders(okhttp3.Headers)", "headers"),
-            new MethodInvocationReplacement("setHeadersDelay(java.lang.Long, java.util.concurrent.TimeUnit)", "headersDelay"),
-            new MethodInvocationReplacement("setResponseCode(java.lang.Integer)", "code"),
+            new MethodInvocationReplacement("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay"),
+            new MethodInvocationReplacement("setHttp2ErrorCode(int)", "code"),
+            new MethodInvocationReplacement("setResponseCode(int)", "code"),
             new MethodInvocationReplacement("setStatus(java.lang.String)", "status"),
-            new MethodInvocationReplacement("setThrottleBody(java.lang.Long, java.lang.Long, java.util.concurrent.TimeUnit)", "throttleBody"),
+            new MethodInvocationReplacement("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody"),
             new MethodInvocationReplacement("setTrailers(okhttp3.Headers)", "trailers")
     );
 

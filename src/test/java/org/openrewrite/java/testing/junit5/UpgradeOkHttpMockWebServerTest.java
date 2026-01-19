@@ -143,7 +143,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                   private MockResponse.Builder mockResponse = new MockResponse.Builder()
                       .status("a")
                       .headers(headersBuilder.build())
-                      .header("headerA", "someValue");
+                      .setHeader("headerA", "someValue");
                   private MockResponse.Builder mockResponse2 = new MockResponse.Builder();
                   {
                       mockResponse.status("b");
@@ -178,55 +178,38 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
     }
 
     @Test
-    void adaptMockResponseArgToBuilder() {
+    void typicalUseCase() {
         rewriteRun(
           //language=java
           java(
             """
-              import okhttp3.Headers;
               import okhttp3.mockwebserver.MockResponse;
               import okhttp3.mockwebserver.MockWebServer;
-              import java.util.concurrent.TimeUnit;
 
-              class A {
-                  private MockResponse mockResponse;
+              class ApiUnitTest {
                   private MockWebServer mockWebServer = new MockWebServer();
-                  A() {
-                      mockWebServer.enqueue(createMockResponse());
-                  }
-                  MockResponse createMockResponse() {
-                      MockResponse mockResponse = new MockResponse();
-                      configure(mockResponse);
-                      return mockResponse;
-                  }
-                  void configure(MockResponse mockResponse) {
-                      mockResponse.setStatus("a");
-                      mockResponse.setChunkedBody("Lorem ipsum", 2048);
-                      mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
+                  void testGet() {
+                      String body = "{\\"message\\":\\"Hello, World!\\"}";
+                      mockWebServer.enqueue(new MockResponse()
+                              .setHeader("Content-Type", "application/json; charset=utf-8")
+                              .setBody(body)
+                              .setResponseCode(200));
                   }
               }
               """,
             """
               import mockwebserver3.MockResponse;
-              import okhttp3.Headers;
               import mockwebserver3.MockWebServer;
-              import java.util.concurrent.TimeUnit;
 
-              class A {
-                  private MockResponse.Builder mockResponse;
+              class ApiUnitTest {
                   private MockWebServer mockWebServer = new MockWebServer();
-                  A() {
-                      mockResponse = createMockResponse();
-                  }
-                  MockResponse.Builder createMockResponse() {
-                      MockResponse mockResponse = new MockResponse.Builder();
-                      configure(mockResponse);
-                      return mockResponse;
-                  }
-                  void configure(MockResponse.Builder mockResponse) {
-                      mockResponse.status("a");
-                      mockResponse.chunkedBody("Lorem ipsum", 2048);
-                      mockResponse.headersDelay(30L, TimeUnit.SECONDS);
+                  void testGet() {
+                      String body = "{\\"message\\":\\"Hello, World!\\"}";
+                      mockWebServer.enqueue(new MockResponse.Builder()
+                              .setHeader("Content-Type", "application/json; charset=utf-8")
+                              .body(body)
+                              .code(200)
+                              .build());
                   }
               }
               """
@@ -244,7 +227,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
               import okhttp3.mockwebserver.MockResponse;
               import java.util.concurrent.TimeUnit;
               import okhttp3.mockwebserver.MockWebServer;
-              import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
 
               class A {
                   void configureFully(MockResponse mockResponse) {
@@ -255,7 +237,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
                       mockResponse.setHttp2ErrorCode(500);
                       mockResponse.setResponseCode(200);
-                      mockResponse.setSocketPolicy(DISCONNECT_AT_START);
                       mockResponse.setStatus("OK");
                       mockResponse.setTrailers(new Headers.Builder().add("x-trailer:value").build());
                   }
@@ -266,10 +247,9 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
               import okhttp3.Headers;
               import java.util.concurrent.TimeUnit;
               import mockwebserver3.MockWebServer;
-              import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
 
               class A {
-                  void configureFully(MockResponse mockResponse) {
+                  void configureFully(MockResponse.Builder mockResponse) {
                       mockResponse.body("Lorem ipsum");
                       mockResponse.bodyDelay(30L, TimeUnit.SECONDS);
                       mockResponse.chunkedBody("Lorem ipsum", 2048);
@@ -277,7 +257,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       mockResponse.headersDelay(30L, TimeUnit.SECONDS);
                       mockResponse.code(500);
                       mockResponse.code(200);
-                      mockResponse.socketPolicy(DISCONNECT_AT_START);
                       mockResponse.status("OK");
                       mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
                   }
