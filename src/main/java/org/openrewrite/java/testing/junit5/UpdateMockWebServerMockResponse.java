@@ -53,8 +53,10 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String NEW_MOCKRESPONSE_FQN = NEW_PACKAGE_NAME + ".MockResponse";
     private static final String NEW_MOCKRESPONSE_FQN_BUILDER = NEW_MOCKRESPONSE_FQN + "$Builder";
 
-    private static final JavaType.FullyQualified newMockResponseBuilderType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN_BUILDER);
-    private static final JavaType.FullyQualified newMockResponseType = (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
+    private static final JavaType.FullyQualified newMockResponseBuilderType =
+            (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN_BUILDER);
+    private static final JavaType.FullyQualified newMockResponseType =
+            (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
 
     private static class MethodInvocationReplacement {
         private final MethodMatcher methodMatcher;
