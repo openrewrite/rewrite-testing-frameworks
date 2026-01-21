@@ -95,7 +95,10 @@ public class UpdateMockWebServerMockResponse extends Recipe {
             new MethodInvocationReplacement("setResponseCode(int)", "code"),
             new MethodInvocationReplacement("setStatus(java.lang.String)", "status"),
             new MethodInvocationReplacement("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody"),
-            new MethodInvocationReplacement("setTrailers(okhttp3.Headers)", "trailers")
+            new MethodInvocationReplacement("setTrailers(okhttp3.Headers)", "trailers"),
+            new MethodInvocationReplacement("withPush(mockwebserver3.PushPromise)", "addPush"),
+            new MethodInvocationReplacement("withSettings(okhttp3.internal.http2.Settings)", "settings"),
+            new MethodInvocationReplacement("withWebSocketUpgrade(okhttp3.WebSocketListener)", "webSocketUpgrade")
     );
 
     @Getter

@@ -201,11 +201,18 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
             """
               import okio.Buffer;
               import okhttp3.Headers;
+              import okhttp3.WebSocketListener;
+              import okhttp3.internal.http2.Settings;
               import okhttp3.mockwebserver.MockResponse;
+              import okhttp3.mockwebserver.PushPromise;
               import java.util.concurrent.TimeUnit;
               import okhttp3.mockwebserver.MockWebServer;
 
               class A {
+                  PushPromise pushPromise;
+                  Settings settings;
+                  WebSocketListener webSocketListener;
+
                   void configureFully(MockResponse mockResponse) {
                       MockResponse mrA = mockResponse.addHeader("accept:application/json");
                       MockResponse mrB = mockResponse.addHeader("accept", "application/json");
@@ -223,6 +230,10 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       MockResponse mrN = mockResponse.setResponseCode(200);
                       MockResponse mrO = mockResponse.setStatus("OK");
                       MockResponse mrP = mockResponse.setTrailers(new Headers.Builder().add("x-trailer:value").build());
+                      MockResponse mrQ = mockResponse.throttleBody(1024, 1, TimeUnit.SECONDS);
+                      MockResponse mrR = mockResponse.withPush(pushPromise);
+                      MockResponse mrS = mockResponse.withSettings(settings);
+                      MockResponse mrT = mockResponse.withWebSocketUpgrade(webSocketListener);
                   }
               }
               """,
@@ -230,10 +241,17 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
               import okio.Buffer;
               import mockwebserver3.MockResponse;
               import okhttp3.Headers;
+              import okhttp3.WebSocketListener;
+              import okhttp3.internal.http2.Settings;
+              import mockwebserver3.PushPromise;
               import java.util.concurrent.TimeUnit;
               import mockwebserver3.MockWebServer;
 
               class A {
+                  PushPromise pushPromise;
+                  Settings settings;
+                  WebSocketListener webSocketListener;
+
                   void configureFully(MockResponse.Builder mockResponse) {
                       MockResponse.Builder mrA = mockResponse.addHeader("accept:application/json");
                       MockResponse.Builder mrB = mockResponse.addHeader("accept", "application/json");
@@ -251,6 +269,10 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       MockResponse.Builder mrN = mockResponse.code(200);
                       MockResponse.Builder mrO = mockResponse.status("OK");
                       MockResponse.Builder mrP = mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
+                      MockResponse.Builder mrQ = mockResponse.throttleBody(1024, 1, TimeUnit.SECONDS);
+                      MockResponse.Builder mrR = mockResponse.addPush(pushPromise);
+                      MockResponse.Builder mrS = mockResponse.settings(settings);
+                      MockResponse.Builder mrT = mockResponse.webSocketUpgrade(webSocketListener);
                   }
               }
               """
