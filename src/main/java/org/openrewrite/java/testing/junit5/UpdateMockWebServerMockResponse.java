@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
@@ -37,10 +38,8 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -99,37 +98,21 @@ public class UpdateMockWebServerMockResponse extends Recipe {
             new MethodInvocationReplacement("setTrailers(okhttp3.Headers)", "trailers")
     );
 
-    @Override
-    public String getDisplayName() {
-        return "OkHttp `MockWebServer` `MockResponse` to 5.x `MockWebServer3` `MockResponse`";
-    }
+    @Getter
+    final String displayName = "OkHttp `MockWebServer` `MockResponse` to 5.x `MockWebServer3` `MockResponse`";
 
-    @Override
-    public String getDescription() {
-        return "Replace usages of OkHttp MockWebServer `MockResponse` with 5.x MockWebServer3 `MockResponse` and it's `Builder`.";
-    }
+    @Getter
+    final String description = "Replace usages of OkHttp MockWebServer `MockResponse` with 5.x MockWebServer3 `MockResponse` and it's `Builder`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(OLD_MOCKRESPONSE_FQN, false), new JavaIsoVisitor<ExecutionContext>() {
             private final Map<UUID, List<Integer>> methodInvocationsToAdjust = new HashMap<>();
-            private final Set<UUID> newClassesToAdjust = new HashSet<>();
-            private final Set<UUID> varDeclsToAdjust = new HashSet<>();
-            private final Set<UUID> namedVarsToAdjust = new HashSet<>();
             @Override
             public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
                 J j = (J) tree;
                 j = new JavaIsoVisitor<ExecutionContext>() {
                     private final MethodMatcher constructorMatcher = new MethodMatcher(OLD_MOCKRESPONSE_CONSTRUCTOR);
-
-                    @Override
-                    public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-                        J.NewClass nc = super.visitNewClass(newClass, ctx);
-                        if (constructorMatcher.matches(nc)) {
-                            newClassesToAdjust.add(nc.getId());
-                        }
-                        return nc;
-                    }
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInv, ExecutionContext ctx) {
@@ -143,23 +126,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         return mi;
                     }
 
-                    @Override
-                    public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, ExecutionContext ctx) {
-                        J.VariableDeclarations.NamedVariable nv = super.visitVariable(variable, ctx);
-                        if (TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, nv.getType())) {
-                            namedVarsToAdjust.add(nv.getId());
-                        }
-                        return nv;
-                    }
-
-                    @Override
-                    public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
-                        J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
-                        if (TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, mv.getType())) {
-                            varDeclsToAdjust.add(mv.getId());
-                        }
-                        return mv;
-                    }
                 }.visit(j, ctx);
                 j = (J) new ChangeType(
                         OLD_MOCKRESPONSE_FQN,
@@ -244,7 +210,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     }
 
     private static J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation mi, JavaType.Method method, JavaType.FullyQualified declaringType, JavaType returnType, String newName) {
-        assert method != null;
         J.MethodInvocation updated = mi.withMethodType(
                 method.withDeclaringType(declaringType)
                         .withReturnType(returnType)

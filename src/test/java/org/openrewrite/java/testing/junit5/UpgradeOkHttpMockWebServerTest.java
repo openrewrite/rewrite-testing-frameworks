@@ -54,7 +54,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
         rewriteRun(
           spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer"),
           mavenProject("project",
-            // TODO: handle solely J.NewClass and update declarative recipe to include new one.
             //language=xml
             pomXml(
               """
@@ -85,7 +84,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
         );
     }
 
-    // TODO: methods receiving MockResponse - maybe add comment instructing to double check?
     @Test
     void shouldMigrateMockResponseToBuilder() {
         rewriteRun(
@@ -104,17 +102,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       .setHeaders(headersBuilder.build())
                       .setHeader("headerA", "someValue");
                   private okhttp3.mockwebserver.MockResponse mockResponse2 = new okhttp3.mockwebserver.MockResponse();
-                  {
-                      mockResponse.status("b");
-                      mockResponse2.setBody("Lorem ipsum");
-                      mockResponse.headers(headersBuilder.build());
-                      mockWebServer.enqueue(mockResponse);
-                      mockResponse.setStatus("c");
-                      mockResponse.setHeaders(headersBuilder.build());
-                      mockResponse.removeHeader("headerA");
-                      mockResponse.clearHeaders();
-                      mockResponse.addHeaderLenient("headerB", "anotherValue");
-                  }
 
                   void methodA() {
                       mockResponse.setStatus("d");
@@ -145,17 +132,6 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       .headers(headersBuilder.build())
                       .setHeader("headerA", "someValue");
                   private MockResponse.Builder mockResponse2 = new MockResponse.Builder();
-                  {
-                      mockResponse.status("b");
-                      mockResponse2.body("Lorem ipsum");
-                      mockResponse.headers(headersBuilder.build());
-                      mockWebServer.enqueue(mockResponse.build());
-                      mockResponse.status("c");
-                      mockResponse.headers(headersBuilder.build());
-                      mockResponse.removeHeader("headerA");
-                      mockResponse.clearHeaders();
-                      mockResponse.addHeaderLenient("headerB", "anotherValue");
-                  }
 
                   void methodA() {
                       mockResponse.status("d");
@@ -223,6 +199,7 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
           //language=java
           java(
             """
+              import okio.Buffer;
               import okhttp3.Headers;
               import okhttp3.mockwebserver.MockResponse;
               import java.util.concurrent.TimeUnit;
@@ -230,19 +207,27 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
 
               class A {
                   void configureFully(MockResponse mockResponse) {
-                      mockResponse.setBody("Lorem ipsum");
-                      mockResponse.setBodyDelay(30L, TimeUnit.SECONDS);
-                      mockResponse.setChunkedBody("Lorem ipsum", 2048);
-                      mockResponse.setHeaders(new Headers.Builder().add("accept:application/json").build());
-                      mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
-                      mockResponse.setHttp2ErrorCode(500);
-                      mockResponse.setResponseCode(200);
-                      mockResponse.setStatus("OK");
-                      mockResponse.setTrailers(new Headers.Builder().add("x-trailer:value").build());
+                      MockResponse mrA = mockResponse.addHeader("accept:application/json");
+                      MockResponse mrB = mockResponse.addHeader("accept", "application/json");
+                      MockResponse mrC = mockResponse.addHeaderLenient("accept", "application/json");
+                      MockResponse mrD = mockResponse.removeHeader("accept");
+                      MockResponse mrE = mockResponse.setBody("Lorem ipsum");
+                      MockResponse mrF = mockResponse.setBody(new Buffer());
+                      MockResponse mrG = mockResponse.setBodyDelay(30L, TimeUnit.SECONDS);
+                      MockResponse mrH = mockResponse.setChunkedBody("Lorem ipsum", 2048);
+                      MockResponse mrI = mockResponse.setChunkedBody(new Buffer(), 2048);
+                      MockResponse mrJ = mockResponse.setHeader("accept","application/json");
+                      MockResponse mrK = mockResponse.setHeaders(new Headers.Builder().add("accept:application/json").build());
+                      MockResponse mrL = mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
+                      MockResponse mrM = mockResponse.setHttp2ErrorCode(500);
+                      MockResponse mrN = mockResponse.setResponseCode(200);
+                      MockResponse mrO = mockResponse.setStatus("OK");
+                      MockResponse mrP = mockResponse.setTrailers(new Headers.Builder().add("x-trailer:value").build());
                   }
               }
               """,
             """
+              import okio.Buffer;
               import mockwebserver3.MockResponse;
               import okhttp3.Headers;
               import java.util.concurrent.TimeUnit;
@@ -250,15 +235,22 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
 
               class A {
                   void configureFully(MockResponse.Builder mockResponse) {
-                      mockResponse.body("Lorem ipsum");
-                      mockResponse.bodyDelay(30L, TimeUnit.SECONDS);
-                      mockResponse.chunkedBody("Lorem ipsum", 2048);
-                      mockResponse.headers(new Headers.Builder().add("accept:application/json").build());
-                      mockResponse.headersDelay(30L, TimeUnit.SECONDS);
-                      mockResponse.code(500);
-                      mockResponse.code(200);
-                      mockResponse.status("OK");
-                      mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
+                      MockResponse.Builder mrA = mockResponse.addHeader("accept:application/json");
+                      MockResponse.Builder mrB = mockResponse.addHeader("accept", "application/json");
+                      MockResponse.Builder mrC = mockResponse.addHeaderLenient("accept", "application/json");
+                      MockResponse.Builder mrD = mockResponse.removeHeader("accept");
+                      MockResponse.Builder mrE = mockResponse.body("Lorem ipsum");
+                      MockResponse.Builder mrF = mockResponse.body(new Buffer());
+                      MockResponse.Builder mrG = mockResponse.bodyDelay(30L, TimeUnit.SECONDS);
+                      MockResponse.Builder mrH = mockResponse.chunkedBody("Lorem ipsum", 2048);
+                      MockResponse.Builder mrI = mockResponse.chunkedBody(new Buffer(), 2048);
+                      MockResponse.Builder mrJ = mockResponse.setHeader("accept","application/json");
+                      MockResponse.Builder mrK = mockResponse.headers(new Headers.Builder().add("accept:application/json").build());
+                      MockResponse.Builder mrL = mockResponse.headersDelay(30L, TimeUnit.SECONDS);
+                      MockResponse.Builder mrM = mockResponse.code(500);
+                      MockResponse.Builder mrN = mockResponse.code(200);
+                      MockResponse.Builder mrO = mockResponse.status("OK");
+                      MockResponse.Builder mrP = mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
                   }
               }
               """
