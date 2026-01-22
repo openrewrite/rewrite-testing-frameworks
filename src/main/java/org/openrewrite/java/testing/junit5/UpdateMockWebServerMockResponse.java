@@ -104,7 +104,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                 }
 
                 return new JavaIsoVisitor<ExecutionContext>() {
-
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -151,30 +150,20 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                                 null,
                                 null
                         );
-                        return patchReturnTypeAndName(
-                                builder,
-                                javaMethodType,
-                                newMockResponseBuilderType,
-                                newMockResponseType,
-                                "build"
+                        J.MethodInvocation updated = builder.withMethodType(
+                                javaMethodType.withDeclaringType(newMockResponseBuilderType)
+                                        .withReturnType(newMockResponseType)
+                                        .withName("build")
+                        );
+                        return updated.withName(
+                                updated.getName()
+                                        .withSimpleName("build")
+                                        .withType(updated.getMethodType())
                         );
                     }
 
                 }.visit(j, ctx);
             }
         });
-    }
-
-    private static J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation mi, JavaType.Method method, JavaType.FullyQualified declaringType, JavaType returnType, String newName) {
-        J.MethodInvocation updated = mi.withMethodType(
-                method.withDeclaringType(declaringType)
-                        .withReturnType(returnType)
-                        .withName(newName)
-        );
-        return updated.withName(
-                updated.getName()
-                        .withSimpleName(newName)
-                        .withType(updated.getMethodType())
-        );
     }
 }
