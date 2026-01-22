@@ -49,26 +49,22 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(OLD_MOCKRESPONSE_FQN, false), new JavaIsoVisitor<ExecutionContext>() {
-            private final Map<UUID, List<Integer>> methodInvocationsToAdjust = new HashMap<>();
-
             @Override
             public @Nullable J preVisit(J tree, ExecutionContext ctx) {
                 stopAfterPreVisit();
-                J j = tree;
-                j = new JavaIsoVisitor<ExecutionContext>() {
+                Map<UUID, List<Integer>> methodInvocationsToAdjust = new JavaIsoVisitor<Map<UUID, List<Integer>>>() {
                     @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInv, ExecutionContext ctx) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(methodInv, ctx);
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInv, Map<UUID, List<Integer>> map) {
+                        J.MethodInvocation mi = super.visitMethodInvocation(methodInv, map);
                         List<Integer> indexes = IntStream.range(0, mi.getArguments().size())
                                 .filter(x -> TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, mi.getArguments().get(x).getType()))
                                 .boxed().collect(toList());
                         if (!indexes.isEmpty()) {
-                            methodInvocationsToAdjust.putIfAbsent(mi.getId(), indexes);
+                            map.putIfAbsent(mi.getId(), indexes);
                         }
                         return mi;
                     }
-
-                }.visit(j, ctx);
+                }.reduce(tree, new HashMap<>());
                 return new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -127,8 +123,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                                         .withType(updated.getMethodType())
                         );
                     }
-
-                }.visit(j, ctx);
+                }.visit(tree, ctx);
             }
         });
     }
