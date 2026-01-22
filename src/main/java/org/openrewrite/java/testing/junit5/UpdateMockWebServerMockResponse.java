@@ -51,8 +51,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
             }
 
             private J.MethodInvocation appendBuildInvocation(ExecutionContext ctx, Expression arg) {
-                boolean isChainedCall = arg instanceof J.MethodInvocation;
-                String nl = isChainedCall ? "\n" : "";
+                String nl = arg instanceof J.MethodInvocation ? "\n" : "";
                 J.MethodInvocation builder = JavaTemplate
                         .builder("#{any(" + NEW_MOCKRESPONSE_FQN_BUILDER + ")}" + nl + ".build()")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
@@ -76,7 +75,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         .withMethodType(buildMethodType)
                         .withName(builder.getName().withType(buildMethodType));
             }
-
         });
     }
 
