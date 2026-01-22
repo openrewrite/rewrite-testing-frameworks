@@ -49,7 +49,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String OLD_PACKAGE_NAME = "okhttp3.mockwebserver";
     private static final String NEW_PACKAGE_NAME = "mockwebserver3";
     private static final String OLD_MOCKRESPONSE_FQN = OLD_PACKAGE_NAME + ".MockResponse";
-    private static final String OLD_MOCKRESPONSE_CONSTRUCTOR = OLD_MOCKRESPONSE_FQN + " <constructor>()";
     private static final String NEW_MOCKRESPONSE_FQN = NEW_PACKAGE_NAME + ".MockResponse";
     private static final String NEW_MOCKRESPONSE_FQN_BUILDER = NEW_MOCKRESPONSE_FQN + "$Builder";
 
@@ -117,8 +116,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
             public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
                 J j = (J) tree;
                 j = new JavaIsoVisitor<ExecutionContext>() {
-                    private final MethodMatcher constructorMatcher = new MethodMatcher(OLD_MOCKRESPONSE_CONSTRUCTOR);
-
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInv, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(methodInv, ctx);
