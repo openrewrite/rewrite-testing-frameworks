@@ -57,16 +57,13 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                     if (TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, arg.getType())) {
                         boolean isChainedCall = arg instanceof J.MethodInvocation;
                         String nl = isChainedCall ? "\n" : "";
-                        J.MethodInvocation transformed = JavaTemplate
-                                .builder("#{any(mockwebserver3.MockResponse$Builder)}" + nl + ".build()")
+                        J.MethodInvocation builder = JavaTemplate
+                                .builder("#{any(" + NEW_MOCKRESPONSE_FQN_BUILDER + ")}" + nl + ".build()")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
                                 .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
                                 .build()
                                 .apply(new Cursor(getCursor(), arg), arg.getCoordinates().replace(), arg);
-                        if (isChainedCall) {
-                            transformed = transformed.withPrefix(arg.getPrefix());
-                        }
-                        return patchBuilderBuildReturnTypeAndName(transformed);
+                        return patchBuilderBuildReturnTypeAndName(builder.withPrefix(arg.getPrefix()));
                     }
                     return arg;
                 }));
