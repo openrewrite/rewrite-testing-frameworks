@@ -100,8 +100,8 @@ public class UpdateMockWebServerMockResponse extends Recipe {
         List<Recipe> recipes = new ArrayList<>();
         for (Map.Entry<String, String> rep : REPLACEMENTS.entrySet()) {
             String methodPattern = OLD_MOCKRESPONSE_FQN.replace("$", ".") + "#" + rep.getKey();
+            recipes.add(new ChangeMethodInvocationReturnType(methodPattern, NEW_MOCKRESPONSE_FQN_BUILDER.replace("$", ".")));
             recipes.add(new ChangeMethodName(methodPattern, rep.getValue(), true, false));
-            recipes.add(new ChangeMethodInvocationReturnType(methodPattern, NEW_MOCKRESPONSE_FQN_BUILDER));
         }
         recipes.add(new ChangeType(OLD_MOCKRESPONSE_FQN, NEW_MOCKRESPONSE_FQN_BUILDER, true));
         recipes.add(new ChangePackage("okhttp3.mockwebserver", "mockwebserver3", false));
