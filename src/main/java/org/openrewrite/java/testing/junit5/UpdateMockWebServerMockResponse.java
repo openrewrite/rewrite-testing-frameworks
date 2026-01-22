@@ -17,32 +17,19 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.java.ChangePackage;
-import org.openrewrite.java.ChangeType;
-import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.IntStream;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
@@ -60,19 +47,15 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static class MethodInvocationReplacement {
         private final MethodMatcher methodMatcher;
         private final String newName;
+
         private MethodInvocationReplacement(String oldMethodPattern, String newName) {
-            this.methodMatcher = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER.replace("$",".") + "#" + oldMethodPattern);
+            this.methodMatcher = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER.replace("$", ".") + "#" + oldMethodPattern);
             this.newName = newName;
         }
 
         private boolean matches(J.MethodInvocation methodInvocation) {
             return methodMatcher.matches(methodInvocation);
         }
-
-        private J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation method) {
-            assert method.getMethodType() != null;
-            return UpdateMockWebServerMockResponse.patchReturnTypeAndName(method, method.getMethodType(), newMockResponseBuilderType, newMockResponseBuilderType, newName);
-       }
     }
 
     private static final List<MethodInvocationReplacement> methodInvocationReplacements = Arrays.asList(
@@ -102,6 +85,7 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(OLD_MOCKRESPONSE_FQN, false), new JavaIsoVisitor<ExecutionContext>() {
             private final Map<UUID, List<Integer>> methodInvocationsToAdjust = new HashMap<>();
+
             @Override
             public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
                 J j = (J) tree;
@@ -119,16 +103,8 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                     }
 
                 }.visit(j, ctx);
-                j = (J) new ChangeType(
-                        OLD_MOCKRESPONSE_FQN,
-                        NEW_MOCKRESPONSE_FQN_BUILDER,
-                        true
-                ).getVisitor().visit(j, ctx);
-                j = (J) new ChangePackage(
-                        OLD_PACKAGE_NAME,
-                        NEW_PACKAGE_NAME,
-                        false
-                ).getVisitor().visit(j, ctx);
+                j = (J) new ChangeType(OLD_MOCKRESPONSE_FQN, NEW_MOCKRESPONSE_FQN_BUILDER, true).getVisitor().visit(j, ctx);
+                j = (J) new ChangePackage(OLD_PACKAGE_NAME, NEW_PACKAGE_NAME, false).getVisitor().visit(j, ctx);
                 return new JavaIsoVisitor<ExecutionContext>() {
 
                     @Override
@@ -139,7 +115,12 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         J.MethodInvocation replacement = methodInvocationReplacements.stream()
                                 .filter(invocationReplacement -> invocationReplacement.matches(mi))
                                 .findFirst()
-                                .map(invocationReplacement -> invocationReplacement.patchReturnTypeAndName(mi))
+                                .map(invocationReplacement -> patchReturnTypeAndName(
+                                        mi,
+                                        requireNonNull(mi.getMethodType()),
+                                        newMockResponseBuilderType,
+                                        newMockResponseBuilderType,
+                                        invocationReplacement.newName))
                                 .orElse(mi);
 
                         if (replacement != mi) {
@@ -175,21 +156,22 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                     }
 
                     private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
+                        JavaType.Method javaMethodType = new JavaType.Method(
+                                null,
+                                Flag.Public.getBitMask() | Flag.Final.getBitMask(),
+                                newMockResponseBuilderType,
+                                "build",
+                                newMockResponseType,
+                                (List<String>) null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                        );
                         return patchReturnTypeAndName(
                                 builder,
-                                new JavaType.Method(
-                                        null,
-                                        Flag.Public.getBitMask() | Flag.Final.getBitMask(),
-                                        newMockResponseBuilderType,
-                                        "build",
-                                        newMockResponseType,
-                                        (List<String>) null,
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        null
-                                ),
+                                javaMethodType,
                                 newMockResponseBuilderType,
                                 newMockResponseType,
                                 "build"
