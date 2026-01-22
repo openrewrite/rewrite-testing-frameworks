@@ -107,8 +107,6 @@ dependencies {
     testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testRuntimeOnly("org.testng:testng:latest.release")
-//    api("com.squareup.okhttp3:mockwebserver3:5.1.0")
-//    api("com.squareup.okhttp3:mockwebserver:4.10.0")
 }
 
 tasks.test {
