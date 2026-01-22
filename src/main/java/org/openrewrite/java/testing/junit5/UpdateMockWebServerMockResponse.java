@@ -41,29 +41,11 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static final JavaType.FullyQualified newMockResponseType =
             (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
 
-    private static final Map<String, String> methodInvocationReplacements = new HashMap<String, String>() {{
-        put("setBody(*)", "body");
-        put("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay");
-        put("setChunkedBody(*, int)", "chunkedBody");
-        put("setErrorCode(int)", "code");
-        put("setHeaders(okhttp3.Headers)", "headers");
-        put("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay");
-        put("setHttp2ErrorCode(int)", "code");
-        put("setResponseCode(int)", "code");
-        put("setStatus(java.lang.String)", "status");
-        put("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody");
-        put("setTrailers(okhttp3.Headers)", "trailers");
-        put("withPush(okhttp3.mockwebserver.PushPromise)", "addPush");
-        put("withSettings(okhttp3.internal.http2.Settings)", "settings");
-        put("withWebSocketUpgrade(okhttp3.WebSocketListener)", "webSocketUpgrade");
-    }};
-
     @Getter
     final String displayName = "OkHttp `MockWebServer` `MockResponse` to 5.x `MockWebServer3` `MockResponse`";
 
     @Getter
     final String description = "Replace usages of OkHttp MockWebServer `MockResponse` with 5.x MockWebServer3 `MockResponse` and it's `Builder`.";
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(OLD_MOCKRESPONSE_FQN, false), new JavaIsoVisitor<ExecutionContext>() {
@@ -151,10 +133,27 @@ public class UpdateMockWebServerMockResponse extends Recipe {
         });
     }
 
+    private static final Map<String, String> REPLACEMENTS = new HashMap<String, String>() {{
+        put("setBody(*)", "body");
+        put("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay");
+        put("setChunkedBody(*, int)", "chunkedBody");
+        put("setErrorCode(int)", "code");
+        put("setHeaders(okhttp3.Headers)", "headers");
+        put("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay");
+        put("setHttp2ErrorCode(int)", "code");
+        put("setResponseCode(int)", "code");
+        put("setStatus(java.lang.String)", "status");
+        put("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody");
+        put("setTrailers(okhttp3.Headers)", "trailers");
+        put("withPush(okhttp3.mockwebserver.PushPromise)", "addPush");
+        put("withSettings(okhttp3.internal.http2.Settings)", "settings");
+        put("withWebSocketUpgrade(okhttp3.WebSocketListener)", "webSocketUpgrade");
+    }};
+
     @Override
     public List<Recipe> getRecipeList() {
         List<Recipe> recipes = new ArrayList<>();
-        for (Map.Entry<String, String> rep : methodInvocationReplacements.entrySet()) {
+        for (Map.Entry<String, String> rep : REPLACEMENTS.entrySet()) {
             recipes.add(new ChangeMethodName(
                     OLD_MOCKRESPONSE_FQN.replace("$", ".") + "#" + rep.getKey(),
                     rep.getValue(),
