@@ -32,11 +32,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String NEW_MOCKRESPONSE_FQN = "mockwebserver3.MockResponse";
     private static final String NEW_MOCKRESPONSE_FQN_BUILDER = NEW_MOCKRESPONSE_FQN + "$Builder";
 
-    private static final JavaType.FullyQualified newMockResponseBuilderType =
-            (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN_BUILDER);
-    private static final JavaType.FullyQualified newMockResponseType =
-            (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
-
     @Getter
     final String displayName = "OkHttp `MockWebServer` `MockResponse` to 5.x `MockWebServer3` `MockResponse`";
 
@@ -71,9 +66,9 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                 JavaType.Method buildMethodType = new JavaType.Method(
                         null,
                         Flag.Public.getBitMask() | Flag.Final.getBitMask(),
-                        newMockResponseBuilderType,
+                        JavaType.ShallowClass.build(NEW_MOCKRESPONSE_FQN_BUILDER),
                         "build",
-                        newMockResponseType,
+                        JavaType.ShallowClass.build(NEW_MOCKRESPONSE_FQN),
                         (List<String>) null,
                         null,
                         null,
