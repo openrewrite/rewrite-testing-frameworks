@@ -26,10 +26,12 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
@@ -44,36 +46,22 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     private static final JavaType.FullyQualified newMockResponseType =
             (JavaType.FullyQualified) JavaType.buildType(NEW_MOCKRESPONSE_FQN);
 
-    private static class MethodInvocationReplacement {
-        private final MethodMatcher methodMatcher;
-        private final String newName;
-
-        private MethodInvocationReplacement(String oldMethodPattern, String newName) {
-            this.methodMatcher = new MethodMatcher(NEW_MOCKRESPONSE_FQN_BUILDER.replace("$", ".") + "#" + oldMethodPattern);
-            this.newName = newName;
-        }
-
-        private boolean matches(J.MethodInvocation methodInvocation) {
-            return methodMatcher.matches(methodInvocation);
-        }
-    }
-
-    private static final List<MethodInvocationReplacement> methodInvocationReplacements = Arrays.asList(
-            new MethodInvocationReplacement("setBody(*)", "body"),
-            new MethodInvocationReplacement("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay"),
-            new MethodInvocationReplacement("setChunkedBody(*, int)", "chunkedBody"),
-            new MethodInvocationReplacement("setErrorCode(int)", "code"),
-            new MethodInvocationReplacement("setHeaders(okhttp3.Headers)", "headers"),
-            new MethodInvocationReplacement("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay"),
-            new MethodInvocationReplacement("setHttp2ErrorCode(int)", "code"),
-            new MethodInvocationReplacement("setResponseCode(int)", "code"),
-            new MethodInvocationReplacement("setStatus(java.lang.String)", "status"),
-            new MethodInvocationReplacement("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody"),
-            new MethodInvocationReplacement("setTrailers(okhttp3.Headers)", "trailers"),
-            new MethodInvocationReplacement("withPush(mockwebserver3.PushPromise)", "addPush"),
-            new MethodInvocationReplacement("withSettings(okhttp3.internal.http2.Settings)", "settings"),
-            new MethodInvocationReplacement("withWebSocketUpgrade(okhttp3.WebSocketListener)", "webSocketUpgrade")
-    );
+    private static final Map<String, String> methodInvocationReplacements = new HashMap<String, String>() {{
+        put("setBody(*)", "body");
+        put("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay");
+        put("setChunkedBody(*, int)", "chunkedBody");
+        put("setErrorCode(int)", "code");
+        put("setHeaders(okhttp3.Headers)", "headers");
+        put("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay");
+        put("setHttp2ErrorCode(int)", "code");
+        put("setResponseCode(int)", "code");
+        put("setStatus(java.lang.String)", "status");
+        put("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody");
+        put("setTrailers(okhttp3.Headers)", "trailers");
+        put("withPush(mockwebserver3.PushPromise)", "addPush");
+        put("withSettings(okhttp3.internal.http2.Settings)", "settings");
+        put("withWebSocketUpgrade(okhttp3.WebSocketListener)", "webSocketUpgrade");
+    }};
 
     @Getter
     final String displayName = "OkHttp `MockWebServer` `MockResponse` to 5.x `MockWebServer3` `MockResponse`";
@@ -105,27 +93,21 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                 }.visit(j, ctx);
                 j = (J) new ChangeType(OLD_MOCKRESPONSE_FQN, NEW_MOCKRESPONSE_FQN_BUILDER, true).getVisitor().visit(j, ctx);
                 j = (J) new ChangePackage(OLD_PACKAGE_NAME, NEW_PACKAGE_NAME, false).getVisitor().visit(j, ctx);
+                for (Map.Entry<String, String> rep : methodInvocationReplacements.entrySet()) {
+                    j = (J) new ChangeMethodName(
+                            NEW_MOCKRESPONSE_FQN_BUILDER.replace("$", ".") + "#" + rep.getKey(),
+                            rep.getValue(),
+                            true,
+                            false)
+                            .getVisitor()
+                            .visit(j, ctx);
+                }
+
                 return new JavaIsoVisitor<ExecutionContext>() {
 
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        final J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-
-                        // Handle method name replacements
-                        J.MethodInvocation replacement = methodInvocationReplacements.stream()
-                                .filter(invocationReplacement -> invocationReplacement.matches(mi))
-                                .findFirst()
-                                .map(invocationReplacement -> patchReturnTypeAndName(
-                                        mi,
-                                        requireNonNull(mi.getMethodType()),
-                                        newMockResponseBuilderType,
-                                        newMockResponseBuilderType,
-                                        invocationReplacement.newName))
-                                .orElse(mi);
-
-                        if (replacement != mi) {
-                            return replacement;
-                        }
+                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
                         List<Integer> indices = methodInvocationsToAdjust.remove(mi.getId());
                         if (indices == null || indices.isEmpty()) {
