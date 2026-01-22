@@ -71,18 +71,8 @@ public class UpdateMockWebServerMockResponse extends Recipe {
 
         private J.MethodInvocation patchReturnTypeAndName(J.MethodInvocation method) {
             assert method.getMethodType() != null;
-            J.MethodInvocation updated = method.withMethodType(
-                    method.getMethodType()
-                            .withDeclaringType(UpdateMockWebServerMockResponse.newMockResponseBuilderType)
-                            .withReturnType(UpdateMockWebServerMockResponse.newMockResponseBuilderType)
-                            .withName(newName)
-            );
-            return updated.withName(
-                    updated.getName()
-                            .withSimpleName(newName)
-                            .withType(updated.getMethodType())
-            );
-        }
+            return UpdateMockWebServerMockResponse.patchReturnTypeAndName(method, method.getMethodType(), newMockResponseBuilderType, newMockResponseBuilderType, newName);
+       }
     }
 
     private static final List<MethodInvocationReplacement> methodInvocationReplacements = Arrays.asList(
