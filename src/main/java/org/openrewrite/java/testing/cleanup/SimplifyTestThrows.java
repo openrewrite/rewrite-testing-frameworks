@@ -40,10 +40,8 @@ public class SimplifyTestThrows extends Recipe {
     @Getter
     final String description = "Replace all thrown exception classes of test method signatures by `Exception`.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

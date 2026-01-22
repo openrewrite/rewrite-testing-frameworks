@@ -44,10 +44,8 @@ public class RemoveTryCatchFailBlocks extends Recipe {
     final String description = "Replace `try-catch` blocks where `catch` merely contains a `fail()` for `fail(String)` statement " +
             "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S3658");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S3658");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

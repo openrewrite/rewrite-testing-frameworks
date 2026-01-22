@@ -57,10 +57,8 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
     @Getter
     final String description = "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll`. They no longer have to be public visibility to be usable by JUnit 5.";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S5786");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S5786");
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {

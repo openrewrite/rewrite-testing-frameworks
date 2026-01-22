@@ -41,10 +41,8 @@ public class AnyStringToNullable extends Recipe {
     @Getter
     final String description = "Since Mockito 2.10 `anyString()` no longer matches null values. Use `nullable(Class)` instead.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

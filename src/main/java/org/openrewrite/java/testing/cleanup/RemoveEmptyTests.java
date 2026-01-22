@@ -39,15 +39,11 @@ public class RemoveEmptyTests extends Recipe {
     @Getter
     final String description = "Removes empty methods with a `@Test` annotation if the body does not have comments.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(2);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(2);
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S1186");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S1186");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

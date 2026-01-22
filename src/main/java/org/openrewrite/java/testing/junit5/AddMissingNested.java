@@ -57,15 +57,9 @@ public class AddMissingNested extends Recipe {
 
     String description = "Adds `@Nested` to inner classes that contain JUnit 5 tests.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S5790");
-    }
+    Set<String> tags = singleton("RSPEC-S5790");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
