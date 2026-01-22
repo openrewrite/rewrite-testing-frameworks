@@ -20,10 +20,7 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Flag;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,25 +49,26 @@ public class UpdateMockWebServerMockResponse extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                // Wrap MockResponse.Builder arguments with .build()
-                return mi.withArguments(ListUtils.map(mi.getArguments(), (index, arg) -> {
-                    if (TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, arg.getType())) {
-                        boolean isChainedCall = arg instanceof J.MethodInvocation;
-                        String nl = isChainedCall ? "\n" : "";
-                        J.MethodInvocation builder = JavaTemplate
-                                .builder("#{any(" + NEW_MOCKRESPONSE_FQN_BUILDER + ")}" + nl + ".build()")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
-                                .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
-                                .build()
-                                .apply(new Cursor(getCursor(), arg), arg.getCoordinates().replace(), arg);
-                        return patchBuilderBuildReturnTypeAndName(builder.withPrefix(arg.getPrefix()));
-                    }
-                    return arg;
-                }));
+                return mi.withArguments(ListUtils.map(mi.getArguments(),
+                        arg -> TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, arg.getType()) ?
+                                // Wrap MockResponse.Builder arguments with .build()
+                                appendBuildInvocation(ctx, arg) : arg));
+            }
+
+            private J.MethodInvocation appendBuildInvocation(ExecutionContext ctx, Expression arg) {
+                boolean isChainedCall = arg instanceof J.MethodInvocation;
+                String nl = isChainedCall ? "\n" : "";
+                J.MethodInvocation builder = JavaTemplate
+                        .builder("#{any(" + NEW_MOCKRESPONSE_FQN_BUILDER + ")}" + nl + ".build()")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
+                        .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
+                        .build()
+                        .apply(new Cursor(getCursor(), arg), arg.getCoordinates().replace(), arg);
+                return patchBuilderBuildReturnTypeAndName(builder.withPrefix(arg.getPrefix()));
             }
 
             private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
-                JavaType.Method javaMethodType = new JavaType.Method(
+                JavaType.Method buildMethodType = new JavaType.Method(
                         null,
                         Flag.Public.getBitMask() | Flag.Final.getBitMask(),
                         newMockResponseBuilderType,
@@ -83,15 +81,8 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         null,
                         null
                 );
-                J.MethodInvocation updated = builder.withMethodType(
-                        javaMethodType.withDeclaringType(newMockResponseBuilderType)
-                                .withReturnType(newMockResponseType)
-                                .withName("build")
-                );
-                return updated.withName(
-                        updated.getName()
-                                .withSimpleName("build")
-                                .withType(updated.getMethodType())
+                J.MethodInvocation updated = builder.withMethodType(buildMethodType);
+                return updated.withName(updated.getName().withType(updated.getMethodType())
                 );
             }
         });
