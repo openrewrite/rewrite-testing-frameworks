@@ -257,15 +257,12 @@ tags:
   - junit
   - okhttp
 recipeList:
-  - org.openrewrite.java.ChangePackage:
-      oldPackageName: okhttp3.mockwebserver
-      newPackageName: mockwebserver3
-      recursive: true
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: com.squareup.okhttp3
       oldArtifactId: mockwebserver
       newArtifactId: mockwebserver3
       newVersion: 5.x
+  - org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
