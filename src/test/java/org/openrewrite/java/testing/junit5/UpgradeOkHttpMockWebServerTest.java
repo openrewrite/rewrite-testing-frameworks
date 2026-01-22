@@ -17,52 +17,22 @@ package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
-import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class UpgradeOkHttpMockWebServerTest implements RewriteTest {
 
-    @Override
-    public void defaults(RecipeSpec spec) {
-        spec
-          .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "mockwebserver-4.10"))
-          .recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer");
-    }
-
     @DocumentExample
     @Test
     void shouldUpgradeMavenDependency() {
         rewriteRun(
+          spec -> spec.recipeFromResource(
+            "/META-INF/rewrite/junit5.yml",
+            "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer"),
           mavenProject("project",
-            //language=java
-            java(
-              """
-                import okhttp3.mockwebserver.MockWebServer;
-
-                class Test {
-                    void test() {
-                        MockWebServer server = new MockWebServer();
-                    }
-                }
-                """,
-              """
-                import mockwebserver3.MockWebServer;
-
-                class Test {
-                    void test() {
-                        MockWebServer server = new MockWebServer();
-                    }
-                }
-                """
-            ),
             //language=xml
             pomXml(
               """
@@ -76,11 +46,18 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                       <groupId>com.squareup.okhttp3</groupId>
                       <artifactId>mockwebserver</artifactId>
                       <version>4.10.0</version>
+                      <scope>test</scope>
                     </dependency>
                   </dependencies>
                 </project>
                 """,
-              spec -> spec.after(pom -> assertThat(pom).containsPattern("<version>5\\.(.*)</version>").actual())
+              spec -> spec.after(pom ->
+                assertThat(pom)
+                  .doesNotContain("<artifactId>mockwebserver</artifactId>")
+                  .contains("<artifactId>mockwebserver3</artifactId>")
+                  .containsPattern("<version>5\\.(.*)</version>")
+                  .actual()
+              )
             )
           )
         );

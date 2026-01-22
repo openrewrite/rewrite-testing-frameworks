@@ -14,6 +14,7 @@ recipeDependencies {
     parserClasspath("com.google.guava:guava:33.5.0-jre")
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
+    parserClasspath("com.squareup.okhttp3:mockwebserver3:5.1.0")
     parserClasspath("junit:junit:4.+")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
     parserClasspath("org.assertj:assertj-core:3.+")
@@ -60,6 +61,10 @@ recipeDependencies {
     testParserClasspath("org.testcontainers:testcontainers-kafka:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-localstack:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-mysql:2.0.1")
+
+    testParserClasspath("com.squareup.okhttp3:okhttp:4.10.0")
+    testParserClasspath("com.squareup.okhttp3:okhttp-jvm:5.1.0")
+    testParserClasspath("com.squareup.okio:okio:3.12.0")
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
