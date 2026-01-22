@@ -59,10 +59,6 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
                         .build()
                         .apply(new Cursor(getCursor(), arg), arg.getCoordinates().replace(), arg);
-                return patchBuilderBuildReturnTypeAndName(builder.withPrefix(arg.getPrefix()));
-            }
-
-            private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
                 JavaType.Method buildMethodType = new JavaType.Method(
                         null,
                         Flag.Public.getBitMask() | Flag.Final.getBitMask(),
@@ -76,10 +72,11 @@ public class UpdateMockWebServerMockResponse extends Recipe {
                         null,
                         null
                 );
-                J.MethodInvocation updated = builder.withMethodType(buildMethodType);
-                return updated.withName(updated.getName().withType(updated.getMethodType())
-                );
+                return builder.withPrefix(arg.getPrefix())
+                        .withMethodType(buildMethodType)
+                        .withName(builder.getName().withType(buildMethodType));
             }
+
         });
     }
 
