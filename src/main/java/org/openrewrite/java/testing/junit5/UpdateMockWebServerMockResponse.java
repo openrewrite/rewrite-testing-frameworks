@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
@@ -26,10 +25,10 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.*;
-import java.util.stream.IntStream;
-
-import static java.util.stream.Collectors.toList;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String OLD_MOCKRESPONSE_FQN = "okhttp3.mockwebserver.MockResponse";
@@ -46,84 +45,57 @@ public class UpdateMockWebServerMockResponse extends Recipe {
 
     @Getter
     final String description = "Replace usages of OkHttp MockWebServer `MockResponse` with 5.x MockWebServer3 `MockResponse` and it's `Builder`.";
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(OLD_MOCKRESPONSE_FQN, false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public @Nullable J preVisit(J tree, ExecutionContext ctx) {
-                stopAfterPreVisit();
-                Map<UUID, List<Integer>> methodInvocationsToAdjust = new JavaIsoVisitor<Map<UUID, List<Integer>>>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInv, Map<UUID, List<Integer>> map) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(methodInv, map);
-                        List<Integer> indexes = IntStream.range(0, mi.getArguments().size())
-                                .filter(x -> TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, mi.getArguments().get(x).getType()))
-                                .boxed().collect(toList());
-                        if (!indexes.isEmpty()) {
-                            map.putIfAbsent(mi.getId(), indexes);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                // Wrap MockResponse.Builder arguments with .build()
+                return mi.withArguments(ListUtils.map(mi.getArguments(), (index, arg) -> {
+                    if (TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, arg.getType())) {
+                        boolean isChainedCall = arg instanceof J.MethodInvocation;
+                        String nl = isChainedCall ? "\n" : "";
+                        J.MethodInvocation transformed = JavaTemplate
+                                .builder("#{any(mockwebserver3.MockResponse$Builder)}" + nl + ".build()")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
+                                .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
+                                .build()
+                                .apply(new Cursor(getCursor(), arg), arg.getCoordinates().replace(), arg);
+                        if (isChainedCall) {
+                            transformed = transformed.withPrefix(arg.getPrefix());
                         }
-                        return mi;
+                        return patchBuilderBuildReturnTypeAndName(transformed);
                     }
-                }.reduce(tree, new HashMap<>());
-                return new JavaIsoVisitor<ExecutionContext>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                    return arg;
+                }));
+            }
 
-                        List<Integer> indices = methodInvocationsToAdjust.remove(mi.getId());
-                        if (indices == null || indices.isEmpty()) {
-                            return mi;
-                        }
-
-                        // Wrap MockResponse.Builder arguments with .build()
-                        Cursor methodCursor = getCursor();
-                        return mi.withArguments(ListUtils.map(mi.getArguments(), (index, arg) -> {
-                            if (indices.contains(index) && TypeUtils.isAssignableTo(OLD_MOCKRESPONSE_FQN, arg.getType())) {
-                                Cursor argCursor = new Cursor(methodCursor, arg);
-                                boolean isChainedCall = arg instanceof J.MethodInvocation;
-                                String nl = isChainedCall ? "\n" : "";
-                                J.MethodInvocation transformed = JavaTemplate
-                                        .builder("#{any(mockwebserver3.MockResponse$Builder)}" + nl + ".build()")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
-                                        .imports("mockwebserver3.MockResponse", "mockwebserver3.MockResponse.Builder")
-                                        .build()
-                                        .apply(argCursor, arg.getCoordinates().replace(), arg);
-
-                                if (isChainedCall) {
-                                    transformed = transformed.withPrefix(arg.getPrefix());
-                                }
-                                return patchBuilderBuildReturnTypeAndName(transformed);
-                            }
-                            return arg;
-                        }));
-                    }
-
-                    private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
-                        JavaType.Method javaMethodType = new JavaType.Method(
-                                null,
-                                Flag.Public.getBitMask() | Flag.Final.getBitMask(),
-                                newMockResponseBuilderType,
-                                "build",
-                                newMockResponseType,
-                                (List<String>) null,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null
-                        );
-                        J.MethodInvocation updated = builder.withMethodType(
-                                javaMethodType.withDeclaringType(newMockResponseBuilderType)
-                                        .withReturnType(newMockResponseType)
-                                        .withName("build")
-                        );
-                        return updated.withName(
-                                updated.getName()
-                                        .withSimpleName("build")
-                                        .withType(updated.getMethodType())
-                        );
-                    }
-                }.visit(tree, ctx);
+            private J.MethodInvocation patchBuilderBuildReturnTypeAndName(J.MethodInvocation builder) {
+                JavaType.Method javaMethodType = new JavaType.Method(
+                        null,
+                        Flag.Public.getBitMask() | Flag.Final.getBitMask(),
+                        newMockResponseBuilderType,
+                        "build",
+                        newMockResponseType,
+                        (List<String>) null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+                J.MethodInvocation updated = builder.withMethodType(
+                        javaMethodType.withDeclaringType(newMockResponseBuilderType)
+                                .withReturnType(newMockResponseType)
+                                .withName("build")
+                );
+                return updated.withName(
+                        updated.getName()
+                                .withSimpleName("build")
+                                .withType(updated.getMethodType())
+                );
             }
         });
     }
@@ -149,11 +121,9 @@ public class UpdateMockWebServerMockResponse extends Recipe {
     public List<Recipe> getRecipeList() {
         List<Recipe> recipes = new ArrayList<>();
         for (Map.Entry<String, String> rep : REPLACEMENTS.entrySet()) {
-            recipes.add(new ChangeMethodName(
-                    OLD_MOCKRESPONSE_FQN.replace("$", ".") + "#" + rep.getKey(),
-                    rep.getValue(),
-                    true,
-                    false));
+            String methodPattern = OLD_MOCKRESPONSE_FQN.replace("$", ".") + "#" + rep.getKey();
+            recipes.add(new ChangeMethodName(methodPattern, rep.getValue(), true, false));
+            recipes.add(new ChangeMethodInvocationReturnType(methodPattern, NEW_MOCKRESPONSE_FQN_BUILDER));
         }
         recipes.add(new ChangeType(OLD_MOCKRESPONSE_FQN, NEW_MOCKRESPONSE_FQN_BUILDER, true));
         recipes.add(new ChangePackage("okhttp3.mockwebserver", "mockwebserver3", false));
