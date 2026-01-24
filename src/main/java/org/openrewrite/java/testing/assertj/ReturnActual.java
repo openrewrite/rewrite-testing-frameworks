@@ -28,7 +28,6 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ReturnActual extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -64,12 +63,11 @@ public class ReturnActual extends Recipe {
                     return bl;
                 }
                 J.MethodInvocation assertion = (J.MethodInvocation) maybeAssertion;
-                if (!isAssertThatChain(assertion)) {
+                if (!isAssertThatChainWithCompatibleArgument(assertion)) {
                     return bl;
                 }
                 Expression assertThatArg = getAssertThatArgument(assertion);
-                if (assertThatArg == null ||
-                        !SemanticallyEqual.areEqual(assertThatArg, returnStatement.getExpression())) {
+                if (assertThatArg == null || !SemanticallyEqual.areEqual(assertThatArg, returnStatement.getExpression())) {
                     return bl;
                 }
 
@@ -88,19 +86,12 @@ public class ReturnActual extends Recipe {
                 }));
             }
 
-            private boolean isAssertThatChain(J.MethodInvocation mi) {
-                // Walk the select chain to find assertThat at the root
+            private boolean isAssertThatChainWithCompatibleArgument(J.MethodInvocation mi) {
                 J.MethodInvocation current = mi;
                 while (current.getSelect() instanceof J.MethodInvocation) {
                     J.MethodInvocation select = (J.MethodInvocation) current.getSelect();
                     if (ASSERT_THAT.matches(select)) {
-                        // Found assertThat at root; validate argument is not a method call
-                        Expression arg = select.getArguments().get(0);
-                        if (arg instanceof MethodCall) {
-                            return false;
-                        }
-                        // Validate type compatibility of the outermost assertion
-                        return isTypeCompatible(select, mi);
+                        return !(select.getArguments().get(0) instanceof MethodCall) && isTypeCompatible(select, mi);
                     }
                     current = select;
                 }
@@ -117,16 +108,18 @@ public class ReturnActual extends Recipe {
                     }
 
                     JavaType.Parameterized assertThatFq = TypeUtils.asParameterized(assertThatType);
-                    JavaType.Parameterized assertionFq = TypeUtils.asParameterized(assertionType);
+                    if (assertThatFq == null) {
+                        return false;
+                    }
 
+                    JavaType.Parameterized assertionFq = TypeUtils.asParameterized(assertionType);
                     if (assertionFq == null && assertionType instanceof JavaType.GenericTypeVariable) {
                         JavaType.GenericTypeVariable genericType = (JavaType.GenericTypeVariable) assertionType;
                         if (!genericType.getBounds().isEmpty()) {
                             assertionFq = TypeUtils.asParameterized(genericType.getBounds().get(0));
                         }
                     }
-
-                    if (assertThatFq != null && assertionFq != null) {
+                    if (assertionFq != null) {
                         return TypeUtils.isOfType(assertThatFq.getType(), assertionFq.getType());
                     }
                 }
