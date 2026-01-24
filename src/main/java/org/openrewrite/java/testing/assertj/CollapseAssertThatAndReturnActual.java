@@ -16,11 +16,8 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.Getter;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -29,9 +26,10 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Collections.emptyList;
 
 public class CollapseAssertThatAndReturnActual extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -49,8 +47,13 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.Block bl = super.visitBlock(block, ctx);
 
+                // Quick check to avoid unnecessary processing: we need at least two statements and the last one must be a return
+                if (bl.getStatements().size() < 2 || !(bl.getStatements().get(bl.getStatements().size() -1) instanceof J.Return)) {
+                    return bl;
+                }
+
                 AtomicBoolean skip = new AtomicBoolean(false);
-                List<Statement> statements = ListUtils.map(bl.getStatements(), (i, stmt) -> {
+                return bl.withStatements(ListUtils.map(bl.getStatements(), (i, stmt) -> {
                     if (skip.getAndSet(false)) {
                         return null;
                     }
@@ -77,9 +80,7 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                         }
                     }
                     return stmt;
-                });
-
-                return bl.withStatements(statements);
+                }));
             }
 
             private J.MethodInvocation appendActual(J.MethodInvocation assertion, JavaType returnType) {
@@ -89,7 +90,7 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                         JavaType.ShallowClass.build("org.assertj.core.api.AbstractAssert"),
                         "actual",
                         returnType,
-                        Collections.emptyList(),
+                        emptyList(),
                         null,
                         null,
                         null,
@@ -106,7 +107,7 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                                 Tree.randomId(),
                                 Space.EMPTY,
                                 Markers.EMPTY,
-                                Collections.emptyList(),
+                                emptyList(),
                                 "actual",
                                 methodType,
                                 null
@@ -172,7 +173,7 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                 return false;
             }
 
-            private Expression getAssertThatArgument(J.MethodInvocation mi) {
+            private @Nullable Expression getAssertThatArgument(J.MethodInvocation mi) {
                 J.MethodInvocation current = mi;
                 while (current.getSelect() instanceof J.MethodInvocation) {
                     J.MethodInvocation select = (J.MethodInvocation) current.getSelect();
