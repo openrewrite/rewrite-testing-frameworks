@@ -24,14 +24,14 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class CollapseAssertThatAndReturnActualTest implements RewriteTest {
+class ReturnActualTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"))
-          .recipe(new CollapseAssertThatAndReturnActual());
+          .recipe(new ReturnActual());
     }
 
     @DocumentExample

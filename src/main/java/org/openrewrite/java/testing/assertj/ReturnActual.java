@@ -30,11 +30,11 @@ import org.openrewrite.java.tree.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CollapseAssertThatAndReturnActual extends Recipe {
+public class ReturnActual extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
 
     @Getter
-    final String displayName = "Collapse `assertThat` and `return` into single statement";
+    final String displayName = "Collapse `assertThat` followed by `return` into single statement";
 
     @Getter
     final String description = "Collapse an `assertThat` statement followed by a `return` of the same object into a single `return assertThat(...).assertions().actual()` statement.";
@@ -51,9 +51,9 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                     return bl;
                 }
 
-                AtomicBoolean skip = new AtomicBoolean(false);
+                AtomicBoolean remove = new AtomicBoolean(false);
                 return bl.withStatements(ListUtils.map(bl.getStatements(), (i, stmt) -> {
-                    if (skip.getAndSet(false)) {
+                    if (remove.getAndSet(false)) {
                         return null;
                     }
                     List<Statement> all = bl.getStatements();
@@ -69,24 +69,20 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                             if (assertThatArg != null &&
                                 SemanticallyEqual.areEqual(assertThatArg, returnStatement.getExpression())) {
                                 // Build the collapsed return statement
-                                J.MethodInvocation withActual = appendActual(assertion.withPrefix(Space.EMPTY), ctx);
-                                J.Return newReturn = returnStatement
-                                        .withExpression(withActual.withPrefix(Space.SINGLE_SPACE))
+                                J.MethodInvocation withActual = JavaTemplate.builder("#{any()}.actual()")
+                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                        .build()
+                                        .apply(new Cursor(getCursor(), assertion), assertion.getCoordinates().replace(), assertion)
+                                        .withPrefix(Space.SINGLE_SPACE);
+                                remove.set(true);
+                                return returnStatement
+                                        .withExpression(withActual)
                                         .withPrefix(assertion.getPrefix());
-                                skip.set(true);
-                                return newReturn;
                             }
                         }
                     }
                     return stmt;
                 }));
-            }
-
-            private J.MethodInvocation appendActual(J.MethodInvocation assertion, ExecutionContext ctx) {
-                return JavaTemplate.builder("#{any()}.actual()")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                        .build()
-                        .apply(new Cursor(getCursor(), assertion), assertion.getCoordinates().replace(), assertion);
             }
 
             private boolean isAssertThatChain(J.MethodInvocation mi) {
@@ -104,17 +100,6 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                         return isTypeCompatible(select, mi);
                     }
                     current = select;
-                }
-                // Check if mi directly selects on assertThat
-                if (ASSERT_THAT.matches(current.getSelect())) {
-                    J.MethodInvocation assertThat = (J.MethodInvocation) current.getSelect();
-                    if (assertThat != null) {
-                        Expression arg = assertThat.getArguments().get(0);
-                        if (arg instanceof MethodCall) {
-                            return false;
-                        }
-                        return isTypeCompatible(assertThat, mi);
-                    }
                 }
                 return false;
             }
@@ -153,9 +138,6 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                         return select.getArguments().get(0);
                     }
                     current = select;
-                }
-                if (ASSERT_THAT.matches(current.getSelect()) && current.getSelect() instanceof J.MethodInvocation) {
-                    return ((J.MethodInvocation) current.getSelect()).getArguments().get(0);
                 }
                 return null;
             }
