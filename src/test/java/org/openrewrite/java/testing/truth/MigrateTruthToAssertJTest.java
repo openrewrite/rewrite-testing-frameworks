@@ -628,7 +628,7 @@ class MigrateTruthToAssertJTest implements RewriteTest {
                 }
 
                 dependencies {
-                    testImplementation "org.assertj:assertj-core:3.27.6"
+                    testImplementation "org.assertj:assertj-core:3.27.7"
                 }
                 """),
             //language=java
