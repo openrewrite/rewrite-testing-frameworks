@@ -209,6 +209,38 @@ class ReturnActualTest implements RewriteTest {
     }
 
     @Test
+    void lambdaBlockToExpression() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.function.UnaryOperator;
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  UnaryOperator<String> test() {
+                      return s -> {
+                          assertThat(s).isNotNull();
+                          return s;
+                      };
+                  }
+              }
+              """,
+            """
+              import java.util.function.UnaryOperator;
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  UnaryOperator<String> test() {
+                      return s -> assertThat(s).isNotNull().actual();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void noChangeWhenVoidReturn() {
         //language=java
         rewriteRun(

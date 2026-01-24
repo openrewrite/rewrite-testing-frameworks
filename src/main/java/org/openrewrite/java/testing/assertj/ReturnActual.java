@@ -26,6 +26,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.List;
 
@@ -70,6 +71,8 @@ public class ReturnActual extends Recipe {
                 if (assertThatArg == null || !SemanticallyEqual.areEqual(assertThatArg, returnStatement.getExpression())) {
                     return bl;
                 }
+
+                doAfterVisit(new LambdaBlockToExpression().getVisitor());
 
                 // Build the new block with the collapsed return statement
                 List<Statement> withoutReturn = ListUtils.mapLast(bl.getStatements(), stmt -> null);
