@@ -46,42 +46,45 @@ public class ReturnActual extends Recipe {
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.Block bl = super.visitBlock(block, ctx);
 
-                // Quick check to avoid unnecessary processing: we need at least two statements and the last one must be a return
-                if (bl.getStatements().size() < 2 || !(bl.getStatements().get(bl.getStatements().size() -1) instanceof J.Return)) {
+                // Quick checks to avoid unnecessary processing: we need at least two statements and the last one must be a return
+                int numberOfStatements = bl.getStatements().size();
+                if (numberOfStatements < 2) {
+                    return bl;
+                }
+                Statement maybeReturn = bl.getStatements().get(numberOfStatements - 1);
+                if (!(maybeReturn instanceof J.Return)) {
+                    return bl;
+                }
+                J.Return returnStatement = (J.Return) maybeReturn;
+                if (returnStatement.getExpression() == null) {
+                    return bl;
+                }
+                Statement maybeAssertion = bl.getStatements().get(numberOfStatements - 2);
+                if (!(maybeAssertion instanceof J.MethodInvocation)) {
+                    return bl;
+                }
+                J.MethodInvocation assertion = (J.MethodInvocation) maybeAssertion;
+                if (!isAssertThatChain(assertion)) {
+                    return bl;
+                }
+                Expression assertThatArg = getAssertThatArgument(assertion);
+                if (assertThatArg == null ||
+                        !SemanticallyEqual.areEqual(assertThatArg, returnStatement.getExpression())) {
                     return bl;
                 }
 
-                AtomicBoolean remove = new AtomicBoolean(false);
-                return bl.withStatements(ListUtils.map(bl.getStatements(), (i, stmt) -> {
-                    if (remove.getAndSet(false)) {
-                        return null;
-                    }
-                    List<Statement> all = bl.getStatements();
-                    if (i + 1 < all.size() &&
-                        stmt instanceof J.MethodInvocation &&
-                        all.get(i + 1) instanceof J.Return) {
-
-                        J.MethodInvocation assertion = (J.MethodInvocation) stmt;
-                        J.Return returnStatement = (J.Return) all.get(i + 1);
-
-                        if (returnStatement.getExpression() != null && isAssertThatChain(assertion)) {
-                            Expression assertThatArg = getAssertThatArgument(assertion);
-                            if (assertThatArg != null &&
-                                SemanticallyEqual.areEqual(assertThatArg, returnStatement.getExpression())) {
-                                // Build the collapsed return statement
-                                J.MethodInvocation withActual = JavaTemplate.builder("#{any()}.actual()")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                        .build()
-                                        .apply(new Cursor(getCursor(), assertion), assertion.getCoordinates().replace(), assertion)
-                                        .withPrefix(Space.SINGLE_SPACE);
-                                remove.set(true);
-                                return returnStatement
-                                        .withExpression(withActual)
-                                        .withPrefix(assertion.getPrefix());
-                            }
-                        }
-                    }
-                    return stmt;
+                // Build the new block with the collapsed return statement
+                List<Statement> withoutReturn = ListUtils.mapLast(bl.getStatements(), stmt -> null);
+                return bl.withStatements(ListUtils.mapLast(withoutReturn, stmt -> {
+                    // Build the collapsed return statement
+                    J.MethodInvocation withActual = JavaTemplate.builder("#{any()}.actual()")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(new Cursor(getCursor(), assertion), assertion.getCoordinates().replace(), assertion)
+                            .withPrefix(Space.SINGLE_SPACE);
+                    return returnStatement
+                            .withExpression(withActual)
+                            .withPrefix(assertion.getPrefix());
                 }));
             }
 
