@@ -20,16 +20,15 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.util.Collections.emptyList;
 
 public class CollapseAssertThatAndReturnActual extends Recipe {
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -70,7 +69,7 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                             if (assertThatArg != null &&
                                 SemanticallyEqual.areEqual(assertThatArg, returnStatement.getExpression())) {
                                 // Build the collapsed return statement
-                                J.MethodInvocation withActual = appendActual(assertion.withPrefix(Space.EMPTY), assertThatArg.getType());
+                                J.MethodInvocation withActual = appendActual(assertion.withPrefix(Space.EMPTY), ctx);
                                 J.Return newReturn = returnStatement
                                         .withExpression(withActual.withPrefix(Space.SINGLE_SPACE))
                                         .withPrefix(assertion.getPrefix());
@@ -83,38 +82,11 @@ public class CollapseAssertThatAndReturnActual extends Recipe {
                 }));
             }
 
-            private J.MethodInvocation appendActual(J.MethodInvocation assertion, JavaType returnType) {
-                JavaType.Method methodType = new JavaType.Method(
-                        null,
-                        Flag.Public.getBitMask(),
-                        JavaType.ShallowClass.build("org.assertj.core.api.AbstractAssert"),
-                        "actual",
-                        returnType,
-                        emptyList(),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                );
-                return new J.MethodInvocation(
-                        Tree.randomId(),
-                        Space.EMPTY,
-                        Markers.EMPTY,
-                        JRightPadded.build(assertion),
-                        null,
-                        new J.Identifier(
-                                Tree.randomId(),
-                                Space.EMPTY,
-                                Markers.EMPTY,
-                                emptyList(),
-                                "actual",
-                                methodType,
-                                null
-                        ),
-                        JContainer.empty(),
-                        methodType
-                );
+            private J.MethodInvocation appendActual(J.MethodInvocation assertion, ExecutionContext ctx) {
+                return JavaTemplate.builder("#{any()}.actual()")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .build()
+                        .apply(new Cursor(getCursor(), assertion), assertion.getCoordinates().replace(), assertion);
             }
 
             private boolean isAssertThatChain(J.MethodInvocation mi) {
