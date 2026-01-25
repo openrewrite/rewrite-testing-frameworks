@@ -115,7 +115,6 @@ public class MockConstructionToTryWithResources extends Recipe {
                                 if (foundCloseIndex != -1) {
                                     varDeclIndex = i;
                                     closeIndex = foundCloseIndex;
-                                    varName = name;
                                     varDecl = vd;
                                     break;
                                 }
