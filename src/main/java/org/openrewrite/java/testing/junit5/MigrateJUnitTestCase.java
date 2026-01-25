@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -51,15 +52,11 @@ public class MigrateJUnitTestCase extends Recipe {
         return isSupertypeTestCase(fullyQualified.getSupertype());
     }
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate JUnit 4 `TestCase` to JUnit Jupiter";
-    }
+    @Getter
+    final String displayName = "Migrate JUnit 4 `TestCase` to JUnit Jupiter";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
-    }
+    @Getter
+    final String description = "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

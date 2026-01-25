@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -45,15 +46,11 @@ public class LifecycleNonPrivate extends Recipe {
     private static final TreeVisitor<?, ExecutionContext> PRECONDITION =
             Preconditions.or(ANNOTATION_TYPES.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
 
-    @Override
-    public String getDisplayName() {
-        return "Make lifecycle methods non private";
-    }
+    @Getter
+    final String displayName = "Make lifecycle methods non private";
 
-    @Override
-    public String getDescription() {
-        return "Make JUnit 5's `@AfterAll`, `@AfterEach`, `@BeforeAll` and `@BeforeEach` non private.";
-    }
+    @Getter
+    final String description = "Make JUnit 5's `@AfterAll`, `@AfterEach`, `@BeforeAll` and `@BeforeEach` non private.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -80,9 +77,7 @@ public class LifecycleNonPrivate extends Recipe {
         }
     }
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
 }

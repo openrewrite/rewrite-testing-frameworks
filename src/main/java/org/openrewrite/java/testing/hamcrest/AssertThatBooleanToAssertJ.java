@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -26,15 +27,11 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 public class AssertThatBooleanToAssertJ extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Migrate Hamcrest `assertThat(boolean, Matcher)` to AssertJ";
-    }
+    @Getter
+    final String displayName = "Migrate Hamcrest `assertThat(boolean, Matcher)` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Replace Hamcrest `assertThat(String, boolean)` with AssertJ `assertThat(boolean).as(String).isTrue()`.";
-    }
+    @Getter
+    final String description = "Replace Hamcrest `assertThat(String, boolean)` with AssertJ `assertThat(boolean).as(String).isTrue()`.";
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(String, boolean)");
 

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -39,15 +40,11 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
     private static final MethodMatcher TIMEOUT_CONSTRUCTOR_MATCHER = new MethodMatcher("org.junit.rules.Timeout <constructor>(..)");
     private static final MethodMatcher MILLIS_SECONDS_MATCHER = new MethodMatcher("org.junit.rules.Timeout *(long)");
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `@Rule Timeout` to JUnit Jupiter's `Timeout`";
-    }
+    @Getter
+    final String displayName = "JUnit 4 `@Rule Timeout` to JUnit Jupiter's `Timeout`";
 
-    @Override
-    public String getDescription() {
-        return "Replace usages of JUnit 4's `@Rule Timeout` with JUnit 5 `Timeout` class annotation.";
-    }
+    @Getter
+    final String description = "Replace usages of JUnit 4's `@Rule Timeout` with JUnit 5 `Timeout` class annotation.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.truth;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -36,15 +37,11 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
     private static final MethodMatcher ASSERT_WITH_MESSAGE = new MethodMatcher("com.google.common.truth.Truth assertWithMessage(..)");
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("com.google.common.truth.StandardSubjectBuilder that(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Convert Truth `assertWithMessage` to AssertJ";
-    }
+    @Getter
+    final String displayName = "Convert Truth `assertWithMessage` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Converts Google Truth's `assertWithMessage().that()` pattern to AssertJ's `assertThat().as()` pattern.";
-    }
+    @Getter
+    final String description = "Converts Google Truth's `assertWithMessage().that()` pattern to AssertJ's `assertThat().as()` pattern.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

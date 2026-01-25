@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -38,15 +39,11 @@ import static org.openrewrite.Tree.randomId;
 
 public class TemporaryFolderToTempDir extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Use JUnit Jupiter `@TempDir`";
-    }
+    @Getter
+    final String displayName = "Use JUnit Jupiter `@TempDir`";
 
-    @Override
-    public String getDescription() {
-        return "Translates JUnit 4's `org.junit.rules.TemporaryFolder` into JUnit 5's `org.junit.jupiter.api.io.TempDir`.";
-    }
+    @Getter
+    final String description = "Translates JUnit 4's `org.junit.rules.TemporaryFolder` into JUnit 5's `org.junit.jupiter.api.io.TempDir`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -72,12 +69,12 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             c = (J.CompilationUnit) new ChangeType(
                     "org.junit.rules.TemporaryFolder", "java.io.File", true).getVisitor()
                     .visit(c, ctx);
-            maybeAddImport("java.io.File");
-            maybeAddImport("java.nio.file.Files");
-            maybeAddImport("org.junit.jupiter.api.io.TempDir");
             maybeRemoveImport("org.junit.ClassRule");
             maybeRemoveImport("org.junit.Rule");
             maybeRemoveImport("org.junit.rules.TemporaryFolder");
+            maybeAddImport("java.io.File");
+            maybeAddImport("java.nio.file.Files");
+            maybeAddImport("org.junit.jupiter.api.io.TempDir");
         }
         return c;
     }

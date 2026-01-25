@@ -24,12 +24,16 @@ import static com.google.errorprone.refaster.ImportPolicy.STATIC_IMPORT_ALWAYS;
 import static org.junit.jupiter.api.Assertions.*;
 
 @RecipeDescriptor(
-        name = "Replace JUnit `assertTrue(false, \"reason\")` and `assertFalse(true, \"reason\")` with `fail(\"reason\")`",
+        name = "Replace JUnit `assertTrue(false)` and `assertFalse(true)` with `fail()`",
         description = "Using fail is more direct and clear."
 )
 @SuppressWarnings({"DataFlowIssue", "SimplifiableAssertion"})
 public class AssertLiteralBooleanToFail {
 
+    @RecipeDescriptor(
+            name = "Replace JUnit `assertTrue(false, \"reason\")` and `assertFalse(true, \"reason\")` with `fail(\"reason\")`",
+            description = "Using fail is more direct and clear."
+    )
     static class WithMessage {
         @BeforeTemplate
         void assertFalseBefore(String message) {
@@ -48,6 +52,10 @@ public class AssertLiteralBooleanToFail {
         }
     }
 
+    @RecipeDescriptor(
+            name = "Replace JUnit `assertTrue(false)` and `assertFalse(true)` with `fail()`",
+            description = "Using fail is more direct and clear."
+    )
     static class WithoutMessage {
         @BeforeTemplate
         void assertFalseBefore() {

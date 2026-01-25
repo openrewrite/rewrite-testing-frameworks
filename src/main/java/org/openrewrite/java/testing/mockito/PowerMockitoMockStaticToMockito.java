@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
@@ -32,16 +33,12 @@ import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWi
 
 public class PowerMockitoMockStaticToMockito extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Replace `PowerMock.mockStatic()` with `Mockito.mockStatic()`";
-    }
+    @Getter
+    final String displayName = "Replace `PowerMock.mockStatic()` with `Mockito.mockStatic()`";
 
-    @Override
-    public String getDescription() {
-        return "Replaces `PowerMockito.mockStatic()` by `Mockito.mockStatic()`. Removes " +
-               "the `@PrepareForTest` annotation.";
-    }
+    @Getter
+    final String description = "Replaces `PowerMockito.mockStatic()` by `Mockito.mockStatic()`. Removes " +
+            "the `@PrepareForTest` annotation.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

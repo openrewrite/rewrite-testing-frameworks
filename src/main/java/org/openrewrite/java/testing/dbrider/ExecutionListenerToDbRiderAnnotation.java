@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.dbrider;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -40,16 +41,12 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
     private static final AnnotationMatcher DBRIDER_ANNOTATION_MATCHER = new AnnotationMatcher("@com.github.database.rider.junit5.api.DBRider");
     private static final String DBRIDER_TEST_EXECUTION_LISTENER = "com.github.database.rider.spring.DBRiderTestExecutionListener";
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate the `DBRiderTestExecutionListener` to the `@DBRider` annotation";
-    }
+    @Getter
+    final String displayName = "Migrate the `DBRiderTestExecutionListener` to the `@DBRider` annotation";
 
-    @Override
-    public String getDescription() {
-        return "Migrate the `DBRiderTestExecutionListener` to the `@DBRider` annotation. " +
-               "This recipe is useful when migrating from JUnit 4 `dbrider-spring` to JUnit 5 `dbrider-junit5`.";
-    }
+    @Getter
+    final String description = "Migrate the `DBRiderTestExecutionListener` to the `@DBRider` annotation. " +
+            "This recipe is useful when migrating from JUnit 4 `dbrider-spring` to JUnit 5 `dbrider-junit5`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -67,20 +67,11 @@ public class TestsShouldIncludeAssertions extends Recipe {
     @Nullable
     String additionalAsserts;
 
-    @Override
-    public String getDisplayName() {
-        return "Include an assertion in tests";
-    }
+    String displayName = "Include an assertion in tests";
 
-    @Override
-    public String getDescription() {
-        return "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`.";
-    }
+    String description = "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`.";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S2699");
-    }
+    Set<String> tags = singleton("RSPEC-S2699");
 
     @Override
     public Validated<Object> validate() {

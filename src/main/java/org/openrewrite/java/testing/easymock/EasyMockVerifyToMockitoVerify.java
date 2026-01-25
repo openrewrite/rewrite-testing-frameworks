@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.easymock;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -40,15 +41,11 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
     private static final MethodMatcher VERIFY_MATCHER = new MethodMatcher("org.easymock.EasyMock verify(..)", true);
     private static final MethodMatcher EASY_MATCHER = new MethodMatcher("org.easymock.EasyMock expect(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace EasyMock `verify` calls with Mockito `verify` calls";
-    }
+    @Getter
+    final String displayName = "Replace EasyMock `verify` calls with Mockito `verify` calls";
 
-    @Override
-    public String getDescription() {
-        return "Replace `EasyMock.verify(dependency)` with individual `Mockito.verify(dependency).method()` calls based on expected methods.";
-    }
+    @Getter
+    final String description = "Replace `EasyMock.verify(dependency)` with individual `Mockito.verify(dependency).method()` calls based on expected methods.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

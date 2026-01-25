@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -33,15 +34,11 @@ import java.util.List;
 
 public class CleanupMockitoImports extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Cleanup Mockito imports";
-    }
+    @Getter
+    final String displayName = "Cleanup Mockito imports";
 
-    @Override
-    public String getDescription() {
-        return "Removes unused `org.mockito` import symbols, unless its possible they are associated with method invocations having null or unknown type information.";
-    }
+    @Getter
+    final String description = "Removes unused `org.mockito` import symbols, unless its possible they are associated with method invocations having null or unknown type information.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

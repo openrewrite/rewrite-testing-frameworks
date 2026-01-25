@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -25,15 +26,11 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
 public class UpdateBeforeAfterAnnotations extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Migrate JUnit 4 lifecycle annotations to JUnit Jupiter";
-    }
+    @Getter
+    final String displayName = "Migrate JUnit 4 lifecycle annotations to JUnit Jupiter";
 
-    @Override
-    public String getDescription() {
-        return "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit Jupiter equivalents.";
-    }
+    @Getter
+    final String description = "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit Jupiter equivalents.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

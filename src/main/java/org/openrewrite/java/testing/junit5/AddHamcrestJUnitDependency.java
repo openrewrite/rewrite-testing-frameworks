@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.Tree;
@@ -28,15 +29,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AddHamcrestJUnitDependency extends ScanningRecipe<AtomicBoolean> {
 
-    @Override
-    public String getDisplayName() {
-        return "Add Hamcrest JUnit dependency";
-    }
+    @Getter
+    final String displayName = "Add Hamcrest JUnit dependency";
 
-    @Override
-    public String getDescription() {
-        return "Add Hamcrest JUnit dependency only if JUnit 4's `assertThat` or `assumeThat` is used.";
-    }
+    @Getter
+    final String description = "Add Hamcrest JUnit dependency only if JUnit 4's `assertThat` or `assumeThat` is used.";
 
     @Override
     public AtomicBoolean getInitialValue(ExecutionContext ctx) {

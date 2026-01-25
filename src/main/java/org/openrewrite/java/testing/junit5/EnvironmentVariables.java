@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -25,31 +26,27 @@ import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 
 import static java.util.Comparator.comparing;
-import static org.openrewrite.java.testing.junit5.Junit4Utils.CLASS_RULE;
-import static org.openrewrite.java.testing.junit5.Junit4Utils.RULE;
 
 /**
  * A recipe to replace JUnit 4's EnvironmentVariables rule from contrib with the JUnit 5-compatible
  * `SystemStubsExtension` and `EnvironmentVariables` from the System Stubs library.
  */
 public class EnvironmentVariables extends Recipe {
-    public static final String ENVIRONMENT_VARIABLES = "org.junit.contrib.java.lang.system.EnvironmentVariables";
-    public static final String ENVIRONMENT_VARIABLES_STUB = "uk.org.webcompere.systemstubs.environment.EnvironmentVariables";
-    public static final String SYSTEM_STUBS_EXTENSION = "uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension";
-    public static final String SYSTEM_STUB = "uk.org.webcompere.systemstubs.jupiter.SystemStub";
+    private static final String CLASS_RULE = "org.junit.ClassRule";
+    private static final String ENVIRONMENT_VARIABLES = "org.junit.contrib.java.lang.system.EnvironmentVariables";
+    private static final String ENVIRONMENT_VARIABLES_STUB = "uk.org.webcompere.systemstubs.environment.EnvironmentVariables";
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
+    private static final String RULE = "org.junit.Rule";
+    private static final String SYSTEM_STUB = "uk.org.webcompere.systemstubs.jupiter.SystemStub";
+    private static final String SYSTEM_STUBS_EXTENSION = "uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension";
 
-    @Override
-    public @NonNull String getDisplayName() {
-        return "Migrate JUnit 4 environmentVariables rule to JUnit 5 system stubs extension";
-    }
+    @Getter
+    final String displayName = "Migrate JUnit 4 environmentVariables rule to JUnit 5 system stubs extension";
 
-    @Override
-    public @NonNull String getDescription() {
-        return "Replaces usage of the JUnit 4 `@Rule EnvironmentVariables` with the JUnit 5-compatible " +
-                "`SystemStubsExtension` and `@SystemStub EnvironmentVariables` from the System Stubs " +
-                "library.";
-    }
+    @Getter
+    final String description = "Replaces usage of the JUnit 4 `@Rule EnvironmentVariables` with the JUnit 5-compatible " +
+            "`SystemStubsExtension` and `@SystemStub EnvironmentVariables` from the System Stubs " +
+            "library.";
 
     @Override
     public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {

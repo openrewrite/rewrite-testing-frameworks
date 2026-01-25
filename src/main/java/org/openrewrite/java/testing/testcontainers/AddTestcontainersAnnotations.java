@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.testcontainers;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -42,15 +43,11 @@ public class AddTestcontainersAnnotations extends Recipe {
     private static final String TESTCONTAINERS_FQN = "org.testcontainers.junit.jupiter.Testcontainers";
     private static final String CONTAINER_FQN = "org.testcontainers.junit.jupiter.Container";
 
-    @Override
-    public String getDisplayName() {
-        return "Adopt `@Container` and add `@Testcontainers`";
-    }
+    @Getter
+    final String displayName = "Adopt `@Container` and add `@Testcontainers`";
 
-    @Override
-    public String getDescription() {
-        return "Convert Testcontainers `@Rule`/`@ClassRule` to JUnit 5 `@Container` and add `@Testcontainers`.";
-    }
+    @Getter
+    final String description = "Convert Testcontainers `@Rule`/`@ClassRule` to JUnit 5 `@Container` and add `@Testcontainers`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

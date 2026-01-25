@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -32,25 +33,17 @@ import static java.util.Collections.singleton;
 
 public class RemoveEmptyTests extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Remove empty tests without comments";
-    }
+    @Getter
+    final String displayName = "Remove empty tests without comments";
 
-    @Override
-    public String getDescription() {
-        return "Removes empty methods with a `@Test` annotation if the body does not have comments.";
-    }
+    @Getter
+    final String description = "Removes empty methods with a `@Test` annotation if the body does not have comments.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(2);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(2);
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S1186");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S1186");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

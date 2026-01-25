@@ -530,3 +530,59 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.ToxiproxyContainer
       newFullyQualifiedTypeName: org.testcontainers.toxiproxy.ToxiproxyContainer
+
+  # Convert parameterized types to raw types (e.g., PostgreSQLContainer<?> -> PostgreSQLContainer)
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.gcloud.BigQueryEmulatorContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.gcloud.BigtableEmulatorContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.selenium.BrowserWebDriverContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.cassandra.CassandraContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.cockroachdb.CockroachContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.gcloud.DatastoreEmulatorContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.db2.Db2Container
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.gcloud.FirestoreEmulatorContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.kafka.KafkaContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.localstack.LocalStackContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.mariadb.MariaDBContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.mockserver.MockServerContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.mongodb.MongoDBContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.mssqlserver.MSSQLServerContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.mysql.MySQLContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.neo4j.Neo4jContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.nginx.NginxContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.orientdb.OrientDBContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.postgresql.PostgreSQLContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.gcloud.PubSubEmulatorContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.pulsar.PulsarContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.rabbitmq.RabbitMQContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.solr.SolrContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.gcloud.SpannerEmulatorContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.tidb.TiDBContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.toxiproxy.ToxiproxyContainer
+  - org.openrewrite.java.testing.testcontainers.ConvertToRawType:
+      fullyQualifiedTypeName: org.testcontainers.trino.TrinoContainer

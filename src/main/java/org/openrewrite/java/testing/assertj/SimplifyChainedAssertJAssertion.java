@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -69,21 +70,15 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
     @Nullable
     String requiredType;
 
-    @Override
-    public String getDisplayName() {
-        return "Simplify AssertJ chained assertions";
-    }
+    @Getter
+    final String displayName = "Simplify AssertJ chained assertions";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S5838");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S5838");
 
-    @Override
-    public String getDescription() {
-        return "Many AssertJ chained assertions have dedicated assertions that function the same. " +
-               "It is best to use the dedicated assertions.";
-    }
+    @Getter
+    final String description = "Many AssertJ chained assertions have dedicated assertions that function the same. " +
+            "It is best to use the dedicated assertions.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

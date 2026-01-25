@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.truth;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -35,15 +36,11 @@ public class TruthThrowableAssertions extends Recipe {
     private static final MethodMatcher IS_EQUAL_TO = new MethodMatcher("com.google.common.truth.Subject isEqualTo(..)");
     private static final MethodMatcher IS_INSTANCE_OF = new MethodMatcher("com.google.common.truth.Subject isInstanceOf(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Convert Truth Throwable assertions to AssertJ";
-    }
+    @Getter
+    final String displayName = "Convert Truth Throwable assertions to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Converts Google Truth's Throwable assertion chains like `hasMessageThat().contains()` to AssertJ equivalents.";
-    }
+    @Getter
+    final String description = "Converts Google Truth's Throwable assertion chains like `hasMessageThat().contains()` to AssertJ equivalents.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

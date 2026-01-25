@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit6;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -30,16 +31,12 @@ public class MigrateMethodOrdererAlphanumeric extends Recipe {
     private static final String ALPHANUMERIC = METHOD_ORDERER + ".Alphanumeric";
     private static final String METHOD_NAME = METHOD_ORDERER + ".MethodName";
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate `MethodOrderer.Alphanumeric` to `MethodOrderer.MethodName`";
-    }
+    @Getter
+    final String displayName = "Migrate `MethodOrderer.Alphanumeric` to `MethodOrderer.MethodName`";
 
-    @Override
-    public String getDescription() {
-        return "JUnit 6 removed the `MethodOrderer.Alphanumeric` class. " +
-                "This recipe migrates usages to `MethodOrderer.MethodName` which provides similar functionality.";
-    }
+    @Getter
+    final String description = "JUnit 6 removed the `MethodOrderer.Alphanumeric` class. " +
+            "This recipe migrates usages to `MethodOrderer.MethodName` which provides similar functionality.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.truth;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -29,15 +30,11 @@ public class TruthAssertToAssertThat extends Recipe {
 
     private static final MethodMatcher ASSERT_MATCHER = new MethodMatcher("com.google.common.truth.Truth assert_()");
 
-    @Override
-    public String getDisplayName() {
-        return "Convert Truth `assert_()` to AssertJ";
-    }
+    @Getter
+    final String displayName = "Convert Truth `assert_()` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Converts Google Truth's `assert_()` method to AssertJ's standard assertion pattern.";
-    }
+    @Getter
+    final String description = "Converts Google Truth's `assert_()` method to AssertJ's standard assertion pattern.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

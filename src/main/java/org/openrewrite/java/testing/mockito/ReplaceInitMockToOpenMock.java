@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -34,15 +35,11 @@ import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
 public class ReplaceInitMockToOpenMock extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Replace `MockitoAnnotations.initMocks(this)` to `MockitoAnnotations.openMocks(this)`";
-    }
+    @Getter
+    final String displayName = "Replace `MockitoAnnotations.initMocks(this)` to `MockitoAnnotations.openMocks(this)`";
 
-    @Override
-    public String getDescription() {
-        return "Replace `MockitoAnnotations.initMocks(this)` to `MockitoAnnotations.openMocks(this)` and generate `AutoCloseable` mocks.";
-    }
+    @Getter
+    final String description = "Replace `MockitoAnnotations.initMocks(this)` to `MockitoAnnotations.openMocks(this)` and generate `AutoCloseable` mocks.";
 
     private static final String MOCKITO_EXTENSION = "org.mockito.junit.jupiter.MockitoExtension";
     private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";

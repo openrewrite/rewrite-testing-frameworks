@@ -1320,6 +1320,39 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.KotlinTestMethodsShouldReturnUnit
+examples:
+- description: '`KotlinTestMethodsShouldReturnUnitTest#addUnitReturnTypeToSingleExprTestMethod`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test
+
+      class ATest {
+          @Test
+          fun myTest() = run {
+              doSomething()
+          }
+
+          fun doSomething(): Int {
+              return 5
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test
+
+      class ATest {
+          @Test
+          fun myTest(): Unit = run {
+              doSomething()
+          }
+
+          fun doSomething(): Int {
+              return 5
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.RemoveEmptyTests
 examples:
 - description: '`RemoveEmptyTestsTest#removeEmptyTest`'
@@ -2719,6 +2752,30 @@ examples:
     language: groovy
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.HandleExternalResourceRules
+examples:
+- description: '`HandleExternalResourceRulesTest#emptyTestClassWithExternalResourceRule`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import io.grpc.testing.GrpcCleanupRule;
+
+      public class EmptyTestClassWithExternalResourceRule {
+          @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
+      }
+    after: |
+      import org.junit.Rule;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+      import io.grpc.testing.GrpcCleanupRule;
+
+      @ExtendWith(ExternalResourceSupport.class)
+      public class EmptyTestClassWithExternalResourceRule {
+          @Rule public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnit4to5Migration
 examples:
 - description: '`EnclosedToNestedTest#oneInnerClass`'
@@ -3421,23 +3478,6 @@ recipeName: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
 examples:
 - description: '`UpgradeOkHttpMockWebServerTest#shouldUpgradeMavenDependency`'
   sources:
-  - before: |
-      import okhttp3.mockwebserver.MockWebServer;
-
-      class Test {
-          void test() {
-              MockWebServer server = new MockWebServer();
-          }
-      }
-    after: |
-      import mockwebserver3.MockWebServer;
-
-      class Test {
-          void test() {
-              MockWebServer server = new MockWebServer();
-          }
-      }
-    language: java
   - before: project
     language: mavenProject
   - before: |
@@ -3451,6 +3491,7 @@ examples:
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
             <version>4.10.0</version>
+            <scope>test</scope>
           </dependency>
         </dependencies>
       </project>
@@ -4633,25 +4674,6 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.search.FindUnitTests
-examples:
-- description: '`FindUnitTestsTest#dataTable`'
-  sources:
-  - before: |
-      import foo.Foo;
-      import org.junit.jupiter.api.Test;
-
-      public class FooTest {
-         @Test
-         public void test() {
-             Foo foo = new Foo();
-             foo.bar();
-             foo.baz();
-         }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.testcontainers.AddTestcontainersAnnotations
 examples:
 - description: '`AddTestcontainersAnnotationsTest#convertsSingleGenericContainerRule`'
@@ -4717,6 +4739,25 @@ examples:
           String method(ContainerState container) {
               return container.getHost();
           }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
+examples:
+- description: '`ConvertToRawTypeTest#variableDeclaration`'
+  sources:
+  - before: |
+      import org.testcontainers.containers.NginxContainer;
+
+      class Foo {
+          NginxContainer<?> container = new NginxContainer<>();
+      }
+    after: |
+      import org.testcontainers.nginx.NginxContainer;
+
+      class Foo {
+          NginxContainer container = new NginxContainer();
       }
     language: java
 ---

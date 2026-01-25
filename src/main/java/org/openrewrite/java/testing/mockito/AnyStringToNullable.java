@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -34,20 +35,14 @@ import java.time.Duration;
 public class AnyStringToNullable extends Recipe {
     private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.Mockito anyString()");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace Mockito 1.x `anyString()` with `nullable(String.class)`";
-    }
+    @Getter
+    final String displayName = "Replace Mockito 1.x `anyString()` with `nullable(String.class)`";
 
-    @Override
-    public String getDescription() {
-        return "Since Mockito 2.10 `anyString()` no longer matches null values. Use `nullable(Class)` instead.";
-    }
+    @Getter
+    final String description = "Since Mockito 2.10 `anyString()` no longer matches null values. Use `nullable(Class)` instead.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -56,8 +51,8 @@ public class AnyStringToNullable extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (ANY_STRING.matches(mi)) {
-                    maybeAddImport("org.mockito.ArgumentMatchers", "nullable", false);
                     maybeRemoveImport("org.mockito.Mockito.anyString");
+                    maybeAddImport("org.mockito.ArgumentMatchers", "nullable", false);
                     return JavaTemplate.builder("nullable(String.class)")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                             .staticImports("org.mockito.ArgumentMatchers.nullable")

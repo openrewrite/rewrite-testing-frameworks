@@ -15,12 +15,15 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -30,27 +33,23 @@ import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Test methods should have void return type";
-    }
+    private static final String TEST_ANNOTATION_TYPE_PATTERN = "org..*Test";
 
-    @Override
-    public String getDescription() {
-        return "Test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
-                "should have `void` return type. Non-void return types can cause test discovery issues, " +
-                "and warnings as of JUnit 5.13+. This recipe changes the return type to `void` and removes `return` statements.";
-    }
+    @Getter
+    final String displayName = "Test methods should have void return type";
+
+    @Getter
+    final String description = "Test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
+            "should have `void` return type. Non-void return types can cause test discovery issues, " +
+            "and warnings as of JUnit 5.13+. This recipe changes the return type to `void` and removes `return` statements.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-
-                // Check if method has a test annotation & body
-                if (!hasTestAnnotation(m) || m.getBody() == null) {
+                if (!hasJUnit5MethodAnnotation(m)) {
                     return m;
                 }
 
@@ -65,7 +64,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
                         m.getReturnTypeExpression().getId(),
                         m.getReturnTypeExpression().getPrefix(),
                         m.getReturnTypeExpression().getMarkers(),
-                        JavaType.Primitive.Void
+                        voidType
                 ));
 
                 // Update method type
@@ -76,20 +75,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 // Remove return statements that are not in nested classes or lambdas
                 return m.withBody((J.Block) new RemoveDirectReturns().visitBlock(requireNonNull(m.getBody()), ctx));
             }
-
-            private boolean hasTestAnnotation(J.MethodDeclaration method) {
-                for (J.Annotation annotation : method.getLeadingAnnotations()) {
-                    if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.Test") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.Test") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.api.TestTemplate") ||
-                            TypeUtils.isOfClassType(annotation.getType(), "org.junit.jupiter.params.ParameterizedTest")) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        };
+        });
     }
 
     private static class RemoveDirectReturns extends JavaVisitor<ExecutionContext> {
@@ -111,5 +97,18 @@ public class TestMethodsShouldBeVoid extends Recipe {
                     // Remove any other return statements
                     null;
         }
+    }
+
+    private static boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
+        for (J.Annotation a : method.getLeadingAnnotations()) {
+            if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
+                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

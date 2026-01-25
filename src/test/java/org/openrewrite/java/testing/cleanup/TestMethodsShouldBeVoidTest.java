@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.cleanup;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -30,8 +31,8 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-jupiter-api-5", "junit-jupiter-params-5"))
           .recipe(new TestMethodsShouldBeVoid());
     }
 
@@ -350,6 +351,25 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
                   private int calculateValue() {
                       return 42;
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/874")
+    @Test
+    void doesNotMatchNullableAnnotation() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("jspecify")),
+          //language=java
+          java(
+            """
+              import org.jspecify.annotations.Nullable;
+
+              public interface Doer {
+                  @Nullable
+                  String getFile(String input);
               }
               """
           )

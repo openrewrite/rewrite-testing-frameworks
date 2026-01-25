@@ -127,6 +127,8 @@ recipeList:
   - org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
   - org.openrewrite.java.testing.byteman.BytemanJUnit4ToBytemanJUnit5
   - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
+  # Convert any leftover ExternalResource rules last, after more specific rules have already run
+  - org.openrewrite.java.testing.junit5.HandleExternalResourceRules
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
@@ -178,6 +180,7 @@ recipeList:
       newParameterNames:
         - assumption
         - message
+  - org.openrewrite.java.testing.junit5.AssumeNotNullToAssumptionsRecipes
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Assume
       newFullyQualifiedTypeName: org.junit.jupiter.api.Assumptions
@@ -254,15 +257,12 @@ tags:
   - junit
   - okhttp
 recipeList:
-  - org.openrewrite.java.ChangePackage:
-      oldPackageName: okhttp3.mockwebserver
-      newPackageName: mockwebserver3
-      recursive: true
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: com.squareup.okhttp3
       oldArtifactId: mockwebserver
-      newArtifactId: mockwebserver3-junit5
+      newArtifactId: mockwebserver3
       newVersion: 5.x
+  - org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
@@ -322,6 +322,53 @@ recipeList:
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UpgradeToJUnit513
+displayName: Upgrade to JUnit 5.13
+description: Upgrades JUnit 5 to 5.13.x and migrates all deprecated APIs.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit
+      artifactId: junit-bom
+      newVersion: 5.13.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.jupiter
+      artifactId: "*"
+      newVersion: 5.13.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.platform
+      artifactId: "*"
+      newVersion: 1.13.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.vintage
+      artifactId: "*"
+      newVersion: 5.13.x
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER
+      fullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedInvocationConstants.DISPLAY_NAME_PLACEHOLDER
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedTest.INDEX_PLACEHOLDER
+      fullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedInvocationConstants.INDEX_PLACEHOLDER
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedTest.ARGUMENTS_PLACEHOLDER
+      fullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedInvocationConstants.ARGUMENTS_PLACEHOLDER
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedTest.ARGUMENTS_WITH_NAMES_PLACEHOLDER
+      fullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedInvocationConstants.ARGUMENTS_WITH_NAMES_PLACEHOLDER
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedTest.ARGUMENT_SET_NAME_PLACEHOLDER
+      fullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedInvocationConstants.ARGUMENT_SET_NAME_PLACEHOLDER
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedTest.ARGUMENT_SET_NAME_OR_ARGUMENTS_WITH_NAMES_PLACEHOLDER
+      fullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedInvocationConstants.ARGUMENT_SET_NAME_OR_ARGUMENTS_WITH_NAMES_PLACEHOLDER
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME
+      fullyQualifiedConstantName: org.junit.jupiter.params.ParameterizedInvocationConstants.DEFAULT_DISPLAY_NAME
+
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeToJUnit514
 displayName: Upgrade to JUnit 5.14
 description: Upgrades JUnit 5 to 5.14.x and migrates all deprecated APIs.
@@ -329,6 +376,7 @@ tags:
   - testing
   - junit
 recipeList:
+  - org.openrewrite.java.testing.junit5.UpgradeToJUnit513
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.junit
       artifactId: junit-bom

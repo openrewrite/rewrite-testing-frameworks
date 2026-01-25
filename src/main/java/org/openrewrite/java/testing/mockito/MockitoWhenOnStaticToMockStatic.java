@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
@@ -49,17 +50,13 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     private int varCounter = 0;
 
-    @Override
-    public String getDisplayName() {
-        return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic";
-    }
+    @Getter
+    final String displayName = "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic";
 
-    @Override
-    public String getDescription() {
-        return "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this. " +
-                "For JUnit 4/5 & TestNG: When `@Before*` is used, a `close` call is added to the corresponding `@After*` method. " +
-                "This change moves away from implicit bytecode manipulation for static method stubbing, making mocking behavior more explicit and scoped to avoid unintended side effects.";
-    }
+    @Getter
+    final String description = "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic as Mockito4 no longer allows this. " +
+            "For JUnit 4/5 & TestNG: When `@Before*` is used, a `close` call is added to the corresponding `@After*` method. " +
+            "This change moves away from implicit bytecode manipulation for static method stubbing, making mocking behavior more explicit and scoped to avoid unintended side effects.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

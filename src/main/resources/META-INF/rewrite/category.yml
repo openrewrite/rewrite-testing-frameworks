@@ -44,3 +44,75 @@ tags:
   - testing
   - truth
 ---
+type: specs.openrewrite.org/v1beta/category
+name: TestNG
+packageName: org.openrewrite.java.testing.testng
+description: Recipes for migrating from [TestNG](https://testng.org/) to JUnit.
+tags:
+  - testing
+  - testng
+---
+type: specs.openrewrite.org/v1beta/category
+name: EasyMock
+packageName: org.openrewrite.java.testing.easymock
+description: Recipes for migrating from [EasyMock](https://easymock.org/) to Mockito.
+tags:
+  - testing
+  - easymock
+---
+type: specs.openrewrite.org/v1beta/category
+name: JMockit
+packageName: org.openrewrite.java.testing.jmockit
+description: Recipes for migrating from [JMockit](https://jmockit.github.io/) to Mockito.
+tags:
+  - testing
+  - jmockit
+---
+type: specs.openrewrite.org/v1beta/category
+name: DBRider
+packageName: org.openrewrite.java.testing.dbrider
+description: Recipes for [DBRider](https://database-rider.github.io/database-rider/) database testing framework.
+tags:
+  - testing
+  - dbrider
+---
+type: specs.openrewrite.org/v1beta/category
+name: Hamcrest
+packageName: org.openrewrite.java.testing.hamcrest
+description: Recipes for migrating from [Hamcrest](http://hamcrest.org/) matchers to AssertJ.
+tags:
+  - testing
+  - hamcrest
+---
+type: specs.openrewrite.org/v1beta/category
+name: Arquillian
+packageName: org.openrewrite.java.testing.arquillian
+description: Recipes for [Arquillian](https://arquillian.org/) integration testing framework.
+tags:
+  - testing
+  - arquillian
+---
+type: specs.openrewrite.org/v1beta/category
+name: Testcontainers
+packageName: org.openrewrite.java.testing.testcontainers
+description: Recipes for [Testcontainers](https://testcontainers.com/) integration testing with Docker.
+tags:
+  - testing
+  - testcontainers
+---
+type: specs.openrewrite.org/v1beta/category
+name: ArchUnit
+packageName: org.openrewrite.java.testing.archunit
+description: Recipes for [ArchUnit](https://www.archunit.org/) architecture testing.
+tags:
+  - testing
+  - archunit
+---
+type: specs.openrewrite.org/v1beta/category
+name: DataFaker
+packageName: org.openrewrite.java.testing.datafaker
+description: Recipes for migrating from JavaFaker to [DataFaker](https://www.datafaker.net/).
+tags:
+  - testing
+  - datafaker
+---

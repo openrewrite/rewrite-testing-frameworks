@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.testng;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,15 +34,11 @@ import java.util.List;
 
 public class TestNgAssertNotEqualsToAssertThat extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "TestNG `assertNotEquals` to AssertJ";
-    }
+    @Getter
+    final String displayName = "TestNG `assertNotEquals` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert TestNG-style `assertNotEquals()` to AssertJ's `assertThat().isNotEqualTo()`.";
-    }
+    @Getter
+    final String description = "Convert TestNG-style `assertNotEquals()` to AssertJ's `assertThat().isNotEqualTo()`.";
 
     private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertNotEquals(..)");
 
@@ -119,10 +116,10 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                 }
 
                 //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeRemoveImport("org.testng.Assert");
 
                 // Remove import for "org.testng.Assert" if no longer used.
-                maybeRemoveImport("org.testng.Assert");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
                 return method;
             }

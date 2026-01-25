@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -30,15 +31,11 @@ import java.util.Set;
 
 public class UseTestMethodOrder extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate from JUnit 4 `@FixedMethodOrder` to JUnit 5 `@TestMethodOrder`";
-    }
+    @Getter
+    final String displayName = "Migrate from JUnit 4 `@FixedMethodOrder` to JUnit 5 `@TestMethodOrder`";
 
-    @Override
-    public String getDescription() {
-        return "JUnit optionally allows test method execution order to be specified. This replaces JUnit 4 test execution ordering annotations with JUnit 5 replacements.";
-    }
+    @Getter
+    final String description = "JUnit optionally allows test method execution order to be specified. This replaces JUnit 4 test execution ordering annotations with JUnit 5 replacements.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -52,9 +49,9 @@ public class UseTestMethodOrder extends Recipe {
                 Set<J.Annotation> methodOrders = FindAnnotations.find(cd.withBody(null), "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {
-                    maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
                     maybeRemoveImport("org.junit.FixMethodOrder");
                     maybeRemoveImport("org.junit.runners.MethodSorters");
+                    maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
 
                     cd = JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
                             .javaParser(JavaParser.fromJavaVersion()

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.ChangeMethodName;
@@ -25,15 +26,11 @@ import org.openrewrite.java.tree.JavaSourceFile;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
-    @Override
-    public String getDisplayName() {
-        return "Replace Mockito 1.x `anyString()`/`any()` with `nullable(Class)`";
-    }
+    @Getter
+    final String displayName = "Replace Mockito 1.x `anyString()`/`any()` with `nullable(Class)`";
 
-    @Override
-    public String getDescription() {
-        return "Since Mockito 2.10 `anyString()` and `any()` no longer matches null values. Use `nullable(Class)` instead.";
-    }
+    @Getter
+    final String description = "Since Mockito 2.10 `anyString()` and `any()` no longer matches null values. Use `nullable(Class)` instead.";
 
     @Override
     public AtomicBoolean getInitialValue(ExecutionContext ctx) {

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,16 +34,12 @@ public class SimplifySequencedCollectionAssertions extends Recipe {
     private static final MethodMatcher GET_FIRST_MATCHER = new MethodMatcher("java.util.* getFirst()");
     private static final MethodMatcher GET_LAST_MATCHER = new MethodMatcher("java.util.* getLast()");
 
-    @Override
-    public String getDisplayName() {
-        return "Simplify AssertJ assertions on SequencedCollection";
-    }
+    @Getter
+    final String displayName = "Simplify AssertJ assertions on SequencedCollection";
 
-    @Override
-    public String getDescription() {
-        return "Simplify AssertJ assertions on SequencedCollection by using dedicated assertion methods. " +
-                "For example, `assertThat(sequencedCollection.getLast())` can be simplified to `assertThat(sequencedCollection).last()`.";
-    }
+    @Getter
+    final String description = "Simplify AssertJ assertions on SequencedCollection by using dedicated assertion methods. " +
+            "For example, `assertThat(sequencedCollection.getLast())` can be simplified to `assertThat(sequencedCollection).last()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

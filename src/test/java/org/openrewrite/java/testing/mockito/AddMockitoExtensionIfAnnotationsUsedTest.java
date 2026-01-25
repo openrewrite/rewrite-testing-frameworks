@@ -20,13 +20,12 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
-
-import org.openrewrite.kotlin.KotlinParser;
 
 class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
 
@@ -35,7 +34,10 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
         spec.recipe(new AddMockitoExtensionIfAnnotationsUsed())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
-            .dependsOn("public class Service {}"));
+            .dependsOn("public class Service {}"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
+            .dependsOn("class Service"));
     }
 
     @DocumentExample
@@ -207,6 +209,42 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
               internal class MyTest {
                   @Mock
                   lateinit var service: String
+
+                  @Test
+                  fun test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void addForMockKotlin() {
+        rewriteRun(
+          //language=java
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mock
+
+              class Test {
+                  @Mock
+                  lateinit var service: Service
+
+                  @Test
+                  fun test() {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+              import org.junit.jupiter.api.extension.ExtendWith
+              import org.mockito.Mock
+              import org.mockito.junit.jupiter.MockitoExtension
+
+              @ExtendWith(MockitoExtension::class)
+              class Test {
+                  @Mock
+                  lateinit var service: Service
 
                   @Test
                   fun test() {}

@@ -63,15 +63,9 @@ public class MinimumJreConditions extends Recipe {
     @Option(displayName = "JRE version", description = "The minimum JRE version to use for test conditions.", example = "17")
     String javaVersion;
 
-    @Override
-    public String getDisplayName() {
-        return "Migrate JUnit JRE conditions";
-    }
+    String displayName = "Migrate JUnit JRE conditions";
 
-    @Override
-    public String getDescription() {
-        return "This recipe will:\n" + " - Remove tests that are only active on JREs that are below the specified version.\n" + " - Adjust ranges to use minimum the specified version.";
-    }
+    String description = "This recipe will:\n" + " - Remove tests that are only active on JREs that are below the specified version.\n" + " - Adjust ranges to use minimum the specified version.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

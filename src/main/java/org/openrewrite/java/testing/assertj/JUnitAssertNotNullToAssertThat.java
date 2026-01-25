@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,15 +34,11 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
 
     private static final MethodMatcher ASSERT_NOT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertNotNull(..)", true);
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit `assertNotNull` to AssertJ";
-    }
+    @Getter
+    final String displayName = "JUnit `assertNotNull` to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Convert JUnit-style `assertNotNull()` to AssertJ's `assertThat().isNotNull()`.";
-    }
+    @Getter
+    final String description = "Convert JUnit-style `assertNotNull()` to AssertJ's `assertThat().isNotNull()`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -53,8 +50,8 @@ public class JUnitAssertNotNullToAssertThat extends Recipe {
                     return mi;
                 }
 
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
                 List<Expression> args = mi.getArguments();
                 Expression actual = args.get(0);

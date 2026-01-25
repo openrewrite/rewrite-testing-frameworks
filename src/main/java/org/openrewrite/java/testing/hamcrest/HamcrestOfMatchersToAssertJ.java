@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -34,15 +35,11 @@ import java.util.List;
 import static java.util.stream.Collectors.joining;
 
 public class HamcrestOfMatchersToAssertJ extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "Migrate `anyOf` Hamcrest Matcher to AssertJ";
-    }
+    @Getter
+    final String displayName = "Migrate `anyOf` Hamcrest Matcher to AssertJ";
 
-    @Override
-    public String getDescription() {
-        return "Migrate the `anyOf` Hamcrest Matcher to AssertJ's `satisfiesAnyOf` assertion.";
-    }
+    @Getter
+    final String description = "Migrate the `anyOf` Hamcrest Matcher to AssertJ's `satisfiesAnyOf` assertion.";
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
     private static final MethodMatcher ANY_OF_MATCHER = new MethodMatcher("org.hamcrest.*Matchers anyOf(..)");

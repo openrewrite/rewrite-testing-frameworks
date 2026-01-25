@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -50,18 +51,14 @@ public class CloseUnclosedStaticMocks extends Recipe {
     private static final AnnotationMatcher AFTER_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
     private static final AnnotationMatcher AFTER_ALL_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterAll");
 
-    @Override
-    public String getDisplayName() {
-        return "Close unclosed static mocks";
-    }
+    @Getter
+    final String displayName = "Close unclosed static mocks";
 
-    @Override
-    public String getDescription() {
-        return "Ensures that all `mockStatic` calls are properly closed. " +
-               "If `mockStatic` is in lifecycle methods like `@BeforeEach` or `@BeforeAll`, " +
-               "creates a class variable and closes it in `@AfterEach` or `@AfterAll`. " +
-               "If `mockStatic` is inside a test method, wraps it in a try-with-resources block.";
-    }
+    @Getter
+    final String description = "Ensures that all `mockStatic` calls are properly closed. " +
+            "If `mockStatic` is in lifecycle methods like `@BeforeEach` or `@BeforeAll`, " +
+            "creates a class variable and closes it in `@AfterEach` or `@AfterAll`. " +
+            "If `mockStatic` is inside a test method, wraps it in a try-with-resources block.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -130,7 +127,6 @@ public class CloseUnclosedStaticMocks extends Recipe {
             if (getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
                 String mockedClassName = getMockedClassName(mi);
                 if (mockedClassName != null) {
-                    Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                     String varName = generateMockedVarName(mockedClassName);
                     J.Assignment assignment = JavaTemplate.builder(varName + " = #{any()}")
                             .build()

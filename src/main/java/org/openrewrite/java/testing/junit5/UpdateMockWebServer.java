@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
@@ -51,15 +52,11 @@ public class UpdateMockWebServer extends Recipe {
     private static final String MOCK_WEBSERVER_VARIABLE = "mock-web-server-variable";
     private static final String AFTER_EACH_METHOD = "after-each-method";
 
-    @Override
-    public String getDisplayName() {
-        return "OkHttp 3.x `MockWebServer` `@Rule` To 4.x `MockWebServer`";
-    }
+    @Getter
+    final String displayName = "OkHttp 3.x `MockWebServer` `@Rule` To 4.x `MockWebServer`";
 
-    @Override
-    public String getDescription() {
-        return "Replace usages of okhttp3 3.x `@Rule` MockWebServer with 4.x `MockWebServer`.";
-    }
+    @Getter
+    final String description = "Replace usages of okhttp3 3.x `@Rule` MockWebServer with 4.x `MockWebServer`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

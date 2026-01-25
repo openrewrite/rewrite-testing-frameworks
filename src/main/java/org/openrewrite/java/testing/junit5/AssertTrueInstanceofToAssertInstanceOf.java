@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -27,15 +28,11 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypedTree;
 
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
-    @Override
-    public String getDisplayName() {
-        return "assertTrue(x instanceof y) to assertInstanceOf(y.class, x)";
-    }
+    @Getter
+    final String displayName = "`assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`";
 
-    @Override
-    public String getDescription() {
-        return "Migration of JUnit4 (or potentially JUnit5) test case in form of assertTrue(x instanceof y) to assertInstanceOf(y.class, x).";
-    }
+    @Getter
+    final String description = "Migration of JUnit4 (or potentially JUnit5) test case in form of assertTrue(x instanceof y) to assertInstanceOf(y.class, x).";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -98,15 +95,13 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     .builder("assertInstanceOf(#{any(java.lang.Object)}.class, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
-                    .imports(String.valueOf(clazz.getType()))
                     .build();
 
+                maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
                 J rawClazz = clazz instanceof J.ParameterizedType ? ((J.ParameterizedType) clazz).getClazz() : clazz;
-                J.MethodInvocation methodd = reason != null ?
+                return reason != null ?
                     template.apply(getCursor(), mi.getCoordinates().replace(), rawClazz, expression, reason) :
                     template.apply(getCursor(), mi.getCoordinates().replace(), rawClazz, expression);
-                maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
-                return methodd;
             }
         };
     }

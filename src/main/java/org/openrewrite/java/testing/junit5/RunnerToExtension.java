@@ -53,15 +53,9 @@ public class RunnerToExtension extends Recipe {
         this.extension = extension;
     }
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `@RunWith` to JUnit Jupiter `@ExtendWith`";
-    }
+    String displayName = "JUnit 4 `@RunWith` to JUnit Jupiter `@ExtendWith`";
 
-    @Override
-    public String getDescription() {
-        return "Replace runners with the JUnit Jupiter extension equivalent.";
-    }
+    String description = "Replace runners with the JUnit Jupiter extension equivalent.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -101,10 +95,10 @@ public class RunnerToExtension extends Recipe {
                                 runWith.getCoordinates().replace(),
                                 extensionType.getClassName()
                         );
-                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
-                        maybeAddImport(extension);
                         maybeRemoveImport("org.junit.runner.RunWith");
                         maybeRemoveImport(runner);
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+                        maybeAddImport(extension);
                     }
                 }
 
@@ -122,10 +116,10 @@ public class RunnerToExtension extends Recipe {
                                 runWith.getCoordinates().replace(),
                                 extensionType.getClassName()
                         );
-                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
-                        maybeAddImport(extension);
                         maybeRemoveImport("org.junit.runner.RunWith");
                         maybeRemoveImport(runner);
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+                        maybeAddImport(extension);
                     }
                 }
 

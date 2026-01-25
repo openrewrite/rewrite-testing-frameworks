@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.ChangeMethodName;
@@ -31,15 +32,11 @@ public class VerifyZeroToNoMoreInteractions extends ScanningRecipe<AtomicBoolean
     private static final String VERIFY_ZERO_INTERACTIONS = "org.mockito.Mockito verifyZeroInteractions(..)";
     private static final MethodMatcher ASSERT_INSTANCE_OF_MATCHER = new MethodMatcher(VERIFY_ZERO_INTERACTIONS, true);
 
-    @Override
-    public String getDisplayName() {
-        return "Replace `verifyZeroInteractions()` with `verifyNoMoreInteractions()`";
-    }
+    @Getter
+    final String displayName = "Replace `verifyZeroInteractions()` with `verifyNoMoreInteractions()`";
 
-    @Override
-    public String getDescription() {
-        return "Replaces `verifyZeroInteractions()` with `verifyNoMoreInteractions()` in Mockito tests when migration when using a Mockito version < 3.x.";
-    }
+    @Getter
+    final String description = "Replaces `verifyZeroInteractions()` with `verifyNoMoreInteractions()` in Mockito tests when migration when using a Mockito version < 3.x.";
 
     @Override
     public AtomicBoolean getInitialValue(final ExecutionContext ctx) {
@@ -72,8 +69,8 @@ public class VerifyZeroToNoMoreInteractions extends ScanningRecipe<AtomicBoolean
                             return md;
                         }
 
-                        maybeAddImport("org.mockito.Mockito", "verifyNoMoreInteractions");
                         maybeRemoveImport("org.mockito.Mockito.verifyZeroInteractions");
+                        maybeAddImport("org.mockito.Mockito", "verifyNoMoreInteractions");
 
                         ChangeMethodName changeMethodName = new ChangeMethodName(VERIFY_ZERO_INTERACTIONS, "verifyNoMoreInteractions", false, false);
                         return (J.MethodInvocation) changeMethodName.getVisitor().visitNonNull(md, ctx);

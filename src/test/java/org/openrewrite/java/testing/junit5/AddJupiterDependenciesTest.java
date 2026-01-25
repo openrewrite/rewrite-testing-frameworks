@@ -65,10 +65,9 @@ class AddJupiterDependenciesTest implements RewriteTest {
                 </project>
                 """,
               spec -> spec.after(pom -> {
-                  assertThat(pom)
-                    .contains("junit-jupiter")
-                    .contains("<scope>test</scope>");
-                  return pom;
+                  return assertThat(pom)
+                          .contains("junit-jupiter")
+                          .contains("<scope>test</scope>").actual();
               })
             )
           )
@@ -92,10 +91,9 @@ class AddJupiterDependenciesTest implements RewriteTest {
                 </project>
                 """,
               spec -> spec.after(pom -> {
-                  assertThat(pom)
-                    .contains("junit-jupiter")
-                    .doesNotContain("<scope>test</scope>");
-                  return pom;
+                  return assertThat(pom)
+                          .contains("junit-jupiter")
+                          .doesNotContain("<scope>test</scope>").actual();
               })
             )
           )

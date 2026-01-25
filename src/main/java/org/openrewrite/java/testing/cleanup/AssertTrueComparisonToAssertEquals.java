@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -32,15 +33,11 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
     private static final MethodMatcher ASSERT_TRUE = new MethodMatcher(
             "org.junit.jupiter.api.Assertions assertTrue(..)");
 
-    @Override
-    public String getDisplayName() {
-        return "Junit `assertTrue(a == b)` to `assertEquals(a,b)`";
-    }
+    @Getter
+    final String displayName = "Junit `assertTrue(a == b)` to `assertEquals(a,b)`";
 
-    @Override
-    public String getDescription() {
-        return "Using `assertEquals(a,b)` is simpler and more clear.";
-    }
+    @Getter
+    final String description = "Using `assertEquals(a,b)` is simpler and more clear.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

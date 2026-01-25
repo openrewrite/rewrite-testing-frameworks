@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -31,17 +30,14 @@ class AssumeToAssumptionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"));
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
+          .recipeFromResources("org.openrewrite.java.testing.junit5.JUnit5BestPractices");
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/54")
     @Test
     void assumeToAssumptions() {
         rewriteRun(
-          spec -> spec.recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing")
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
           //language=java
           java(
             """

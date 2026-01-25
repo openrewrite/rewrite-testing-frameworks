@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.testcontainers;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -49,15 +50,11 @@ public class ExplicitContainerImage extends Recipe {
     @Nullable
     private final Boolean parseImage;
 
-    @Override
-    public String getDisplayName() {
-        return "Add image argument to container constructor";
-    }
+    @Getter
+    final String displayName = "Add image argument to container constructor";
 
-    @Override
-    public String getDescription() {
-        return "Set the image to use for a container explicitly if unset, rather than relying on the default image for the container class.";
-    }
+    @Getter
+    final String description = "Set the image to use for a container explicitly if unset, rather than relying on the default image for the container class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

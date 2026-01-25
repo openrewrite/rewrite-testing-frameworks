@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -35,15 +36,11 @@ import static org.openrewrite.Tree.randomId;
 
 public class CategoryToTag extends Recipe {
 
-    @Override
-    public String getDisplayName() {
-        return "JUnit 4 `@Category` to JUnit Jupiter `@Tag`";
-    }
+    @Getter
+    final String displayName = "JUnit 4 `@Category` to JUnit Jupiter `@Tag`";
 
-    @Override
-    public String getDescription() {
-        return "Transforms the JUnit 4 `@Category`, which can list multiple categories, into one `@Tag` annotation per category listed.";
-    }
+    @Getter
+    final String description = "Transforms the JUnit 4 `@Category`, which can list multiple categories, into one `@Tag` annotation per category listed.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

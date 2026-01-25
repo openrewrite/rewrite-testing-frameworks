@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -32,17 +33,13 @@ public class SimplifyStreamMapToExtracting extends Recipe {
     private static final MethodMatcher STREAM_MATCHER = new MethodMatcher("java.util.Collection stream()");
     private static final MethodMatcher MAP_MATCHER = new MethodMatcher("java.util.stream.Stream map(java.util.function.Function)");
 
-    @Override
-    public String getDisplayName() {
-        return "Simplify `assertThat(collection.stream().map(...))` to `assertThat(collection).extracting(...)`";
-    }
+    @Getter
+    final String displayName = "Simplify `assertThat(collection.stream().map(...))` to `assertThat(collection).extracting(...)`";
 
-    @Override
-    public String getDescription() {
-        return "Simplifies AssertJ assertions that use `stream().map()` to extract values from a collection " +
-                "by using the dedicated `extracting()` method instead. This makes the assertion more readable " +
-                "and leverages AssertJ's built-in extraction capabilities.";
-    }
+    @Getter
+    final String description = "Simplifies AssertJ assertions that use `stream().map()` to extract values from a collection " +
+            "by using the dedicated `extracting()` method instead. This makes the assertion more readable " +
+            "and leverages AssertJ's built-in extraction capabilities.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

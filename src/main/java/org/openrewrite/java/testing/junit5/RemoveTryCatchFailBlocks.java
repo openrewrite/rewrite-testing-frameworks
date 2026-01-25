@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -36,21 +37,15 @@ public class RemoveTryCatchFailBlocks extends Recipe {
     private static final MethodMatcher ASSERT_FAIL_THROWABLE_ARG = new MethodMatcher("org.junit.jupiter.api.Assertions fail(.., Throwable)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()");
 
-    @Override
-    public String getDisplayName() {
-        return "Replace `fail()` in `try-catch` blocks with `Assertions.assertDoesNotThrow(() -> { ... })`";
-    }
+    @Getter
+    final String displayName = "Replace `fail()` in `try-catch` blocks with `Assertions.assertDoesNotThrow(() -> { ... })`";
 
-    @Override
-    public String getDescription() {
-        return "Replace `try-catch` blocks where `catch` merely contains a `fail()` for `fail(String)` statement " +
-               "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
-    }
+    @Getter
+    final String description = "Replace `try-catch` blocks where `catch` merely contains a `fail()` for `fail(String)` statement " +
+            "with `Assertions.assertDoesNotThrow(() -> { ... })`.";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S3658");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S3658");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

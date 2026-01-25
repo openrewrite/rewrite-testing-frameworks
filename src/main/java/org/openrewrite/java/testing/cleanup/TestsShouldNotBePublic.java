@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.cleanup;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
@@ -50,20 +51,14 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
     @Nullable
     private Boolean removeProtectedModifiers;
 
-    @Override
-    public String getDisplayName() {
-        return "Remove `public` visibility of JUnit 5 tests";
-    }
+    @Getter
+    final String displayName = "Remove `public` visibility of JUnit 5 tests";
 
-    @Override
-    public String getDescription() {
-        return "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll`. They no longer have to be public visibility to be usable by JUnit 5.";
-    }
+    @Getter
+    final String description = "Remove `public` and optionally `protected` modifiers from methods with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll`. They no longer have to be public visibility to be usable by JUnit 5.";
 
-    @Override
-    public Set<String> getTags() {
-        return singleton("RSPEC-S5786");
-    }
+    @Getter
+    final Set<String> tags = singleton("RSPEC-S5786");
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
@@ -103,8 +98,8 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             J.ClassDeclaration c = super.visitClassDeclaration(classDecl, ctx);
 
             if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface &&
-                    c.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public) &&
-                    c.getModifiers().stream().noneMatch(mod -> mod.getType() == J.Modifier.Type.Abstract) &&
+                    c.hasModifier(J.Modifier.Type.Public) &&
+                    !c.hasModifier(J.Modifier.Type.Abstract) &&
                     !acc.extendedClasses.contains(String.valueOf(c.getType()))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
@@ -114,13 +109,13 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                 boolean hasPublicNonTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
-                        .filter(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public))
+                        .filter(m -> m.hasModifier(J.Modifier.Type.Public))
                         .anyMatch(method -> !hasJUnit5MethodAnnotation(method));
 
                 boolean hasPublicVariableDeclarations = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)
                         .map(J.VariableDeclarations.class::cast)
-                        .anyMatch(m -> m.getModifiers().stream().anyMatch(mod -> mod.getType() == J.Modifier.Type.Public));
+                        .anyMatch(m -> m.hasModifier(J.Modifier.Type.Public));
 
                 if (hasTestMethods && !hasPublicNonTestMethods && !hasPublicVariableDeclarations) {
                     // Remove public modifier and move associated comment

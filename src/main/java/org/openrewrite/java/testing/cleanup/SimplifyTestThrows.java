@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import lombok.Getter;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -33,20 +34,14 @@ public class SimplifyTestThrows extends Recipe {
 
     private static final String FQN_JAVA_LANG_EXCEPTION = "java.lang.Exception";
 
-    @Override
-    public String getDisplayName() {
-        return "Simplify `throws` statements of tests";
-    }
+    @Getter
+    final String displayName = "Simplify `throws` statements of tests";
 
-    @Override
-    public String getDescription() {
-        return "Replace all thrown exception classes of test method signatures by `Exception`.";
-    }
+    @Getter
+    final String description = "Replace all thrown exception classes of test method signatures by `Exception`.";
 
-    @Override
-    public Duration getEstimatedEffortPerOccurrence() {
-        return Duration.ofMinutes(1);
-    }
+    @Getter
+    final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

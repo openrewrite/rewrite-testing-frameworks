@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
@@ -58,15 +59,11 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final String INIT_METHODS_MAP = "named-parameters-map";
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
 
-    @Override
-    public String getDisplayName() {
-        return "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@Parameterized` tests";
-    }
+    @Getter
+    final String displayName = "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@Parameterized` tests";
 
-    @Override
-    public String getDescription() {
-        return "Convert Pragmatists Parameterized test to the JUnit Jupiter ParameterizedTest equivalent.";
-    }
+    @Getter
+    final String description = "Convert Pragmatists Parameterized test to the JUnit Jupiter ParameterizedTest equivalent.";
 
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
