@@ -130,9 +130,6 @@ public class MockConstructionToTryWithResources extends Recipe {
                 }
 
                 // Build the try-with-resources
-                final int vdi = varDeclIndex;
-                final int ci = closeIndex;
-
                 // Collect statements that go inside the try body (between var decl and close)
                 List<Statement> bodyStatements = new ArrayList<>();
                 for (int j = varDeclIndex + 1; j < closeIndex; j++) {
