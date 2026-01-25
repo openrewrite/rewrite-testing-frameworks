@@ -100,7 +100,6 @@ public class MockConstructionToTryWithResources extends Recipe {
 
                 int varDeclIndex = -1;
                 int closeIndex = -1;
-                String varName = null;
                 J.VariableDeclarations varDecl = null;
 
                 // Find the first MockedConstruction variable declaration with a matching close()
