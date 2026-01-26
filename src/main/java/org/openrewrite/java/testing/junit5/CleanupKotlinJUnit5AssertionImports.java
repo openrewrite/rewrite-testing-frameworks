@@ -56,7 +56,7 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
                 // Check if there's a wildcard import for org.junit.jupiter.api.*
                 boolean hasWildcardImport = cu.getImports().stream()
                         .anyMatch(imp -> "org.junit.jupiter.api".equals(imp.getPackageName()) &&
-                                imp.getQualid().getSimpleName().equals("*") &&
+                                "*".equals(imp.getQualid().getSimpleName()) &&
                                 !imp.isStatic());
 
                 if (!hasWildcardImport) {
