@@ -30,6 +30,7 @@ recipeList:
       version: 2.x
       onlyIfUsing: org.hamcrest.Matchers
       acceptTransitive: true
+      scope: test
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
@@ -92,6 +93,7 @@ recipeList:
       version: 3.x
       onlyIfUsing: org.hamcrest.*
       acceptTransitive: true
+      scope: test
 
   # Normalize Hamcrest imports to `org.hamcrest.Matchers` and remove wrapping `is(Matcher)` calls
   - org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports

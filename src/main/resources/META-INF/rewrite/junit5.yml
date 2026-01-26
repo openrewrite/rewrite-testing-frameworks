@@ -247,6 +247,7 @@ recipeList:
       version: 4.x
       onlyIfUsing: io.vertx.ext.unit.junit.VertxUnitRunner
       acceptTransitive: true
+      scope: test
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer

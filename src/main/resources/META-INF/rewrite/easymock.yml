@@ -28,6 +28,7 @@ recipeList:
       artifactId: mockito-core
       version: 5.x
       onlyIfUsing: org.easymock.*
+      scope: test
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.easymock
       artifactId: easymock
