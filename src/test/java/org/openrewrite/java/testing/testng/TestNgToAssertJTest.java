@@ -15,13 +15,23 @@
  */
 package org.openrewrite.java.testing.testng;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class TestNgToAssertJTest implements RewriteTest {
     @Override
@@ -173,5 +183,151 @@ class TestNgToAssertJTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class DependencyManagement implements RewriteTest {
+        @Override
+        public void defaults(RecipeSpec spec) {
+            spec
+              .parser(JavaParser.fromJavaVersion()
+                .classpathFromResources(new InMemoryExecutionContext(), "testng", "assertj-core-3"))
+              .recipeFromResources("org.openrewrite.java.testing.testng.TestNgToAssertj");
+        }
+
+        @Test
+        void assertjMavenDependencyAddedWithTestScope() {
+            rewriteRun(
+              mavenProject("project",
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import static org.testng.Assert.assertTrue;
+
+                      class ATest {
+                          void test() {
+                              assertTrue(true);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class ATest {
+                          void test() {
+                              Assertions.assertThat(true).isTrue();
+                          }
+                      }
+                      """
+                  )
+                ),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.testng</groupId>
+                                <artifactId>testng</artifactId>
+                                <version>7.9.0</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.assertj</groupId>
+                                <artifactId>assertj-core</artifactId>
+                                <version>%s</version>
+                                <scope>test</scope>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.testng</groupId>
+                                <artifactId>testng</artifactId>
+                                <version>7.9.0</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """.formatted(Pattern.compile("<version>(3\\..*)</version>").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1)))
+                )
+              )
+            );
+        }
+
+        @Test
+        void assertjGradleDependencyAddedWithTestScope() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()),
+              mavenProject("project",
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import static org.testng.Assert.assertTrue;
+
+                      class ATest {
+                          void test() {
+                              assertTrue(true);
+                          }
+                      }
+                      """,
+                    """
+                      import org.assertj.core.api.Assertions;
+
+                      class ATest {
+                          void test() {
+                              Assertions.assertThat(true).isTrue();
+                          }
+                      }
+                      """
+                  )
+                ),
+                //language=groovy
+                buildGradle(
+                  """
+                    plugins {
+                        id "java-library"
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                    dependencies {
+                        testImplementation "org.testng:testng:7.9.0"
+                    }
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> """
+                    plugins {
+                        id "java-library"
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                    dependencies {
+                        testImplementation "org.assertj:%s"
+                        testImplementation "org.testng:testng:7.9.0"
+                    }
+                    """.formatted(Pattern.compile("(assertj-core:[^\"]*)").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))
+                  )
+                )
+              )
+            );
+        }
     }
 }

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.easymock;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -22,7 +23,15 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class EasyMockToMockitoTest implements RewriteTest {
 
@@ -232,5 +241,144 @@ class EasyMockToMockitoTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class DependencyManagement {
+        @Test
+        void mockitoMavenDependencyAddedWithTestScope() {
+            rewriteRun(
+              mavenProject("project",
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import org.easymock.EasyMock;
+                      import org.junit.Test;
+
+                      public class ExampleTest {
+                          @Test
+                          public void test() {
+                              Object mock = EasyMock.createNiceMock(Object.class);
+                          }
+                      }
+                      """,
+                    """
+                      import org.junit.Test;
+                      import org.mockito.Mockito;
+
+                      public class ExampleTest {
+                          @Test
+                          public void test() {
+                              Object mock = Mockito.mock(Object.class);
+                          }
+                      }
+                      """
+                  )
+                ),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.easymock</groupId>
+                                <artifactId>easymock</artifactId>
+                                <version>5.2.0</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.mockito</groupId>
+                                <artifactId>mockito-core</artifactId>
+                                <version>%s</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """.formatted(Pattern.compile("<version>(5\\..*)</version>").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1)))
+                )
+              )
+            );
+        }
+
+        @Test
+        void mockitoGradleDependencyAddedWithTestScope() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()),
+              mavenProject("project",
+                srcTestJava(
+                  //language=java
+                  java(
+                    """
+                      import org.easymock.EasyMock;
+                      import org.junit.Test;
+
+                      public class ExampleTest {
+                          @Test
+                          public void test() {
+                              Object mock = EasyMock.createNiceMock(Object.class);
+                          }
+                      }
+                      """,
+                    """
+                      import org.junit.Test;
+                      import org.mockito.Mockito;
+
+                      public class ExampleTest {
+                          @Test
+                          public void test() {
+                              Object mock = Mockito.mock(Object.class);
+                          }
+                      }
+                      """
+                  )
+                ),
+                //language=groovy
+                buildGradle(
+                  """
+                    plugins {
+                        id "java-library"
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                    dependencies {
+                        testImplementation "org.easymock:easymock:5.2.0"
+                    }
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> """
+                    plugins {
+                        id "java-library"
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                    dependencies {
+                        testImplementation "org.mockito:%s"
+                    }
+                    """.formatted(Pattern.compile("(mockito-core:[^\"]*)").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))
+                  )
+                )
+              )
+            );
+        }
     }
 }
