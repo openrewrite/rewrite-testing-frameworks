@@ -24,7 +24,8 @@ import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.tree.K;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * In Kotlin files, when both {@code import org.junit.jupiter.api.*} and static imports from
