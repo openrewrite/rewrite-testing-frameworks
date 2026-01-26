@@ -27,7 +27,6 @@ import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
 
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Iterator;
 
 import static java.util.Collections.singleton;
@@ -36,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 //
-public class KotlinTestMethodShouldBeUnitTest implements RewriteTest {
+class KotlinTestMethodShouldBeUnitTest implements RewriteTest {
 
     @Test
     void showNullMethodInvocationType() {
