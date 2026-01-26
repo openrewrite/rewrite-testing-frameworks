@@ -23,6 +23,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 
@@ -43,9 +44,12 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                Preconditions.or(
-                        new UsesType<>("org.powermock..*", false),
-                        new UsesType<>("org.mockito..*", false)
+                Preconditions.and(
+                        Preconditions.or(
+                                new UsesType<>("org.powermock..*", false),
+                                new UsesType<>("org.mockito..*", false)
+                        ),
+                        Preconditions.not(new KotlinFileChecker<>())
                 ),
                 new PowerMockitoToMockitoVisitor()
         );

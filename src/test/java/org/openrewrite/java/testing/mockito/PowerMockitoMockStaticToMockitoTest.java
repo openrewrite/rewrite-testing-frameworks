@@ -743,8 +743,11 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/moderneinc/customer-requests/issues/1703")
     @Test
-    void shouldRefactorKotlinPowerMockitoToMockito() {
+    void shouldNotModifyKotlinFilesWithMockStatic() {
+        // Kotlin files are skipped because Kotlin's .use { } blocks don't map to J.Try.Resource
+        // in the AST, causing the recipe to incorrectly delete mockStatic() calls
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
           //language=kotlin
