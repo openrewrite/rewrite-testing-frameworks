@@ -67,7 +67,7 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
                 boolean hasAssertionsImport = cu.getImports().stream()
                         .anyMatch(imp -> {
                             String typeName = imp.getTypeName();
-                            return typeName != null && typeName.equals("org.junit.jupiter.api.Assertions");
+                            return "org.junit.jupiter.api.Assertions".equals(typeName);
                         });
 
                 if (!hasAssertionsImport) {
