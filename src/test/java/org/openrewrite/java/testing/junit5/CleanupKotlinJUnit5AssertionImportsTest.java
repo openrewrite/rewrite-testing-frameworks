@@ -148,7 +148,7 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
         rewriteRun(
           spec -> spec.parser(org.openrewrite.java.JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
-          org.openrewrite.java.Assertions.java(
+          java(
             """
               import org.junit.jupiter.api.*;
               import static org.junit.jupiter.api.Assertions.*;
