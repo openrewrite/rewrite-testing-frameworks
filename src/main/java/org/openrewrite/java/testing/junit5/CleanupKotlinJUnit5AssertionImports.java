@@ -80,8 +80,8 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
                             String typeName = imp.getTypeName();
                             // Keep imports that are NOT from org.junit.jupiter.api.Assertions
                             return typeName == null || !"org.junit.jupiter.api.Assertions".equals(typeName);
+                        })
                         .collect(toList());
-                        .collect(Collectors.toList());
 
                 if (filteredImports.size() == cu.getImports().size()) {
                     return cu;
