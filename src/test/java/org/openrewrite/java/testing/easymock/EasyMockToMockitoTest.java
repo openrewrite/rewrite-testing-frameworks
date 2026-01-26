@@ -30,6 +30,7 @@ import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcMainJava;
 import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -376,6 +377,73 @@ class EasyMockToMockitoTest implements RewriteTest {
                     }
                     """.formatted(Pattern.compile("(mockito-core:[^\"]*)").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1))
                   )
+                )
+              )
+            );
+        }
+
+        @Test
+        void mockitoMavenDependencyAddedWithTestScopeForTestUtilityInMainSources() {
+            // Test utilities may live in main sources but should still get test scope
+            rewriteRun(
+              mavenProject("project",
+                srcMainJava(
+                  //language=java
+                  java(
+                    """
+                      import org.easymock.EasyMock;
+
+                      public class TestUtility {
+                          public static Object createMock(Class<?> clazz) {
+                              return EasyMock.createNiceMock(clazz);
+                          }
+                      }
+                      """,
+                    """
+                      import org.mockito.Mockito;
+
+                      public class TestUtility {
+                          public static Object createMock(Class<?> clazz) {
+                              return Mockito.mock(clazz);
+                          }
+                      }
+                      """
+                  )
+                ),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.easymock</groupId>
+                                <artifactId>easymock</artifactId>
+                                <version>5.2.0</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>demo</artifactId>
+                        <version>0.0.1-SNAPSHOT</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.mockito</groupId>
+                                <artifactId>mockito-core</artifactId>
+                                <version>%s</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """.formatted(Pattern.compile("<version>(5\\..*)</version>").matcher(requireNonNull(after)).results().findFirst().orElseThrow().group(1)))
                 )
               )
             );
