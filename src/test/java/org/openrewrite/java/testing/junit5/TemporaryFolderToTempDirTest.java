@@ -864,4 +864,53 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void temporaryFolderInRuleChainShouldNotBeConverted() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.RuleChain;
+              import org.junit.rules.TemporaryFolder;
+              import org.junit.rules.TestRule;
+
+              public class MyTest {
+                  private TemporaryFolder tempFolder = new TemporaryFolder();
+
+                  @Rule
+                  public RuleChain chain = RuleChain.outerRule(tempFolder);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void temporaryFolderInRuleChainAroundShouldNotBeConverted() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.RuleChain;
+              import org.junit.rules.TemporaryFolder;
+              import org.junit.rules.TestRule;
+              import org.junit.rules.ExternalResource;
+
+              public class MyTest {
+                  private TemporaryFolder tempFolder = new TemporaryFolder();
+                  private ExternalResource otherRule = new ExternalResource() {
+                      @Override
+                      protected void before() {}
+                  };
+
+                  @Rule
+                  public RuleChain chain = RuleChain.outerRule(otherRule).around(tempFolder);
+              }
+              """
+          )
+        );
+    }
 }
