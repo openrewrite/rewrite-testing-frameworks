@@ -424,6 +424,65 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/55")
+    @Test
+    void preserveThrowsWhenCodeBeforeExpectThrowsCheckedException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+
+                  @Rule
+                  ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMethod() throws InterruptedException {
+                      setup();
+                      this.thrown.expect(IllegalArgumentException.class);
+                      doSomething();
+                  }
+
+                  void setup() throws InterruptedException {
+                      Thread.sleep(100);
+                  }
+
+                  void doSomething() {
+                      throw new IllegalArgumentException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  public void testMethod() throws InterruptedException {
+                      setup();
+                      assertThrows(IllegalArgumentException.class, () ->
+                          doSomething());
+                  }
+
+                  void setup() throws InterruptedException {
+                      Thread.sleep(100);
+                  }
+
+                  void doSomething() {
+                      throw new IllegalArgumentException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/563")
     @Test
     void expectedCheckedExceptionThrowsRemoved() {
