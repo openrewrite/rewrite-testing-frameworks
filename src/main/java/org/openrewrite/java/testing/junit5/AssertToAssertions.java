@@ -30,6 +30,7 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 public class AssertToAssertions extends Recipe {
@@ -128,6 +129,47 @@ public class AssertToAssertions extends Recipe {
             }
 
             return m;
+        }
+
+        @Override
+        public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
+            J.MemberReference mr = super.visitMemberReference(memberRef, ctx);
+            if (!isJunitAssertMemberReference(mr)) {
+                return mr;
+            }
+
+            JavaType.FullyQualified targetType = JavaType.ShallowClass.build("org.junit.jupiter.api.Assertions");
+            maybeRemoveImport("org.junit.Assert");
+            maybeAddImport("org.junit.jupiter.api.Assertions");
+
+            Expression containing = mr.getContaining();
+            J.Identifier newContaining = new J.Identifier(
+                    containing.getId(),
+                    containing.getPrefix(),
+                    containing.getMarkers(),
+                    emptyList(),
+                    "Assertions",
+                    targetType,
+                    null
+            );
+
+            JavaType.Method methodType = mr.getMethodType();
+            if (methodType != null) {
+                methodType = methodType.withDeclaringType(targetType);
+            }
+
+            return mr.withContaining(newContaining).withMethodType(methodType);
+        }
+
+        private static boolean isJunitAssertMemberReference(J.MemberReference memberRef) {
+            if (memberRef.getMethodType() == null) {
+                return false;
+            }
+            JavaType.FullyQualified declaringType = memberRef.getMethodType().getDeclaringType();
+            if (!"org.junit.Assert".equals(declaringType.getFullyQualifiedName())) {
+                return false;
+            }
+            return !"assertThat".equals(memberRef.getReference().getSimpleName());
         }
 
         private static boolean isJunitAssertMethod(J.MethodInvocation method) {
