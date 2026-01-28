@@ -168,7 +168,6 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
               import org.mockito.junit.jupiter.MockitoSettings;
               import org.mockito.quality.Strictness;
 
-
               @ExtendWith(MockitoExtension.class)
               @MockitoSettings(strictness = Strictness.WARN)
               public class ExternalAPIServiceTest {

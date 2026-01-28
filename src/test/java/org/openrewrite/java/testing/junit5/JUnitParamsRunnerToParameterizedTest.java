@@ -175,7 +175,6 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
                   public void personIsNamedAdult(int age, boolean valid) {
                   }
 
-
                   private static Object[] namedPeopleParams() {
                       return new Object[]{new Object[]{13, false}, new Object[]{17, false}};
                   }
