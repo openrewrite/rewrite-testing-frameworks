@@ -85,8 +85,8 @@ class MockConstructionToTryWithResourcesTest implements RewriteTest {
                   @Test
                   void test() {
                       try (MockedConstruction<A> aMockedConstruction = mockConstruction(A.class, (mock, context) -> {
-                          when(mock.method(any())).thenReturn("XYZ");
-                      })) {
+                               when(mock.method(any())).thenReturn("XYZ");
+                           })) {
                           A instance = new A();
                           assertEquals("XYZ", instance.method("test"));
                       }
@@ -201,8 +201,8 @@ class MockConstructionToTryWithResourcesTest implements RewriteTest {
                   @Test
                   void test() {
                       try (MockedConstruction<A> aMockedConstruction = mockConstruction(A.class, (mock, context) -> {
-                          when(mock.method(any())).thenReturn("XYZ");
-                      })) {
+                               when(mock.method(any())).thenReturn("XYZ");
+                           })) {
                           A instance1 = new A();
                           A instance2 = new A();
                           assertNotNull(instance1);
@@ -309,8 +309,8 @@ class MockConstructionToTryWithResourcesTest implements RewriteTest {
                   @Test
                   void test() {
                       try (MockedConstruction<A> aMockedConstruction = Mockito.mockConstruction(A.class, (mock, context) -> {
-                          when(mock.method(any())).thenReturn("XYZ");
-                      })) {
+                               when(mock.method(any())).thenReturn("XYZ");
+                           })) {
                           A instance = new A();
                           assertEquals("XYZ", instance.method("test"));
                       }
@@ -388,9 +388,9 @@ class MockConstructionToTryWithResourcesTest implements RewriteTest {
                   @Test
                   void test() {
                       try (MockedConstruction<ItemInflator> itemInflatorMockedConstruction = Mockito.mockConstruction(ItemInflator.class, (mock, context) -> {
-                          when(mock.inflateNodesWithItemStore(anyList())).thenReturn(productList);
-                          when(mock.inflateWithIRO(anyList())).thenReturn(productList);
-                      })) {
+                               when(mock.inflateNodesWithItemStore(anyList())).thenReturn(productList);
+                               when(mock.inflateWithIRO(anyList())).thenReturn(productList);
+                           })) {
                           ItemInflator inflator = new ItemInflator();
                           assertNotNull(inflator.inflateNodesWithItemStore(List.of()));
                           assertNotNull(inflator.inflateWithIRO(List.of()));
