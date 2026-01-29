@@ -27,6 +27,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,9 @@ import static org.openrewrite.Tree.randomId;
 
 public class TemporaryFolderToTempDir extends Recipe {
 
+    private static final MethodMatcher RULE_CHAIN_OUTER_RULE = new MethodMatcher("org.junit.rules.RuleChain outerRule(org.junit.rules.TestRule)");
+    private static final MethodMatcher RULE_CHAIN_AROUND = new MethodMatcher("org.junit.rules.RuleChain around(org.junit.rules.TestRule)");
+
     @Getter
     final String displayName = "Use JUnit Jupiter `@TempDir`";
 
@@ -48,8 +52,26 @@ public class TemporaryFolderToTempDir extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                new UsesType<>("org.junit.rules.TemporaryFolder", false),
+                Preconditions.and(
+                        new UsesType<>("org.junit.rules.TemporaryFolder", false),
+                        Preconditions.not(new UsesTemporaryFolderInRuleChain())
+                ),
                 new TemporaryFolderToTempDirVisitor());
+    }
+
+    private static class UsesTemporaryFolderInRuleChain extends JavaIsoVisitor<ExecutionContext> {
+        @Override
+        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+            if (RULE_CHAIN_OUTER_RULE.matches(mi) || RULE_CHAIN_AROUND.matches(mi)) {
+                for (Expression arg : mi.getArguments()) {
+                    if (TypeUtils.isOfClassType(arg.getType(), "org.junit.rules.TemporaryFolder")) {
+                        return SearchResult.found(mi);
+                    }
+                }
+            }
+            return mi;
+        }
     }
 }
 
