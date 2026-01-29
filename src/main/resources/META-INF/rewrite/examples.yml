@@ -4068,8 +4068,8 @@ examples:
           @Test
           void test() {
               try (MockedConstruction<A> aMockedConstruction = mockConstruction(A.class, (mock, context) -> {
-                  when(mock.method(any())).thenReturn("XYZ");
-              })) {
+                       when(mock.method(any())).thenReturn("XYZ");
+                   })) {
                   A instance = new A();
                   assertEquals("XYZ", instance.method("test"));
               }

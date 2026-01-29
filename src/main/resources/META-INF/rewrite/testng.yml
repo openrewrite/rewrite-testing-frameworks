@@ -30,6 +30,7 @@ recipeList:
       version: 3.x
       onlyIfUsing: org.testng.*
       acceptTransitive: true
+      scope: test
   - tech.picnic.errorprone.refasterrules.TestNGToAssertJRulesRecipes
   - org.openrewrite.java.testing.testng.TestNgAssertEqualsToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertNotEqualsToAssertThat
