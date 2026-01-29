@@ -30,7 +30,6 @@ import org.openrewrite.java.tree.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 public class AssertToAssertions extends Recipe {
@@ -97,10 +96,8 @@ public class AssertToAssertions extends Recipe {
                 // Adjust spacing and comments after shifting the first argument to the end
                 List<Space> prefixes = args.stream().map(JRightPadded::getElement).map(Expression::getPrefix).collect(toList());
                 List<Space> afters = args.stream().map(JRightPadded::getAfter).collect(toList());
-                newArgs = ListUtils.map(
-                        newArgs,
-                        (i, arg) ->
-                            arg.withElement(arg.getElement().withPrefix(prefixes.get(i))).withAfter(Space.EMPTY));
+                newArgs = ListUtils.map(newArgs,
+                        (i, arg) -> arg.withElement(arg.getElement().withPrefix(prefixes.get(i))).withAfter(Space.EMPTY));
                 if (!afters.get(afters.size() - 1).getComments().isEmpty()) {
                     newArgs.add(first
                         .withElement(first.getElement()
@@ -134,31 +131,12 @@ public class AssertToAssertions extends Recipe {
         @Override
         public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
             J.MemberReference mr = super.visitMemberReference(memberRef, ctx);
-            if (!isJunitAssertMethod(mr)) {
-                return mr;
+            if (isJunitAssertMethod(mr)) {
+                doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + mr.getReference().getSimpleName() + "(..)",
+                        "org.junit.jupiter.api.Assertions", null, null, true)
+                        .getVisitor());
             }
-
-            JavaType.FullyQualified targetType = JavaType.ShallowClass.build("org.junit.jupiter.api.Assertions");
-            maybeRemoveImport("org.junit.Assert");
-            maybeAddImport("org.junit.jupiter.api.Assertions");
-
-            Expression containing = mr.getContaining();
-            J.Identifier newContaining = new J.Identifier(
-                    containing.getId(),
-                    containing.getPrefix(),
-                    containing.getMarkers(),
-                    emptyList(),
-                    "Assertions",
-                    targetType,
-                    null
-            );
-
-            JavaType.Method methodType = mr.getMethodType();
-            if (methodType != null) {
-                methodType = methodType.withDeclaringType(targetType);
-            }
-
-            return mr.withContaining(newContaining).withMethodType(methodType);
+            return mr;
         }
 
         private static boolean isJunitAssertMethod(MethodCall memberRef) {
