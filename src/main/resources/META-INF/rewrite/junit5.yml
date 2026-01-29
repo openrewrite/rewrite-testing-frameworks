@@ -75,6 +75,7 @@ recipeList:
       newMethodName: assertArrayEquals
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
+  - org.openrewrite.java.testing.junit5.MigrateAssertionFailedError
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports
   - org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
   - org.openrewrite.java.testing.junit5.TempDirNonFinal
@@ -228,6 +229,21 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.function.ThrowingRunnable
       newFullyQualifiedTypeName: org.junit.jupiter.api.function.Executable
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.MigrateAssertionFailedError
+displayName: Migrate JUnit 4 assertion failure exceptions to JUnit Jupiter
+description: Replace JUnit 4's `junit.framework.AssertionFailedError` and `org.junit.ComparisonFailure` with JUnit Jupiter's `org.opentest4j.AssertionFailedError`.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: junit.framework.AssertionFailedError
+      newFullyQualifiedTypeName: org.opentest4j.AssertionFailedError
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.ComparisonFailure
+      newFullyQualifiedTypeName: org.opentest4j.AssertionFailedError
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
