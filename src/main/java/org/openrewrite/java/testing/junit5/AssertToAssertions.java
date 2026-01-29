@@ -134,7 +134,7 @@ public class AssertToAssertions extends Recipe {
         @Override
         public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
             J.MemberReference mr = super.visitMemberReference(memberRef, ctx);
-            if (!isJunitAssertMemberReference(mr)) {
+            if (!isJunitAssertMethod(mr)) {
                 return mr;
             }
 
@@ -161,30 +161,15 @@ public class AssertToAssertions extends Recipe {
             return mr.withContaining(newContaining).withMethodType(methodType);
         }
 
-        private static boolean isJunitAssertMemberReference(J.MemberReference memberRef) {
-            if (memberRef.getMethodType() == null) {
+        private static boolean isJunitAssertMethod(MethodCall memberRef) {
+            if (memberRef.getMethodType() == null || !TypeUtils.isOfType(ASSERTION_TYPE, memberRef.getMethodType().getDeclaringType())) {
                 return false;
             }
-            JavaType.FullyQualified declaringType = memberRef.getMethodType().getDeclaringType();
-            if (!"org.junit.Assert".equals(declaringType.getFullyQualifiedName())) {
-                return false;
+            if (memberRef instanceof J.MemberReference) {
+                return !"assertThat".equals(((J.MemberReference) memberRef).getReference().getSimpleName());
             }
-            return !"assertThat".equals(memberRef.getReference().getSimpleName());
-        }
-
-        private static boolean isJunitAssertMethod(J.MethodInvocation method) {
-            if (method.getMethodType() != null && TypeUtils.isOfType(ASSERTION_TYPE, method.getMethodType().getDeclaringType())) {
-                return !"assertThat".equals(method.getSimpleName());
-            }
-            if (!(method.getSelect() instanceof J.Identifier)) {
-                return false;
-            }
-            J.Identifier receiver = (J.Identifier) method.getSelect();
-            if (!(receiver.getType() instanceof JavaType.FullyQualified)) {
-                return false;
-            }
-            JavaType.FullyQualified receiverType = (JavaType.FullyQualified) receiver.getType();
-            return "org.junit.Assert".equals(receiverType.getFullyQualifiedName());
+            return memberRef instanceof J.MethodInvocation &&
+                    !"assertThat".equals(((J.MethodInvocation) memberRef).getSimpleName());
         }
     }
 }
