@@ -643,6 +643,70 @@ class AssertToAssertionsTest implements RewriteTest {
         );
     }
 
+    @Test
+    void methodReferenceAssertTrueIsConverted() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Assert;
+
+              import java.util.stream.Stream;
+
+              class MyTest {
+                  void test() {
+                      Stream.of(true, true).forEach(Assert::assertTrue);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              import java.util.stream.Stream;
+
+              class MyTest {
+                  void test() {
+                      Stream.of(true, true).forEach(Assertions::assertTrue);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void methodReferenceAssertEqualsIsConverted() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Assert;
+
+              import java.util.function.BiConsumer;
+
+              class MyTest {
+                  void test() {
+                      BiConsumer<Object, Object> asserter = Assert::assertEquals;
+                      asserter.accept("expected", "actual");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              import java.util.function.BiConsumer;
+
+              class MyTest {
+                  void test() {
+                      BiConsumer<Object, Object> asserter = Assertions::assertEquals;
+                      asserter.accept("expected", "actual");
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/804")
     @Test
     void onlyModifyBrokenJavadocLinksThatAreReferencingAJunitAssertMethod() {
