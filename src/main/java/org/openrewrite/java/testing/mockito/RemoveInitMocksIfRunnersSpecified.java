@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -105,7 +106,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             }
 
                             @Override
-                            public J.Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
+                            public  J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
                                 J.Assignment a = super.visitAssignment(assignment, ctx);
                                 // Remove assignments where RHS is initMocks/openMocks
                                 if (isMockitoInitMocksCall(assignment.getAssignment()) || isMockitoOpenMocksCall(assignment.getAssignment())) {
@@ -116,7 +117,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             }
 
                             @Override
-                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                            public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                                 if (OPEN_MOCKS_MATCHER.matches(mi) || INIT_MOCKS_MATCHER.matches(mi)) {
                                     return null;
@@ -128,7 +129,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             }
 
                             @Override
-                            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                            public  J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                                 J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
                                 // Remove field declarations for fields that store openMocks result
                                 for (J.VariableDeclarations.NamedVariable variable : vd.getVariables()) {
@@ -140,7 +141,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             }
 
                             @Override
-                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                            public  J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                                 if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
                                     // Only remove empty Before and After methods
