@@ -58,6 +58,16 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
     private static final MethodMatcher OPEN_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations openMocks(..)", false);
     private static final MethodMatcher CLOSEABLE_MATCHER = new MethodMatcher("java.lang.AutoCloseable close()", false);
+    private static List<AnnotationMatcher> BEFORE_AND_AFTER_MATCHERS = Arrays.asList(
+            new AnnotationMatcher("@org.junit.jupiter.api.BeforeAll"),
+            new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach"),
+            new AnnotationMatcher("@org.junit.BeforeClass"),
+            new AnnotationMatcher("@org.junit.Before"),
+            new AnnotationMatcher("@org.junit.jupiter.api.AfterAll"),
+            new AnnotationMatcher("@org.junit.jupiter.api.AfterEach"),
+            new AnnotationMatcher("@org.junit.AfterClass"),
+            new AnnotationMatcher("@org.junit.After")
+    );
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -139,7 +149,11 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                                 if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
-                                    return null;
+                                    // Only remove empty Before and After methods
+                                    if (BEFORE_AND_AFTER_MATCHERS.stream().anyMatch(matcher ->
+                                            service(AnnotationService.class).matches(getCursor(), matcher))) {
+                                        return null;
+                                    }
                                 }
                                 return md;
                             }
@@ -166,6 +180,73 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                     private boolean isMockitoInitMocksCall(Expression expr) {
                         return expr instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation)expr);
                     }
+
+//                    @Override
+//                    public @Nullable J visit(@Nullable Tree tree, ExecutionContext executionContext, Cursor parent) {
+//                        super.visit(tree, executionContext, parent);
+//                    }
+//
+//                    @Override
+//                    public J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+//                        J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
+//                        // Remove field declarations for fields that store openMocks result
+//                        for (J.VariableDeclarations.NamedVariable variable : vd.getVariables()) {
+//                            if (fieldsToRemove.contains(variable.getSimpleName())) {
+//                                return null;
+//                            }
+//                        }
+//                        return vd;
+//                    }
+//
+//                    @Override
+//                    public J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
+//                        J.Assignment a = super.visitAssignment(assignment, ctx);
+//                        // Remove assignments where RHS is initMocks/openMocks
+//                        if (isMockitoInitCall(assignment.getAssignment())) {
+//                            maybeRemoveImport("org.mockito.MockitoAnnotations");
+//                            return null;
+//                        }
+//                        return a;
+//                    }
+//
+//                    @Override
+//                    public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+//                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+//                        // Remove direct initMocks/openMocks calls (not in assignment)
+//                        if (INIT_MOCKS_MATCHER.matches(mi) || OPEN_MOCKS_MATCHER.matches(mi)) {
+//                            maybeRemoveImport("org.mockito.MockitoAnnotations");
+//                            return null;
+//                        }
+//                        // Remove close() calls on fields that held openMocks result
+//                        if ("close".equals(mi.getSimpleName()) && mi.getSelect() instanceof J.Identifier) {
+//                            String selectName = ((J.Identifier) mi.getSelect()).getSimpleName();
+//                            if (fieldsToRemove.contains(selectName)) {
+//                                return null;
+//                            }
+//                        }
+//                        return mi;
+//                    }
+//
+//                    @Override
+//                    public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+//                        J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+//                        if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
+//                            // Remove empty @BeforeEach/@Before methods
+//                            maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
+//                            maybeRemoveImport("org.junit.Before");
+//                            // Remove empty @AfterEach/@After methods
+//                            if (service(AnnotationService.class).matches(getCursor(), AFTER_EACH_MATCHER)) {
+//                                maybeRemoveImport("org.junit.jupiter.api.AfterEach");
+//                                return null;
+//                            }
+//                            if (service(AnnotationService.class).matches(getCursor(), AFTER_MATCHER)) {
+//                                maybeRemoveImport("org.junit.After");
+//                                return null;
+//                            }
+//                            return null;
+//                        }
+//                        return md;
+//                    }
                 }
         );
     }

@@ -101,6 +101,9 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
               @ExtendWith(MockitoExtension.class)
               class A {
 
+                  public void setUp() {
+                  }
+
                   public void test() {
                   }
               }
@@ -267,6 +270,9 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
 
               @ExtendWith(MockitoExtension.class)
               class A {
+
+                  public void setUp() {
+                  }
 
                   public void test() {
                   }
