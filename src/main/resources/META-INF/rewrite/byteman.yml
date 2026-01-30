@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.byteman.BytemanJUnit4ToBytemanJUnit5
 displayName: Use Byteman JUnit 5 dependency
 description: Migrates Byteman JUnit 4 to JUnit 5.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit

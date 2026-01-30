@@ -96,10 +96,8 @@ public class AssertToAssertions extends Recipe {
                 // Adjust spacing and comments after shifting the first argument to the end
                 List<Space> prefixes = args.stream().map(JRightPadded::getElement).map(Expression::getPrefix).collect(toList());
                 List<Space> afters = args.stream().map(JRightPadded::getAfter).collect(toList());
-                newArgs = ListUtils.map(
-                        newArgs,
-                        (i, arg) ->
-                            arg.withElement(arg.getElement().withPrefix(prefixes.get(i))).withAfter(Space.EMPTY));
+                newArgs = ListUtils.map(newArgs,
+                        (i, arg) -> arg.withElement(arg.getElement().withPrefix(prefixes.get(i))).withAfter(Space.EMPTY));
                 if (!afters.get(afters.size() - 1).getComments().isEmpty()) {
                     newArgs.add(first
                         .withElement(first.getElement()
@@ -130,19 +128,26 @@ public class AssertToAssertions extends Recipe {
             return m;
         }
 
-        private static boolean isJunitAssertMethod(J.MethodInvocation method) {
-            if (method.getMethodType() != null && TypeUtils.isOfType(ASSERTION_TYPE, method.getMethodType().getDeclaringType())) {
-                return !"assertThat".equals(method.getSimpleName());
+        @Override
+        public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
+            J.MemberReference mr = super.visitMemberReference(memberRef, ctx);
+            if (isJunitAssertMethod(mr)) {
+                doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + mr.getReference().getSimpleName() + "(..)",
+                        "org.junit.jupiter.api.Assertions", null, null, true)
+                        .getVisitor());
             }
-            if (!(method.getSelect() instanceof J.Identifier)) {
+            return mr;
+        }
+
+        private static boolean isJunitAssertMethod(MethodCall memberRef) {
+            if (memberRef.getMethodType() == null || !TypeUtils.isOfType(ASSERTION_TYPE, memberRef.getMethodType().getDeclaringType())) {
                 return false;
             }
-            J.Identifier receiver = (J.Identifier) method.getSelect();
-            if (!(receiver.getType() instanceof JavaType.FullyQualified)) {
-                return false;
+            if (memberRef instanceof J.MemberReference) {
+                return !"assertThat".equals(((J.MemberReference) memberRef).getReference().getSimpleName());
             }
-            JavaType.FullyQualified receiverType = (JavaType.FullyQualified) receiver.getType();
-            return "org.junit.Assert".equals(receiverType.getFullyQualifiedName());
+            return memberRef instanceof J.MethodInvocation &&
+                    !"assertThat".equals(((J.MethodInvocation) memberRef).getSimpleName());
         }
     }
 }

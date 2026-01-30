@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit.JupiterBestPractices
 displayName: JUnit Jupiter best practices
 description: Applies best practices to tests.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit

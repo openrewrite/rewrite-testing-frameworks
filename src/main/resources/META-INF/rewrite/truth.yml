@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.truth.MigrateTruthToAssertJ
 displayName: Migrate Google Truth to AssertJ
 description: Migrate Google Truth assertions to AssertJ assertions.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - truth

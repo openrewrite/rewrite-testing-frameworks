@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testng.TestNgToAssertj
 displayName: Migrate TestNG assertions to AssertJ
 description: Convert assertions from `org.testng.Assert` to `org.assertj.core.api.Assertions`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - assertj
   - testing

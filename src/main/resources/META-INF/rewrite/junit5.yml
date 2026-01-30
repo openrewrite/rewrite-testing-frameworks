@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.JUnit5BestPractices
 displayName: JUnit 5 best practices
 description: Applies best practices to tests.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -31,6 +33,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.StaticImports
 displayName: Statically import JUnit Jupiter assertions
 description: Always use a static import for assertion methods.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -46,6 +50,7 @@ tags:
   - testing
   - junit
 preconditions:
+  - org.openrewrite.Singleton
   - org.openrewrite.java.dependencies.search.ModuleHasDependency:
       groupIdPattern: org.testng
       artifactIdPattern: testng*
@@ -75,6 +80,7 @@ recipeList:
       newMethodName: assertArrayEquals
   - org.openrewrite.java.testing.junit5.AssertToAssertions
   - org.openrewrite.java.testing.junit5.CategoryToTag
+  - org.openrewrite.java.testing.junit5.MigrateAssertionFailedError
   - org.openrewrite.java.testing.junit5.CleanupJUnitImports
   - org.openrewrite.java.testing.junit5.TemporaryFolderToTempDir
   - org.openrewrite.java.testing.junit5.TempDirNonFinal
@@ -135,6 +141,7 @@ name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
 displayName: Exclude JUnit 4, unless Testcontainers is used
 description: Excludes JUnit 4, as it ought not to be necessary in a JUnit 5 project, unless Testcontainers is used.
 preconditions:
+  - org.openrewrite.Singleton
   - org.openrewrite.maven.search.DoesNotIncludeDependency:
       groupId: org.testcontainers
       artifactId: '*'
@@ -148,6 +155,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
 displayName: Use `MatcherAssert#assertThat(..)`
 description: JUnit 4's `Assert#assertThat(..)` This method was deprecated in JUnit 4 and removed in JUnit Jupiter.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -164,6 +173,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.MigrateAssumptions
 displayName: Use `Assertions#assume*(..)` and Hamcrest's `MatcherAssume#assume*(..)`
 description: Many of JUnit 4's `Assume#assume(..)` methods have no direct counterpart in JUnit 5 and require Hamcrest JUnit's `MatcherAssume`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -190,6 +201,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseMockitoExtension
 displayName: Use Mockito JUnit Jupiter extension
 description: Migrate uses of `@RunWith(MockitoJUnitRunner.class)` (and similar annotations) to `@ExtendWith(MockitoExtension.class)`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -209,6 +222,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.IgnoreToDisabled
 displayName: Use JUnit Jupiter `@Disabled`
 description: Migrates JUnit 4.x `@Ignore` to JUnit Jupiter `@Disabled`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -221,6 +236,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
 displayName: Use JUnit Jupiter `Executable`
 description: Migrates JUnit 4.x `ThrowingRunnable` to JUnit Jupiter `Executable`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -230,9 +247,26 @@ recipeList:
       newFullyQualifiedTypeName: org.junit.jupiter.api.function.Executable
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.MigrateAssertionFailedError
+displayName: Migrate JUnit 4 assertion failure exceptions to JUnit Jupiter
+description: Replace JUnit 4's `junit.framework.AssertionFailedError` and `org.junit.ComparisonFailure` with JUnit Jupiter's `org.opentest4j.AssertionFailedError`.
+tags:
+  - testing
+  - junit
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: junit.framework.AssertionFailedError
+      newFullyQualifiedTypeName: org.opentest4j.AssertionFailedError
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junit.ComparisonFailure
+      newFullyQualifiedTypeName: org.opentest4j.AssertionFailedError
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
 displayName: Use Vert.x JUnit 5 Extension
 description: Migrates Vert.x `@RunWith` `VertxUnitRunner` to the JUnit Jupiter `@ExtendWith` `VertxExtension`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -252,6 +286,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
 displayName: Use OkHttp 3 MockWebServer for JUnit 5
 description: Migrates OkHttp 3 `MockWebServer` to enable JUnit Jupiter Extension support.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -268,6 +304,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
 displayName: Clean Up Assertions
 description: Simplifies JUnit Jupiter assertions to their most-direct equivalents.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -288,6 +326,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
 displayName: Use XMLUnit Legacy for JUnit 5
 description: Migrates XMLUnit 1.x to XMLUnit legacy 2.x.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -305,6 +345,7 @@ name: org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
 displayName: Upgrade Surefire Plugin
 description: Upgrades the Maven Surefire Plugin to the latest version if still using an older Maven version.
 preconditions:
+  - org.openrewrite.Singleton
   - org.openrewrite.java.search.HasBuildToolVersion:
       type: Maven
       version: 0.0.1-3.5.4
@@ -325,6 +366,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeToJUnit513
 displayName: Upgrade to JUnit 5.13
 description: Upgrades JUnit 5 to 5.13.x and migrates all deprecated APIs.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -372,6 +415,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeToJUnit514
 displayName: Upgrade to JUnit 5.14
 description: Upgrades JUnit 5 to 5.14.x and migrates all deprecated APIs.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit

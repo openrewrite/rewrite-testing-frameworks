@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
 displayName: Add `org.hamcrest:hamcrest` if it is used
 description: JUnit Jupiter does not include hamcrest as a transitive dependency. If needed, add a direct dependency.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - hamcrest
@@ -35,6 +37,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
 displayName: Use consistent Hamcrest matcher imports
 description: Use consistent imports for Hamcrest matchers, and remove wrapping `is(Matcher)` calls ahead of further changes.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - hamcrest
@@ -55,6 +59,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToJUnit5
 displayName: Migrate Hamcrest assertions to JUnit Jupiter
 description: Migrate Hamcrest `assertThat(..)` to JUnit Jupiter `Assertions`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - hamcrest
@@ -80,6 +86,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
 displayName: Migrate Hamcrest assertions to AssertJ
 description: Migrate Hamcrest `assertThat(..)` to AssertJ `Assertions`.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - hamcrest

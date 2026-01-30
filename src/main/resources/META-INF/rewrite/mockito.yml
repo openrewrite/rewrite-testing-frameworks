@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.MockitoBestPractices
 displayName: Mockito best practices
 description: Applies best practices for Mockito tests.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - mockito
@@ -34,6 +36,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to5Migration
 displayName: Mockito 5.x upgrade
 description: Upgrade Mockito from 1.x to 5.x.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - mockito
@@ -45,6 +49,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito4to5Only
 displayName: Mockito 4 to 5.x upgrade only
 description: Upgrade Mockito from 4.x to 5.x. Does not include 1.x to 4.x migration.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - mockito
@@ -68,6 +74,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to4Migration
 displayName: Mockito 4.x upgrade
 description: Upgrade Mockito from 1.x to 4.x.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - mockito
@@ -89,6 +97,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
 displayName: Mockito 3.x migration from 1.x
 description: Upgrade Mockito from 1.x to 3.x.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - mockito

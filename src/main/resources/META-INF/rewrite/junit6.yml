@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit.JUnit6BestPractices
 displayName: JUnit 6 best practices
 description: Applies best practices to tests.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - junit
@@ -36,6 +38,7 @@ tags:
   - junit
   - jupiter
 preconditions:
+  - org.openrewrite.Singleton
   - org.openrewrite.java.search.DoesNotUseType:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true
