@@ -527,6 +527,7 @@ recipeList:
       version: 3.x
       onlyIfUsing: org.junit.jupiter.api.Assertions
       acceptTransitive: true
+      scope: test
   - tech.picnic.errorprone.refasterrules.JUnitToAssertJRulesRecipes
 
 ---
