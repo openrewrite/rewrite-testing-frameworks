@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
 displayName: Replace PowerMock with raw Mockito
 description: PowerMockito with raw Mockito; best executed as part of a Mockito upgrade.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - mockito

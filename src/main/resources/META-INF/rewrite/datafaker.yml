@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.datafaker.JavaFakerToDataFaker
 displayName: Migrate from Java Faker to Datafaker
 description: Change imports and dependencies related to Java Faker to Datafaker replacements.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.github.javafaker.Crypto

@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.easymock.EasyMockToMockito
 displayName: Migrate from EasyMock to Mockito
 description: This recipe will apply changes commonly needed when migrating from EasyMock to Mockito.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - easymock

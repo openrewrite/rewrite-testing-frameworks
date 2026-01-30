@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.jmockit.JMockitToMockito
 displayName: Migrate from JMockit to Mockito
 description: This recipe will apply changes commonly needed when migrating from JMockit to Mockito.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - jmockit
