@@ -17,21 +17,28 @@ package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.TypeMatcher;
+import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class RemoveInitMocksIfRunnersSpecified extends Recipe {
@@ -50,8 +57,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     private static final AnnotationMatcher MOCKITO_JUNIT_MATCHER = new AnnotationMatcher("@org.junit.runner.RunWith(" + MOCKITO_JUNIT_RUNNER + ".class)");
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
     private static final MethodMatcher OPEN_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations openMocks(..)", false);
-    private static final AnnotationMatcher AFTER_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
-    private static final AnnotationMatcher AFTER_MATCHER = new AnnotationMatcher("@org.junit.After");
+    private static final MethodMatcher CLOSEABLE_MATCHER = new MethodMatcher("java.lang.AutoCloseable close()", false);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -67,109 +73,98 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                         )
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    private final Set<String> fieldsToRemove = new HashSet<>();
-
                     @Override
-                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
-                        if (service(AnnotationService.class).matches(updateCursor(cd), MOCKITO_EXTENSION_MATCHER) ||
-                                service(AnnotationService.class).matches(updateCursor(cd), MOCKITO_JUNIT_MATCHER)) {
-                            fieldsToRemove.clear();
-                            // First pass: find fields assigned from openMocks
-                            for (Statement statement : cd.getBody().getStatements()) {
-                                findFieldsAssignedFromMockitoInit(statement);
-                            }
-                            return super.visitClassDeclaration(cd, ctx);
-                        }
-                        return cd;
-                    }
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                    private void findFieldsAssignedFromMockitoInit(Statement statement) {
-                        if (statement instanceof J.MethodDeclaration) {
-                            J.MethodDeclaration md = (J.MethodDeclaration) statement;
-                            if (md.getBody() != null) {
-                                for (Statement s : md.getBody().getStatements()) {
-                                    if (s instanceof J.Assignment) {
-                                        J.Assignment assignment = (J.Assignment) s;
-                                        if (isMockitoInitCall(assignment.getAssignment())) {
-                                            Expression variable = assignment.getVariable();
-                                            if (variable instanceof J.Identifier) {
-                                                fieldsToRemove.add(((J.Identifier) variable).getSimpleName());
-                                            }
-                                        }
+                        Set<Expression> closeables = new JavaIsoVisitor<Set<Expression>>() {
+                            @Override
+                            public J.Assignment visitAssignment(J.Assignment assignment, Set<Expression> exprSet) {
+                                J.Assignment as = super.visitAssignment(assignment, exprSet);
+
+                                if (isMockitoOpenMocksCall(assignment.getAssignment())) {
+                                    exprSet.add(assignment.getVariable());
+                                }
+                                return as;
+                            }
+                        }.reduce(cd, new HashSet<>());
+
+                        J.ClassDeclaration modifiedCd = (J.ClassDeclaration) new JavaIsoVisitor<ExecutionContext>() {
+
+                            @Override
+                            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                                if (service(AnnotationService.class).matches(updateCursor(classDecl), MOCKITO_EXTENSION_MATCHER) ||
+                                        service(AnnotationService.class).matches(updateCursor(classDecl), MOCKITO_JUNIT_MATCHER)) {
+                                    return super.visitClassDeclaration(classDecl, ctx);
+                                }
+                                return classDecl;
+                            }
+
+                            @Override
+                            public J.Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
+                                J.Assignment a = super.visitAssignment(assignment, ctx);
+                                // Remove assignments where RHS is initMocks/openMocks
+                                if (isMockitoInitMocksCall(assignment.getAssignment()) || isMockitoOpenMocksCall(assignment.getAssignment())) {
+                                    maybeRemoveImport("org.mockito.MockitoAnnotations");
+                                    return null;
+                                }
+                                return a;
+                            }
+
+                            @Override
+                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                                if (OPEN_MOCKS_MATCHER.matches(mi) || INIT_MOCKS_MATCHER.matches(mi)) {
+                                    return null;
+                                }
+                                if (CLOSEABLE_MATCHER.matches(mi) && mi.getSelect() != null && closeables.stream().anyMatch(it -> SemanticallyEqual.areEqual(it, mi.getSelect()))) {
+                                    return null;
+                                }
+                                return mi;
+                            }
+
+                            @Override
+                            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                                J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
+                                // Remove field declarations for fields that store openMocks result
+                                for (J.VariableDeclarations.NamedVariable variable : vd.getVariables()) {
+                                    if (closeables.stream().anyMatch(it -> SemanticallyEqual.areEqual(it, variable.getDeclarator()))) {
+                                        return null;
                                     }
                                 }
+                                return vd;
                             }
-                        }
+
+                            @Override
+                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                                J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+                                if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
+                                    return null;
+                                }
+                                return md;
+                            }
+
+                        }.visitNonNull(cd, ctx, getCursor().getParentOrThrow());
+
+                        maybeRemoveImport("org.mockito.MockitoAnnotations");
+                        maybeRemoveImport("org.junit.jupiter.api.BeforeAll");
+                        maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
+                        maybeRemoveImport("org.junit.jupiter.api.AfterAll");
+                        maybeRemoveImport("org.junit.jupiter.api.AfterEach");
+                        maybeRemoveImport("org.junit.BeforeClass");
+                        maybeRemoveImport("org.junit.Before");
+                        maybeRemoveImport("org.junit.AfterClass");
+                        maybeRemoveImport("org.junit.After");
+
+                        return modifiedCd;
                     }
 
-                    private boolean isMockitoInitCall(Expression expr) {
-                        if (expr instanceof J.MethodInvocation) {
-                            J.MethodInvocation mi = (J.MethodInvocation) expr;
-                            return INIT_MOCKS_MATCHER.matches(mi) || OPEN_MOCKS_MATCHER.matches(mi);
-                        }
-                        return false;
+                    private boolean isMockitoOpenMocksCall(Expression expr) {
+                        return expr instanceof J.MethodInvocation && OPEN_MOCKS_MATCHER.matches((J.MethodInvocation)expr);
                     }
 
-                    @Override
-                    public J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
-                        J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
-                        // Remove field declarations for fields that store openMocks result
-                        for (J.VariableDeclarations.NamedVariable variable : vd.getVariables()) {
-                            if (fieldsToRemove.contains(variable.getSimpleName())) {
-                                return null;
-                            }
-                        }
-                        return vd;
-                    }
-
-                    @Override
-                    public J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
-                        J.Assignment a = super.visitAssignment(assignment, ctx);
-                        // Remove assignments where RHS is initMocks/openMocks
-                        if (isMockitoInitCall(assignment.getAssignment())) {
-                            maybeRemoveImport("org.mockito.MockitoAnnotations");
-                            return null;
-                        }
-                        return a;
-                    }
-
-                    @Override
-                    public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                        // Remove direct initMocks/openMocks calls (not in assignment)
-                        if (INIT_MOCKS_MATCHER.matches(mi) || OPEN_MOCKS_MATCHER.matches(mi)) {
-                            maybeRemoveImport("org.mockito.MockitoAnnotations");
-                            return null;
-                        }
-                        // Remove close() calls on fields that held openMocks result
-                        if ("close".equals(mi.getSimpleName()) && mi.getSelect() instanceof J.Identifier) {
-                            String selectName = ((J.Identifier) mi.getSelect()).getSimpleName();
-                            if (fieldsToRemove.contains(selectName)) {
-                                return null;
-                            }
-                        }
-                        return mi;
-                    }
-
-                    @Override
-                    public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                        J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                        if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
-                            // Remove empty @BeforeEach/@Before methods
-                            maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
-                            maybeRemoveImport("org.junit.Before");
-                            // Remove empty @AfterEach/@After methods
-                            if (service(AnnotationService.class).matches(getCursor(), AFTER_EACH_MATCHER)) {
-                                maybeRemoveImport("org.junit.jupiter.api.AfterEach");
-                                return null;
-                            }
-                            if (service(AnnotationService.class).matches(getCursor(), AFTER_MATCHER)) {
-                                maybeRemoveImport("org.junit.After");
-                                return null;
-                            }
-                            return null;
-                        }
-                        return md;
+                    private boolean isMockitoInitMocksCall(Expression expr) {
+                        return expr instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation)expr);
                     }
                 }
         );
