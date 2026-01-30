@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
 displayName: Testcontainers best practices
 description: Apply best practices to Testcontainers usage.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 ---
@@ -26,6 +28,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 displayName: Migrate to testcontainers-java 2.x
 description: Change dependencies and types to migrate to testcontainers-java 2.x.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.testcontainers.AddTestcontainersAnnotations
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
@@ -40,6 +44,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.GetHostMigration
 displayName: Replace `ContainerState.getContainerIpAddress()` with `getHost()`
 description: Replace `org.testcontainers.containers.ContainerState.getContainerIpAddress()` with `getHost()`.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.testcontainers.containers.ContainerState getContainerIpAddress()
@@ -49,6 +55,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
 displayName: Explicit container images and versions
 description: Replace implicit default container images and versions with explicit versions.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.CassandraContainer
@@ -135,6 +143,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
 displayName: Rename Testcontainers dependencies
 description: Change Testcontainers dependencies to adopt the new consistent `testcontainers-` prefix.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.testcontainers
@@ -451,6 +461,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
 displayName: Testcontainers 2 container classes
 description: Change Testcontainers container classes to their new package locations in Testcontainers 2.x.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.BigQueryEmulatorContainer

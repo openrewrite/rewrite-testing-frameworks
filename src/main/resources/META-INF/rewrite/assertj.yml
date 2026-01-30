@@ -23,6 +23,12 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.Assertj
 displayName: AssertJ best practices
 description: Migrates JUnit asserts to AssertJ and applies best practices to assertions.
+
+# We override the picnic recipes because they replace to less semantic methods (e.g. `isZero()` to `isEqualTo(0)`)
+# We prefer semantic methods (e.g. `isZero()`)
+# That is: AssertJBigIntegerRulesRecipes, AssertJByteRulesRecipes, AssertJDoubleRulesRecipes, AssertJFloatRulesRecipes, AssertJIntegerRulesRecipes, AssertJLongRulesRecipes, AssertJShortRulesRecipes
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - assertj
@@ -86,6 +92,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.StaticImports
 displayName: Statically import AssertJ's `assertThat`
 description: Consistently use a static import rather than inlining the `Assertions` class name in tests.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - assertj
@@ -108,6 +116,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
 displayName: Simplify AssertJ chained assertions
 description: Replace AssertJ assertions where a method is called on the actual value with a dedicated assertion.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - assertj
@@ -436,6 +446,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
 displayName: Shorten AssertJ assertions
 description: Replace AssertJ assertions where a dedicated assertion is available for the same actual value.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - assertj
@@ -489,6 +501,8 @@ description: >-
   AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
   Converts assertions from `org.junit.jupiter.api.Assertions` to `org.assertj.core.api.Assertions`.
   Will convert JUnit 4 to JUnit Jupiter if necessary to match and modify assertions.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - assertj
@@ -522,6 +536,8 @@ displayName: Migrate Fest 2.x to AssertJ
 description: >-
   AssertJ provides a rich set of assertions, truly helpful error messages, improves test code readability.
   Converts Fest 2.x imports to AssertJ imports.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - assertj
