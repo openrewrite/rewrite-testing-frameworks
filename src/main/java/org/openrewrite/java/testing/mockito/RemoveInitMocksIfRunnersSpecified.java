@@ -16,25 +16,19 @@
 package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.TypeMatcher;
 import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -180,73 +174,6 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                     private boolean isMockitoInitMocksCall(Expression expr) {
                         return expr instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation)expr);
                     }
-
-//                    @Override
-//                    public @Nullable J visit(@Nullable Tree tree, ExecutionContext executionContext, Cursor parent) {
-//                        super.visit(tree, executionContext, parent);
-//                    }
-//
-//                    @Override
-//                    public J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
-//                        J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
-//                        // Remove field declarations for fields that store openMocks result
-//                        for (J.VariableDeclarations.NamedVariable variable : vd.getVariables()) {
-//                            if (fieldsToRemove.contains(variable.getSimpleName())) {
-//                                return null;
-//                            }
-//                        }
-//                        return vd;
-//                    }
-//
-//                    @Override
-//                    public J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
-//                        J.Assignment a = super.visitAssignment(assignment, ctx);
-//                        // Remove assignments where RHS is initMocks/openMocks
-//                        if (isMockitoInitCall(assignment.getAssignment())) {
-//                            maybeRemoveImport("org.mockito.MockitoAnnotations");
-//                            return null;
-//                        }
-//                        return a;
-//                    }
-//
-//                    @Override
-//                    public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-//                        J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-//                        // Remove direct initMocks/openMocks calls (not in assignment)
-//                        if (INIT_MOCKS_MATCHER.matches(mi) || OPEN_MOCKS_MATCHER.matches(mi)) {
-//                            maybeRemoveImport("org.mockito.MockitoAnnotations");
-//                            return null;
-//                        }
-//                        // Remove close() calls on fields that held openMocks result
-//                        if ("close".equals(mi.getSimpleName()) && mi.getSelect() instanceof J.Identifier) {
-//                            String selectName = ((J.Identifier) mi.getSelect()).getSimpleName();
-//                            if (fieldsToRemove.contains(selectName)) {
-//                                return null;
-//                            }
-//                        }
-//                        return mi;
-//                    }
-//
-//                    @Override
-//                    public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-//                        J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-//                        if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
-//                            // Remove empty @BeforeEach/@Before methods
-//                            maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
-//                            maybeRemoveImport("org.junit.Before");
-//                            // Remove empty @AfterEach/@After methods
-//                            if (service(AnnotationService.class).matches(getCursor(), AFTER_EACH_MATCHER)) {
-//                                maybeRemoveImport("org.junit.jupiter.api.AfterEach");
-//                                return null;
-//                            }
-//                            if (service(AnnotationService.class).matches(getCursor(), AFTER_MATCHER)) {
-//                                maybeRemoveImport("org.junit.After");
-//                                return null;
-//                            }
-//                            return null;
-//                        }
-//                        return md;
-//                    }
                 }
         );
     }
