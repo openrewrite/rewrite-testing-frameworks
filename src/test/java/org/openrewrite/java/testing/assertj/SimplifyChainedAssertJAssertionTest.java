@@ -409,6 +409,127 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     }
 
     @Test
+    void mapGetIsEqualToWithBoundedWildcardTypeIsNotConverted() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry", "java.util.Map")),
+          //language=java
+          java(
+            """
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testExtendsWildcard(Map<? extends String, ? extends Number> map) {
+                      assertThat(map.get("key")).isEqualTo(42);
+                  }
+                  void testSuperWildcard(Map<? super String, ? super Number> map) {
+                      assertThat(map.get("key")).isEqualTo(42);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mapGetIsEqualToWithNestedWildcardTypeIsConverted() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry", "java.util.Map")),
+          //language=java
+          java(
+            """
+              import java.util.List;
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Map<String, List<?>> map, List<?> value) {
+                      assertThat(map.get("key")).isEqualTo(value);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Map<String, List<?>> map, List<?> value) {
+                      assertThat(map).containsEntry("key", value);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mapGetIsEqualToWithWildcardTypeIsNotConverted() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry", "java.util.Map")),
+          //language=java
+          java(
+            """
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Map<?, ?> map) {
+                      assertThat(map.get("key")).isEqualTo("value");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void optionalGetIsEqualToWithWildcardTypeIsNotConverted() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "contains", "java.util.Optional")),
+          //language=java
+          java(
+            """
+              import java.util.Optional;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Optional<?> opt) {
+                      assertThat(opt.get()).isEqualTo("value");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void collectionContainsWithWildcardTypeIsNotConverted() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("contains", "isTrue", "contains", "java.util.Collection")),
+          //language=java
+          java(
+            """
+              import java.util.Collection;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Collection<?> coll) {
+                      assertThat(coll.contains("element")).isTrue();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void keySetContainsWithMultipleArguments() {
         rewriteRun(
           spec -> spec.recipe(new SimplifyChainedAssertJAssertion("keySet", "contains", "containsKey", "java.util.Map")),
