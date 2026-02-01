@@ -29,6 +29,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
@@ -112,6 +113,24 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 if (!TypeUtils.isAssignableTo(requiredType, actual.getType())) {
                     return mi;
                 }
+
+                // Skip transformation when actual type has wildcard type parameters and the
+                // dedicated assertion takes arguments (e.g. containsEntry on Map<?, ?>, contains on Optional<?>).
+                // When both arguments are empty the dedicated assertion has no parameters, so wildcards are not an issue.
+                boolean assertThatArgumentIsEmpty = assertThatArg.getArguments().get(0) instanceof J.Empty;
+                boolean methodToReplaceArgumentIsEmpty = mi.getArguments().get(0) instanceof J.Empty;
+                if (!(assertThatArgumentIsEmpty && methodToReplaceArgumentIsEmpty)) {
+                    JavaType.Parameterized parameterized = TypeUtils.asParameterized(actual.getType());
+                    if (parameterized != null) {
+                        for (JavaType typeParam : parameterized.getTypeParameters()) {
+                            if (typeParam instanceof JavaType.GenericTypeVariable &&
+                                "?".equals(((JavaType.GenericTypeVariable) typeParam).getName())) {
+                                return mi;
+                            }
+                        }
+                    }
+                }
+
                 List<Expression> arguments = new ArrayList<>();
                 arguments.add(actual);
 
