@@ -33,7 +33,6 @@ recipeList:
       version: 3.x
       onlyIfUsing: com.google.common.truth.*
       acceptTransitive: true
-      scope: test
 
   # Handle Truth's assert_() static method
   - org.openrewrite.java.testing.truth.TruthAssertToAssertThat
