@@ -154,6 +154,16 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         if (e.getType() instanceof JavaType.Primitive) {
                             variableTypeShort = e.getType().toString();
                             variableTypeFqn = e.getType();
+                        } else if (e.getType() instanceof JavaType.Parameterized) {
+                            JavaType.Parameterized paramType = (JavaType.Parameterized) e.getType();
+                            variableTypeShort = buildParameterizedTypeName(paramType);
+                            variableTypeFqn = paramType;
+                            maybeAddImport(paramType.getFullyQualifiedName(), false);
+                            for (JavaType typeParam : paramType.getTypeParameters()) {
+                                if (typeParam instanceof JavaType.FullyQualified) {
+                                    maybeAddImport(((JavaType.FullyQualified) typeParam).getFullyQualifiedName(), false);
+                                }
+                            }
                         } else if (e.getType() instanceof JavaType.FullyQualified) {
                             JavaType.FullyQualified aClass = (JavaType.FullyQualified) e.getType();
                             variableTypeShort = aClass.getClassName();
@@ -175,15 +185,62 @@ public class AssertThrowsOnLastStatement extends Recipe {
             private String getVariableName(Expression e, Map<String, Integer> generatedVariableSuffixes) {
                 String variableName;
                 if (e instanceof J.MethodInvocation) {
-                    String name = ((J.MethodInvocation) e).getSimpleName();
-                    name = name.replaceAll("^get", "");
-                    name = name.replaceAll("^is", "");
+                    J.MethodInvocation mi = (J.MethodInvocation) e;
+                    String name = mi.getSimpleName();
+                    if (isShortFactoryMethodName(name)) {
+                        name = getTypeBasedVariableName(mi);
+                    } else {
+                        name = name.replaceAll("^get", "");
+                        name = name.replaceAll("^is", "");
+                    }
                     name = StringUtils.uncapitalize(name);
                     variableName = VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 } else {
                     variableName = VariableNameUtils.generateVariableName("x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 }
                 return ensureUniqueVariableName(variableName, generatedVariableSuffixes);
+            }
+
+            private boolean isShortFactoryMethodName(String name) {
+                // Factory method names that don't make meaningful variable names
+                return "of".equals(name) || "from".equals(name) || "copyOf".equals(name);
+            }
+
+            private String getTypeBasedVariableName(J.MethodInvocation mi) {
+                JavaType type = mi.getType();
+                if (type instanceof JavaType.FullyQualified) {
+                    return ((JavaType.FullyQualified) type).getClassName();
+                }
+                return "x";
+            }
+
+            private String buildParameterizedTypeName(JavaType.Parameterized paramType) {
+                StringBuilder sb = new StringBuilder(paramType.getClassName());
+                List<JavaType> typeParams = paramType.getTypeParameters();
+                if (!typeParams.isEmpty()) {
+                    sb.append("<");
+                    for (int i = 0; i < typeParams.size(); i++) {
+                        if (i > 0) {
+                            sb.append(", ");
+                        }
+                        sb.append(getTypeName(typeParams.get(i)));
+                    }
+                    sb.append(">");
+                }
+                return sb.toString();
+            }
+
+            private String getTypeName(JavaType type) {
+                if (type instanceof JavaType.Parameterized) {
+                    return buildParameterizedTypeName((JavaType.Parameterized) type);
+                } else if (type instanceof JavaType.FullyQualified) {
+                    return ((JavaType.FullyQualified) type).getClassName();
+                } else if (type instanceof JavaType.Primitive) {
+                    return type.toString();
+                } else if (type instanceof JavaType.Array) {
+                    return getTypeName(((JavaType.Array) type).getElemType()) + "[]";
+                }
+                return "Object";
             }
 
             private String ensureUniqueVariableName(String variableName, Map<String, Integer> generatedVariableSuffixes) {
