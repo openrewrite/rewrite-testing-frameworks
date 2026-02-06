@@ -840,4 +840,61 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void lastStatementWithStaticFactoryMethodArguments() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.Map;
+              import java.util.Set;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          testThing(Map.of(), List.of(), Set.of("value"));
+                      });
+                  }
+
+                  void doA() {}
+                  void testThing(Map<String, String> map, List<String> list, Set<String> set) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.Map;
+              import java.util.Set;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      Map<String, String> map = Map.of();
+                      List<String> list = List.of();
+                      Set<String> set = Set.of("value");
+                      assertThrows(Exception.class, () ->
+                          testThing(map, list, set));
+                  }
+
+                  void doA() {}
+                  void testThing(Map<String, String> map, List<String> list, Set<String> set) {}
+              }
+              """
+          )
+        );
+    }
 }
