@@ -156,6 +156,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             variableTypeFqn = e.getType();
                         } else if (e.getType() instanceof JavaType.Parameterized) {
                             JavaType.Parameterized paramType = (JavaType.Parameterized) e.getType();
+                            // TODO look into possibly employing `TypeUtils.toString()` here, possibly with some changes upstream allowing for non-fully-qualified names
                             variableTypeShort = buildParameterizedTypeName(paramType);
                             variableTypeFqn = paramType;
                             maybeAddImport(paramType.getFullyQualifiedName(), false);
