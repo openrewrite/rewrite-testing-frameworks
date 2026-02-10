@@ -53,7 +53,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
     private static final MethodMatcher OPEN_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations openMocks(..)", false);
     private static final MethodMatcher CLOSEABLE_MATCHER = new MethodMatcher("java.lang.AutoCloseable close()", false);
-    private static List<AnnotationMatcher> BEFORE_AND_AFTER_MATCHERS = Arrays.asList(
+    private static final List<AnnotationMatcher> BEFORE_AND_AFTER_MATCHERS = Arrays.asList(
             new AnnotationMatcher("@org.junit.jupiter.api.BeforeAll"),
             new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach"),
             new AnnotationMatcher("@org.junit.BeforeClass"),
