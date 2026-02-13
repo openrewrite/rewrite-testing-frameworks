@@ -401,4 +401,82 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void assertEqualsWithObjectReturnType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertEquals("expected", getObject());
+                  }
+                  private Object getObject() {
+                      return "expected";
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(getObject()).isEqualTo("expected");
+                  }
+                  private Object getObject() {
+                      return "expected";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void longActualWithDoubleDelta() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertEquals(50L, getSummation(), 0.0);
+                  }
+                  private long getSummation() {
+                      return 50L;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(getSummation()).isEqualTo(50L);
+                  }
+                  private long getSummation() {
+                      return 50L;
+                  }
+              }
+              """
+          )
+        );
+    }
 }

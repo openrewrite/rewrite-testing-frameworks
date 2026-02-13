@@ -189,4 +189,48 @@ class UseAssertSameTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void assertTrueNotNullShouldNotConvert() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class MyTest {
+
+                  @Test
+                  public void test(Object obj) {
+                      assertTrue(obj != null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertFalseNullShouldNotConvert() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertFalse;
+
+              class MyTest {
+
+                  @Test
+                  public void test(Object obj) {
+                      assertFalse(obj == null);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

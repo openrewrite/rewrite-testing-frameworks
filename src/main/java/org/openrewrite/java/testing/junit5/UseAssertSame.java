@@ -62,6 +62,11 @@ public class UseAssertSame extends Recipe {
                 if (binary.getOperator() != J.Binary.Type.Equal && binary.getOperator() != J.Binary.Type.NotEqual) {
                     return mi;
                 }
+                // Skip null comparisons — defer to assertNull/assertNotNull recipes
+                if (binary.getLeft().getType() == JavaType.Primitive.Null ||
+                    binary.getRight().getType() == JavaType.Primitive.Null) {
+                    return mi;
+                }
                 List<Expression> newArguments = new ArrayList<>();
                 newArguments.add(binary.getLeft());
                 newArguments.add(binary.getRight());
