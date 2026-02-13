@@ -113,11 +113,6 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                         .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected, args.get(2));
             }
 
-            private boolean isTypeObject(Expression expression) {
-                JavaType.FullyQualified fq = TypeUtils.asFullyQualified(expression.getType());
-                return fq != null && "java.lang.Object".equals(fq.getFullyQualifiedName());
-            }
-
             private boolean isFloatingPointType(Expression expression) {
                 JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
                 if (fullyQualified != null) {
