@@ -131,6 +131,18 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                     }
                 }
 
+                // Skip transformation when the assertion argument type is wider than the chained method's
+                // return type (e.g. isEqualTo(1L) with size() returning int -> hasSize(1L) won't compile)
+                if (!methodToReplaceArgumentIsEmpty) {
+                    Expression replaceArg = mi.getArguments().get(0);
+                    JavaType.Primitive argPrimitive = TypeUtils.asPrimitive(replaceArg.getType());
+                    JavaType chainedReturnType = assertThatArg.getType();
+                    JavaType.Primitive chainedPrimitive = TypeUtils.asPrimitive(chainedReturnType);
+                    if (argPrimitive == JavaType.Primitive.Long && chainedPrimitive == JavaType.Primitive.Int) {
+                        return mi;
+                    }
+                }
+
                 List<Expression> arguments = new ArrayList<>();
                 arguments.add(actual);
 

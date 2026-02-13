@@ -34,7 +34,7 @@ import java.util.Optional;
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
     private static final String JUNIT_ASSERTIONS = "org.junit.jupiter.api.Assertions";
-    private static final String ASSERTIONS_FOR_CLASS_TYPES = "org.assertj.core.api.AssertionsForClassTypes";
+    private static final String ASSERTIONS_FOR_CLASS_TYPES = "org.assertj.core.api.Assertions";
     private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher(JUNIT_ASSERTIONS + " assertThrows(..)");
 
     @Getter

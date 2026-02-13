@@ -689,4 +689,46 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
             );
         }
     }
+
+    @Test
+    void mapGetIsEqualToWithPartialWildcardTypeIsNotConverted() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("get", "isEqualTo", "containsEntry", "java.util.Map")),
+          //language=java
+          java(
+            """
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Map<String, ?> map) {
+                      assertThat(map.get("key")).isEqualTo("value");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void sizeIsEqualToLongLiteralIsNotConverted() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("size", "isEqualTo", "hasSize", "java.util.Collection")),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list) {
+                      assertThat(list.size()).isEqualTo(1L);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
