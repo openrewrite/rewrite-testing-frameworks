@@ -60,9 +60,8 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 List<Expression> args = mi.getArguments();
                 Expression expected = args.get(0);
                 Expression actual = args.get(1);
-                String assertThatArg = isTypeObject(actual) ? "assertThat((Object) #{any()})" : "assertThat(#{any()})";
                 if (args.size() == 2) {
-                    return JavaTemplate.builder(assertThatArg + ".isEqualTo(#{any()});")
+                    return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
@@ -70,7 +69,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 }
                 if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                     Expression message = args.get(2);
-                    return JavaTemplate.builder(assertThatArg + ".as(#{any()}).isEqualTo(#{any()});")
+                    return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
                             .imports("java.util.function.Supplier")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
@@ -81,14 +80,14 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                     // When actual is integral but delta is floating-point, use isEqualTo instead of isCloseTo
                     // to avoid type mismatch (e.g. AbstractLongAssert.isCloseTo requires Offset<Long>, not Offset<Double>)
                     if (isIntegralType(actual)) {
-                        return JavaTemplate.builder(assertThatArg + ".isEqualTo(#{any()});")
+                        return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                                 .staticImports(ASSERTJ + ".assertThat")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                     }
                     maybeAddImport(ASSERTJ, "within", false);
-                    return JavaTemplate.builder(assertThatArg + ".isCloseTo(#{any()}, within(#{any()}));")
+                    return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                             .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
@@ -98,7 +97,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 // The assertEquals is using a floating point with a delta argument and a message.
                 Expression message = args.get(3);
                 if (isIntegralType(actual)) {
-                    return JavaTemplate.builder(assertThatArg + ".as(#{any()}).isEqualTo(#{any()});")
+                    return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
                             .imports("java.util.function.Supplier")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
@@ -106,7 +105,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
                 }
                 maybeAddImport(ASSERTJ, "within", false);
-                return JavaTemplate.builder(assertThatArg + ".as(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                         .imports("java.util.function.Supplier")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))

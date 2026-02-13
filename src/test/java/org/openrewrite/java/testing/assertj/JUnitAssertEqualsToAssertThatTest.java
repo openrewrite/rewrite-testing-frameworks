@@ -430,7 +430,7 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      assertThat((Object) getObject()).isEqualTo("expected");
+                      assertThat(getObject()).isEqualTo("expected");
                   }
                   private Object getObject() {
                       return "expected";
