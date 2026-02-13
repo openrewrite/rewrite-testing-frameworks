@@ -34,7 +34,7 @@ import java.util.Optional;
 public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
     private static final String JUNIT_ASSERTIONS = "org.junit.jupiter.api.Assertions";
-    private static final String ASSERTIONS_FOR_CLASS_TYPES = "org.assertj.core.api.Assertions";
+    private static final String ASSERTJ_ASSERTIONS = "org.assertj.core.api.Assertions";
     private static final MethodMatcher ASSERT_THROWS_MATCHER = new MethodMatcher(JUNIT_ASSERTIONS + " assertThrows(..)");
 
     @Getter
@@ -64,7 +64,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
 
                 maybeRemoveImport(JUNIT_ASSERTIONS);
                 maybeRemoveImport(JUNIT_ASSERTIONS + ".assertThrows");
-                maybeAddImport(ASSERTIONS_FOR_CLASS_TYPES, "assertThatExceptionOfType");
+                maybeAddImport(ASSERTJ_ASSERTIONS, "assertThatExceptionOfType");
 
                 List<Expression> args = mi.getArguments();
 
@@ -74,7 +74,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                         code += ".actual()";
                     }
                     return JavaTemplate.builder(code)
-                            .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
+                            .staticImports(ASSERTJ_ASSERTIONS + ".assertThatExceptionOfType")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(1));
@@ -85,7 +85,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                     code += ".actual()";
                 }
                 return JavaTemplate.builder(code)
-                        .staticImports(ASSERTIONS_FOR_CLASS_TYPES + ".assertThatExceptionOfType")
+                        .staticImports(ASSERTJ_ASSERTIONS + ".assertThatExceptionOfType")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(2), args.get(1));
