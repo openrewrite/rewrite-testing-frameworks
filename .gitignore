@@ -9,3 +9,6 @@ bin/
 *.log
 .vscode/
 src/main/generated/
+
+node_modules/
+*.tsbuildinfo
