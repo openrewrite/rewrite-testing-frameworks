@@ -17,7 +17,7 @@ recipeDependencies {
     parserClasspath("com.squareup.okhttp3:mockwebserver3:5.1.0")
     parserClasspath("junit:junit:4.+")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
-    parserClasspath("org.assertj:assertj-core:3.+")
+    parserClasspath("org.assertj:assertj-core:3.27.7")
     parserClasspath("org.easytesting:fest-assert-core:2.+")
     parserClasspath("org.hamcrest:hamcrest:3.+")
     parserClasspath("org.jboss.byteman:byteman-bmunit5:4.0.25")
@@ -78,7 +78,7 @@ dependencies {
 
     runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:${rewriteVersion}:recipes")
     compileOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
-    compileOnly("org.assertj:assertj-core:3.+")
+    compileOnly("org.assertj:assertj-core:3.27.7")
     compileOnly("junit:junit:4.13.2")
 
     compileOnly("org.projectlombok:lombok:latest.release")

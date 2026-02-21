@@ -111,7 +111,7 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                 return JavaTemplate.builder(template)
                         .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.assertThatThrownBy")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
                         .build()
                         .<J.MethodInvocation>apply(getCursor(), try_.getCoordinates().replace(), lambdaStatements.toArray());
             }
