@@ -85,6 +85,7 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
                         new Object[]{actualArgument, expectedArgument};
 
                 return JavaTemplate.builder(template)
+                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build()
