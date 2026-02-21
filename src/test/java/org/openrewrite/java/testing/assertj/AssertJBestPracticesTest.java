@@ -24,7 +24,6 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.test.TypeValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -146,9 +145,7 @@ class AssertJBestPracticesTest implements RewriteTest {
         @Test
         void hamcrestToCollapsedAssertionsWithCustomType() {
             rewriteRun(
-              spec -> spec
-                .typeValidationOptions(TypeValidation.none())
-                .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest-3")),
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest-3")),
               //language=java
               java(
                 """
@@ -185,9 +182,10 @@ class AssertJBestPracticesTest implements RewriteTest {
                   class BiscuitTest {
                       void biscuits() {
                           List<Biscuit> biscuits = List.of(new Biscuit("Ginger"), new Biscuit("Chocolate"), new Biscuit("Oatmeal"));
-                          assertThat(biscuits).hasSize(3);
-                          assertThat(biscuits).contains(new Biscuit("Chocolate"));
-                          assertThat(biscuits).doesNotContain(new Biscuit("Raisin"));
+                          assertThat(biscuits)
+                                  .hasSize(3)
+                                  .contains(new Biscuit("Chocolate"))
+                                  .doesNotContain(new Biscuit("Raisin"));
                       }
                   }
                   """
