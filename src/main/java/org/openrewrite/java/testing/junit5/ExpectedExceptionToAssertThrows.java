@@ -63,6 +63,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
     private static class ExpectedExceptionToAssertThrowsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private static final String FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION = "firstExpectedExceptionMethodInvocation";
+        private static final String STATEMENTS_BEFORE_EXPECT_EXCEPTION = "statementsBeforeExpectException";
         private static final String STATEMENTS_AFTER_EXPECT_EXCEPTION = "statementsAfterExpectException";
         private static final String HAS_MATCHER = "hasMatcher";
         private static final String EXCEPTION_CLASS = "exceptionClass";
@@ -100,11 +101,58 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (getCursor().pollMessage("hasExpectException") != null) {
                 List<NameTree> thrown = m.getThrows();
                 if (thrown != null && !thrown.isEmpty()) {
+                    List<Statement> statementsBeforeExpect = getCursor().pollMessage(STATEMENTS_BEFORE_EXPECT_EXCEPTION);
+                    if (statementsBeforeExpect != null && statementsBeforeExpect.stream().anyMatch(this::statementThrowsCheckedException)) {
+                        return m;
+                    }
                     assert m.getBody() != null;
                     return m.withBody(m.getBody().withPrefix(thrown.get(0).getPrefix())).withThrows(emptyList());
                 }
             }
             return m;
+        }
+
+        private boolean statementThrowsCheckedException(Statement statement) {
+            return new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                    if (found.get()) {
+                        return method;
+                    }
+                    JavaType.Method methodType = method.getMethodType();
+                    if (methodType != null) {
+                        for (JavaType thrownException : methodType.getThrownExceptions()) {
+                            if (isCheckedException(thrownException)) {
+                                found.set(true);
+                                return method;
+                            }
+                        }
+                    }
+                    return super.visitMethodInvocation(method, found);
+                }
+
+                @Override
+                public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
+                    if (found.get()) {
+                        return newClass;
+                    }
+                    JavaType.Method constructorType = newClass.getConstructorType();
+                    if (constructorType != null) {
+                        for (JavaType thrownException : constructorType.getThrownExceptions()) {
+                            if (isCheckedException(thrownException)) {
+                                found.set(true);
+                                return newClass;
+                            }
+                        }
+                    }
+                    return super.visitNewClass(newClass, found);
+                }
+            }.reduce(statement, new AtomicBoolean(false)).get();
+        }
+
+        private boolean isCheckedException(JavaType exceptionType) {
+            return !TypeUtils.isAssignableTo("java.lang.RuntimeException", exceptionType) &&
+                   !TypeUtils.isAssignableTo("java.lang.Error", exceptionType);
         }
 
         @Override
@@ -175,7 +223,13 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 return method;
             }
             getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage("hasExpectException", true);
-            getCursor().dropParentUntil(J.Block.class::isInstance).computeMessageIfAbsent(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION, k -> method);
+            Cursor blockCursor = getCursor().dropParentUntil(J.Block.class::isInstance);
+            blockCursor.computeMessageIfAbsent(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION, k -> method);
+
+            List<Statement> predecessorStatements = findPredecessorStatements(getCursor());
+            getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance)
+                    .computeMessageIfAbsent(STATEMENTS_BEFORE_EXPECT_EXCEPTION, k -> predecessorStatements);
+
             List<Statement> successorStatements = findSuccessorStatements(getCursor());
             getCursor().putMessageOnFirstEnclosing(J.Block.class, STATEMENTS_AFTER_EXPECT_EXCEPTION, successorStatements);
             if (EXPECTED_EXCEPTION_CLASS_MATCHER.matches(method)) {
@@ -184,6 +238,25 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 getCursor().putMessageOnFirstEnclosing(J.Block.class, HAS_MATCHER, true);
             }
             return method;
+        }
+
+        /**
+         * From the current cursor point find all preceding statements in the method body.
+         */
+        private List<Statement> findPredecessorStatements(Cursor cursor) {
+            J.MethodDeclaration methodDecl = cursor.firstEnclosing(J.MethodDeclaration.class);
+            if (methodDecl == null || methodDecl.getBody() == null) {
+                return emptyList();
+            }
+            List<Statement> predecessorStatements = new ArrayList<>();
+            Statement currentStatement = cursor.firstEnclosing(Statement.class);
+            for (Statement statement : methodDecl.getBody().getStatements()) {
+                if (statement == currentStatement) {
+                    break;
+                }
+                predecessorStatements.add(statement);
+            }
+            return predecessorStatements;
         }
 
         /**
