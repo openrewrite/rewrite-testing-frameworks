@@ -102,7 +102,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 List<NameTree> thrown = m.getThrows();
                 if (thrown != null && !thrown.isEmpty()) {
                     List<Statement> statementsBeforeExpect = getCursor().pollMessage(STATEMENTS_BEFORE_EXPECT_EXCEPTION);
-                    if (statementsBeforeExpect != null && statementsBeforeExpectThrowCheckedException(statementsBeforeExpect)) {
+                    if (statementsBeforeExpect != null && statementsBeforeExpect.stream().anyMatch(this::statementThrowsCheckedException)) {
                         return m;
                     }
                     assert m.getBody() != null;
@@ -112,27 +112,20 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             return m;
         }
 
-        private boolean statementsBeforeExpectThrowCheckedException(List<Statement> statements) {
-            return statements.stream().anyMatch(this::statementThrowsCheckedException);
-        }
-
         private boolean statementThrowsCheckedException(Statement statement) {
-            AtomicBoolean throwsChecked = new AtomicBoolean(false);
-            new JavaIsoVisitor<AtomicBoolean>() {
+            return new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
                     if (found.get()) {
                         return method;
                     }
                     JavaType.Method methodType = method.getMethodType();
-                    if (methodType == null) {
-                        return super.visitMethodInvocation(method, found);
-                    }
-                    List<JavaType> thrownExceptions = methodType.getThrownExceptions();
-                    for (JavaType thrownException : thrownExceptions) {
-                        if (isCheckedException(thrownException)) {
-                            found.set(true);
-                            return method;
+                    if (methodType != null) {
+                        for (JavaType thrownException : methodType.getThrownExceptions()) {
+                            if (isCheckedException(thrownException)) {
+                                found.set(true);
+                                return method;
+                            }
                         }
                     }
                     return super.visitMethodInvocation(method, found);
@@ -144,26 +137,20 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                         return newClass;
                     }
                     JavaType.Method constructorType = newClass.getConstructorType();
-                    if (constructorType == null) {
-                        return super.visitNewClass(newClass, found);
-                    }
-                    List<JavaType> thrownExceptions = constructorType.getThrownExceptions();
-                    for (JavaType thrownException : thrownExceptions) {
-                        if (isCheckedException(thrownException)) {
-                            found.set(true);
-                            return newClass;
+                    if (constructorType != null) {
+                        for (JavaType thrownException : constructorType.getThrownExceptions()) {
+                            if (isCheckedException(thrownException)) {
+                                found.set(true);
+                                return newClass;
+                            }
                         }
                     }
                     return super.visitNewClass(newClass, found);
                 }
-            }.visit(statement, throwsChecked);
-            return throwsChecked.get();
+            }.reduce(statement, new AtomicBoolean(false)).get();
         }
 
         private boolean isCheckedException(JavaType exceptionType) {
-            if (exceptionType == null) {
-                return false;
-            }
             return !TypeUtils.isAssignableTo("java.lang.RuntimeException", exceptionType) &&
                    !TypeUtils.isAssignableTo("java.lang.Error", exceptionType);
         }
