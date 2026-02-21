@@ -9,3 +9,4 @@ bin/
 *.log
 .vscode/
 src/main/generated/
+working-set*/
