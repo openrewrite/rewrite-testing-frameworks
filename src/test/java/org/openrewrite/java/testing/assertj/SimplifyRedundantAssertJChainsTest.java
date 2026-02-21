@@ -282,8 +282,6 @@ class SimplifyRedundantAssertJChainsTest implements RewriteTest {
                       assertThat(obj).isNotNull().isEqualTo(other);
                       assertThat(obj).isNotNull().isSameAs(other);
 
-                      assertThat(obj).isNotNull().isNotEqualTo(other);
-                      assertThat(obj).isNotNull().isNotSameAs(other);
                       assertThat(obj).isNotNull().isInstanceOf(String.class);
                       assertThat(obj).isNotNull().hasSameClassAs(other);
                       assertThat(obj).isNotNull().hasToString("text");
@@ -298,11 +296,30 @@ class SimplifyRedundantAssertJChainsTest implements RewriteTest {
                       assertThat(obj).isNotNull().isEqualTo(other);
                       assertThat(obj).isNotNull().isSameAs(other);
 
-                      assertThat(obj).isNotEqualTo(other);
-                      assertThat(obj).isNotSameAs(other);
                       assertThat(obj).isInstanceOf(String.class);
                       assertThat(obj).hasSameClassAs(other);
                       assertThat(obj).hasToString("text");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotSimplifyIsNotNullBeforeNegatedAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test(Object obj, Object other) {
+                      // isNotEqualTo passes when actual is null, so isNotNull is NOT redundant
+                      assertThat(obj).isNotNull().isNotEqualTo(other);
+                      // isNotSameAs passes when actual is null, so isNotNull is NOT redundant
+                      assertThat(obj).isNotNull().isNotSameAs(other);
                   }
               }
               """

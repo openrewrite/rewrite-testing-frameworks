@@ -125,6 +125,122 @@ class TruthThrowableAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void hasMessageThatContainsMatch() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new IllegalArgumentException("Invalid argument provided");
+                      assertThat(e).hasMessageThat().containsMatch("(?i:invalid)");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new IllegalArgumentException("Invalid argument provided");
+                      assertThat(e).hasMessageMatching("(?i:invalid)");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void hasMessageThatDoesNotContain() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessageThat().doesNotContain("success");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessageNotContaining("success");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void hasMessageThatStartsWith() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessageThat().startsWith("Error");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessageStartingWith("Error");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void hasMessageThatEndsWith() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static com.google.common.truth.Truth.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessageThat().endsWith("occurred");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      Exception e = new RuntimeException("Error occurred");
+                      assertThat(e).hasMessageEndingWith("occurred");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void multipleThrowableAssertions() {
         rewriteRun(
           //language=java
