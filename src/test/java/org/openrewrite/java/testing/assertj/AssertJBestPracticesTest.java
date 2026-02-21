@@ -132,10 +132,60 @@ class AssertJBestPracticesTest implements RewriteTest {
                   class BiscuitTest {
                       void biscuits() {
                           List<String> biscuits = List.of("Ginger", "Chocolate", "Oatmeal");
-                          assertThat(biscuits).isNotNull();
                           assertThat(biscuits)
                                   .hasSize(3)
                                   .contains("Chocolate");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void hamcrestToCollapsedAssertionsWithCustomType() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest-3")),
+              //language=java
+              java(
+                """
+                  class Biscuit {
+                      String name;
+                      Biscuit(String name) {
+                          this.name = name;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import java.util.List;
+
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.*;
+
+                  class BiscuitTest {
+                      void biscuits() {
+                          List<Biscuit> biscuits = List.of(new Biscuit("Ginger"), new Biscuit("Chocolate"), new Biscuit("Oatmeal"));
+                          assertThat(biscuits, hasSize(3));
+                          assertThat(biscuits, hasItem(new Biscuit("Chocolate")));
+                          assertThat(biscuits, not(hasItem(new Biscuit("Raisin"))));
+                      }
+                  }
+                  """,
+                """
+                  import java.util.List;
+
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class BiscuitTest {
+                      void biscuits() {
+                          List<Biscuit> biscuits = List.of(new Biscuit("Ginger"), new Biscuit("Chocolate"), new Biscuit("Oatmeal"));
+                          assertThat(biscuits)
+                                  .hasSize(3)
+                                  .contains(new Biscuit("Chocolate"))
+                                  .doesNotContain(new Biscuit("Raisin"));
                       }
                   }
                   """

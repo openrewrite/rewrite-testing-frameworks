@@ -133,6 +133,15 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                                 if (assertThatFq != null && assertionFq != null) {
                                     return TypeUtils.isOfType(assertThatFq.getType(), assertionFq.getType());
                                 }
+
+                                // When assertion methods return SELF but the type parameter is not fully resolved,
+                                // the return type may be a superclass (e.g. AbstractIterableAssert instead of ListAssert).
+                                // Check if assertThatType is a subtype of assertionType to handle this case.
+                                JavaType.FullyQualified assertThatFqType = TypeUtils.asFullyQualified(assertThatType);
+                                JavaType.FullyQualified assertionFqType = TypeUtils.asFullyQualified(assertionType);
+                                if (assertThatFqType != null && assertionFqType != null) {
+                                    return TypeUtils.isAssignableTo(assertionFqType.getFullyQualifiedName(), assertThatType);
+                                }
                             }
                             return false;
                         }
