@@ -743,7 +743,7 @@ examples:
           }
       }
     after: |
-      import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+      import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
       public class SimpleExpectedExceptionTest {
           public void throwsExceptionWithSpecificType() {
@@ -856,6 +856,32 @@ examples:
 
           void someMethodThatShouldThrow() {
               throw new IllegalArgumentException("Invalid argument");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.ReturnActual
+examples:
+- description: '`ReturnActualTest#singleAssertionAndReturn`'
+  sources:
+  - before: |
+      import java.util.List;
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          List<String> test(List<String> list) {
+              assertThat(list).isNotNull();
+              return list;
+          }
+      }
+    after: |
+      import java.util.List;
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          List<String> test(List<String> list) {
+              return assertThat(list).isNotNull().actual();
           }
       }
     language: java
@@ -2599,6 +2625,34 @@ examples:
     language: kotlin
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.CleanupKotlinJUnit5AssertionImports
+examples:
+- description: '`CleanupKotlinJUnit5AssertionImportsTest#removesStaticAssertionsWildcardImportWhenApiWildcardPresent`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.*
+      import org.junit.jupiter.api.Assertions.*
+
+      class ATest {
+          @Test
+          fun testSomething() {
+              assertNull(null)
+              assertNotNull("test")
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.*
+
+      class ATest {
+          @Test
+          fun testSomething() {
+              assertNull(null)
+              assertNotNull("test")
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.CsvSourceToValueSource
 examples:
 - description: '`CsvSourceToValueSourceTest#replaceCsvSourceWithValueSourceForStrings`'
@@ -3443,6 +3497,42 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
+examples:
+- description: '`UpdateMockWebServerMockResponseTest#typicalUseCase`'
+  sources:
+  - before: |
+      import okhttp3.mockwebserver.MockResponse;
+      import okhttp3.mockwebserver.MockWebServer;
+
+      class ApiUnitTest {
+          private MockWebServer mockWebServer = new MockWebServer();
+          void testGet() {
+              String body = "{\"message\":\"Hello, World!\"}";
+              mockWebServer.enqueue(new MockResponse()
+                      .setHeader("Content-Type", "application/json; charset=utf-8")
+                      .setBody(body)
+                      .setResponseCode(200));
+          }
+      }
+    after: |
+      import mockwebserver3.MockResponse;
+      import mockwebserver3.MockWebServer;
+
+      class ApiUnitTest {
+          private MockWebServer mockWebServer = new MockWebServer();
+          void testGet() {
+              String body = "{\"message\":\"Hello, World!\"}";
+              mockWebServer.enqueue(new MockResponse.Builder()
+                      .setHeader("Content-Type", "application/json; charset=utf-8")
+                      .body(body)
+                      .code(200)
+                      .build());
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UpdateTestAnnotation
 examples:
 - description: '`UpdateTestAnnotationTest#expectedNoneToAssertDoesNotThrow`'
@@ -3935,6 +4025,53 @@ examples:
           void test() {
               try (MockedStatic<A> mockedStaticA = mockStatic(A.class)) {
                   assertEquals(A.getNumber(), 42);
+              }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.MockConstructionToTryWithResources
+examples:
+- description: '`MockConstructionToTryWithResourcesTest#shouldWrapMockConstructionInTryWithResources`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.mockito.MockedConstruction;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.mockito.Mockito.mockConstruction;
+      import static org.mockito.Mockito.when;
+      import static org.mockito.ArgumentMatchers.any;
+
+      class TestClass {
+          @Test
+          void test() {
+              MockedConstruction<A> aMockedConstruction = mockConstruction(A.class, (mock, context) -> {
+                  when(mock.method(any())).thenReturn("XYZ");
+              });
+              A instance = new A();
+              assertEquals("XYZ", instance.method("test"));
+              aMockedConstruction.close();
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.mockito.MockedConstruction;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.mockito.Mockito.mockConstruction;
+      import static org.mockito.Mockito.when;
+      import static org.mockito.ArgumentMatchers.any;
+
+      class TestClass {
+          @Test
+          void test() {
+              try (MockedConstruction<A> aMockedConstruction = mockConstruction(A.class, (mock, context) -> {
+                       when(mock.method(any())).thenReturn("XYZ");
+                   })) {
+                  A instance = new A();
+                  assertEquals("XYZ", instance.method("test"));
               }
           }
       }

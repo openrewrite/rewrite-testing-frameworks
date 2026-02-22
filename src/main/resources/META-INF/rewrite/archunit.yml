@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.archunit.ArchUnit0to1Migration
 displayName: ArchUnit 0.x upgrade
 description: Upgrade ArchUnit from 0.x to 1.x.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: com.tngtech.archunit

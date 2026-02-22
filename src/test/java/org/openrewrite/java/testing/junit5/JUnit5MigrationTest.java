@@ -764,6 +764,60 @@ class JUnit5MigrationTest implements RewriteTest {
         }
     }
 
+    @Test
+    void migrateJunitFrameworkAssertionFailedError() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.AssertionFailedError;
+
+              public class MyTest {
+                  void test() {
+                      throw new AssertionFailedError("test failed");
+                  }
+              }
+              """,
+            """
+              import org.opentest4j.AssertionFailedError;
+
+              public class MyTest {
+                  void test() {
+                      throw new AssertionFailedError("test failed");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migrateJunitComparisonFailure() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.ComparisonFailure;
+
+              public class MyTest {
+                  void test() {
+                      throw new ComparisonFailure("message", "expected", "actual");
+                  }
+              }
+              """,
+            """
+              import org.opentest4j.AssertionFailedError;
+
+              public class MyTest {
+                  void test() {
+                      throw new AssertionFailedError("message", "expected", "actual");
+                  }
+              }
+              """
+          )
+        );
+    }
+
     /**
      * The bug this test is reproducing is likely not specific to the JUnit5 upgrade, it's just where it was first
      * encountered and isolated. It would probably be reproducible using other recipes that reorder method parameters,

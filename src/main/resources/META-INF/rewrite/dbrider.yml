@@ -19,6 +19,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
 displayName: Migrate rider-spring (JUnit4) to rider-junit5 (JUnit5)
 description: This recipe will migrate the necessary dependencies and annotations from DbRider with JUnit4 to JUnit5 in a Spring application.
+preconditions:
+  - org.openrewrite.Singleton
 tags:
   - testing
   - dbrider

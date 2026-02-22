@@ -68,8 +68,7 @@ public class SimplifyRedundantAssertJChains extends Recipe {
             new MethodMatcher("org.assertj.core.api..* isNotPresent()"),
             new MethodMatcher("org.assertj.core.api..* isTrue()"),
             new MethodMatcher("org.assertj.core.api..* isFalse()"),
-            new MethodMatcher("org.assertj.core.api..* isNotEqualTo(..)"),
-            new MethodMatcher("org.assertj.core.api..* isNotSameAs(..)"),
+            // Note: isNotEqualTo and isNotSameAs are NOT here because they pass when actual is null
             new MethodMatcher("org.assertj.core.api..* isInstanceOf(..)"),
             new MethodMatcher("org.assertj.core.api..* hasSameClassAs(..)"),
             new MethodMatcher("org.assertj.core.api..* hasToString(..)"),

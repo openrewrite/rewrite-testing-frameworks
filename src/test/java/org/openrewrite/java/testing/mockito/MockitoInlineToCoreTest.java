@@ -169,7 +169,7 @@ class MockitoInlineToCoreTest implements RewriteTest {
               </project>
               """.formatted(
               Pattern.compile("<version>(5.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1),
-              Pattern.compile("<version>(1.15.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1)))
+              Pattern.compile("<version>(1.17.+)</version>").matcher(after).results().findFirst().orElseThrow().group(1)))
           )
         );
     }

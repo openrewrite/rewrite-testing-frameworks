@@ -103,6 +103,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
                     .collect(joining(", "));
             JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
                             actual, assertion, argumentsTemplate))
+                    .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                     .build();
@@ -135,6 +136,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
                     .collect(joining(", "));
             JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).as(#{any(String)}).%s(%s)",
                             actual, assertion, argumentsTemplate))
+                    .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                     .build();
