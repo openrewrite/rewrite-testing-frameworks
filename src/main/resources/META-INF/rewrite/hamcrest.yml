@@ -107,6 +107,15 @@ recipeList:
   # Convert `assertThat(x, allOf(..))` to `assertThat(x).satisfies(..)` and `anyOf` to `satisfiesAnyOf`
   - org.openrewrite.java.testing.hamcrest.HamcrestOfMatchersToAssertJ
 
+  # Convert `assertThat(x, hasProperty(..))` to `assertThat(x).hasFieldOrProperty(..)` / `hasFieldOrPropertyWithValue(..)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestHasPropertyToAssertJ
+
+  # Convert `assertThat(x, everyItem(..))` to `assertThat(x).hasOnlyElementsOfType(..)` / `allSatisfy(..)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestEveryItemToAssertJ
+
+  # Convert `assertThat(x, hasItem(Matcher))` to `assertThat(x).hasAtLeastOneElementOfType(..)` / `anySatisfy(..)`
+  - org.openrewrite.java.testing.hamcrest.HamcrestHasItemMatcherToAssertJ
+
   # Convert `assertThat(x, is(value))` to `assertThat(x).isEqualTo(value)`
   - org.openrewrite.java.testing.hamcrest.HamcrestIsMatcherToAssertJ
 
