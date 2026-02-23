@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -63,18 +64,17 @@ public class HamcrestHasPropertyToAssertJ extends Recipe {
                     return mi;
                 }
 
-                J.MethodInvocation hasPropertyInvocation = (J.MethodInvocation) matcherArgument;
-                List<Expression> hasPropertyArgs = hasPropertyInvocation.getArguments();
-
+                List<Expression> hasPropertyArgs = ((J.MethodInvocation) matcherArgument).getArguments();
                 if (hasPropertyArgs.size() == 1) {
                     return handleSingleArg(mi, actualArgument, reasonArgument, hasPropertyArgs.get(0), ctx);
-                } else if (hasPropertyArgs.size() == 2) {
+                }
+                if (hasPropertyArgs.size() == 2) {
                     return handleTwoArgs(mi, actualArgument, reasonArgument, hasPropertyArgs.get(0), hasPropertyArgs.get(1), ctx);
                 }
                 return mi;
             }
 
-            private J.MethodInvocation handleSingleArg(J.MethodInvocation mi, Expression actual, Expression reason,
+            private J.MethodInvocation handleSingleArg(J.MethodInvocation mi, Expression actual, @Nullable Expression reason,
                                                        Expression propertyName, ExecutionContext ctx) {
                 String reasonTemplate = reason != null ? ".as(#{any(String)})" : "";
                 JavaTemplate template = JavaTemplate.builder(
@@ -94,7 +94,7 @@ public class HamcrestHasPropertyToAssertJ extends Recipe {
                 return template.apply(getCursor(), mi.getCoordinates().replace(), templateArgs.toArray());
             }
 
-            private J.MethodInvocation handleTwoArgs(J.MethodInvocation mi, Expression actual, Expression reason,
+            private J.MethodInvocation handleTwoArgs(J.MethodInvocation mi, Expression actual, @Nullable Expression reason,
                                                      Expression propertyName, Expression valueMatcher, ExecutionContext ctx) {
                 // Unwrap equalTo(val) or is(val) where is is not is(Matcher)
                 Expression value;

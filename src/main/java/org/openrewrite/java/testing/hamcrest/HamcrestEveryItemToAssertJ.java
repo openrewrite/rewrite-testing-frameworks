@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -56,13 +57,11 @@ public class HamcrestEveryItemToAssertJ extends Recipe {
                 Expression reasonArgument = args.size() == 3 ? args.get(0) : null;
                 Expression actualArgument = args.get(args.size() - 2);
                 Expression matcherArgument = args.get(args.size() - 1);
-
                 if (!EVERY_ITEM_MATCHER.matches(matcherArgument)) {
                     return mi;
                 }
 
-                J.MethodInvocation everyItemInvocation = (J.MethodInvocation) matcherArgument;
-                Expression innerMatcher = everyItemInvocation.getArguments().get(0);
+                Expression innerMatcher = ((J.MethodInvocation) matcherArgument).getArguments().get(0);
 
                 if (INSTANCE_OF_MATCHER.matches(innerMatcher)) {
                     return handleInstanceOf(mi, actualArgument, reasonArgument, innerMatcher, ctx);
@@ -71,7 +70,7 @@ public class HamcrestEveryItemToAssertJ extends Recipe {
                 return handleGeneralMatcher(mi, actualArgument, reasonArgument, innerMatcher, ctx);
             }
 
-            private J.MethodInvocation handleInstanceOf(J.MethodInvocation mi, Expression actual, Expression reason,
+            private J.MethodInvocation handleInstanceOf(J.MethodInvocation mi, Expression actual, @Nullable Expression reason,
                                                         Expression innerMatcher, ExecutionContext ctx) {
                 Expression typeArg = ((J.MethodInvocation) innerMatcher).getArguments().get(0);
                 String reasonTemplate = reason != null ? ".as(#{any(String)})" : "";
@@ -95,7 +94,7 @@ public class HamcrestEveryItemToAssertJ extends Recipe {
                 return template.apply(getCursor(), mi.getCoordinates().replace(), templateArgs.toArray());
             }
 
-            private J.MethodInvocation handleGeneralMatcher(J.MethodInvocation mi, Expression actual, Expression reason,
+            private J.MethodInvocation handleGeneralMatcher(J.MethodInvocation mi, Expression actual, @Nullable Expression reason,
                                                             Expression innerMatcher, ExecutionContext ctx) {
                 String reasonTemplate = reason != null ? ".as(#{any(String)})" : "";
                 JavaTemplate template = JavaTemplate.builder(
