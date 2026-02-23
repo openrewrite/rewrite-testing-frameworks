@@ -712,6 +712,34 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     }
 
     @Test
+    void argumentMatchingChainedAssertionIsNotStripped() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("equals", "isTrue", "isEqualTo", "java.lang.Object")),
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Object obj1, Object obj2, Object obj3) {
+                      assertThat(obj1.equals(obj2.equals(obj3))).isTrue();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Object obj1, Object obj2, Object obj3) {
+                      assertThat(obj1).isEqualTo(obj2.equals(obj3));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void sizeIsEqualToLongLiteralIsNotConverted() {
         rewriteRun(
           spec -> spec.recipe(new SimplifyChainedAssertJAssertion("size", "isEqualTo", "hasSize", "java.util.Collection")),
