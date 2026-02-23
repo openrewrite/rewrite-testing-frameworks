@@ -382,3 +382,27 @@ recipeList:
       notMatcher: empty
       assertion: isNotEmpty
 
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: hasKey
+      assertion: doesNotContainKey
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: hasValue
+      assertion: doesNotContainValue
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: hasEntry
+      assertion: doesNotContainEntry
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: anEmptyMap
+      assertion: isNotEmpty
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: isEmptyOrNullString
+      assertion: isNotEmpty
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: emptyOrNullString
+      assertion: isNotEmpty
+
+  - org.openrewrite.java.testing.hamcrest.HamcrestNotMatcherToAssertJ:
+      notMatcher: isA
+      assertion: isNotInstanceOf
+

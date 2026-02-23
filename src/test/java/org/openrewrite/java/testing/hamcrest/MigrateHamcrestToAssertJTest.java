@@ -462,6 +462,43 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         rewriteRun(java(before, after));
     }
 
+    private static Stream<Arguments> notMapReplacements() {
+        return Stream.of(
+          Arguments.arguments("map1", "hasKey", "key", "doesNotContainKey"),
+          Arguments.arguments("map1", "hasValue", "value", "doesNotContainValue"),
+          Arguments.arguments("map1", "hasEntry", "key, value", "doesNotContainEntry"),
+          Arguments.arguments("map1", "anEmptyMap", "", "isNotEmpty")
+        );
+    }
+
+    @MethodSource("notMapReplacements")
+    @ParameterizedTest
+    void notMapReplacements(String actual, String hamcrestMatcher, String matcherArgs, String assertJAssertion) {
+        String importsBefore = """
+          import static org.hamcrest.MatcherAssert.assertThat;
+          import static org.hamcrest.Matchers.not;
+          import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
+        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        //language=java
+        String template = """
+          import java.util.Map;
+          import org.junit.jupiter.api.Test;
+
+          %s
+
+          class ATest {
+              @Test
+              void test(String key, String value) {
+                  Map<String, String> map1 = Map.of("a", "b", "c", "d");
+                  %s
+              }
+          }
+          """;
+        String before = template.formatted(importsBefore, "assertThat(%s, not(%s(%s)));".formatted(actual, hamcrestMatcher, matcherArgs));
+        String after = template.formatted(importsAfter, "assertThat(%s).%s(%s);".formatted(actual, assertJAssertion, matcherArgs));
+        rewriteRun(java(before, after));
+    }
+
     private static Stream<Arguments> notReplacements() {
         return Stream.of(
           Arguments.arguments("str1", "equalTo", "str2", "isNotEqualTo"),
@@ -480,7 +517,10 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           Arguments.arguments("str1", "equalToIgnoringCase", "str2", "isNotEqualToIgnoringCase"),
           Arguments.arguments("str1", "equalToIgnoringWhiteSpace", "str2", "isNotEqualToIgnoringWhitespace"),
           Arguments.arguments("str1", "blankString", "", "isNotBlank"),
-          Arguments.arguments("str1", "emptyString", "", "isNotEmpty")
+          Arguments.arguments("str1", "emptyString", "", "isNotEmpty"),
+          Arguments.arguments("str1", "isEmptyOrNullString", "", "isNotEmpty"),
+          Arguments.arguments("str1", "emptyOrNullString", "", "isNotEmpty"),
+          Arguments.arguments("str1", "isA", "String.class", "isNotInstanceOf")
         );
     }
 
