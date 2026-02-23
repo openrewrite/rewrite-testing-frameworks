@@ -269,6 +269,55 @@ class AssertJBestPracticesTest implements RewriteTest {
         }
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/496")
+    @Test
+    void assertTrueContainsWithMethodCallArgPreservesMethodCall() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+          //language=java
+          java(
+            """
+              import java.util.Locale;
+              import java.util.Set;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class MyTest {
+                  static class UnderTest {
+                      Locale asLocale() {
+                          return Locale.US;
+                      }
+                  }
+
+                  void test(Set<Locale> localeSet) {
+                      UnderTest underTest = new UnderTest();
+                      assertTrue(localeSet.contains(underTest.asLocale()));
+                  }
+              }
+              """,
+            """
+              import java.util.Locale;
+              import java.util.Set;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class UnderTest {
+                      Locale asLocale() {
+                          return Locale.US;
+                      }
+                  }
+
+                  void test(Set<Locale> localeSet) {
+                      UnderTest underTest = new UnderTest();
+                      assertThat(localeSet).contains(underTest.asLocale());
+                  }
+              }
+              """
+          )
+        );
+    }
+
     /**
      * Chained AssertJ assertions should be simplified to the corresponding dedicated assertion, as
      * per <a

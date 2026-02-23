@@ -34,7 +34,6 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
@@ -170,7 +169,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 }
 
                 // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
-                arguments.add(extractEitherArgument(assertThatArgumentIsEmpty, assertThatArgument, methodToReplaceArgument));
+                arguments.add(assertThatArgumentIsEmpty ? methodToReplaceArgument : assertThatArgument);
 
                 // Special case for Path.of() assertions
                 if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw") &&
@@ -180,17 +179,6 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 }
 
                 return "assertThat(#{any()}).%s(#{any()})";
-            }
-
-            private Expression extractEitherArgument(boolean assertThatArgumentIsEmpty, Expression assertThatArgument, Expression methodToReplaceArgument) {
-                if (assertThatArgumentIsEmpty) {
-                    return methodToReplaceArgument;
-                }
-                // Only on the assertThat argument do we possibly replace the argument with the select; such as list.size() -> list
-                if (chainedAssertMatcher.matches(assertThatArgument)) {
-                    return Objects.requireNonNull(((J.MethodInvocation) assertThatArgument).getSelect());
-                }
-                return assertThatArgument;
             }
         };
     }
