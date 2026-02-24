@@ -1903,6 +1903,108 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestEveryItemToAssertJ
+examples:
+- description: '`HamcrestEveryItemToAssertJTest#everyItemInstanceOf`'
+  sources:
+  - before: |
+      import java.util.List;
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.everyItem;
+      import static org.hamcrest.Matchers.instanceOf;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              List<Object> list = List.of("a", "b");
+              assertThat(list, everyItem(instanceOf(String.class)));
+          }
+      }
+    after: |
+      import java.util.List;
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              List<Object> list = List.of("a", "b");
+              assertThat(list).hasOnlyElementsOfType(String.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestHasItemMatcherToAssertJ
+examples:
+- description: '`HamcrestHasItemMatcherToAssertJTest#hasItemInstanceOf`'
+  sources:
+  - before: |
+      import java.util.List;
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.hasItem;
+      import static org.hamcrest.Matchers.instanceOf;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              List<Object> list = List.of("a", 1, 2.0);
+              assertThat(list, hasItem(instanceOf(String.class)));
+          }
+      }
+    after: |
+      import java.util.List;
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              List<Object> list = List.of("a", 1, 2.0);
+              assertThat(list).hasAtLeastOneElementOfType(String.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.hamcrest.HamcrestHasPropertyToAssertJ
+examples:
+- description: '`HamcrestHasPropertyToAssertJTest#hasPropertyName`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.hamcrest.MatcherAssert.assertThat;
+      import static org.hamcrest.Matchers.hasProperty;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              Object obj = new Object();
+              assertThat(obj, hasProperty("class"));
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          @Test
+          void testMethod() {
+              Object obj = new Object();
+              assertThat(obj).hasFieldOrProperty("class");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.hamcrest.HamcrestInstanceOfToJUnit5
 examples:
 - description: '`HamcrestInstanceOfToJUnit5Test#instanceOf`'
