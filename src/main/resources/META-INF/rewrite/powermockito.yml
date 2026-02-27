@@ -46,9 +46,20 @@ recipeList:
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.testing.mockito.PowerMockitoWhenNewToMockito
   - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: org.powermock
-      artifactId: powermock-api-mockito*
+  # powermock-api-mockito (Mockito 1.x bridge) and powermock-api-mockito2 (Mockito 2.x bridge)
+  # are mutually exclusive; a project will only ever have one of them.
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.powermock
+      oldArtifactId: powermock-api-mockito
+      newGroupId: org.mockito
+      newArtifactId: mockito-core
+      newVersion: 3.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.powermock
+      oldArtifactId: powermock-api-mockito2
+      newGroupId: org.mockito
+      newArtifactId: mockito-core
+      newVersion: 3.x
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
       artifactId: powermock-core
