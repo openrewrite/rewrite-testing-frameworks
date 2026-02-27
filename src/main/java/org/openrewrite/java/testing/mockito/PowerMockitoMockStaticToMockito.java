@@ -88,7 +88,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
             if (tree instanceof JavaSourceFile) {
                 boolean useTestNg = !FindAnnotations.find((J) tree, "@org.testng.annotations.Test").isEmpty();
-                initTestFrameworkInfo(useTestNg);
+                boolean useJunit4 = !useTestNg && !FindAnnotations.find((J) tree, "@org.junit.Test").isEmpty();
+                initTestFrameworkInfo(useTestNg, useJunit4);
             }
             return super.visit(tree, ctx);
         }
@@ -358,22 +359,29 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return classDecl;
         }
 
-        private void initTestFrameworkInfo(boolean useTestNg) {
+        private void initTestFrameworkInfo(boolean useTestNg, boolean useJunit4) {
             String setUpMethodAnnotationName;
             String tearDownMethodAnnotationName;
             String annotationPackage;
 
-            if (!useTestNg) {
-                setUpMethodAnnotationName = "BeforeEach";
-                tearDownMethodAnnotationName = "AfterEach";
-                annotationPackage = "org.junit.jupiter.api";
-                additionalClasspathResource = "junit-jupiter-api-5";
-            } else {
+            if (useTestNg) {
                 setUpMethodAnnotationName = "BeforeMethod";
                 tearDownMethodAnnotationName = "AfterMethod";
                 annotationPackage = "org.testng.annotations";
                 additionalClasspathResource = "testng-7";
                 tearDownMethodAnnotationParameters = "(alwaysRun = true)";
+            } else if (useJunit4) {
+                setUpMethodAnnotationName = "Before";
+                tearDownMethodAnnotationName = "After";
+                annotationPackage = "org.junit";
+                additionalClasspathResource = "junit-4";
+                tearDownMethodAnnotationParameters = "";
+            } else {
+                setUpMethodAnnotationName = "BeforeEach";
+                tearDownMethodAnnotationName = "AfterEach";
+                annotationPackage = "org.junit.jupiter.api";
+                additionalClasspathResource = "junit-jupiter-api-5";
+                tearDownMethodAnnotationParameters = "";
             }
 
             this.setUpMethodAnnotation = "@" + setUpMethodAnnotationName;

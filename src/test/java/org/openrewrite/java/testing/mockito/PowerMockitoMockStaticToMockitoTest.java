@@ -654,10 +654,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
 
             """
+              import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
-              import org.junit.jupiter.api.AfterEach;
-              import org.junit.jupiter.api.BeforeEach;
               import org.mockito.MockedStatic;
               import org.mockito.Mockito;
               import test.A;
@@ -670,14 +669,10 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
                   @Before
                   void setUp() {
-                  }
-
-                  @BeforeEach
-                  void setUpStaticMocks() {
                       mockedA_B = Mockito.mockStatic(A.B.class);
                   }
 
-                  @AfterEach
+                  @After
                   void tearDownStaticMocks() {
                       mockedA_B.closeOnDemand();
                   }
