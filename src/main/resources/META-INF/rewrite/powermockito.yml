@@ -60,6 +60,16 @@ recipeList:
       newGroupId: org.mockito
       newArtifactId: mockito-core
       newVersion: 3.x
+  - org.openrewrite.java.testing.mockito.RemovePowerMockDependencies
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.RemovePowerMockDependencies
+displayName: Remove PowerMock dependencies
+description: Remove all PowerMock dependencies and managed dependencies.
+tags:
+  - testing
+  - mockito
+recipeList:
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
       artifactId: powermock-core
