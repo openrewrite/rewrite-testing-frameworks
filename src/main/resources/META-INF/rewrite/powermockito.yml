@@ -63,3 +63,45 @@ recipeList:
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
       artifactId: powermock-core
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-api-support
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-api-mockito-common
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-api-easymock
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-reflect
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-junit4
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-junit4-common
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-junit4-legacy
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-junit4-rule
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-junit4-rule-agent
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-junit3
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-junit5
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-module-testng
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-classloading-xstream
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-classloading-objenesis

@@ -1087,4 +1087,42 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/moderneinc/customer-requests/issues/1933")
+    @Test
+    void removesAllPowerMockDependencies() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.powermock:powermock-api-mockito:1.6.5")
+                  testImplementation("org.powermock:powermock-core:1.6.5")
+                  testImplementation("org.powermock:powermock-api-support:1.6.5")
+                  testImplementation("org.powermock:powermock-reflect:1.6.5")
+                  testImplementation("org.powermock:powermock-module-junit4:1.6.5")
+                  testImplementation("org.powermock:powermock-api-mockito-common:1.6.5")
+                  testImplementation("org.powermock:powermock-classloading-xstream:1.6.5")
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.mockito:mockito-core:3.12.4")
+              }
+              """
+          )
+        );
+    }
 }
