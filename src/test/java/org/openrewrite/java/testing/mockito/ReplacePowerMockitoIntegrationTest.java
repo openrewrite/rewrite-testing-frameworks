@@ -1109,6 +1109,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   testImplementation("org.powermock:powermock-module-junit4:1.6.5")
                   testImplementation("org.powermock:powermock-api-mockito-common:1.6.5")
                   testImplementation("org.powermock:powermock-classloading-xstream:1.6.5")
+                  testImplementation("org.powermock:powermock:1.6.5")
+                  testImplementation("org.powermock:powermock-modules:1.6.5")
               }
               """,
             """
