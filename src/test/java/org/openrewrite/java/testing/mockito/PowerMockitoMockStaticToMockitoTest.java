@@ -772,4 +772,60 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/moderneinc/customer-requests/issues/1925")
+    @Test
+    void junit4PrepareForTestUsesBeforeAndAfter() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+
+              import java.util.Calendar;
+
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+
+                  @Test
+                  public void testStaticMethod() {
+                      mockStatic(Calendar.class);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mockStatic;
+
+              import java.util.Calendar;
+
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+
+              public class MyTest {
+
+                  private MockedStatic<Calendar> mockedCalendar;
+
+                  @Before
+                  void setUpStaticMocks() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                  }
+
+                  @After
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test
+                  public void testStaticMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
