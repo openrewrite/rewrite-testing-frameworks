@@ -654,10 +654,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               """,
 
             """
+              import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
-              import org.junit.jupiter.api.AfterEach;
-              import org.junit.jupiter.api.BeforeEach;
               import org.mockito.MockedStatic;
               import org.mockito.Mockito;
               import test.A;
@@ -670,14 +669,10 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
                   @Before
                   void setUp() {
-                  }
-
-                  @BeforeEach
-                  void setUpStaticMocks() {
                       mockedA_B = Mockito.mockStatic(A.B.class);
                   }
 
-                  @AfterEach
+                  @After
                   void tearDownStaticMocks() {
                       mockedA_B.closeOnDemand();
                   }
@@ -766,6 +761,62 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                       mockStatic(Calendar::class.java).use { mockedCalendar ->
                           mockedCalendar.`when`<Calendar>(Calendar::getInstance).thenReturn(calendarMock)
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/moderneinc/customer-requests/issues/1925")
+    @Test
+    void junit4PrepareForTestUsesBeforeAndAfter() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+
+              import java.util.Calendar;
+
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+
+                  @Test
+                  public void testStaticMethod() {
+                      mockStatic(Calendar.class);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mockStatic;
+
+              import java.util.Calendar;
+
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+
+              public class MyTest {
+
+                  private MockedStatic<Calendar> mockedCalendar;
+
+                  @Before
+                  void setUpStaticMocks() {
+                      mockedCalendar = mockStatic(Calendar.class);
+                  }
+
+                  @After
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test
+                  public void testStaticMethod() {
                   }
               }
               """
