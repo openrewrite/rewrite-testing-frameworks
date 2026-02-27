@@ -26,12 +26,15 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
 
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
+          .beforeRecipe(withToolingApi())
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(),
@@ -973,6 +976,101 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               """.formatted(importStatement),
             """
               class MyTest {}
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/moderneinc/customer-requests/issues/1926")
+    @Test
+    void addsMockitoCoreWhenOnlyTransitiveThroughPowerMock() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.powermock:powermock-api-mockito:1.6.5")
+                  testImplementation("org.powermock:powermock-core:1.6.5")
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.mockito:mockito-core:3.12.4")
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.testng.annotations.BeforeClass;
+              import org.testng.annotations.Test;
+
+              @PrepareForTest(value = {java.util.Calendar.class})
+              class StaticMethodTest {
+
+                  private java.util.Calendar calendarMock;
+
+                  @BeforeClass
+                  void setUp() {
+                      calendarMock = Mockito.mock(java.util.Calendar.class);
+                  }
+
+                  @Test
+                  void testWithCalendar() {
+                      PowerMockito.mockStatic(java.util.Calendar.class);
+                      Mockito.when(java.util.Calendar.getInstance()).thenReturn(calendarMock);
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeClass;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+
+              class StaticMethodTest {
+
+                  private MockedStatic<java.util.Calendar> mockedCalendar;
+
+                  private java.util.Calendar calendarMock;
+
+                  @BeforeClass
+                  void setUp() {
+                      calendarMock = Mockito.mock(java.util.Calendar.class);
+                  }
+
+                  @BeforeMethod
+                  void setUpStaticMocks() {
+                      mockedCalendar = Mockito.mockStatic(java.util.Calendar.class);
+                  }
+
+                  @AfterMethod(alwaysRun = true)
+                  void tearDownStaticMocks() {
+                      mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test
+                  void testWithCalendar() {
+                      mockedCalendar.when(java.util.Calendar::getInstance).thenReturn(calendarMock);
+                  }
+              }
               """
           )
         );
