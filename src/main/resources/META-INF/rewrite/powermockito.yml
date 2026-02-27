@@ -157,3 +157,15 @@ recipeList:
   - org.openrewrite.maven.RemoveManagedDependency:
       groupId: org.powermock
       artifactId: powermock-classloading-objenesis
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock
+  - org.openrewrite.maven.RemoveManagedDependency:
+      groupId: org.powermock
+      artifactId: powermock
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.powermock
+      artifactId: powermock-modules
+  - org.openrewrite.maven.RemoveManagedDependency:
+      groupId: org.powermock
+      artifactId: powermock-modules
