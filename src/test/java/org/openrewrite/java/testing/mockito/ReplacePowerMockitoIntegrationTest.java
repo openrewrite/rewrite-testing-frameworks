@@ -1014,30 +1014,41 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           //language=java
           java(
             """
+              import static org.testng.Assert.assertEquals;
+
+              import java.util.Calendar;
+              import java.util.Locale;
+
               import org.mockito.Mockito;
               import org.powermock.api.mockito.PowerMockito;
               import org.powermock.core.classloader.annotations.PrepareForTest;
               import org.testng.annotations.BeforeClass;
               import org.testng.annotations.Test;
 
-              @PrepareForTest(value = {java.util.Calendar.class})
+              @PrepareForTest(value = {Calendar.class})
               class StaticMethodTest {
 
-                  private java.util.Calendar calendarMock;
+                  private Calendar calendarMock;
 
                   @BeforeClass
                   void setUp() {
-                      calendarMock = Mockito.mock(java.util.Calendar.class);
+                      calendarMock = Mockito.mock(Calendar.class);
                   }
 
                   @Test
                   void testWithCalendar() {
-                      PowerMockito.mockStatic(java.util.Calendar.class);
-                      Mockito.when(java.util.Calendar.getInstance()).thenReturn(calendarMock);
+                      PowerMockito.mockStatic(Calendar.class);
+                      Mockito.when(Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
               }
               """,
             """
+              import static org.testng.Assert.assertEquals;
+
+              import java.util.Calendar;
+              import java.util.Locale;
+
               import org.mockito.MockedStatic;
               import org.mockito.Mockito;
               import org.testng.annotations.AfterMethod;
@@ -1047,18 +1058,18 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               class StaticMethodTest {
 
-                  private MockedStatic<java.util.Calendar> mockedCalendar;
+                  private MockedStatic<Calendar> mockedCalendar;
 
-                  private java.util.Calendar calendarMock;
+                  private Calendar calendarMock;
 
                   @BeforeClass
                   void setUp() {
-                      calendarMock = Mockito.mock(java.util.Calendar.class);
+                      calendarMock = Mockito.mock(Calendar.class);
                   }
 
                   @BeforeMethod
                   void setUpStaticMocks() {
-                      mockedCalendar = Mockito.mockStatic(java.util.Calendar.class);
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                   }
 
                   @AfterMethod(alwaysRun = true)
@@ -1068,7 +1079,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
                   @Test
                   void testWithCalendar() {
-                      mockedCalendar.when(java.util.Calendar::getInstance).thenReturn(calendarMock);
+                      mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
+                      assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
               }
               """
