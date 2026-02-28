@@ -62,4 +62,7 @@ recipeList:
       newVersion: 3.x
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
-      artifactId: powermock-core
+      artifactId: powermock*
+  - org.openrewrite.maven.RemoveManagedDependency:
+      groupId: org.powermock
+      artifactId: powermock*

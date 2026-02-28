@@ -29,6 +29,7 @@ import org.openrewrite.test.TypeValidation;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
@@ -1083,6 +1084,152 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesAllPowerMockDependencies() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.powermock:powermock-api-mockito:1.6.5")
+                  testImplementation("org.powermock:powermock-core:1.6.5")
+                  testImplementation("org.powermock:powermock-api-support:1.6.5")
+                  testImplementation("org.powermock:powermock-reflect:1.6.5")
+                  testImplementation("org.powermock:powermock-module-junit4:1.6.5")
+                  testImplementation("org.powermock:powermock-api-mockito-common:1.6.5")
+                  testImplementation("org.powermock:powermock-classloading-xstream:1.6.5")
+                  testImplementation("org.powermock:powermock:1.6.5")
+                  testImplementation("org.powermock:powermock-modules:1.6.5")
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.mockito:mockito-core:3.12.4")
+              }
+              """
+          ),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-api-mockito</artifactId>
+                        <version>1.6.5</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-module-junit4</artifactId>
+                        <version>1.6.5</version>
+                    </dependency>
+                </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.4</version>
+                    </dependency>
+                </dependencies>
+              </project>
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesManagedPowerMockDependencies() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencyManagement>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.powermock</groupId>
+                            <artifactId>powermock-core</artifactId>
+                            <version>1.6.5</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.powermock</groupId>
+                            <artifactId>powermock-module-junit4</artifactId>
+                            <version>1.6.5</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.powermock</groupId>
+                            <artifactId>powermock-api-mockito</artifactId>
+                            <version>1.6.5</version>
+                        </dependency>
+                    </dependencies>
+                </dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-core</artifactId>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-module-junit4</artifactId>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-api-mockito</artifactId>
+                    </dependency>
+                </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencyManagement>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>3.12.4</version>
+                        </dependency>
+                    </dependencies>
+                </dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                    </dependency>
+                </dependencies>
+              </project>
               """
           )
         );
