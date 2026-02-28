@@ -1008,7 +1008,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   mavenCentral()
               }
               dependencies {
-                  testImplementation("org.mockito:mockito-core:3.12.4")
+                  testImplementation("org.mockito:mockito-inline:3.12.4")
               }
               """
           ),
@@ -1121,7 +1121,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   mavenCentral()
               }
               dependencies {
-                  testImplementation("org.mockito:mockito-core:3.12.4")
+                  testImplementation("org.mockito:mockito-inline:3.12.4")
               }
               """
           ),
@@ -1154,7 +1154,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 <dependencies>
                     <dependency>
                         <groupId>org.mockito</groupId>
-                        <artifactId>mockito-core</artifactId>
+                        <artifactId>mockito-inline</artifactId>
                         <version>3.12.4</version>
                     </dependency>
                 </dependencies>
@@ -1218,7 +1218,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                     <dependencies>
                         <dependency>
                             <groupId>org.mockito</groupId>
-                            <artifactId>mockito-core</artifactId>
+                            <artifactId>mockito-inline</artifactId>
                             <version>3.12.4</version>
                         </dependency>
                     </dependencies>
@@ -1226,7 +1226,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 <dependencies>
                     <dependency>
                         <groupId>org.mockito</groupId>
-                        <artifactId>mockito-core</artifactId>
+                        <artifactId>mockito-inline</artifactId>
                     </dependency>
                 </dependencies>
               </project>

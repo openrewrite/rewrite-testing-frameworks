@@ -48,17 +48,20 @@ recipeList:
   - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
   # powermock-api-mockito (Mockito 1.x bridge) and powermock-api-mockito2 (Mockito 2.x bridge)
   # are mutually exclusive; a project will only ever have one of them.
+  # Use mockito-inline instead of mockito-core because PowerMock features
+  # (static mocking, constructor mocking, final class mocking) require the
+  # inline mock maker, which is only bundled in mockito-inline for Mockito 3.x/4.x.
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.powermock
       oldArtifactId: powermock-api-mockito
       newGroupId: org.mockito
-      newArtifactId: mockito-core
+      newArtifactId: mockito-inline
       newVersion: 3.x
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.powermock
       oldArtifactId: powermock-api-mockito2
       newGroupId: org.mockito
-      newArtifactId: mockito-core
+      newArtifactId: mockito-inline
       newVersion: 3.x
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
