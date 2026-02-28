@@ -33,7 +33,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddMockitoExtensionIfAnnotationsUsed())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
             .dependsOn("public class Service {}"))
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
@@ -42,7 +42,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void addForMock() {
+    void addForMockWithJUnit5() {
         rewriteRun(
           //language=java
           java(
@@ -76,7 +76,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void addForCaptor() {
+    void addForCaptorWithJUnit5() {
         rewriteRun(
           //language=java
           java(
@@ -110,7 +110,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void dontAddIfPresent() {
+    void doNotAddIfPresentWithJUnit5() {
         rewriteRun(
           //language=java
           java(
@@ -133,21 +133,33 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void dontAddIfJunit4() {
+    void addForMockWithJUnit4() {
         rewriteRun(
           //language=java
           java(
             """
               import org.junit.Test;
-              import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
 
-              class Test {
+              public class MyTest {
                   @Mock
                   Service service;
                   @Test
-                  void test() {}
+                  public void test() {}
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.class)
+              public class MyTest {
+                  @Mock
+                  Service service;
+                  @Test
+                  public void test() {}
               }
               """
           )
@@ -155,7 +167,53 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void notInferWithExistingAnnotations() {
+    void doNotAddIfPresentWithJUnit4() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.class)
+              public class MyTest {
+                  @Mock
+                  Service service;
+                  @Test
+                  public void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotAddIfOtherRunnerPresentWithJUnit4() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.JUnit4;
+              import org.mockito.Mock;
+
+              @RunWith(JUnit4.class)
+              public class MyTest {
+                  @Mock
+                  Service service;
+                  @Test
+                  public void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void addWithExistingAnnotationsWithJUnit5() {
         rewriteRun(
           //language=java
           java(
@@ -193,7 +251,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void dontAddIfPresentInKotlin() {
+    void doNotAddIfPresentInKotlinWithJUnit5() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")),
@@ -219,9 +277,9 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
-    void addForMockKotlin() {
+    void addForMockKotlinWithJUnit5() {
         rewriteRun(
-          //language=java
+          //language=kotlin
           kotlin(
             """
               import org.junit.jupiter.api.Test
