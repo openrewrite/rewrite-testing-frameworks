@@ -1089,7 +1089,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
-    @Issue("https://github.com/moderneinc/customer-requests/issues/1933")
     @Test
     void removesAllPowerMockDependencies() {
         rewriteRun(
@@ -1125,11 +1124,46 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   testImplementation("org.mockito:mockito-core:3.12.4")
               }
               """
+          ),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-api-mockito</artifactId>
+                        <version>1.6.5</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-module-junit4</artifactId>
+                        <version>1.6.5</version>
+                    </dependency>
+                </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.4</version>
+                    </dependency>
+                </dependencies>
+              </project>
+              """
           )
         );
     }
 
-    @Issue("https://github.com/moderneinc/customer-requests/issues/1933")
     @Test
     void removesManagedPowerMockDependencies() {
         rewriteRun(
