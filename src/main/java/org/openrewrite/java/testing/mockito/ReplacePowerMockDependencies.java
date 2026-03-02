@@ -22,8 +22,12 @@ import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.dependencies.ChangeDependency;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMockDependencies.Accumulator> {
 
@@ -37,7 +41,7 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
             "which is bundled in `mockito-inline` for Mockito 3.x/4.x.";
 
     static class Accumulator {
-        boolean needsInlineMocking;
+        Map<JavaProject, Boolean> needsInlineMocking = new HashMap<>();
     }
 
     @Override
@@ -55,18 +59,22 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
             @Override
             public Tree preVisit(Tree tree, ExecutionContext ctx) {
                 stopAfterPreVisit();
-                if (tree instanceof JavaSourceFile && !acc.needsInlineMocking) {
+                if (tree instanceof JavaSourceFile) {
+                    JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
+                    if (Boolean.TRUE.equals(acc.needsInlineMocking.get(project))) {
+                        return tree;
+                    }
                     JavaSourceFile sourceFile = (JavaSourceFile) tree;
                     for (JavaType.Method type : sourceFile.getTypesInUse().getUsedMethods()) {
                         if (mockStaticMatcher.matches(type) || whenNewMatcher.matches(type)) {
-                            acc.needsInlineMocking = true;
+                            acc.needsInlineMocking.put(project, true);
                             return tree;
                         }
                     }
                     for (JavaType type : sourceFile.getTypesInUse().getTypesInUse()) {
                         if (type instanceof JavaType.FullyQualified &&
                                 PREPARE_FOR_TEST.equals(((JavaType.FullyQualified) type).getFullyQualifiedName())) {
-                            acc.needsInlineMocking = true;
+                            acc.needsInlineMocking.put(project, true);
                             return tree;
                         }
                     }
@@ -78,11 +86,13 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        String targetArtifact = acc.needsInlineMocking ? "mockito-inline" : "mockito-core";
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public Tree preVisit(Tree tree, ExecutionContext ctx) {
                 stopAfterPreVisit();
+                JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
+                String targetArtifact = Boolean.TRUE.equals(acc.needsInlineMocking.get(project))
+                        ? "mockito-inline" : "mockito-core";
                 doAfterVisit(new ChangeDependency(
                         "org.powermock", "powermock-api-mockito",
                         "org.mockito", targetArtifact, "3.x",
