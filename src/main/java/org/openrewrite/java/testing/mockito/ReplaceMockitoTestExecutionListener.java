@@ -170,36 +170,21 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
 
             private TestFramework detectFramework(J.ClassDeclaration cd) {
                 // Check extends for TestNG base classes
-                if (cd.getExtends() != null && cd.getExtends().getType() instanceof JavaType.Class) {
-                    if (isTestNGType((JavaType.Class) cd.getExtends().getType())) {
-                        return TestFramework.TESTNG;
-                    }
+                if (cd.getExtends() != null && cd.getExtends().getType() instanceof JavaType.Class &&
+                        isTestNGType((JavaType.Class) cd.getExtends().getType())) {
+                    return TestFramework.TESTNG;
                 }
 
                 // Check compilation unit imports
                 J.CompilationUnit cu = getCursor().firstEnclosingOrThrow(J.CompilationUnit.class);
-                boolean hasTestNG = false;
-                boolean hasJupiter = false;
-                boolean hasJUnit4 = false;
                 for (J.Import imp : cu.getImports()) {
                     String pkg = imp.getPackageName();
-                    if (pkg.startsWith("org.testng")) {
-                        hasTestNG = true;
-                    } else if (pkg.startsWith("org.junit.jupiter")) {
-                        hasJupiter = true;
-                    } else if (pkg.startsWith("org.junit") && !pkg.startsWith("org.junit.jupiter")) {
-                        hasJUnit4 = true;
+                    if (pkg.startsWith("org.junit") && !pkg.startsWith("org.junit.jupiter")) {
+                        return TestFramework.JUNIT4;
                     }
-                }
-
-                if (hasTestNG) {
-                    return TestFramework.TESTNG;
-                }
-                if (hasJupiter) {
-                    return TestFramework.JUNIT5;
-                }
-                if (hasJUnit4) {
-                    return TestFramework.JUNIT4;
+                    if (pkg.startsWith("org.testng")) {
+                        return TestFramework.TESTNG;
+                    }
                 }
 
                 // Default to JUnit 5
