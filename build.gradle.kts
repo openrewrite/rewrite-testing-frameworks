@@ -53,6 +53,7 @@ recipeDependencies {
     testParserClasspath("org.easymock:easymock:5.6.0")
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
+    testParserClasspath("org.springframework.boot:spring-boot-test:3.2.+")
 
     testParserClasspath("org.testcontainers:nginx:1.+")
 
