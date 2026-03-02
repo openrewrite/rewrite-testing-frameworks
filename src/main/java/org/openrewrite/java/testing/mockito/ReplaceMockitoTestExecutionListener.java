@@ -32,6 +32,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -47,6 +48,10 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             "org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener";
     private static final MethodMatcher OPEN_MOCKS_MATCHER =
             new MethodMatcher("org.mockito.MockitoAnnotations openMocks(..)");
+    private static final String ABSTRACT_TESTNG_SPRING =
+            "org.springframework.test.context.testng.AbstractTestNGSpringContextTests";
+    private static final AnnotationMatcher AFTER_METHOD_MATCHER =
+            new AnnotationMatcher("@org.testng.annotations.AfterMethod");
 
     @Getter
     final String displayName = "Replace `MockitoTestExecutionListener` with the equivalent Mockito test initialization";
@@ -81,9 +86,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 if (framework == TestFramework.JUNIT4 && context.runWithFound) {
                     return cd;
                 }
-                if (framework == TestFramework.TESTNG && hasOpenMocksCall(cd)) {
-                    return cd;
-                }
+                boolean openMocksAlreadyPresent = framework == TestFramework.TESTNG && hasOpenMocksCall(cd);
 
                 // Add replacement based on framework
                 switch (framework) {
@@ -106,46 +109,61 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                         maybeAddImport("org.mockito.junit.MockitoJUnitRunner");
                         break;
                     case TESTNG:
-                        // Add field at beginning of class body
-                        cd = JavaTemplate.builder("private AutoCloseable mockitoCloseable;")
-                                .build()
-                                .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
+                        if (!openMocksAlreadyPresent) {
+                            // Add field at beginning of class body
+                            cd = JavaTemplate.builder("private AutoCloseable mockitoCloseable;")
+                                    .build()
+                                    .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
 
-                        // Find first method for initMocks placement
-                        J.MethodDeclaration firstMethod = cd.getBody().getStatements().stream()
-                                .filter(J.MethodDeclaration.class::isInstance)
-                                .map(J.MethodDeclaration.class::cast)
-                                .findFirst()
-                                .orElse(null);
+                            // Find first method for initMocks placement
+                            J.MethodDeclaration firstMethod = cd.getBody().getStatements().stream()
+                                    .filter(J.MethodDeclaration.class::isInstance)
+                                    .map(J.MethodDeclaration.class::cast)
+                                    .findFirst()
+                                    .orElse(null);
 
-                        // Add initMocks before first method (or at end if no methods)
-                        cd = JavaTemplate.builder(
-                                        "@BeforeMethod\n" +
-                                        "public void initMocks() {\n" +
-                                        "    mockitoCloseable = MockitoAnnotations.openMocks(this);\n" +
-                                        "}")
-                                .contextSensitive()
-                                .imports("org.testng.annotations.BeforeMethod", "org.mockito.MockitoAnnotations")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7", "mockito-core-3"))
-                                .build()
-                                .apply(updateCursor(cd),
-                                        firstMethod != null ? firstMethod.getCoordinates().before() : cd.getBody().getCoordinates().lastStatement());
+                            // Add initMocks before first method (or at end if no methods)
+                            cd = JavaTemplate.builder(
+                                            "@BeforeMethod\n" +
+                                            "public void initMocks() {\n" +
+                                            "    mockitoCloseable = MockitoAnnotations.openMocks(this);\n" +
+                                            "}")
+                                    .contextSensitive()
+                                    .imports("org.testng.annotations.BeforeMethod", "org.mockito.MockitoAnnotations")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7", "mockito-core-3"))
+                                    .build()
+                                    .apply(updateCursor(cd),
+                                            firstMethod != null ? firstMethod.getCoordinates().before() : cd.getBody().getCoordinates().lastStatement());
 
-                        // Add closeMocks at end of class
-                        cd = JavaTemplate.builder(
-                                        "@AfterMethod\n" +
-                                        "public void closeMocks() throws Exception {\n" +
-                                        "    mockitoCloseable.close();\n" +
-                                        "}")
-                                .contextSensitive()
-                                .imports("org.testng.annotations.AfterMethod")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7"))
-                                .build()
-                                .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
+                            // Add closeMocks at end of class
+                            cd = JavaTemplate.builder(
+                                            "@AfterMethod\n" +
+                                            "public void closeMocks() throws Exception {\n" +
+                                            "    mockitoCloseable.close();\n" +
+                                            "}")
+                                    .contextSensitive()
+                                    .imports("org.testng.annotations.AfterMethod")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7"))
+                                    .build()
+                                    .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
 
-                        maybeAddImport("org.testng.annotations.BeforeMethod");
-                        maybeAddImport("org.testng.annotations.AfterMethod");
-                        maybeAddImport("org.mockito.MockitoAnnotations");
+                            maybeAddImport("org.testng.annotations.BeforeMethod");
+                            maybeAddImport("org.testng.annotations.AfterMethod");
+                            maybeAddImport("org.mockito.MockitoAnnotations");
+                        } else if (!hasAfterMethodAnnotation(cd)) {
+                            // openMocks exists but no @AfterMethod to close it — add closeMocks
+                            cd = JavaTemplate.builder(
+                                            "@AfterMethod\n" +
+                                            "public void closeMocks() throws Exception {\n" +
+                                            "    mockitoCloseable.close();\n" +
+                                            "}")
+                                    .contextSensitive()
+                                    .imports("org.testng.annotations.AfterMethod")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7"))
+                                    .build()
+                                    .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
+                            maybeAddImport("org.testng.annotations.AfterMethod");
+                        }
                         break;
                 }
 
@@ -170,8 +188,8 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
 
             private TestFramework detectFramework(J.ClassDeclaration cd) {
                 // Check extends for TestNG base classes
-                if (cd.getExtends() != null && cd.getExtends().getType() instanceof JavaType.Class &&
-                        isTestNGType((JavaType.Class) cd.getExtends().getType())) {
+                if (cd.getExtends() != null &&
+                        TypeUtils.isAssignableTo(ABSTRACT_TESTNG_SPRING, cd.getExtends().getType())) {
                     return TestFramework.TESTNG;
                 }
 
@@ -203,16 +221,11 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 }.reduce(cd, new AtomicBoolean(false)).get();
             }
 
-            private boolean isTestNGType(JavaType.Class type) {
-                String fqn = type.getFullyQualifiedName();
-                if (fqn.startsWith("org.testng") || fqn.startsWith("org.springframework.test.context.testng")) {
-                    return true;
-                }
-                JavaType.FullyQualified supertype = type.getSupertype();
-                if (supertype instanceof JavaType.Class) {
-                    return isTestNGType((JavaType.Class) supertype);
-                }
-                return false;
+            private boolean hasAfterMethodAnnotation(J.ClassDeclaration cd) {
+                return cd.getBody().getStatements().stream()
+                        .filter(J.MethodDeclaration.class::isInstance)
+                        .map(J.MethodDeclaration.class::cast)
+                        .anyMatch(m -> m.getAllAnnotations().stream().anyMatch(AFTER_METHOD_MATCHER::matches));
             }
         });
     }

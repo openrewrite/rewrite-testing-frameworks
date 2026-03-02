@@ -439,7 +439,7 @@ class ReplaceMockitoTestExecutionListenerTest implements RewriteTest {
     }
 
     @Test
-    void testngAlreadyHasOpenMocks() {
+    void testngOpenMocksWithoutClose() {
         rewriteRun(
           //language=java
           java(
@@ -452,11 +452,96 @@ class ReplaceMockitoTestExecutionListenerTest implements RewriteTest {
 
               @TestExecutionListeners(listeners = {MockitoTestExecutionListener.class})
               public class SampleTest {
+                  private AutoCloseable mockitoCloseable;
+
+                  @BeforeMethod
+                  public void setUp() {
+                      mockitoCloseable = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @Test
+                  public void test() {}
+              }
+              """,
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.Test;
+              import org.testng.annotations.BeforeMethod;
+              import org.mockito.MockitoAnnotations;
+
+              @TestExecutionListeners
+              public class SampleTest {
+                  private AutoCloseable mockitoCloseable;
+
+                  @BeforeMethod
+                  public void setUp() {
+                      mockitoCloseable = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @Test
+                  public void test() {}
+
+                  @AfterMethod
+                  public void closeMocks() throws Exception {
+                      mockitoCloseable.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void testngAlreadyHasOpenMocksAndClose() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
+              import org.testng.annotations.Test;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.AfterMethod;
+              import org.mockito.MockitoAnnotations;
+
+              @TestExecutionListeners(listeners = {MockitoTestExecutionListener.class})
+              public class SampleTest {
                   private AutoCloseable mocks;
 
                   @BeforeMethod
                   public void setUp() {
                       mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterMethod
+                  public void tearDown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test
+                  public void test() {}
+              }
+              """,
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.testng.annotations.Test;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.AfterMethod;
+              import org.mockito.MockitoAnnotations;
+
+              @TestExecutionListeners
+              public class SampleTest {
+                  private AutoCloseable mocks;
+
+                  @BeforeMethod
+                  public void setUp() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterMethod
+                  public void tearDown() throws Exception {
+                      mocks.close();
                   }
 
                   @Test
