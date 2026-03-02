@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2026 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -34,6 +35,7 @@ import org.openrewrite.java.tree.Space;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ReplaceMockitoTestExecutionListener extends Recipe {
 
@@ -43,6 +45,8 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             new AnnotationMatcher("@org.junit.runner.RunWith");
     private static final String MOCKITO_TEST_EXECUTION_LISTENER =
             "org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener";
+    private static final MethodMatcher OPEN_MOCKS_MATCHER =
+            new MethodMatcher("org.mockito.MockitoAnnotations openMocks(..)");
 
     @Getter
     final String displayName = "Replace `MockitoTestExecutionListener` with the equivalent Mockito test initialization";
@@ -77,6 +81,9 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 if (framework == TestFramework.JUNIT4 && context.runWithFound) {
                     return cd;
                 }
+                if (framework == TestFramework.TESTNG && hasOpenMocksCall(cd)) {
+                    return cd;
+                }
 
                 // Add replacement based on framework
                 switch (framework) {
@@ -99,20 +106,43 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                         maybeAddImport("org.mockito.junit.MockitoJUnitRunner");
                         break;
                     case TESTNG:
+                        // Add field at beginning of class body
+                        cd = JavaTemplate.builder("private AutoCloseable mockitoCloseable;")
+                                .build()
+                                .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
+
+                        // Find first method for initMocks placement
+                        J.MethodDeclaration firstMethod = cd.getBody().getStatements().stream()
+                                .filter(J.MethodDeclaration.class::isInstance)
+                                .map(J.MethodDeclaration.class::cast)
+                                .findFirst()
+                                .orElse(null);
+
+                        // Add initMocks before first method (or at end if no methods)
                         cd = JavaTemplate.builder(
-                                        "private AutoCloseable mockitoCloseable;\n\n" +
                                         "@BeforeMethod\n" +
                                         "public void initMocks() {\n" +
                                         "    mockitoCloseable = MockitoAnnotations.openMocks(this);\n" +
-                                        "}\n\n" +
+                                        "}")
+                                .contextSensitive()
+                                .imports("org.testng.annotations.BeforeMethod", "org.mockito.MockitoAnnotations")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7", "mockito-core-3"))
+                                .build()
+                                .apply(updateCursor(cd),
+                                        firstMethod != null ? firstMethod.getCoordinates().before() : cd.getBody().getCoordinates().lastStatement());
+
+                        // Add closeMocks at end of class
+                        cd = JavaTemplate.builder(
                                         "@AfterMethod\n" +
                                         "public void closeMocks() throws Exception {\n" +
                                         "    mockitoCloseable.close();\n" +
                                         "}")
-                                .imports("org.testng.annotations.BeforeMethod", "org.testng.annotations.AfterMethod", "org.mockito.MockitoAnnotations")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7", "mockito-core-3"))
+                                .contextSensitive()
+                                .imports("org.testng.annotations.AfterMethod")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "testng-7"))
                                 .build()
                                 .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
+
                         maybeAddImport("org.testng.annotations.BeforeMethod");
                         maybeAddImport("org.testng.annotations.AfterMethod");
                         maybeAddImport("org.mockito.MockitoAnnotations");
@@ -174,6 +204,18 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
 
                 // Default to JUnit 5
                 return TestFramework.JUNIT5;
+            }
+
+            private boolean hasOpenMocksCall(J.ClassDeclaration cd) {
+                return new JavaIsoVisitor<AtomicBoolean>() {
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                        if (OPEN_MOCKS_MATCHER.matches(method)) {
+                            found.set(true);
+                        }
+                        return super.visitMethodInvocation(method, found);
+                    }
+                }.reduce(cd, new AtomicBoolean(false)).get();
             }
 
             private boolean isTestNGType(JavaType.Class type) {

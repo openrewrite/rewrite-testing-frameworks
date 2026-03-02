@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 the original author or authors.
+ * Copyright 2026 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
  * you may not use this file except in compliance with the License.
@@ -380,14 +380,14 @@ class ReplaceMockitoTestExecutionListenerTest implements RewriteTest {
 
               @TestExecutionListeners
               public class SampleTest {
-                  @Test
-                  public void test() {}
                   private AutoCloseable mockitoCloseable;
 
                   @BeforeMethod
                   public void initMocks() {
                       mockitoCloseable = MockitoAnnotations.openMocks(this);
                   }
+                  @Test
+                  public void test() {}
 
                   @AfterMethod
                   public void closeMocks() throws Exception {
@@ -432,6 +432,35 @@ class ReplaceMockitoTestExecutionListenerTest implements RewriteTest {
                   public void closeMocks() throws Exception {
                       mockitoCloseable.close();
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void testngAlreadyHasOpenMocks() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
+              import org.testng.annotations.Test;
+              import org.testng.annotations.BeforeMethod;
+              import org.mockito.MockitoAnnotations;
+
+              @TestExecutionListeners(listeners = {MockitoTestExecutionListener.class})
+              public class SampleTest {
+                  private AutoCloseable mocks;
+
+                  @BeforeMethod
+                  public void setUp() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @Test
+                  public void test() {}
               }
               """
           )
