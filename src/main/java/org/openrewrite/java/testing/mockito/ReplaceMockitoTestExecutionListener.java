@@ -15,7 +15,8 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import lombok.Getter;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -28,6 +29,8 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.trait.Annotated;
+import org.openrewrite.java.trait.MethodAccess;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -36,8 +39,9 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+@Value
+@EqualsAndHashCode(callSuper = false)
 public class ReplaceMockitoTestExecutionListener extends Recipe {
 
     private static final AnnotationMatcher EXECUTION_LISTENER_ANNOTATION_MATCHER =
@@ -53,11 +57,9 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
     private static final AnnotationMatcher AFTER_METHOD_MATCHER =
             new AnnotationMatcher("@org.testng.annotations.AfterMethod");
 
-    @Getter
-    final String displayName = "Replace `MockitoTestExecutionListener` with the equivalent Mockito test initialization";
+    String displayName = "Replace `MockitoTestExecutionListener` with the equivalent Mockito test initialization";
 
-    @Getter
-    final String description = "Replace `@TestExecutionListeners(MockitoTestExecutionListener.class)` with the appropriate " +
+    String description = "Replace `@TestExecutionListeners(MockitoTestExecutionListener.class)` with the appropriate " +
             "Mockito initialization for the test framework in use: `@ExtendWith(MockitoExtension.class)` for JUnit 5, " +
             "`@RunWith(MockitoJUnitRunner.class)` for JUnit 4, or `MockitoAnnotations.openMocks(this)` for TestNG.";
 
@@ -86,8 +88,6 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 if (framework == TestFramework.JUNIT4 && context.runWithFound) {
                     return cd;
                 }
-                boolean openMocksAlreadyPresent = framework == TestFramework.TESTNG && hasOpenMocksCall(cd);
-
                 // Add replacement based on framework
                 switch (framework) {
                     case JUNIT5:
@@ -109,7 +109,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                         maybeAddImport("org.mockito.junit.MockitoJUnitRunner");
                         break;
                     case TESTNG:
-                        if (!openMocksAlreadyPresent) {
+                        if (!new MethodAccess.Matcher(OPEN_MOCKS_MATCHER).lower(getCursor()).findFirst().isPresent()) {
                             // Add field at beginning of class body
                             cd = JavaTemplate.builder("private AutoCloseable mockitoCloseable;")
                                     .build()
@@ -150,7 +150,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                             maybeAddImport("org.testng.annotations.BeforeMethod");
                             maybeAddImport("org.testng.annotations.AfterMethod");
                             maybeAddImport("org.mockito.MockitoAnnotations");
-                        } else if (!hasAfterMethodAnnotation(cd)) {
+                        } else if (!new Annotated.Matcher(AFTER_METHOD_MATCHER).lower(getCursor()).findFirst().isPresent()) {
                             // openMocks exists but no @AfterMethod to close it — add closeMocks
                             cd = JavaTemplate.builder(
                                             "@AfterMethod\n" +
@@ -207,25 +207,6 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
 
                 // Default to JUnit 5
                 return TestFramework.JUNIT5;
-            }
-
-            private boolean hasOpenMocksCall(J.ClassDeclaration cd) {
-                return new JavaIsoVisitor<AtomicBoolean>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
-                        if (OPEN_MOCKS_MATCHER.matches(method)) {
-                            found.set(true);
-                        }
-                        return super.visitMethodInvocation(method, found);
-                    }
-                }.reduce(cd, new AtomicBoolean(false)).get();
-            }
-
-            private boolean hasAfterMethodAnnotation(J.ClassDeclaration cd) {
-                return cd.getBody().getStatements().stream()
-                        .filter(J.MethodDeclaration.class::isInstance)
-                        .map(J.MethodDeclaration.class::cast)
-                        .anyMatch(m -> m.getAllAnnotations().stream().anyMatch(AFTER_METHOD_MATCHER::matches));
             }
         });
     }
