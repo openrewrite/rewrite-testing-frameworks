@@ -28,6 +28,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.trait.MethodAccess;
@@ -79,7 +80,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                     return cd;
                 }
 
-                TestFramework framework = detectFramework(cd);
+                TestFramework framework = detectFramework(cd, ctx);
 
                 // Skip if replacement already exists or can't be added
                 if (framework == TestFramework.JUNIT5 && context.extendWithMockitoFound) {
@@ -186,23 +187,20 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 }));
             }
 
-            private TestFramework detectFramework(J.ClassDeclaration cd) {
+            private TestFramework detectFramework(J.ClassDeclaration cd, ExecutionContext ctx) {
                 // Check extends for TestNG base classes
                 if (cd.getExtends() != null &&
                         TypeUtils.isAssignableTo(ABSTRACT_TESTNG_SPRING, cd.getExtends().getType())) {
                     return TestFramework.TESTNG;
                 }
 
-                // Check compilation unit imports
                 J.CompilationUnit cu = getCursor().firstEnclosingOrThrow(J.CompilationUnit.class);
-                for (J.Import imp : cu.getImports()) {
-                    String pkg = imp.getPackageName();
-                    if (pkg.startsWith("org.junit") && !pkg.startsWith("org.junit.jupiter")) {
-                        return TestFramework.JUNIT4;
-                    }
-                    if (pkg.startsWith("org.testng")) {
-                        return TestFramework.TESTNG;
-                    }
+                if (new FindImports("org.testng..*", null).getVisitor().visit(cu, ctx) != cu) {
+                    return TestFramework.TESTNG;
+                }
+                if (new FindImports("org.junit.Test", null).getVisitor().visit(cu, ctx) != cu ||
+                        new FindImports("org.junit.runner..*", null).getVisitor().visit(cu, ctx) != cu) {
+                    return TestFramework.JUNIT4;
                 }
 
                 // Default to JUnit 5
