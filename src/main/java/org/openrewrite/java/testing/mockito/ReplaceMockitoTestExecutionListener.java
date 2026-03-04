@@ -19,6 +19,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -57,6 +58,15 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             "org.springframework.test.context.testng.AbstractTestNGSpringContextTests";
     private static final AnnotationMatcher AFTER_METHOD_MATCHER =
             new AnnotationMatcher("@org.testng.annotations.AfterMethod");
+
+    @Option(displayName = "Target framework",
+            description = "The test framework to use when imports alone cannot determine the framework. " +
+                    "Valid values: `junit4`, `junit5`, `testng`. Typically set by wrapper recipes " +
+                    "that check project dependencies.",
+            example = "junit5",
+            required = false)
+    @Nullable
+    String targetFramework;
 
     String displayName = "Replace `MockitoTestExecutionListener` with the equivalent Mockito test initialization";
 
@@ -188,19 +198,35 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             }
 
             private TestFramework detectFramework(J.ClassDeclaration cd, ExecutionContext ctx) {
-                // Check extends for TestNG base classes
+                // Structural evidence always wins
                 if (cd.getExtends() != null &&
                         TypeUtils.isAssignableTo(ABSTRACT_TESTNG_SPRING, cd.getExtends().getType())) {
                     return TestFramework.TESTNG;
                 }
 
+                // Import-based detection
                 J.CompilationUnit cu = getCursor().firstEnclosingOrThrow(J.CompilationUnit.class);
+                if (new FindImports("org.junit.jupiter..*", null).getVisitor().visit(cu, ctx) != cu) {
+                    return TestFramework.JUNIT5;
+                }
                 if (new FindImports("org.junit.Test", null).getVisitor().visit(cu, ctx) != cu ||
                         new FindImports("org.junit.runner..*", null).getVisitor().visit(cu, ctx) != cu) {
                     return TestFramework.JUNIT4;
                 }
                 if (new FindImports("org.testng..*", null).getVisitor().visit(cu, ctx) != cu) {
                     return TestFramework.TESTNG;
+                }
+
+                // Dependency-based fallback from YAML wrapper recipes
+                if (targetFramework != null) {
+                    switch (targetFramework) {
+                        case "junit5":
+                            return TestFramework.JUNIT5;
+                        case "junit4":
+                            return TestFramework.JUNIT4;
+                        case "testng":
+                            return TestFramework.TESTNG;
+                    }
                 }
 
                 // Default to JUnit 5

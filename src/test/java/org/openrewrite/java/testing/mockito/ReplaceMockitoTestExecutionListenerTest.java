@@ -35,7 +35,7 @@ class ReplaceMockitoTestExecutionListenerTest implements RewriteTest {
                 "junit-4.13",
                 "mockito-core-3",
                 "testng-7"))
-          .recipe(new ReplaceMockitoTestExecutionListener());
+          .recipe(new ReplaceMockitoTestExecutionListener(null));
     }
 
     // --- JUnit 5 tests ---
@@ -546,6 +546,87 @@ class ReplaceMockitoTestExecutionListenerTest implements RewriteTest {
 
                   @Test
                   public void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    // --- targetFramework option tests ---
+
+    @Test
+    void targetFrameworkFallbackWhenNoImports() {
+        rewriteRun(
+          spec -> spec.recipe(new ReplaceMockitoTestExecutionListener("testng")),
+          //language=java
+          java(
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
+              import org.mockito.Mock;
+
+              @TestExecutionListeners(listeners = {MockitoTestExecutionListener.class})
+              public abstract class BaseTest {
+                  @Mock
+                  Object mockService;
+              }
+              """,
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeMethod;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.Mock;
+
+              @TestExecutionListeners
+              public abstract class BaseTest {
+                  private AutoCloseable mockitoCloseable;
+                  @Mock
+                  Object mockService;
+
+                  @BeforeMethod
+                  public void initMocks() {
+                      mockitoCloseable = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterMethod
+                  public void closeMocks() throws Exception {
+                      mockitoCloseable.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importDetectionOverridesTargetFramework() {
+        rewriteRun(
+          spec -> spec.recipe(new ReplaceMockitoTestExecutionListener("testng")),
+          //language=java
+          java(
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
+              import org.junit.jupiter.api.Test;
+
+              @TestExecutionListeners(listeners = {MockitoTestExecutionListener.class})
+              public class SampleTest {
+                  @Test
+                  void test() {}
+              }
+              """,
+            """
+              import org.springframework.test.context.TestExecutionListeners;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.junit.jupiter.api.Test;
+
+              @ExtendWith(MockitoExtension.class)
+              @TestExecutionListeners
+              public class SampleTest {
+                  @Test
+                  void test() {}
               }
               """
           )

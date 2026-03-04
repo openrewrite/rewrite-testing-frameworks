@@ -180,7 +180,9 @@ recipeList:
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
-  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener
+  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit5
+  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit4
+  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForTestNG
   - org.openrewrite.java.testing.mockito.RemoveInitMocksIfRunnersSpecified
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
   - org.openrewrite.java.dependencies.ChangeDependency:
@@ -199,3 +201,45 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito anyObject()
       newMethodName: any
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit5
+displayName: Replace `MockitoTestExecutionListener` (JUnit 5 projects)
+description: >-
+  Replace `MockitoTestExecutionListener` in projects that have JUnit Jupiter as a dependency.
+  Uses `@ExtendWith(MockitoExtension.class)` as the replacement.
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.junit.jupiter
+      artifactIdPattern: junit-jupiter*
+recipeList:
+  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
+      targetFramework: junit5
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit4
+displayName: Replace `MockitoTestExecutionListener` (JUnit 4 projects)
+description: >-
+  Replace `MockitoTestExecutionListener` in projects that have JUnit 4 as a dependency.
+  Uses `@RunWith(MockitoJUnitRunner.class)` as the replacement.
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: junit
+      artifactIdPattern: junit
+recipeList:
+  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
+      targetFramework: junit4
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForTestNG
+displayName: Replace `MockitoTestExecutionListener` (TestNG projects)
+description: >-
+  Replace `MockitoTestExecutionListener` in projects that have TestNG as a dependency.
+  Uses `MockitoAnnotations.openMocks(this)` with `@BeforeMethod`/`@AfterMethod` as the replacement.
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.testng
+      artifactIdPattern: testng*
+recipeList:
+  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
+      targetFramework: testng
