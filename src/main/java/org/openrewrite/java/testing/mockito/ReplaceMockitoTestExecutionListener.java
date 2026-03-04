@@ -209,8 +209,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 if (new FindImports("org.junit.jupiter..*", null).getVisitor().visit(cu, ctx) != cu) {
                     return TestFramework.JUNIT5;
                 }
-                if (new FindImports("org.junit.Test", null).getVisitor().visit(cu, ctx) != cu ||
-                        new FindImports("org.junit.runner..*", null).getVisitor().visit(cu, ctx) != cu) {
+                if (new FindImports("org.junit..*", null).getVisitor().visit(cu, ctx) != cu) {
                     return TestFramework.JUNIT4;
                 }
                 if (new FindImports("org.testng..*", null).getVisitor().visit(cu, ctx) != cu) {
