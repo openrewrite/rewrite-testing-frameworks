@@ -119,9 +119,28 @@ public class MigrateJUnitTestCase extends Recipe {
         }
 
         @Override
-        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+        public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             updateCursor(md);
+
+            // After super.visitMethodDeclaration (which triggers visitMethodInvocation
+            // to remove super(testName)), check if this is now an empty constructor
+            if (md.isConstructor() &&
+                (md.getBody() == null || md.getBody().getStatements().isEmpty())) {
+                return null;
+            }
+
+            // Remove suite() methods that return junit.framework.Test or TestSuite
+            if ("suite".equals(md.getSimpleName()) &&
+                md.hasModifier(J.Modifier.Type.Static) &&
+                md.getMethodType() != null &&
+                (TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.Test") ||
+                 TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.TestSuite"))) {
+                maybeRemoveImport("junit.framework.Test");
+                maybeRemoveImport("junit.framework.TestSuite");
+                return null;
+            }
+
             if (md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT_TEST_ANNOTATION_MATCHER::matches)) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@Test", "org.junit.jupiter.api.Test", ctx);
             } else if ("setUp".equals(md.getSimpleName()) && md.getLeadingAnnotations().stream().noneMatch(JUNIT_BEFORE_ANNOTATION_MATCHER::matches)) {
