@@ -195,12 +195,12 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 }
 
                 J.CompilationUnit cu = getCursor().firstEnclosingOrThrow(J.CompilationUnit.class);
-                if (new FindImports("org.testng..*", null).getVisitor().visit(cu, ctx) != cu) {
-                    return TestFramework.TESTNG;
-                }
                 if (new FindImports("org.junit.Test", null).getVisitor().visit(cu, ctx) != cu ||
                         new FindImports("org.junit.runner..*", null).getVisitor().visit(cu, ctx) != cu) {
                     return TestFramework.JUNIT4;
+                }
+                if (new FindImports("org.testng..*", null).getVisitor().visit(cu, ctx) != cu) {
+                    return TestFramework.TESTNG;
                 }
 
                 // Default to JUnit 5
