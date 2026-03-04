@@ -354,7 +354,72 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               """,
             """
               public class AppTest {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void constructorWithAdditionalStatementsIsKept() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class AppTest extends TestCase {
+                  private final String name;
                   public AppTest(String testName) {
+                      super(testName);
+                      this.name = testName;
+                  }
+              }
+              """,
+            """
+              public class AppTest {
+                  private final String name;
+                  public AppTest(String testName) {
+                      this.name = testName;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void suiteMethodIsRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              public class AppTest extends TestCase {
+                  public AppTest(String testName) {
+                      super(testName);
+                  }
+                  public static Test suite() {
+                      return new TestSuite(AppTest.class);
+                  }
+                  public void testApp() {
+                      assertTrue(true);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              public class AppTest {
+
+                  @Test
+                  public void testApp() {
+                      assertTrue(true);
                   }
               }
               """
