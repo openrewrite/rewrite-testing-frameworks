@@ -180,7 +180,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
-  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit5
+  - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJupiter
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit4
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForTestNG
   - org.openrewrite.java.testing.mockito.RemoveInitMocksIfRunnersSpecified
@@ -203,7 +203,7 @@ recipeList:
       newMethodName: any
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit5
+name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJupiter
 displayName: Replace `MockitoTestExecutionListener` (JUnit Jupiter projects)
 description: >-
   Replace `MockitoTestExecutionListener` in projects that have JUnit Jupiter as a dependency.
