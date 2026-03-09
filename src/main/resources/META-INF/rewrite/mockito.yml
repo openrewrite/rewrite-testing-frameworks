@@ -204,7 +204,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit5
-displayName: Replace `MockitoTestExecutionListener` (JUnit 5 projects)
+displayName: Replace `MockitoTestExecutionListener` (JUnit Jupiter projects)
 description: >-
   Replace `MockitoTestExecutionListener` in projects that have JUnit Jupiter as a dependency.
   Uses `@ExtendWith(MockitoExtension.class)` as the replacement.
@@ -214,7 +214,7 @@ preconditions:
       artifactIdPattern: junit-jupiter*
 recipeList:
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
-      targetFramework: junit5
+      targetFramework: jupiter
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit4

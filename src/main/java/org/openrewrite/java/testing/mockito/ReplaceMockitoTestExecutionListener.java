@@ -61,9 +61,8 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
 
     @Option(displayName = "Target framework",
             description = "The test framework to use when imports alone cannot determine the framework. " +
-                    "Valid values: `junit4`, `junit5`, `testng`. Typically set by wrapper recipes " +
-                    "that check project dependencies.",
-            example = "junit5",
+                    "Typically set by wrapper recipes that check project dependencies.",
+            valid = {"jupiter", "junit4", "testng"},
             required = false)
     @Nullable
     String targetFramework;
@@ -75,7 +74,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             "`@RunWith(MockitoJUnitRunner.class)` for JUnit 4, or `MockitoAnnotations.openMocks(this)` for TestNG.";
 
     private enum TestFramework {
-        JUNIT5, JUNIT4, TESTNG
+        JUPITER, JUNIT4, TESTNG
     }
 
     @Override
@@ -93,7 +92,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 TestFramework framework = detectFramework(cd, ctx);
 
                 // Skip if replacement already exists or can't be added
-                if (framework == TestFramework.JUNIT5 && context.extendWithMockitoFound) {
+                if (framework == TestFramework.JUPITER && context.extendWithMockitoFound) {
                     return cd;
                 }
                 if (framework == TestFramework.JUNIT4 && context.runWithFound) {
@@ -101,7 +100,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 }
                 // Add replacement based on framework
                 switch (framework) {
-                    case JUNIT5:
+                    case JUPITER:
                         cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
@@ -207,7 +206,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 // Import-based detection
                 J.CompilationUnit cu = getCursor().firstEnclosingOrThrow(J.CompilationUnit.class);
                 if (new FindImports("org.junit.jupiter..*", null).getVisitor().visit(cu, ctx) != cu) {
-                    return TestFramework.JUNIT5;
+                    return TestFramework.JUPITER;
                 }
                 if (new FindImports("org.junit..*", null).getVisitor().visit(cu, ctx) != cu) {
                     return TestFramework.JUNIT4;
@@ -220,7 +219,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 if (targetFramework != null) {
                     switch (targetFramework) {
                         case "junit5":
-                            return TestFramework.JUNIT5;
+                            return TestFramework.JUPITER;
                         case "junit4":
                             return TestFramework.JUNIT4;
                         case "testng":
@@ -229,7 +228,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 }
 
                 // Default to JUnit 5
-                return TestFramework.JUNIT5;
+                return TestFramework.JUPITER;
             }
         });
     }
