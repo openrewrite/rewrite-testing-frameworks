@@ -218,7 +218,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 // Dependency-based fallback from YAML wrapper recipes
                 if (targetFramework != null) {
                     switch (targetFramework) {
-                        case "junit5":
+                        case "jupiter":
                             return TestFramework.JUPITER;
                         case "junit4":
                             return TestFramework.JUNIT4;
