@@ -19,6 +19,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -28,6 +29,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.trait.MethodAccess;
@@ -57,6 +59,14 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
     private static final AnnotationMatcher AFTER_METHOD_MATCHER =
             new AnnotationMatcher("@org.testng.annotations.AfterMethod");
 
+    @Option(displayName = "Target framework",
+            description = "The test framework to use when imports alone cannot determine the framework. " +
+                    "Typically set by wrapper recipes that check project dependencies.",
+            valid = {"jupiter", "junit4", "testng"},
+            required = false)
+    @Nullable
+    String targetFramework;
+
     String displayName = "Replace `MockitoTestExecutionListener` with the equivalent Mockito test initialization";
 
     String description = "Replace `@TestExecutionListeners(MockitoTestExecutionListener.class)` with the appropriate " +
@@ -64,7 +74,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             "`@RunWith(MockitoJUnitRunner.class)` for JUnit 4, or `MockitoAnnotations.openMocks(this)` for TestNG.";
 
     private enum TestFramework {
-        JUNIT5, JUNIT4, TESTNG
+        JUPITER, JUNIT4, TESTNG
     }
 
     @Override
@@ -79,10 +89,10 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                     return cd;
                 }
 
-                TestFramework framework = detectFramework(cd);
+                TestFramework framework = detectFramework(cd, ctx);
 
                 // Skip if replacement already exists or can't be added
-                if (framework == TestFramework.JUNIT5 && context.extendWithMockitoFound) {
+                if (framework == TestFramework.JUPITER && context.extendWithMockitoFound) {
                     return cd;
                 }
                 if (framework == TestFramework.JUNIT4 && context.runWithFound) {
@@ -90,7 +100,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 }
                 // Add replacement based on framework
                 switch (framework) {
-                    case JUNIT5:
+                    case JUPITER:
                         cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
@@ -186,27 +196,39 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                 }));
             }
 
-            private TestFramework detectFramework(J.ClassDeclaration cd) {
-                // Check extends for TestNG base classes
+            private TestFramework detectFramework(J.ClassDeclaration cd, ExecutionContext ctx) {
+                // Structural evidence always wins
                 if (cd.getExtends() != null &&
                         TypeUtils.isAssignableTo(ABSTRACT_TESTNG_SPRING, cd.getExtends().getType())) {
                     return TestFramework.TESTNG;
                 }
 
-                // Check compilation unit imports
+                // Import-based detection
                 J.CompilationUnit cu = getCursor().firstEnclosingOrThrow(J.CompilationUnit.class);
-                for (J.Import imp : cu.getImports()) {
-                    String pkg = imp.getPackageName();
-                    if (pkg.startsWith("org.junit") && !pkg.startsWith("org.junit.jupiter")) {
-                        return TestFramework.JUNIT4;
-                    }
-                    if (pkg.startsWith("org.testng")) {
-                        return TestFramework.TESTNG;
+                if (new FindImports("org.junit.jupiter..*", null).getVisitor().visit(cu, ctx) != cu) {
+                    return TestFramework.JUPITER;
+                }
+                if (new FindImports("org.junit..*", null).getVisitor().visit(cu, ctx) != cu) {
+                    return TestFramework.JUNIT4;
+                }
+                if (new FindImports("org.testng..*", null).getVisitor().visit(cu, ctx) != cu) {
+                    return TestFramework.TESTNG;
+                }
+
+                // Dependency-based fallback from YAML wrapper recipes
+                if (targetFramework != null) {
+                    switch (targetFramework) {
+                        case "junit5":
+                            return TestFramework.JUPITER;
+                        case "junit4":
+                            return TestFramework.JUNIT4;
+                        case "testng":
+                            return TestFramework.TESTNG;
                     }
                 }
 
                 // Default to JUnit 5
-                return TestFramework.JUNIT5;
+                return TestFramework.JUPITER;
             }
         });
     }
