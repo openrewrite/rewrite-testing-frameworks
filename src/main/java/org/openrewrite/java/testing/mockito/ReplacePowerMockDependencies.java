@@ -91,8 +91,8 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
             public Tree preVisit(Tree tree, ExecutionContext ctx) {
                 stopAfterPreVisit();
                 JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
-                String targetArtifact = Boolean.TRUE.equals(acc.needsInlineMocking.get(project))
-                        ? "mockito-inline" : "mockito-core";
+                String targetArtifact = Boolean.TRUE.equals(acc.needsInlineMocking.get(project)) ?
+                        "mockito-inline" : "mockito-core";
                 doAfterVisit(new ChangeDependency(
                         "org.powermock", "powermock-api-mockito",
                         "org.mockito", targetArtifact, "3.x",

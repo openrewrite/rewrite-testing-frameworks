@@ -3966,7 +3966,7 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
 examples:
-- description: '`AddMockitoExtensionIfAnnotationsUsedTest#addForMock`'
+- description: '`AddMockitoExtensionIfAnnotationsUsedTest#addForMockWithJUnit5`'
   sources:
   - before: |
       import org.junit.jupiter.api.Test;
@@ -4773,6 +4773,33 @@ examples:
           void tearDown() throws Exception {
               mocks.close();
           }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener
+examples:
+- description: '`ReplaceMockitoTestExecutionListenerTest#junit5SoleListenerMergeWithDefaults`'
+  sources:
+  - before: |
+      import org.springframework.test.context.TestExecutionListeners;
+      import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
+      import org.junit.jupiter.api.Test;
+
+      @TestExecutionListeners(mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS, listeners = {MockitoTestExecutionListener.class})
+      public class SampleTest {
+          @Test
+          void test() {}
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import org.junit.jupiter.api.Test;
+
+      @ExtendWith(MockitoExtension.class)
+      public class SampleTest {
+          @Test
+          void test() {}
       }
     language: java
 ---
