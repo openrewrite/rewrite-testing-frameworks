@@ -23,6 +23,7 @@ recipeDependencies {
     parserClasspath("org.jboss.byteman:byteman-bmunit5:4.0.25")
     parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
     parserClasspath("org.jmockit:jmockit:1.49")
+    parserClasspath("org.jspecify:jspecify:1.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:5.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:6.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-params:5.+")
