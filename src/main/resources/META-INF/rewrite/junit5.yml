@@ -298,6 +298,9 @@ recipeList:
       oldArtifactId: mockwebserver
       newArtifactId: mockwebserver3
       newVersion: 5.x
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: "mockwebserver3.MockWebServer shutdown()"
+      newMethodName: close
   - org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
 ---
 type: specs.openrewrite.org/v1beta/recipe
