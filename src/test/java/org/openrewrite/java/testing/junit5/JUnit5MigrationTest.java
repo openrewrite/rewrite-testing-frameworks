@@ -596,7 +596,7 @@ class JUnit5MigrationTest implements RewriteTest {
               .build()
               .activateRecipes("org.openrewrite.java.testing.junit5.UseMockitoExtension")),
           mavenProject("sample",
-            srcMainJava(
+            srcTestJava(
               //language=java
               java(
                 """
