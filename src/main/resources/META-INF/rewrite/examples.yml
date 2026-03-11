@@ -4780,6 +4780,8 @@ type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener
 examples:
 - description: '`ReplaceMockitoTestExecutionListenerTest#junit5SoleListenerMergeWithDefaults`'
+  parameters:
+  - 'null'
   sources:
   - before: |
       import org.springframework.test.context.TestExecutionListeners;
