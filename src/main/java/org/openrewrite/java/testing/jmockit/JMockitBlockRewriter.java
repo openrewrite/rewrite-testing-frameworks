@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.jmockit;
 
 import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
@@ -63,11 +64,8 @@ class JMockitBlockRewriter {
     private J.Block methodBody;
     private JavaCoordinates nextStatementCoordinates;
 
+    @Getter(AccessLevel.PACKAGE)
     private boolean rewriteFailed = false;
-
-    boolean isRewriteFailed() {
-        return rewriteFailed;
-    }
 
     // keep track of the additional statements being added to the method body, which impacts the statement indices
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written

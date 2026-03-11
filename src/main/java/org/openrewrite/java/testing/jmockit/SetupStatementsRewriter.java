@@ -15,6 +15,8 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
@@ -26,15 +28,11 @@ import java.util.Set;
 
 import static java.util.Collections.singletonList;
 
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 class SetupStatementsRewriter {
 
     private final JavaVisitor<ExecutionContext> visitor;
     private J.Block methodBody;
-
-    SetupStatementsRewriter(JavaVisitor<ExecutionContext> visitor, J.Block methodBody) {
-        this.visitor = visitor;
-        this.methodBody = methodBody;
-    }
 
     J.Block rewriteMethodBody() {
         List<Statement> statements = methodBody.getStatements();

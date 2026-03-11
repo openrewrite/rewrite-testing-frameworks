@@ -15,7 +15,9 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -51,6 +53,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                 new MigrationFromHamcrestVisitor());
     }
 
+    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
     enum Replacement {
         EQUALTO("equalTo", "assertEquals", "assertNotEquals", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
         EMPTYARRAY("emptyArray", "assertEquals", "assertNotEquals", "0, #{anyArray(java.lang.Object)}.length", "examinedObjOnly"),
@@ -104,14 +107,6 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                 arguments.add(matcher.getArguments().get(0));
                 return arguments;
             });
-        }
-
-        Replacement(String hamcrest, String junitPositive, String junitNegative, String template, String argumentsMethod) {
-            this.hamcrest = hamcrest;
-            this.junitPositive = junitPositive;
-            this.junitNegative = junitNegative;
-            this.template = template;
-            this.argumentsMethod = argumentsMethod;
         }
     }
 

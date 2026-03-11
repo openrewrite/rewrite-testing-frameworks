@@ -15,6 +15,8 @@
  */
 package org.openrewrite.java.testing.jmockit;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -26,6 +28,7 @@ import java.util.*;
 
 import static java.util.Collections.singletonList;
 
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 class ArgumentMatchersRewriter {
 
     private static final Set<String> JMOCKIT_ARGUMENT_MATCHERS = new HashSet<>();
@@ -77,12 +80,6 @@ class ArgumentMatchersRewriter {
     private final JavaVisitor<ExecutionContext> visitor;
     private final ExecutionContext ctx;
     private final J.Block expectationsBlock;
-
-    ArgumentMatchersRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block expectationsBlock) {
-        this.visitor = visitor;
-        this.ctx = ctx;
-        this.expectationsBlock = expectationsBlock;
-    }
 
     J.Block rewriteJMockitBlock() {
         List<Statement> newStatements = new ArrayList<>(expectationsBlock.getStatements().size());

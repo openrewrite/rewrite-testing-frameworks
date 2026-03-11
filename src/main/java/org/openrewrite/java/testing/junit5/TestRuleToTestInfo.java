@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -144,6 +145,7 @@ public class TestRuleToTestInfo extends Recipe {
         }
     }
 
+    @RequiredArgsConstructor
     private static class BeforeMethodToTestInfoVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final J.MethodDeclaration beforeMethod;
         private final J.VariableDeclarations varDecls;
@@ -152,12 +154,6 @@ public class TestRuleToTestInfo extends Recipe {
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 return JavaParser.fromJavaVersion()
                         .classpathFromResources(ctx, "junit-jupiter-api-5");
-        }
-
-        public BeforeMethodToTestInfoVisitor(J.MethodDeclaration beforeMethod, J.VariableDeclarations varDecls, String testMethodStatement) {
-            this.beforeMethod = beforeMethod;
-            this.varDecls = varDecls;
-            this.testMethodStatement = testMethodStatement;
         }
 
         @Override
