@@ -118,6 +118,70 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void removeOpenMocksWhenExtensionAddedDuringJUnit4to5Migration() {
+        //language=java
+        rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core", "junit-4", "hamcrest-3", "junit-jupiter-api-5")),
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.verify;
+
+              public class MockitoTests {
+                  @Mock
+                  List<String> mockedList;
+
+                  @Before
+                  public void initMocks() {
+                      MockitoAnnotations.openMocks(this);
+                  }
+
+                  @Test
+                  public void usingAnnotationBasedMock() {
+                      mockedList.add("one");
+                      verify(mockedList).add("one");
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.verify;
+
+              @ExtendWith(MockitoExtension.class)
+              public class MockitoTests {
+                  @Mock
+                  List<String> mockedList;
+
+                  @Test
+                  public void usingAnnotationBasedMock() {
+                      mockedList.add("one");
+                      verify(mockedList).add("one");
+                  }
+              }
+              """
+          )
+        );
+    }
+
     /**
      * Mockito 1 used Matchers.anyVararg() to match the arguments to a variadic function.
      * Mockito 2+ uses Matchers.any() to match anything including the arguments to a variadic function.

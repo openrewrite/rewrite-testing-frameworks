@@ -288,6 +288,109 @@ class Mockito1to3MigrationTest implements RewriteTest {
     }
 
     @Test
+    void removeOpenMocksWhenExtensionAdded() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-core", "mockito-junit-jupiter")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+
+              class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @BeforeEach
+                  void setUp() {
+                      MockitoAnnotations.openMocks(this);
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeOpenMocksWithCloseableWhenExtensionAdded() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-core", "mockito-junit-jupiter")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+
+              class MyTest {
+                  private AutoCloseable mocks;
+
+                  @Mock
+                  Object myMock;
+
+                  @BeforeEach
+                  void setUp() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void handlesAnyObjectFromMockitoWildCardImport() {
         rewriteRun(
           java(
