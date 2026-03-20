@@ -897,4 +897,47 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite/issues/7082")
+    @Test
+    void lastStatementWithTypeCastArgument() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() throws Exception {
+                      assertThrows(AssertionError.class, () -> {
+                          java.lang.reflect.Constructor<MyTest> constructor = MyTest.class.getDeclaredConstructor();
+                          constructor.setAccessible(true);
+                          constructor.newInstance((Object[]) null);
+                      });
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() throws Exception {
+                      java.lang.reflect.Constructor<MyTest> constructor = MyTest.class.getDeclaredConstructor();
+                      constructor.setAccessible(true);
+                      assertThrows(AssertionError.class, () ->
+                          constructor.newInstance((Object[]) null));
+                  }
+              }
+              """
+          )
+        );
+    }
 }
