@@ -508,7 +508,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class MyTest {
-
                   private MockedStatic<StringFilter> mockedStringFilter;
 
                   @BeforeMethod
@@ -1537,7 +1536,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               """,
             """
               import org.mockito.Mockito;
-              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -1549,10 +1547,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   @BeforeEach
                   void setUp() {
                       mock = Mockito.mock(Calendar.class);
-                  }
-
-                  @AfterEach
-                  void tearDownStaticMocks() {
                   }
 
                   @Test
