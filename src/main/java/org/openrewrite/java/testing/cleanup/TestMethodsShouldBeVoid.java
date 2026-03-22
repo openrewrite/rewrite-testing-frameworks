@@ -104,7 +104,6 @@ public class TestMethodsShouldBeVoid extends Recipe {
             if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
                     TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
                     TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
-                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
                     TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")) {
                 return true;
             }
