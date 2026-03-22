@@ -83,6 +83,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private String setUpImportToAdd;
         private String tearDownImportToAdd;
         private String tearDownMethodAnnotationParameters = "";
+        private boolean isPublicMethods;
 
         @Override
         public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
@@ -143,13 +144,16 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             cd = removeExtension(cd, POWER_MOCK_TEST_CASE);
 
             if (!mockedStaticClasses.isEmpty()) {
-                // If there are mocked types, add empty setUp() and tearDown() methods if not yet present
-                cd = maybeAddSetUpMethodBody(cd, ctx);
-                cd = maybeAddTearDownMethodBody(cd, ctx);
                 cd = addFieldDeclarationForMockedTypes(cd, ctx, mockedStaticClasses);
 
-                // Invoke the visitors of the child tree a 2nd time to fill the new methods
-                return super.visitClassDeclaration(cd, ctx);
+                if (!getMockedTypesFields().isEmpty()) {
+                    // Only add setUp() and tearDown() methods if there are actual mockStatic() invocations
+                    cd = maybeAddSetUpMethodBody(cd, ctx);
+                    cd = maybeAddTearDownMethodBody(cd, ctx);
+
+                    // Invoke the visitors of the child tree a 2nd time to fill the new methods
+                    return super.visitClassDeclaration(cd, ctx);
+                }
             }
             return cd;
         }
@@ -376,6 +380,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 annotationPackage = "org.junit";
                 additionalClasspathResource = "junit-4";
                 tearDownMethodAnnotationParameters = "";
+                this.isPublicMethods = true;
             } else {
                 setUpMethodAnnotationName = "BeforeEach";
                 tearDownMethodAnnotationName = "AfterEach";
@@ -454,7 +459,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private J.ClassDeclaration maybeAddSetUpMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             String testGroupsAsString = getTestGroupsAsString();
-            return maybeAddMethodWithAnnotation(this, classDecl, ctx, false, "setUpStaticMocks",
+            return maybeAddMethodWithAnnotation(this, classDecl, ctx, isPublicMethods, "setUpStaticMocks",
                     setUpMethodAnnotationSignature, setUpMethodAnnotation,
                     additionalClasspathResource, setUpImportToAdd, testGroupsAsString);
         }
@@ -472,7 +477,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             String testGroupsAsString = (getTestGroupsAsString().isEmpty()) ? tearDownMethodAnnotationParameters : getTestGroupsAsString();
-            return maybeAddMethodWithAnnotation(this, classDecl, ctx, false, "tearDownStaticMocks",
+            return maybeAddMethodWithAnnotation(this, classDecl, ctx, isPublicMethods, "tearDownStaticMocks",
                     tearDownMethodAnnotationSignature,
                     tearDownMethodAnnotation,
                     additionalClasspathResource, tearDownImportToAdd, testGroupsAsString);

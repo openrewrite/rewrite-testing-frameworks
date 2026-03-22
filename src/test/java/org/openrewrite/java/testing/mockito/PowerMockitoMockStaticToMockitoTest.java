@@ -243,19 +243,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
             """
               import java.util.Calendar;
 
-              import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               public class MyTest {
-
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                  }
-
-                  @AfterMethod(alwaysRun = true)
-                  void tearDownStaticMocks() {
-                  }
 
                   @Test
                   void testSomething() { }
@@ -293,17 +283,12 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import java.util.Calendar;
 
               import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               public class MyTest {
 
                   @AfterMethod(groups = "irrelevant")
                   void tearDown() {}
-
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                  }
 
                   @Test
                   void testSomething() { }
@@ -673,7 +658,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   }
 
                   @After
-                  void tearDownStaticMocks() {
+                  public void tearDownStaticMocks() {
                       mockedA_B.closeOnDemand();
                   }
 
@@ -806,13 +791,115 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @Before
-                  void setUpStaticMocks() {
+                  public void setUpStaticMocks() {
                       mockedCalendar = mockStatic(Calendar.class);
                   }
 
                   @After
-                  void tearDownStaticMocks() {
+                  public void tearDownStaticMocks() {
                       mockedCalendar.closeOnDemand();
+                  }
+
+                  @Test
+                  public void testStaticMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noSetUpOrTearDownWhenNoMockStaticInvocations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Calendar;
+
+              import org.junit.jupiter.api.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest({Calendar.class})
+              public class MyTest {
+
+                  @Test
+                  void testSomething() { }
+              }
+              """,
+            """
+              import java.util.Calendar;
+
+              import org.junit.jupiter.api.Test;
+
+              public class MyTest {
+
+                  @Test
+                  void testSomething() { }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void junit4GeneratedMethodsArePublic() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package test;
+
+              public class A {
+                public static class B {
+                    public static String helloWorld() {
+                        return "Hello World";
+                    }
+                }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.Mockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import test.A;
+
+              @PrepareForTest({ A.B.class })
+              public class MyTest {
+
+                  @Before
+                  public void setUp() {
+                      Mockito.mockStatic(A.B.class);
+                  }
+
+                  @Test
+                  public void testStaticMethod() {
+                  }
+              }
+              """,
+            """
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import test.A;
+
+              public class MyTest {
+
+                  private MockedStatic<A.B> mockedA_B;
+
+                  @Before
+                  public void setUp() {
+                      mockedA_B = Mockito.mockStatic(A.B.class);
+                  }
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      mockedA_B.closeOnDemand();
                   }
 
                   @Test
