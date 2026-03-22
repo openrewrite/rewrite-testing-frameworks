@@ -20,10 +20,12 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("JUnitMalformedDeclaration")
 class TestMethodsShouldBeVoidTest implements RewriteTest {
@@ -32,6 +34,8 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-jupiter-api-5", "junit-jupiter-params-5"))
+          .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(),
             "junit-jupiter-api-5", "junit-jupiter-params-5"))
           .recipe(new TestMethodsShouldBeVoid());
     }
@@ -370,6 +374,48 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
               public interface Doer {
                   @Nullable
                   String getFile(String input);
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/934")
+    @Test
+    void testFactoryMustReturnAValueInKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.DynamicTest
+              import org.junit.jupiter.api.TestFactory
+
+              class Doer {
+                  @TestFactory
+                  fun createSomeTests() : List<DynamicTest> {return listOf<DynamicTest>()}
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/934")
+    @Test
+    void testFactoryMustReturnAValueInJava() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.DynamicTest;
+              import org.junit.jupiter.api.TestFactory;
+              import java.util.List;
+              import java.util.ArrayList;
+
+              class Doer {
+                  @TestFactory
+                  List<DynamicTest> createSomeTests() {
+                      return new ArrayList<DynamicTest>();
+                  }
               }
               """
           )
