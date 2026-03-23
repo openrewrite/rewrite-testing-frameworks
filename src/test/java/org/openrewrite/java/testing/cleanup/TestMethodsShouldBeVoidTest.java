@@ -382,7 +382,7 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/934")
     @Test
-    void testFactoryMustReturnAValueInKotlin() {
+    void factoryMustReturnAValueInKotlin() {
         rewriteRun(
           //language=kotlin
           kotlin(
@@ -401,7 +401,7 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/934")
     @Test
-    void testFactoryMustReturnAValueInJava() {
+    void factoryMustReturnAValueInJava() {
         rewriteRun(
           //language=java
           java(
