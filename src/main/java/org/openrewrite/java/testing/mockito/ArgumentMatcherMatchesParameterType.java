@@ -64,14 +64,6 @@ public class ArgumentMatcherMatchesParameterType extends Recipe {
                         }
 
                         JavaType typeArg = matcherType.getTypeParameters().get(0);
-                        if (TypeUtils.isOfClassType(typeArg, "java.lang.Object")) {
-                            return nc;
-                        }
-
-                        JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(typeArg);
-                        if (fqType == null) {
-                            return nc;
-                        }
 
                         // Body must have exactly one method declaration (the matches method)
                         List<Statement> statements = nc.getBody().getStatements();
@@ -87,10 +79,6 @@ public class ArgumentMatcherMatchesParameterType extends Recipe {
                         }
 
                         J.VariableDeclarations param = (J.VariableDeclarations) matchesMethod.getParameters().get(0);
-                        if (!TypeUtils.isOfClassType(param.getType(), "java.lang.Object")) {
-                            return nc;
-                        }
-
                         String paramName = param.getVariables().get(0).getSimpleName();
                         J.Block body = matchesMethod.getBody();
                         if (body == null) {
@@ -98,8 +86,13 @@ public class ArgumentMatcherMatchesParameterType extends Recipe {
                         }
 
                         // Remove casts of the parameter to the target type in the body
-                        body = (J.Block) new RemoveParameterCasts(paramName, fqType.getFullyQualifiedName())
-                                .visitNonNull(body, ctx, getCursor());
+                        // only when the parameter was Object but the type argument is more specific
+                        boolean paramIsObject = TypeUtils.isOfClassType(param.getType(), "java.lang.Object");
+                        JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(typeArg);
+                        if (paramIsObject && fqType != null && !TypeUtils.isOfClassType(typeArg, "java.lang.Object")) {
+                            body = (J.Block) new RemoveParameterCasts(paramName, fqType.getFullyQualifiedName())
+                                    .visitNonNull(body, ctx, getCursor());
+                        }
 
                         // Build lambda body: expression for single return, block otherwise
                         J lambdaBody;

@@ -92,7 +92,7 @@ class ArgumentMatcherMatchesParameterTypeTest implements RewriteTest {
     }
 
     @Test
-    void doesNotChangeWhenParameterAlreadyTyped() {
+    void convertsToLambdaWhenParameterAlreadyTyped() {
         //language=java
         rewriteRun(
           java(
@@ -107,13 +107,20 @@ class ArgumentMatcherMatchesParameterTypeTest implements RewriteTest {
                       }
                   };
               }
+              """,
+            """
+              import org.mockito.ArgumentMatcher;
+
+              class MyTest {
+                  ArgumentMatcher<String> matcher = (ArgumentMatcher<String>) argument -> argument.startsWith("prefix");
+              }
               """
           )
         );
     }
 
     @Test
-    void doesNotChangeWhenTypeParameterIsObject() {
+    void convertsToLambdaWhenTypeParameterIsObject() {
         //language=java
         rewriteRun(
           java(
@@ -127,6 +134,13 @@ class ArgumentMatcherMatchesParameterTypeTest implements RewriteTest {
                           return argument != null;
                       }
                   };
+              }
+              """,
+            """
+              import org.mockito.ArgumentMatcher;
+
+              class MyTest {
+                  ArgumentMatcher<Object> matcher = (ArgumentMatcher<Object>) argument -> argument != null;
               }
               """
           )
