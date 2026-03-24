@@ -116,7 +116,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                         List<Statement> variableAssignments = new ArrayList<>();
                         Space prefix = methodStatement.getPrefix().withComments(emptyList());
-                        final Statement newLambdaStatement = extractExpressionArguments(lambdaStatement, variableAssignments, prefix);
+                        final Statement newLambdaStatement = extractExpressionArguments(body, lambdaStatement, variableAssignments, prefix);
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
                                     // The second argument is the lambda which is tested.
@@ -140,7 +140,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 })));
             }
 
-            private Statement extractExpressionArguments(Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
+            private Statement extractExpressionArguments(J.Block body, Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
                 if (lambdaStatement instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
                     Map<String, Integer> generatedVariableSuffixes = new HashMap<>();
@@ -172,7 +172,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             maybeAddImport(aClass.getFullyQualifiedName(), false);
                         }
 
-                        Cursor c = new Cursor(getCursor(), lambdaStatement);
+                        Cursor blockCursor = new Cursor(getCursor(), body);
+                        Cursor c = new Cursor(blockCursor, lambdaStatement);
                         J.VariableDeclarations varDecl = JavaTemplate.builder("#{} #{} = #{any()};")
                                 .build()
                                 .apply(c, lambdaStatement.getCoordinates().replace(), variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
