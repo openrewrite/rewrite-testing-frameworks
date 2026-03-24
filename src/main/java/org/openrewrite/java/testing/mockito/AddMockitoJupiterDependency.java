@@ -22,13 +22,15 @@ import org.openrewrite.ScanningRecipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.dependencies.AddDependency;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindTypes;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.HashMap;
+import java.util.Map;
 
-public class AddMockitoJupiterDependency extends ScanningRecipe<AtomicBoolean> {
+public class AddMockitoJupiterDependency extends ScanningRecipe<AddMockitoJupiterDependency.Accumulator> {
 
     private static final String EXTEND_WITH_MOCKITO_EXTENSION =
             "org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)";
@@ -47,14 +49,18 @@ public class AddMockitoJupiterDependency extends ScanningRecipe<AtomicBoolean> {
     final String description = "Adds `org.mockito:mockito-junit-jupiter` dependency if `@ExtendWith(MockitoExtension.class)` " +
             "will be added to any test class, i.e. when Mockito annotations are used in JUnit 5 tests without the extension already present.";
 
+    static class Accumulator {
+        Map<JavaProject, Boolean> needsMockitoJupiter = new HashMap<>();
+    }
+
     @Override
-    public AtomicBoolean getInitialValue(ExecutionContext ctx) {
-        return new AtomicBoolean(false);
+    public Accumulator getInitialValue(ExecutionContext ctx) {
+        return new Accumulator();
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean acc) {
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
         TreeVisitor<?, ExecutionContext> hasExtendWith =
                 new FindAnnotations(EXTEND_WITH_MOCKITO_EXTENSION, false).getVisitor();
         TreeVisitor<?, ExecutionContext>[] hasAnyMockitoAnnotation = Arrays.stream(MOCKITO_ANNOTATIONS)
@@ -71,7 +77,8 @@ public class AddMockitoJupiterDependency extends ScanningRecipe<AtomicBoolean> {
                     @Override
                     public Tree preVisit(Tree tree, ExecutionContext ctx) {
                         stopAfterPreVisit();
-                        acc.set(true);
+                        JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
+                        acc.needsMockitoJupiter.put(project, true);
                         return tree;
                     }
                 }
@@ -79,25 +86,35 @@ public class AddMockitoJupiterDependency extends ScanningRecipe<AtomicBoolean> {
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(AtomicBoolean acc) {
-        if (acc.get()) {
-            return new AddDependency(
-                    "org.mockito",
-                    "mockito-junit-jupiter",
-                    "3.x",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    "test",
-                    null,
-                    null,
-                    null,
-                    true
-            ).getVisitor();
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        if (acc.needsMockitoJupiter.isEmpty()) {
+            return TreeVisitor.noop();
         }
-        return TreeVisitor.noop();
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public Tree preVisit(Tree tree, ExecutionContext ctx) {
+                stopAfterPreVisit();
+                JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
+                if (Boolean.TRUE.equals(acc.needsMockitoJupiter.get(project))) {
+                    doAfterVisit(new AddDependency(
+                            "org.mockito",
+                            "mockito-junit-jupiter",
+                            "3.x",
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            "test",
+                            null,
+                            null,
+                            null,
+                            true
+                    ).getVisitor());
+                }
+                return tree;
+            }
+        };
     }
 }
