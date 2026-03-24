@@ -288,6 +288,125 @@ class Mockito1to3MigrationTest implements RewriteTest {
     }
 
     @Test
+    void addMockitoJupiterDependencyIfMockitoExtensionIsAdded() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+                  testImplementation("org.mockito:mockito-all:1.10.19")
+              }
+              test {
+                  useJUnitPlatform()
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+                  testImplementation("org.mockito:mockito-core:3.12.4")
+                  testImplementation "org.mockito:mockito-junit-jupiter:3.12.4"
+              }
+              test {
+                  useJUnitPlatform()
+              }
+              """
+          ),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-api</artifactId>
+                        <version>5.11.4</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-all</artifactId>
+                        <version>1.10.19</version>
+                    </dependency>
+                </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>some-project</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-api</artifactId>
+                        <version>5.11.4</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.4</version>
+                    </dependency>
+                  <dependency>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-junit-jupiter</artifactId>
+                    <version>3.12.4</version>
+                    <scope>test</scope>
+                  </dependency>
+                </dependencies>
+              </project>
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  void someTest() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  void someTest() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void handlesAnyObjectFromMockitoWildCardImport() {
         rewriteRun(
           java(
