@@ -202,11 +202,9 @@ public class ArgumentMatcherToLambda extends Recipe {
             J result = super.visitParentheses(parens, ctx);
             if (result instanceof J.Parentheses) {
                 J.Parentheses<?> p = (J.Parentheses<?>) result;
-                if (p.getTree() instanceof J.Identifier) {
-                    J.Identifier ident = (J.Identifier) p.getTree();
-                    if (paramName.equals(ident.getSimpleName())) {
-                        return ident.withPrefix(p.getPrefix());
-                    }
+                if (p.getTree() instanceof J.Identifier &&
+                        paramName.equals(((J.Identifier) p.getTree()).getSimpleName())) {
+                    return p.unwrap();
                 }
             }
             return result;
