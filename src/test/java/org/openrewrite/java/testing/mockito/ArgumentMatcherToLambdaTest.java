@@ -24,14 +24,14 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class ArgumentMatcherMatchesParameterTypeTest implements RewriteTest {
+class ArgumentMatcherToLambdaTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12"))
-          .recipe(new ArgumentMatcherMatchesParameterType());
+          .recipe(new ArgumentMatcherToLambda());
     }
 
     @DocumentExample

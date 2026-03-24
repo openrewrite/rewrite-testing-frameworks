@@ -32,7 +32,7 @@ import java.util.List;
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 
-public class ArgumentMatcherMatchesParameterType extends Recipe {
+public class ArgumentMatcherToLambda extends Recipe {
 
     @Getter
     final String displayName = "Convert `ArgumentMatcher<T>` anonymous class to lambda";
