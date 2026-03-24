@@ -85,6 +85,7 @@ dependencies {
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
+    annotationProcessor("org.apiguardian:apiguardian-api:1.1.2")
     annotationProcessor("org.openrewrite:rewrite-templating:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-templating:${rewriteVersion}")
     compileOnly("com.google.errorprone:error_prone_core:2.+") {
