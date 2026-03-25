@@ -4082,6 +4082,30 @@ examples:
     language: xml
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.ArgumentMatcherToLambda
+examples:
+- description: '`ArgumentMatcherToLambdaTest#convertsAnonymousMatcherToLambdaWithCastRemoval`'
+  sources:
+  - before: |
+      import org.mockito.ArgumentMatcher;
+
+      class MyTest {
+          ArgumentMatcher<String> matcher = new ArgumentMatcher<String>() {
+              @Override
+              public boolean matches(Object argument) {
+                  return ((String) argument).startsWith("prefix");
+              }
+          };
+      }
+    after: |
+      import org.mockito.ArgumentMatcher;
+
+      class MyTest {
+          ArgumentMatcher<String> matcher = (ArgumentMatcher<String>) argument -> argument.startsWith("prefix");
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.CleanupMockitoImports
 examples:
 - description: '`CleanupMockitoImportsTest#removesUnusedMockitoImport`'
@@ -4608,6 +4632,60 @@ examples:
                   assertEquals(A.getNumber(), -1);
               }
           }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
+examples:
+- description: '`PowerMockRunnerDelegateToRunWithTest#replacesDelegateWithRunWith`'
+  sources:
+  - before: |
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import org.powermock.modules.junit4.PowerMockRunner;
+      import org.powermock.modules.junit4.PowerMockRunnerDelegate;
+      import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+      @RunWith(PowerMockRunner.class)
+      @PowerMockRunnerDelegate(SpringJUnit4ClassRunner.class)
+      public class MyTest {
+
+          @Test
+          public void testSomething() {
+          }
+      }
+    after: |
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+      @RunWith(SpringJUnit4ClassRunner.class)
+      public class MyTest {
+
+          @Test
+          public void testSomething() {
+          }
+      }
+    language: java
+  - before: |
+      package org.powermock.modules.junit4;
+
+      import java.lang.annotation.*;
+
+      @Retention(RetentionPolicy.RUNTIME)
+      @Target(ElementType.TYPE)
+      public @interface PowerMockRunnerDelegate {
+          Class<?> value();
+      }
+    language: java
+  - before: |
+      package org.springframework.test.context.junit4;
+
+      public class SpringJUnit4ClassRunner extends org.junit.runner.Runner {
+          public SpringJUnit4ClassRunner(Class<?> clazz) {}
+          @Override public org.junit.runner.Description getDescription() { return null; }
+          @Override public void run(org.junit.runner.notification.RunNotifier notifier) {}
       }
     language: java
 ---
