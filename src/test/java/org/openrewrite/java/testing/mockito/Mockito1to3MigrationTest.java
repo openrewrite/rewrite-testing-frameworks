@@ -407,6 +407,56 @@ class Mockito1to3MigrationTest implements RewriteTest {
     }
 
     @Test
+    void powerMockRunnerReplacedWithMockitoJUnitRunnerWhenMockAnnotationsPresent() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "mockito-core-3.12",
+              "junit-4",
+              "powermock-core-1",
+              "powermock-api-mockito-1",
+              "powermock-api-support-1",
+              "powermock-module-junit4")),
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              public class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  public void someTest() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.class)
+              public class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  public void someTest() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void handlesAnyObjectFromMockitoWildCardImport() {
         rewriteRun(
           java(
