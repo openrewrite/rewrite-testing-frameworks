@@ -48,6 +48,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               "powermock-api-mockito-1",
               "powermock-api-support-1",
               "powermock-module-junit4",
+              "powermock-reflect-1",
               "testng-7"))
           .typeValidationOptions(TypeValidation.builder()
             .cursorAcyclic(false)

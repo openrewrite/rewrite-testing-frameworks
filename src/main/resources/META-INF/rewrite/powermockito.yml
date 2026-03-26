@@ -48,6 +48,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.RemovePowerMockClassExtensions
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.testing.mockito.PowerMockitoWhenNewToMockito
+  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
   - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
