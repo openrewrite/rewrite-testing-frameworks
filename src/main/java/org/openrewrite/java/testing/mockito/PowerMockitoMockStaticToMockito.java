@@ -161,15 +161,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
 
-            Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
-            if (mockStaticInvocationsByClassName != null && MOCKED_STATIC_MATCHER.matches(mi)) {
-                Optional<Expression> firstArgument = mi.getArguments().stream().findFirst();
-                firstArgument.ifPresent(expression -> {
-                    mockStaticInvocationsByClassName.put(expression.toString(), mi);
-                    getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCK_STATIC_INVOCATIONS, mockStaticInvocationsByClassName);
-                });
-            }
-
             if (DYNAMIC_WHEN_METHOD_MATCHER.matches(mi)) {
                 return modifyDynamicWhenMethodInvocation(mi);
             }
@@ -178,14 +169,26 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 return modifyWhenMethodInvocation(mi);
             }
 
-            if (MOCKED_STATIC_MATCHER.matches(mi)) {
-                determineTestGroups();
-                if (!getCursor().getPath(o -> o instanceof J.VariableDeclarations ||
-                                              o instanceof J.Assignment ||
-                                              o instanceof J.Try.Resource).hasNext()) {
-                    //noinspection DataFlowIssue
-                    return null;
-                }
+            if (!MOCKED_STATIC_MATCHER.matches(mi)) {
+                return mi;
+            }
+
+            // Track mockStatic invocations for use by setUp method generation
+            Map<String, J.MethodInvocation> mockStaticInvocationsByClassName = getCursor().getNearestMessage(MOCK_STATIC_INVOCATIONS);
+            if (mockStaticInvocationsByClassName != null && !mi.getArguments().isEmpty()) {
+                Expression firstArgument = mi.getArguments().get(0);
+                mockStaticInvocationsByClassName.put(firstArgument.toString(), mi);
+                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, MOCK_STATIC_INVOCATIONS, mockStaticInvocationsByClassName);
+            }
+
+            determineTestGroups();
+
+            // Remove bare mockStatic() calls that aren't part of a variable declaration, assignment, or try-with-resources
+            if (!getCursor().getPath(o -> o instanceof J.VariableDeclarations ||
+                                          o instanceof J.Assignment ||
+                                          o instanceof J.Try.Resource).hasNext()) {
+                //noinspection DataFlowIssue
+                return null;
             }
             return mi;
         }
@@ -203,34 +206,15 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             return false;
         }
 
-        private static boolean isStaticMockAlreadyClosed(J.Identifier staticMock, J.Block methodBody) {
+        private static boolean hasMatchingInvocation(J.Identifier staticMock, J.Block methodBody, MethodMatcher matcher) {
             for (Statement statement : methodBody.getStatements()) {
                 if (statement instanceof J.MethodInvocation) {
                     J.MethodInvocation methodInvocation = (J.MethodInvocation) statement;
-                    if (MOCKED_STATIC_CLOSE_MATCHER.matches(methodInvocation)) {
-                        if (methodInvocation.getSelect() instanceof J.Identifier) {
-                            if (((J.Identifier) methodInvocation.getSelect()).getSimpleName()
+                    if (matcher.matches(methodInvocation) &&
+                            methodInvocation.getSelect() instanceof J.Identifier &&
+                            ((J.Identifier) methodInvocation.getSelect()).getSimpleName()
                                     .equals(staticMock.getSimpleName())) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        private static boolean isStaticMockAlreadyOpened(J.Identifier staticMock, J.Block methodBody) {
-            for (Statement statement : methodBody.getStatements()) {
-                if (statement instanceof J.MethodInvocation) {
-                    J.MethodInvocation methodInvocation = (J.MethodInvocation) statement;
-                    if (MOCKED_STATIC_MATCHER.matches(methodInvocation)) {
-                        if (methodInvocation.getSelect() instanceof J.Identifier) {
-                            if (((J.Identifier) methodInvocation.getSelect()).getSimpleName()
-                                    .equals(staticMock.getSimpleName())) {
-                                return true;
-                            }
-                        }
+                        return true;
                     }
                 }
             }
@@ -245,7 +229,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             for (Map.Entry<J.Identifier, Expression> mockedTypesFieldEntry : getMockedTypesFields().entrySet()) {
                 J.Block methodBody = m.getBody();
-                if (methodBody == null || isStaticMockAlreadyOpened(mockedTypesFieldEntry.getKey(), methodBody)) {
+                if (methodBody == null || hasMatchingInvocation(mockedTypesFieldEntry.getKey(), methodBody, MOCKED_STATIC_MATCHER)) {
                     continue;
                 }
 
@@ -270,7 +254,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private J.MethodDeclaration addCloseStaticMocksOnDemandStatement(J.MethodDeclaration m, ExecutionContext ctx) {
             for (Map.Entry<J.Identifier, Expression> mockedTypesField : getMockedTypesFields().entrySet()) {
                 J.Block methodBody = m.getBody();
-                if (methodBody == null || isStaticMockAlreadyClosed(mockedTypesField.getKey(), methodBody)) {
+                if (methodBody == null || hasMatchingInvocation(mockedTypesField.getKey(), methodBody, MOCKED_STATIC_CLOSE_MATCHER)) {
                     continue;
                 }
                 m = JavaTemplate.builder("#{any(org.mockito.MockedStatic)}.closeOnDemand();")
@@ -397,7 +381,10 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         private J.ClassDeclaration maybeAddTearDownMethodBody(J.ClassDeclaration classDecl, ExecutionContext ctx, TestFramework framework) {
-            String testGroupsAsString = (getTestGroupsAsString().isEmpty()) ? framework.tearDownAnnotationParameters : getTestGroupsAsString();
+            String testGroupsAsString = getTestGroupsAsString();
+            if (testGroupsAsString.isEmpty()) {
+                testGroupsAsString = framework.tearDownAnnotationParameters;
+            }
             return maybeAddMethodWithAnnotation(this, classDecl, ctx, framework.publicMethods, "tearDownStaticMocks",
                     framework.tearDownAnnotationSignature,
                     framework.tearDownAnnotation,
