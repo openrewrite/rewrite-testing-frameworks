@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -24,6 +25,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
@@ -59,33 +61,19 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                        if (!cd.getLeadingAnnotations().stream().anyMatch(RUN_WITH_POWER_MOCK_RUNNER_MATCHER::matches)) {
+                        if (!service(AnnotationService.class).matches(getCursor(), RUN_WITH_POWER_MOCK_RUNNER_MATCHER)) {
                             return cd;
                         }
 
-                        // Find @PowerMockRunnerDelegate and extract its argument
-                        Expression delegateRunnerArg = null;
-                        for (J.Annotation annotation : cd.getLeadingAnnotations()) {
-                            if (DELEGATE_MATCHER.matches(annotation)) {
-                                List<Expression> args = annotation.getArguments();
-                                if (args != null && !args.isEmpty()) {
-                                    delegateRunnerArg = args.get(0);
-                                    // Handle value = X.class form
-                                    if (delegateRunnerArg instanceof J.Assignment) {
-                                        delegateRunnerArg = ((J.Assignment) delegateRunnerArg).getAssignment();
-                                    }
-                                }
-                                break;
-                            }
-                        }
+                        maybeRemoveImport(POWER_MOCK_RUNNER);
 
+                        Expression delegateRunnerArg = findDelegateRunnerArg(cd);
                         if (delegateRunnerArg != null) {
                             // Replace @RunWith(PowerMockRunner.class) argument with the delegate runner,
                             // and remove @PowerMockRunnerDelegate
-                            final Expression finalDelegateRunnerArg = delegateRunnerArg;
                             cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
                                 if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
-                                    return annotation.withArguments(Collections.singletonList(finalDelegateRunnerArg));
+                                    return annotation.withArguments(Collections.singletonList(delegateRunnerArg));
                                 }
                                 if (DELEGATE_MATCHER.matches(annotation)) {
                                     return null;
@@ -93,20 +81,35 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                                 return annotation;
                             }));
                             maybeRemoveImport(POWER_MOCK_RUNNER_DELEGATE);
-                        } else {
-                            // No delegate — just remove @RunWith(PowerMockRunner.class)
-                            cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
-                                if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
-                                    return null;
-                                }
-                                return annotation;
-                            }));
-                            maybeRemoveImport("org.junit.runner.RunWith");
+                            return cd;
                         }
 
-                        maybeRemoveImport(POWER_MOCK_RUNNER);
-
+                        // No delegate — just remove @RunWith(PowerMockRunner.class)
+                        cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
+                            if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
+                                return null;
+                            }
+                            return annotation;
+                        }));
+                        maybeRemoveImport("org.junit.runner.RunWith");
                         return cd;
+                    }
+
+                    private @Nullable Expression findDelegateRunnerArg(J.ClassDeclaration cd) {
+                        for (J.Annotation annotation : cd.getLeadingAnnotations()) {
+                            if (DELEGATE_MATCHER.matches(annotation)) {
+                                List<Expression> args = annotation.getArguments();
+                                if (args != null && !args.isEmpty()) {
+                                    Expression arg = args.get(0);
+                                    if (arg instanceof J.Assignment) {
+                                        return ((J.Assignment) arg).getAssignment();
+                                    }
+                                    return arg;
+                                }
+                                return null;
+                            }
+                        }
+                        return null;
                     }
                 }
         );
