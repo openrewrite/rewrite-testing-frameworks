@@ -102,7 +102,7 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
     }
 
     @Test
-    void noChangeWithoutDelegate() {
+    void removesRunWithPowerMockRunnerWithoutDelegate() {
         //language=java
         rewriteRun(
           java(
@@ -112,6 +112,17 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
               import org.powermock.modules.junit4.PowerMockRunner;
 
               @RunWith(PowerMockRunner.class)
+              public class MyTest {
+
+                  @Test
+                  public void testSomething() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+
               public class MyTest {
 
                   @Test

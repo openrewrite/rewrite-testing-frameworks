@@ -526,52 +526,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void extensionOfPowerMockTestCaseGetsRemoved() {
-        //language=java
-        rewriteRun(java(
-            """
-              package org.powermock.modules.testng;
-
-              public class PowerMockTestCase {}
-              """
-          ),
-          java(
-            """
-              import org.powermock.modules.testng.PowerMockTestCase;
-
-              public class MyPowerMockTestCase extends PowerMockTestCase {}
-              """,
-            """
-              public class MyPowerMockTestCase {}
-              """
-          )
-        );
-    }
-
-    @Test
-    void extensionOfPowerMockConfigurationGetsRemoved() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              package org.powermock.configuration;
-
-              public class PowerMockConfiguration {}
-              """
-          ),
-          java(
-            """
-              import org.powermock.configuration.PowerMockConfiguration;
-
-              public class MyPowerMockConfiguration extends PowerMockConfiguration {}
-              """,
-            """
-              public class MyPowerMockConfiguration {}
-              """
-          ));
-    }
-
-    @Test
     void mockStaticInTryWithResources() {
         //language=java
         rewriteRun(
