@@ -71,7 +71,8 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                         if (delegateRunnerArg != null) {
                             // Replace @RunWith(PowerMockRunner.class) argument with the delegate runner,
                             // and remove @PowerMockRunnerDelegate
-                            cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
+                            maybeRemoveImport(POWER_MOCK_RUNNER_DELEGATE);
+                            return cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
                                 if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
                                     return annotation.withArguments(Collections.singletonList(delegateRunnerArg));
                                 }
@@ -80,19 +81,16 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                                 }
                                 return annotation;
                             }));
-                            maybeRemoveImport(POWER_MOCK_RUNNER_DELEGATE);
-                            return cd;
                         }
 
                         // No delegate — just remove @RunWith(PowerMockRunner.class)
-                        cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
+                        maybeRemoveImport("org.junit.runner.RunWith");
+                        return cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
                             if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
                                 return null;
                             }
                             return annotation;
                         }));
-                        maybeRemoveImport("org.junit.runner.RunWith");
-                        return cd;
                     }
 
                     private @Nullable Expression findDelegateRunnerArg(J.ClassDeclaration cd) {
