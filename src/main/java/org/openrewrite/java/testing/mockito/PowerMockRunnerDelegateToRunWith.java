@@ -42,7 +42,7 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
             new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
 
     @Getter
-    final String displayName = "Replace PowerMock runner with standard `@RunWith`";
+    final String displayName = "Replace PowerMock runner with JUnit `@RunWith`";
 
     @Getter
     final String description = "Replaces `@RunWith(PowerMockRunner.class)`. If `@PowerMockRunnerDelegate(X.class)` " +
