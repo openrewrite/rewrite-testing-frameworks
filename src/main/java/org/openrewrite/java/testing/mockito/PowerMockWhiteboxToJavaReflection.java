@@ -58,7 +58,6 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
         private static final String WHITEBOX_REPLACED = "whiteboxReplaced";
         private static final String NEEDS_FIELD_IMPORT = "needsFieldImport";
         private static final String NEEDS_METHOD_IMPORT = "needsMethodImport";
-        private final JavaParser.Builder<?, ?> JAVA_PARSER = JavaParser.fromJavaVersion();
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
@@ -95,7 +94,7 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                     Object[] templateArgs = buildTemplateArgs(mi);
                     b = JavaTemplate.builder(template)
                             .contextSensitive()
-                            .javaParser(JAVA_PARSER)
+                            .javaParser(JavaParser.fromJavaVersion())
                             .imports("java.lang.reflect.Field", "java.lang.reflect.Method")
                             .build()
                             .apply(
@@ -156,9 +155,9 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 return null;
             }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            return "Field " + varName + " = #{any()}.getClass().getDeclaredField(#{any(java.lang.String)});\n" +
+            return "Field " + varName + " = #{any(java.lang.Object)}.getClass().getDeclaredField(#{any(java.lang.String)});\n" +
                     varName + ".setAccessible(true);\n" +
-                    varName + ".set(#{any()}, #{any()});";
+                    varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
         }
 
         private @Nullable String buildGetInternalStateTemplate(List<Expression> args, Statement statement, Cursor scope) {
@@ -167,7 +166,7 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 return null;
             }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            String prefix = "Field " + varName + " = #{any()}.getClass().getDeclaredField(#{any(java.lang.String)});\n" +
+            String prefix = "Field " + varName + " = #{any(java.lang.Object)}.getClass().getDeclaredField(#{any(java.lang.String)});\n" +
                     varName + ".setAccessible(true);\n";
 
             if (statement instanceof J.VariableDeclarations) {
@@ -175,11 +174,11 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 String assignToVar = varDecls.getVariables().get(0).getSimpleName();
                 String castType = getCastType(varDecls.getType());
                 if (castType != null && !"Object".equals(castType) && !"java.lang.Object".equals(castType)) {
-                    return prefix + castType + " " + assignToVar + " = (" + castType + ") " + varName + ".get(#{any()});";
+                    return prefix + castType + " " + assignToVar + " = (" + castType + ") " + varName + ".get(#{any(java.lang.Object)});";
                 }
-                return prefix + "Object " + assignToVar + " = " + varName + ".get(#{any()});";
+                return prefix + "Object " + assignToVar + " = " + varName + ".get(#{any(java.lang.Object)});";
             }
-            return prefix + varName + ".get(#{any()});";
+            return prefix + varName + ".get(#{any(java.lang.Object)});";
         }
 
         private @Nullable String buildInvokeMethodTemplate(List<Expression> args, Statement statement, Cursor scope) {
@@ -191,9 +190,9 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
 
             // getDeclaredMethod line
             StringBuilder sb = new StringBuilder();
-            sb.append("Method ").append(varName).append(" = #{any()}.getClass().getDeclaredMethod(#{any(java.lang.String)}");
+            sb.append("Method ").append(varName).append(" = #{any(java.lang.Object)}.getClass().getDeclaredMethod(#{any(java.lang.String)}");
             for (int i = 2; i < args.size(); i++) {
-                sb.append(", #{any()}.getClass()");
+                sb.append(", #{any(java.lang.Object)}.getClass()");
             }
             sb.append(");\n");
 
@@ -211,9 +210,9 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                     sb.append("Object ").append(assignToVar).append(" = ");
                 }
             }
-            sb.append(varName).append(".invoke(#{any()}");
+            sb.append(varName).append(".invoke(#{any(java.lang.Object)}");
             for (int i = 2; i < args.size(); i++) {
-                sb.append(", #{any()}");
+                sb.append(", #{any(java.lang.Object)}");
             }
             sb.append(");");
 
