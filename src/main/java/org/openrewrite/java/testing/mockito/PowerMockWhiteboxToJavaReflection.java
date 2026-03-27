@@ -24,6 +24,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
@@ -89,13 +90,31 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                     continue;
                 }
                 Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
-                String template = buildReplacementTemplate(stmt, mi, blockCursor);
+                JavaType.Method resolvedMethod = INVOKE_METHOD.matches(mi) ?
+                        resolveTargetMethod(mi.getArguments()) : null;
+                String template = buildReplacementTemplate(stmt, mi, blockCursor, resolvedMethod);
                 if (template != null) {
-                    Object[] templateArgs = buildTemplateArgs(mi);
+                    Object[] templateArgs = buildTemplateArgs(mi, resolvedMethod);
+
+                    List<String> templateImports = new ArrayList<>();
+                    templateImports.add("java.lang.reflect.Field");
+                    templateImports.add("java.lang.reflect.Method");
+                    if (resolvedMethod != null) {
+                        for (JavaType paramType : resolvedMethod.getParameterTypes()) {
+                            if (paramType instanceof JavaType.FullyQualified) {
+                                JavaType.FullyQualified fq = (JavaType.FullyQualified) paramType;
+                                if (!"java.lang".equals(fq.getPackageName())) {
+                                    templateImports.add(fq.getFullyQualifiedName());
+                                    maybeAddImport(fq.getFullyQualifiedName());
+                                }
+                            }
+                        }
+                    }
+
                     b = JavaTemplate.builder(template)
                             .contextSensitive()
                             .javaParser(JavaParser.fromJavaVersion())
-                            .imports("java.lang.reflect.Field", "java.lang.reflect.Method")
+                            .imports(templateImports.toArray(new String[0]))
                             .build()
                             .apply(
                                     new Cursor(getCursor().getParentOrThrow(), b),
@@ -117,7 +136,8 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             return b;
         }
 
-        private @Nullable String buildReplacementTemplate(Statement statement, J.MethodInvocation mi, Cursor scope) {
+        private @Nullable String buildReplacementTemplate(Statement statement, J.MethodInvocation mi,
+                                                          Cursor scope, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
 
             if (SET_INTERNAL_STATE.matches(mi) && args.size() == 3) {
@@ -127,12 +147,12 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 return buildGetInternalStateTemplate(args, statement, scope);
             }
             if (INVOKE_METHOD.matches(mi) && args.size() >= 2) {
-                return buildInvokeMethodTemplate(args, statement, scope);
+                return buildInvokeMethodTemplate(args, statement, scope, resolvedMethod);
             }
             return null;
         }
 
-        private Object[] buildTemplateArgs(J.MethodInvocation mi) {
+        private Object[] buildTemplateArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
 
             if (SET_INTERNAL_STATE.matches(mi) && args.size() == 3) {
@@ -144,7 +164,7 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 return new Object[]{args.get(0), args.get(1), args.get(0)};
             }
             if (INVOKE_METHOD.matches(mi) && args.size() >= 2) {
-                return buildInvokeMethodArgs(args);
+                return buildInvokeMethodArgs(args, resolvedMethod);
             }
             return new Object[0];
         }
@@ -181,7 +201,8 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             return prefix + varName + ".get(#{any(java.lang.Object)});";
         }
 
-        private @Nullable String buildInvokeMethodTemplate(List<Expression> args, Statement statement, Cursor scope) {
+        private @Nullable String buildInvokeMethodTemplate(List<Expression> args, Statement statement,
+                                                           Cursor scope, JavaType.@Nullable Method resolvedMethod) {
             String methodName = extractStringLiteral(args.get(1));
             if (methodName == null) {
                 return null;
@@ -192,7 +213,12 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             StringBuilder sb = new StringBuilder();
             sb.append("Method ").append(varName).append(" = #{any(java.lang.Object)}.getClass().getDeclaredMethod(#{any(java.lang.String)}");
             for (int i = 2; i < args.size(); i++) {
-                sb.append(", #{any(java.lang.Object)}.getClass()");
+                String classLiteral = getParamClassLiteral(args, i, resolvedMethod);
+                if (classLiteral != null) {
+                    sb.append(", ").append(classLiteral);
+                } else {
+                    sb.append(", #{any(java.lang.Object)}.getClass()");
+                }
             }
             sb.append(");\n");
 
@@ -219,20 +245,78 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             return sb.toString();
         }
 
-        private Object[] buildInvokeMethodArgs(List<Expression> args) {
+        private Object[] buildInvokeMethodArgs(List<Expression> args, JavaType.@Nullable Method resolvedMethod) {
             int extraArgs = args.size() - 2;
-            Object[] result = new Object[2 + extraArgs + 1 + extraArgs];
+            int unresolvedCount = 0;
+            for (int i = 2; i < args.size(); i++) {
+                if (getParamClassLiteral(args, i, resolvedMethod) == null) {
+                    unresolvedCount++;
+                }
+            }
+            Object[] result = new Object[2 + unresolvedCount + 1 + extraArgs];
             int idx = 0;
             result[idx++] = args.get(0); // target for getDeclaredMethod
             result[idx++] = args.get(1); // methodName
             for (int i = 2; i < args.size(); i++) {
-                result[idx++] = args.get(i); // arg.getClass() for getDeclaredMethod
+                if (getParamClassLiteral(args, i, resolvedMethod) == null) {
+                    result[idx++] = args.get(i); // arg.getClass() fallback for getDeclaredMethod
+                }
             }
             result[idx++] = args.get(0); // target for invoke
             for (int i = 2; i < args.size(); i++) {
                 result[idx++] = args.get(i); // arg for invoke
             }
             return result;
+        }
+
+        /**
+         * Get the class literal for a parameter at the given argument index.
+         * Prefers the resolved method's declared parameter type, falls back to the argument's
+         * compile-time type, and returns null if neither is available.
+         */
+        private @Nullable String getParamClassLiteral(List<Expression> args, int argIndex,
+                                                      JavaType.@Nullable Method resolvedMethod) {
+            if (resolvedMethod != null) {
+                String literal = classLiteralFromType(resolvedMethod.getParameterTypes().get(argIndex - 2));
+                if (literal != null) {
+                    return literal;
+                }
+            }
+            return getClassLiteral(args.get(argIndex));
+        }
+
+        /**
+         * Resolve the target method from the first argument's type and the method name.
+         * Returns null if the method cannot be unambiguously resolved (not found, overloaded,
+         * or missing type information).
+         */
+        private JavaType.@Nullable Method resolveTargetMethod(List<Expression> args) {
+            if (args.size() <= 2) {
+                return null;
+            }
+            String methodName = extractStringLiteral(args.get(1));
+            if (methodName == null) {
+                return null;
+            }
+            JavaType targetType = args.get(0).getType();
+            if (!(targetType instanceof JavaType.FullyQualified)) {
+                return null;
+            }
+            int expectedParamCount = args.size() - 2;
+            JavaType.Method match = null;
+            for (JavaType.FullyQualified current = (JavaType.FullyQualified) targetType;
+                 current != null; current = current.getSupertype()) {
+                for (JavaType.Method method : current.getMethods()) {
+                    if (method.getName().equals(methodName) &&
+                            method.getParameterTypes().size() == expectedParamCount) {
+                        if (match != null) {
+                            return null; // ambiguous overload
+                        }
+                        match = method;
+                    }
+                }
+            }
+            return match;
         }
 
         private J.@Nullable MethodInvocation extractWhiteboxInvocation(Statement statement) {
@@ -260,6 +344,20 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
         private @Nullable String extractStringLiteral(Expression expr) {
             if (expr instanceof J.Literal && ((J.Literal) expr).getValue() instanceof String) {
                 return (String) ((J.Literal) expr).getValue();
+            }
+            return null;
+        }
+
+        private @Nullable String getClassLiteral(Expression expr) {
+            return classLiteralFromType(expr.getType());
+        }
+
+        private @Nullable String classLiteralFromType(@Nullable JavaType type) {
+            if (type instanceof JavaType.Primitive) {
+                return ((JavaType.Primitive) type).getKeyword() + ".class";
+            }
+            if (type instanceof JavaType.FullyQualified) {
+                return ((JavaType.FullyQualified) type).getClassName() + ".class";
             }
             return null;
         }
