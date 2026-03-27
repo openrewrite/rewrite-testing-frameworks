@@ -53,16 +53,12 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 new UsesType<>(WHITEBOX_FQN, false),
-                new WhiteboxVisitor()
-        );
-    }
-
-    private static class WhiteboxVisitor extends JavaIsoVisitor<ExecutionContext> {
+                new JavaIsoVisitor<ExecutionContext>() {
 
         private static final String WHITEBOX_REPLACED = "whiteboxReplaced";
         private static final String NEEDS_FIELD_IMPORT = "needsFieldImport";
         private static final String NEEDS_METHOD_IMPORT = "needsMethodImport";
-        private static final JavaParser.Builder<?, ?> JAVA_PARSER = JavaParser.fromJavaVersion();
+        private final JavaParser.Builder<?, ?> JAVA_PARSER = JavaParser.fromJavaVersion();
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
@@ -76,7 +72,7 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 if (getCursor().getMessage(NEEDS_METHOD_IMPORT, false)) {
                     maybeAddImport("java.lang.reflect.Method", false);
                 }
-                md = maybeAutoFormat(method, md, ctx);
+                return maybeAutoFormat(method, md, ctx);
             }
             return md;
         }
@@ -240,7 +236,7 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             return result;
         }
 
-        private static J.@Nullable MethodInvocation extractWhiteboxInvocation(Statement statement) {
+        private J.@Nullable MethodInvocation extractWhiteboxInvocation(Statement statement) {
             if (statement instanceof J.MethodInvocation) {
                 J.MethodInvocation mi = (J.MethodInvocation) statement;
                 if (SET_INTERNAL_STATE.matches(mi) || GET_INTERNAL_STATE.matches(mi) || INVOKE_METHOD.matches(mi)) {
@@ -262,14 +258,14 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             return null;
         }
 
-        private static @Nullable String extractStringLiteral(Expression expr) {
+        private @Nullable String extractStringLiteral(Expression expr) {
             if (expr instanceof J.Literal && ((J.Literal) expr).getValue() instanceof String) {
                 return (String) ((J.Literal) expr).getValue();
             }
             return null;
         }
 
-        private static @Nullable String getCastType(@Nullable JavaType type) {
+        private @Nullable String getCastType(@Nullable JavaType type) {
             if (type instanceof JavaType.FullyQualified) {
                 return ((JavaType.FullyQualified) type).getClassName();
             }
@@ -279,7 +275,7 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             return null;
         }
 
-        private static J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
+        private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
             if (md.getThrows() != null && md.getThrows().stream()
                     .anyMatch(j -> TypeUtils.isOfClassType(j.getType(), "java.lang.Exception") ||
                             TypeUtils.isOfClassType(j.getType(), "java.lang.Throwable"))) {
@@ -290,5 +286,6 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                     new J.Identifier(randomId(), Space.SINGLE_SPACE, Markers.EMPTY, emptyList(),
                             exceptionType.getClassName(), exceptionType, null)));
         }
+        });
     }
 }
