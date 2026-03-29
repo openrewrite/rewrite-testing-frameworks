@@ -28,6 +28,8 @@ recipeList:
   - org.openrewrite.java.testing.mockito.ReplacePowerMockDependencies
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.SuppressStaticInitializationFor"
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
