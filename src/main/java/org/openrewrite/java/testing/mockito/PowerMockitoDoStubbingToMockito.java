@@ -21,20 +21,18 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
-import org.openrewrite.marker.Markers;
-
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import static org.openrewrite.Tree.randomId;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 public class PowerMockitoDoStubbingToMockito extends Recipe {
 
@@ -52,7 +50,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                new UsesType<>("org.powermock.api.mockito.PowerMockito", false),
+                new UsesMethod<>(STUBBER_WHEN_MATCHER),
                 new JavaIsoVisitor<ExecutionContext>() {
 
                     @Override
@@ -80,7 +78,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                         }
 
                         String targetMethodName = (String) ((J.Literal) args.get(1)).getValue();
-                        List<Expression> extraArgs = new ArrayList<>(args.subList(2, args.size()));
+                        List<Expression> extraArgs = args.subList(2, args.size());
 
                         // Rewrite: doX().when(instance, "method", args...) → doX().when(instance).method(args...)
 
@@ -94,26 +92,19 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                         if (originalWhenType != null && instanceType != null) {
                             updatedWhenType = originalWhenType
                                     .withReturnType(instanceType)
-                                    .withParameterTypes(Collections.singletonList(instanceType))
-                                    .withParameterNames(Collections.singletonList("mock"));
+                                    .withParameterTypes(singletonList(instanceType))
+                                    .withParameterNames(singletonList("mock"));
                         }
                         J.MethodInvocation whenWithInstance = mi
                                 .withPrefix(Space.EMPTY)
-                                .withArguments(Collections.singletonList(firstArg.withPrefix(Space.EMPTY)))
+                                .withArguments(singletonList(firstArg.withPrefix(Space.EMPTY)))
                                 .withMethodType(updatedWhenType)
                                 .withName(mi.getName().withType(updatedWhenType));
 
                         // 2. Build .method(args...) chained on when(instance)
-                        List<Expression> newArgs;
-                        if (extraArgs.isEmpty()) {
-                            newArgs = Collections.singletonList(
-                                    new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY));
-                        } else {
-                            newArgs = new ArrayList<>();
-                            for (int i = 0; i < extraArgs.size(); i++) {
-                                newArgs.add(i == 0 ? extraArgs.get(i).withPrefix(Space.EMPTY) : extraArgs.get(i));
-                            }
-                        }
+                        List<Expression> newArgs = extraArgs.isEmpty() ?
+                                emptyList() :
+                                ListUtils.mapFirst(extraArgs, a -> a.withPrefix(Space.EMPTY));
 
                         JavaType.Method resolvedMethodType = resolveTargetMethod(
                                 firstArg.getType(), targetMethodName, extraArgs.size());
