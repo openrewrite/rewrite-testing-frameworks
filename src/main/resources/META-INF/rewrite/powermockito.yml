@@ -32,6 +32,7 @@ recipeList:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
       returnType: org.mockito.MockedStatic
+  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito do*(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
