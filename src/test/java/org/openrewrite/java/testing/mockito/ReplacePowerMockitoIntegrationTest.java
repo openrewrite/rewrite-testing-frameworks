@@ -1826,4 +1826,35 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void thatSuppressStaticInitializationForIsRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
+              import org.testng.annotations.Test;
+
+              @SuppressStaticInitializationFor("com.example.MyClass")
+              class StaticInitTest {
+
+                  @Test
+                  void testSomething() {
+                  }
+              }
+              """,
+            """
+              import org.testng.annotations.Test;
+
+              class StaticInitTest {
+
+                  @Test
+                  void testSomething() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
