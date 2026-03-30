@@ -148,7 +148,7 @@ public class RemoveTestPrefix extends Recipe {
                     }
                     return super.visitMethodInvocation(method, atomicBoolean);
                 }
-            }.visitMethodDeclaration(m, skip);
+            }.visit(m, skip, getCursor().getParentTreeCursor());
             if (skip.get()) {
                 return m;
             }

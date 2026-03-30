@@ -489,7 +489,7 @@ class AssertJBestPracticesTest implements RewriteTest {
         @ParameterizedTest
         void sonarReplacements(
           String argumentsType, String assertToReplace, String dedicatedAssertion) {
-            String template =
+            var template =
               """
                 import %1$s;
                 import static org.assertj.core.api.Assertions.assertThat;
