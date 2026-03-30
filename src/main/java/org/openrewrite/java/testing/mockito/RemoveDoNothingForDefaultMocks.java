@@ -41,8 +41,8 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
             "Mockito mocks already do nothing for void methods by default, making these stubbings redundant " +
             "and triggering strict stubbing violations in Mockito 3+.";
 
-    private static final MethodMatcher DO_NOTHING_MATCHER = new MethodMatcher("org.mockito.Mockito doNothing()", false);
-    private static final MethodMatcher STUBBER_WHEN_MATCHER = new MethodMatcher("org.mockito.stubbing.Stubber when(..)", false);
+    private static final MethodMatcher DO_NOTHING_MATCHER = new MethodMatcher("org.mockito.Mockito doNothing()");
+    private static final MethodMatcher STUBBER_WHEN_MATCHER = new MethodMatcher("org.mockito.stubbing.Stubber when(..)");
     private static final AnnotationMatcher MOCK_ANNOTATION_MATCHER = new AnnotationMatcher("@org.mockito.Mock");
 
     @Override
