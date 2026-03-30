@@ -99,7 +99,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
         @ParameterizedTest
         void stringReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
-            String template = """
+            var template = """
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -111,8 +111,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
                   }
               }
               """;
-            String assertBefore = "assertThat(\"hello world\".%s(%s)).%s(%s);";
-            String assertAfter = "assertThat(\"hello world\").%s(%s);";
+            var assertBefore = "assertThat(\"hello world\".%s(%s)).%s(%s);";
+            var assertAfter = "assertThat(\"hello world\").%s(%s);";
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
@@ -152,7 +152,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
         @ParameterizedTest
         void fileReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
-            String template = """
+            var template = """
               import java.io.File;
 
               import static org.assertj.core.api.Assertions.assertThat;
@@ -167,8 +167,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
                   }
               }
               """;
-            String assertBefore = "assertThat(file.%s(%s)).%s(%s);";
-            String assertAfter = "assertThat(file).%s(%s);";
+            var assertBefore = "assertThat(file.%s(%s)).%s(%s);";
+            var assertAfter = "assertThat(file).%s(%s);";
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
@@ -198,7 +198,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
         @ParameterizedTest
         void pathReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
-            String template = """
+            var template = """
               import java.nio.file.Path;
               import java.nio.file.Paths;
 
@@ -211,8 +211,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
                   }
               }
               """;
-            String assertBefore = "assertThat(path.%s(%s)).%s(%s);";
-            String assertAfter = "assertThat(path).%s(%s);";
+            var assertBefore = "assertThat(path.%s(%s)).%s(%s);";
+            var assertAfter = "assertThat(path).%s(%s);";
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
@@ -246,7 +246,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
         @ParameterizedTest
         void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
-            String template = """
+            var template = """
               import java.util.Collection;
 
               import static org.assertj.core.api.Assertions.assertThat;
@@ -258,8 +258,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
                   }
               }
               """;
-            String assertBefore = "assertThat(collection.%s(%s)).%s(%s);";
-            String assertAfter = "assertThat(collection).%s(%s);";
+            var assertBefore = "assertThat(collection.%s(%s)).%s(%s);";
+            var assertAfter = "assertThat(collection).%s(%s);";
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
 
@@ -289,7 +289,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
         @ParameterizedTest
         void mapReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String firstArg, String secondArg) {
             //language=java
-            String template = """
+            var template = """
               import java.util.Collections;
               import java.util.Map;
 
@@ -305,7 +305,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
                   }
               }
               """;
-            String assertBefore = "assertThat(map.%s(%s)).%s(%s);";
+            var assertBefore = "assertThat(map.%s(%s)).%s(%s);";
             String assertAfter = !"".equals(firstArg) && !"".equals(secondArg) ? "assertThat(map).%s(%s, %s);" : "assertThat(map).%s(%s);";
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, firstArg, assertToReplace, secondArg);
@@ -373,7 +373,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
         @ParameterizedTest
         void optionalReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion, String arg) {
             //language=java
-            String template = """
+            var template = """
               import java.util.Optional;
 
               import static org.assertj.core.api.Assertions.assertThat;
@@ -410,7 +410,7 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
         @ParameterizedTest
         void collectionReplacements(String chainedAssertion, String assertToReplace, String dedicatedAssertion) {
             //language=java
-            String template = """
+            var template = """
               import java.util.Iterator;
 
               import static org.assertj.core.api.Assertions.assertThat;
@@ -422,8 +422,8 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
                   }
               }
               """;
-            String assertBefore = "assertThat(iterator.%s()).%s();";
-            String assertAfter = "assertThat(iterator).%s();";
+            var assertBefore = "assertThat(iterator.%s()).%s();";
+            var assertAfter = "assertThat(iterator).%s();";
 
             String formattedAssertBefore = assertBefore.formatted(chainedAssertion, assertToReplace);
 

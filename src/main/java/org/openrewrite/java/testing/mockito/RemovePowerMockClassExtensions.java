@@ -50,8 +50,7 @@ public class RemovePowerMockClassExtensions extends Recipe {
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                         cd = maybeRemoveExtension(cd, POWER_MOCK_CONFIG);
-                        cd = maybeRemoveExtension(cd, POWER_MOCK_TEST_CASE);
-                        return cd;
+                        return maybeRemoveExtension(cd, POWER_MOCK_TEST_CASE);
                     }
 
                     private J.ClassDeclaration maybeRemoveExtension(J.ClassDeclaration classDecl, String extensionFQN) {

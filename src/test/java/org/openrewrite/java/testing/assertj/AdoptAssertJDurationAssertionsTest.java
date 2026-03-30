@@ -251,7 +251,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     @ParameterizedTest
     void simplifyDurationAssertions(String before, String after) {
         //language=java
-        String template = """
+        var template = """
           import java.time.Duration;
 
           import static org.assertj.core.api.Assertions.assertThat;

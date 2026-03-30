@@ -218,9 +218,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import org.junit.jupiter.api.Test;
 
           %s
@@ -276,9 +276,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import org.junit.jupiter.api.Test;
 
           %s
@@ -315,9 +315,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import org.junit.jupiter.api.Test;
 
           %s
@@ -363,9 +363,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import org.junit.jupiter.api.Test;
 
           %s
@@ -404,9 +404,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import java.util.List;
           import org.junit.jupiter.api.Test;
 
@@ -441,9 +441,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
         String importsBefore = """
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import java.util.Map;
           import org.junit.jupiter.api.Test;
 
@@ -478,9 +478,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.not;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import java.util.Map;
           import org.junit.jupiter.api.Test;
 
@@ -531,9 +531,9 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
           import static org.hamcrest.MatcherAssert.assertThat;
           import static org.hamcrest.Matchers.not;
           import static org.hamcrest.Matchers.%s;""".formatted(hamcrestMatcher);
-        String importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
+        var importsAfter = "import static org.assertj.core.api.Assertions.assertThat;";
         //language=java
-        String template = """
+        var template = """
           import org.junit.jupiter.api.Test;
 
           %s

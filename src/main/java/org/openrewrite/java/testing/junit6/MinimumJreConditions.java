@@ -188,7 +188,7 @@ public class MinimumJreConditions extends Recipe {
             private J.MethodDeclaration removeAnnotation(J.MethodDeclaration m, String annotationType, ExecutionContext ctx) {
                 RemoveAnnotation removeAnnotation = new RemoveAnnotation("@" + annotationType);
                 maybeRemoveImport(JRE_IMPORT);
-                return removeAnnotation.getVisitor().visitMethodDeclaration(m, ctx);
+                return (J.MethodDeclaration) removeAnnotation.getVisitor().visit(m, ctx, getCursor().getParentTreeCursor());
             }
 
             private J.MethodDeclaration updateAnnotationVersions(J.MethodDeclaration m, List<String> versions, String annotationType, ExecutionContext ctx) {

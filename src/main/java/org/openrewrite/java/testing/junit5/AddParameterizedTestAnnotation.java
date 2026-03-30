@@ -80,7 +80,7 @@ public class AddParameterizedTestAnnotation extends Recipe {
 
             // Remove @Test annotation if present
             maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
-            return new RemoveAnnotationVisitor(TEST_ANNOTATION_MATCHER).visitMethodDeclaration(m, ctx);
+            return (J.MethodDeclaration) new RemoveAnnotationVisitor(TEST_ANNOTATION_MATCHER).visit(m, ctx, getCursor().getParentTreeCursor());
         }
     }
 }

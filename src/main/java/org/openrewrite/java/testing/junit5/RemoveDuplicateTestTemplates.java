@@ -51,7 +51,7 @@ public class RemoveDuplicateTestTemplates extends Recipe {
             if (m.getLeadingAnnotations().stream().anyMatch(TEST_ANNOTATION_MATCHER::matches) &&
                 m.getLeadingAnnotations().stream().anyMatch(REPEATED_TEST_ANNOTATION_MATCHER::matches)) {
                 maybeRemoveImport("org.junit.jupiter.api.Test");
-                return new RemoveAnnotationVisitor(TEST_ANNOTATION_MATCHER).visitMethodDeclaration(m, ctx);
+                return (J.MethodDeclaration) new RemoveAnnotationVisitor(TEST_ANNOTATION_MATCHER).visit(m, ctx, getCursor().getParentTreeCursor());
             }
             return m;
         }

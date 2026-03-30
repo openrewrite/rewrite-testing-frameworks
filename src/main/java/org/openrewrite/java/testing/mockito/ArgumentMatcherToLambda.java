@@ -26,10 +26,10 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 public class ArgumentMatcherToLambda extends Recipe {
@@ -118,7 +118,7 @@ public class ArgumentMatcherToLambda extends Recipe {
                         J.Lambda.Parameters lambdaParams = new J.Lambda.Parameters(
                                 randomId(), Space.EMPTY, Markers.EMPTY,
                                 false,
-                                Collections.singletonList(JRightPadded.build(lambdaParam))
+                                singletonList(JRightPadded.build(lambdaParam))
                         );
 
                         J.Lambda lambda = new J.Lambda(

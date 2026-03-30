@@ -29,8 +29,9 @@ import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
-import java.util.Collections;
 import java.util.List;
+
+import static java.util.Collections.singletonList;
 
 public class PowerMockRunnerDelegateToRunWith extends Recipe {
 
@@ -74,7 +75,7 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                             maybeRemoveImport(POWER_MOCK_RUNNER_DELEGATE);
                             return cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
                                 if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
-                                    return annotation.withArguments(Collections.singletonList(delegateRunnerArg));
+                                    return annotation.withArguments(singletonList(delegateRunnerArg));
                                 }
                                 if (DELEGATE_MATCHER.matches(annotation)) {
                                     return null;
