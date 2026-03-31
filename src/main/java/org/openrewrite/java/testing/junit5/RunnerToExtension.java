@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -64,23 +63,17 @@ public class RunnerToExtension extends Recipe {
         return Preconditions.check(precondition, new JavaIsoVisitor<ExecutionContext>() {
             private final JavaType.Class extensionType = JavaType.ShallowClass.build(extension);
 
-            @Nullable
-            private JavaTemplate extendsWithTemplate;
-
-            private JavaTemplate getExtendsWithTemplate(ExecutionContext ctx) {
-                if (extendsWithTemplate == null) {
-                    extendsWithTemplate = JavaTemplate.builder("@ExtendWith(#{}.class)")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-jupiter-api-5")
-                                    .dependsOn("package " + extensionType.getPackageName() + ";\n" +
-                                               "import org.junit.jupiter.api.extension.Extension;\n" +
-                                               "public class " + extensionType.getClassName() + " implements Extension {}"))
-                            .imports("org.junit.jupiter.api.extension.ExtendWith",
-                                    "org.junit.jupiter.api.extension.Extension",
-                                    extension)
-                            .build();
-                }
-                return extendsWithTemplate;
+            private JavaTemplate buildExtendsWithTemplate(ExecutionContext ctx) {
+                return JavaTemplate.builder("@ExtendWith(#{}.class)")
+                        .javaParser(JavaParser.fromJavaVersion()
+                                .classpathFromResources(ctx, "junit-jupiter-api-5")
+                                .dependsOn("package " + extensionType.getPackageName() + ";\n" +
+                                           "import org.junit.jupiter.api.extension.Extension;\n" +
+                                           "public class " + extensionType.getClassName() + " implements Extension {}"))
+                        .imports("org.junit.jupiter.api.extension.ExtendWith",
+                                "org.junit.jupiter.api.extension.Extension",
+                                extension)
+                        .build();
             }
 
             @Override
@@ -90,7 +83,7 @@ public class RunnerToExtension extends Recipe {
                 for (String runner : runners) {
                     //noinspection ConstantConditions
                     for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        cd = getExtendsWithTemplate(ctx).apply(
+                        cd = buildExtendsWithTemplate(ctx).apply(
                                 updateCursor(cd),
                                 runWith.getCoordinates().replace(),
                                 extensionType.getClassName()
@@ -111,7 +104,7 @@ public class RunnerToExtension extends Recipe {
 
                 for (String runner : runners) {
                     for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        md = getExtendsWithTemplate(ctx).apply(
+                        md = buildExtendsWithTemplate(ctx).apply(
                                 updateCursor(md),
                                 runWith.getCoordinates().replace(),
                                 extensionType.getClassName()
