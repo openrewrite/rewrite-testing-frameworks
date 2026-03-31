@@ -183,11 +183,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             this.parameterizedTestAnnotationParameters = parameterizedTestAnnotationParameters;
         }
 
-        private static JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-            return JavaParser.fromJavaVersion()
-                    .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5");
-        }
-
         private JavaTemplate buildInitMethodDeclarationTemplate(ExecutionContext ctx) {
             final StringBuilder initMethodTemplate = new StringBuilder("public void ").append(initMethodName).append("() {\n");
             final List<String> initStatementParams = new ArrayList<>();
@@ -208,7 +203,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             initMethodTemplate.append("}");
             return JavaTemplate.builder(initMethodTemplate.toString())
                     .contextSensitive()
-                    .javaParser(javaParser(ctx))
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
                     .build();
         }
 
@@ -306,7 +302,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest(#{any()})" :
                     "@ParameterizedTest";
             JavaTemplate parameterizedTestTemplate = JavaTemplate.builder(parameterizedTestAnnotationTemplate)
-                    .javaParser(javaParser(ctx))
+                    .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build();
             m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
@@ -334,7 +331,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             // Add @MethodSource, insert test init statement, add test method parameters
             if (m.getLeadingAnnotations().stream().anyMatch(PARAMETERIZED_TEST::matches)) {
                 m = JavaTemplate.builder("@MethodSource(\"" + parametersMethodName + "\")")
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
                         .imports("org.junit.jupiter.params.provider.MethodSource")
                         .build()
                         .apply(updateCursor(m),
@@ -343,7 +341,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
                 m = JavaTemplate.builder(initMethodName + "(#{});")
                         .contextSensitive()
-                        .javaParser(javaParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion()
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
                         .build()
                         .apply(updateCursor(m), newStatementCoordinates, initStatementParamString);
                 m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), parameterizedTestMethodParameters.get(parameterizedTestMethodParameters.size() - 1), ctx, getCursor().getParentTreeCursor());
