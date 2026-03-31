@@ -128,9 +128,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                 String mockedClassName = getMockedClassName(mi);
                 if (mockedClassName != null) {
                     String varName = generateMockedVarName(mockedClassName);
-                    J.Assignment assignment = JavaTemplate.builder(varName + " = #{any()}")
-                            .build()
-                            .apply(updateCursor(mi), mi.getCoordinates().replace(), mi);
+                    J.Assignment assignment = JavaTemplate.apply(varName + " = #{any()}", updateCursor(mi), mi.getCoordinates().replace(), mi);
                     boolean isStatic = Boolean.TRUE.equals(getCursor().getNearestMessage("staticMethod"));
                     doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varName, mockedClassName, isStatic));
                     return assignment;

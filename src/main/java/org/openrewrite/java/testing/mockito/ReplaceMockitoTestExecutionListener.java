@@ -121,9 +121,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                     case TESTNG:
                         if (!new MethodAccess.Matcher(OPEN_MOCKS_MATCHER).lower(getCursor()).findFirst().isPresent()) {
                             // Add field at beginning of class body
-                            cd = JavaTemplate.builder("private AutoCloseable mockitoCloseable;")
-                                    .build()
-                                    .apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
+                            cd = JavaTemplate.apply("private AutoCloseable mockitoCloseable;", updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
 
                             // Find first method for initMocks placement
                             J.MethodDeclaration firstMethod = cd.getBody().getStatements().stream()

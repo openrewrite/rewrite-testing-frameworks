@@ -174,9 +174,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                         Cursor blockCursor = new Cursor(getCursor(), body);
                         Cursor c = new Cursor(blockCursor, lambdaStatement);
-                        J.VariableDeclarations varDecl = JavaTemplate.builder("#{} #{} = #{any()};")
-                                .build()
-                                .apply(c, lambdaStatement.getCoordinates().replace(), variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
+                        J.VariableDeclarations varDecl = JavaTemplate.apply("#{} #{} = #{any()};", c, lambdaStatement.getCoordinates().replace(), variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
                         precedingVars.add(varDecl.withPrefix(varPrefix).withType(variableTypeFqn));
                         return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(variableTypeFqn);
                     }));
