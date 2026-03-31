@@ -41,16 +41,6 @@ public class AssertEqualsBooleanToAssertBoolean extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaVisitor<ExecutionContext>() {
 
-            JavaParser.Builder<?, ?> javaParser = null;
-
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-            }
-
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
@@ -79,12 +69,12 @@ public class AssertEqualsBooleanToAssertBoolean extends Recipe {
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
                                 .staticImports(String.format("org.junit.jupiter.api.Assertions.%s", assertMethod))
-                                .javaParser(javaParser(ctx))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
                                 .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(javaParser(ctx))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     }
                     return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);

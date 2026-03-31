@@ -43,16 +43,6 @@ public class AssertEqualsNullToAssertNull extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesMethod<>(ASSERT_EQUALS), new JavaVisitor<ExecutionContext>() {
 
-            JavaParser.Builder<?, ?> javaParser = null;
-
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                if (javaParser == null) {
-                    javaParser = JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5");
-                }
-                return javaParser;
-            }
-
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
@@ -76,12 +66,12 @@ public class AssertEqualsNullToAssertNull extends Recipe {
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertNull");
                         t = JavaTemplate.builder(sb.toString())
                                 .contextSensitive()
-                                .javaParser(javaParser(ctx))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .staticImports("org.junit.jupiter.api.Assertions.assertNull").build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
                                 .contextSensitive()
-                                .javaParser(javaParser(ctx))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .imports("org.junit.jupiter.api.Assertions.assertNull").build();
                     }
                     return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
