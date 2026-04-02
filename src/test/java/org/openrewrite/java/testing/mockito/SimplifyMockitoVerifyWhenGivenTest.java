@@ -255,6 +255,258 @@ class SimplifyMockitoVerifyWhenGivenTest implements RewriteTest {
     }
 
     @Test
+    void shouldRemoveUnnecessaryEqFromInOrderVerify() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.inOrder;
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.ArgumentMatchers.eq;
+              import org.mockito.InOrder;
+
+              class Test {
+                  void test() {
+                      var mockString = mock(String.class);
+                      InOrder inOrder = inOrder(mockString);
+                      inOrder.verify(mockString).replace(eq("foo"), eq("bar"));
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.inOrder;
+              import static org.mockito.Mockito.mock;
+              import org.mockito.InOrder;
+
+              class Test {
+                  void test() {
+                      var mockString = mock(String.class);
+                      InOrder inOrder = inOrder(mockString);
+                      inOrder.verify(mockString).replace("foo", "bar");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotRemoveEqFromInOrderVerifyWhenMixed() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.inOrder;
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.ArgumentMatchers.eq;
+              import static org.mockito.ArgumentMatchers.anyString;
+              import org.mockito.InOrder;
+
+              class Test {
+                  void test() {
+                      var mockString = mock(String.class);
+                      InOrder inOrder = inOrder(mockString);
+                      inOrder.verify(mockString).replace(eq("foo"), anyString());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRemoveUnnecessaryEqFromBDDThenShould() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.BDDMockito.then;
+              import static org.mockito.ArgumentMatchers.eq;
+
+              class Test {
+                  void test() {
+                      var mockString = mock(String.class);
+                      then(mockString).should().replace(eq("foo"), eq("bar"));
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.BDDMockito.then;
+
+              class Test {
+                  void test() {
+                      var mockString = mock(String.class);
+                      then(mockString).should().replace("foo", "bar");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRemoveUnnecessaryEqFromBDDThenShouldWithVerificationMode() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.times;
+              import static org.mockito.BDDMockito.then;
+              import static org.mockito.ArgumentMatchers.eq;
+
+              class Test {
+                  void test() {
+                      var mockString = mock(String.class);
+                      then(mockString).should(times(2)).replace(eq("foo"), eq("bar"));
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.times;
+              import static org.mockito.BDDMockito.then;
+
+              class Test {
+                  void test() {
+                      var mockString = mock(String.class);
+                      then(mockString).should(times(2)).replace("foo", "bar");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRemoveUnnecessaryEqFromBDDWillGiven() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.BDDMockito.willThrow;
+              import static org.mockito.ArgumentMatchers.eq;
+
+              class Test {
+                  void test() {
+                      willThrow(new RuntimeException()).given("foo").substring(eq(1));
+                  }
+              }
+              """,
+            """
+              import static org.mockito.BDDMockito.willThrow;
+
+              class Test {
+                  void test() {
+                      willThrow(new RuntimeException()).given("foo").substring(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRemoveUnnecessaryEqFromMockedStaticWhen() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core-5")),
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.ArgumentMatchers.eq;
+              import org.mockito.MockedStatic;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<String> mocked = mockStatic(String.class)) {
+                          mocked.when(() -> String.valueOf(eq(42))).thenReturn("forty-two");
+                      }
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mockStatic;
+              import org.mockito.MockedStatic;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<String> mocked = mockStatic(String.class)) {
+                          mocked.when(() -> String.valueOf(42)).thenReturn("forty-two");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRemoveUnnecessaryEqFromMockedStaticVerify() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core-5")),
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.ArgumentMatchers.eq;
+              import org.mockito.MockedStatic;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<String> mocked = mockStatic(String.class)) {
+                          mocked.verify(() -> String.valueOf(eq(42)));
+                      }
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.mockStatic;
+              import org.mockito.MockedStatic;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<String> mocked = mockStatic(String.class)) {
+                          mocked.verify(() -> String.valueOf(42));
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotRemoveMixedMatchersFromMockedStaticWhen() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core-5")),
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.ArgumentMatchers.eq;
+              import static org.mockito.ArgumentMatchers.anyInt;
+              import org.mockito.MockedStatic;
+
+              class Foo {
+                  static String bar(int a, int b) { return ""; }
+              }
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<Foo> mocked = mockStatic(Foo.class)) {
+                          mocked.when(() -> Foo.bar(eq(1), anyInt())).thenReturn("one");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void shouldFixSonarExamples() {
         rewriteRun(
           //language=Java
