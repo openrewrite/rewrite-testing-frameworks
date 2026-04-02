@@ -40,6 +40,11 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
     private static final MethodMatcher GIVEN_MATCHER = new MethodMatcher("org.mockito.BDDMockito given(..)");
     private static final MethodMatcher VERIFY_MATCHER = new MethodMatcher("org.mockito.Mockito verify(..)");
     private static final MethodMatcher STUBBER_MATCHER = new MethodMatcher("org.mockito.stubbing.Stubber when(..)");
+    private static final MethodMatcher INORDER_VERIFY_MATCHER = new MethodMatcher("org.mockito.InOrder verify(..)");
+    private static final MethodMatcher BDD_SHOULD_MATCHER = new MethodMatcher("org.mockito.BDDMockito$Then should(..)");
+    private static final MethodMatcher BDD_STUBBER_GIVEN_MATCHER = new MethodMatcher("org.mockito.BDDMockito$BDDStubber given(..)");
+    private static final MethodMatcher MOCKED_STATIC_WHEN_MATCHER = new MethodMatcher("org.mockito.MockedStatic when(..)");
+    private static final MethodMatcher MOCKED_STATIC_VERIFY_MATCHER = new MethodMatcher("org.mockito.MockedStatic verify(..)");
     private static final MethodMatcher EQ_MATCHER = new MethodMatcher("org.mockito.ArgumentMatchers eq(..)");
     private static final MethodMatcher MOCKITO_EQ_MATCHER = new MethodMatcher("org.mockito.Mockito eq(..)");
 
@@ -65,8 +70,24 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
                             updatedArguments.set(0, checkAndUpdateEq((J.MethodInvocation) mi.getArguments().get(0)));
                             mi = mi.withArguments(updatedArguments);
                         } else if (VERIFY_MATCHER.matches(mi.getSelect()) ||
-                                   STUBBER_MATCHER.matches(mi.getSelect())) {
+                                   STUBBER_MATCHER.matches(mi.getSelect()) ||
+                                   INORDER_VERIFY_MATCHER.matches(mi.getSelect()) ||
+                                   BDD_SHOULD_MATCHER.matches(mi.getSelect()) ||
+                                   BDD_STUBBER_GIVEN_MATCHER.matches(mi.getSelect())) {
                             mi = checkAndUpdateEq(mi);
+                        } else if (MOCKED_STATIC_WHEN_MATCHER.matches(mi) || MOCKED_STATIC_VERIFY_MATCHER.matches(mi)) {
+                            Expression firstArg = mi.getArguments().get(0);
+                            if (firstArg instanceof J.Lambda) {
+                                J.Lambda lambda = (J.Lambda) firstArg;
+                                if (lambda.getBody() instanceof J.MethodInvocation) {
+                                    J.MethodInvocation updated = checkAndUpdateEq((J.MethodInvocation) lambda.getBody());
+                                    if (updated != lambda.getBody()) {
+                                        List<Expression> updatedArgs = new ArrayList<>(mi.getArguments());
+                                        updatedArgs.set(0, lambda.withBody(updated));
+                                        mi = mi.withArguments(updatedArgs);
+                                    }
+                                }
+                            }
                         }
 
                         maybeRemoveImport("org.mockito.ArgumentMatchers.eq");
