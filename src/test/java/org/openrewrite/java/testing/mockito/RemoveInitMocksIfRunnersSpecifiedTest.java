@@ -307,6 +307,53 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
     }
 
     @Test
+    void removeEmptyIfBlockAfterRemovingCloseMocks() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.MockitoAnnotations;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void setUp() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  public void tearDown() throws Exception {
+                      if (mocks != null) {
+                          mocks.close();
+                      }
+                  }
+
+                  public void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+
+                  public void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void removeOpenMocksWithFieldAndClose() {
         rewriteRun(
           //language=java
