@@ -141,6 +141,18 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             }
 
                             @Override
+                            public J.@Nullable If visitIf(J.If iff, ExecutionContext ctx) {
+                                J.If i = super.visitIf(iff, ctx);
+                                if (i != iff
+                                    && i.getThenPart() instanceof J.Block
+                                    && ((J.Block) i.getThenPart()).getStatements().isEmpty()
+                                    && i.getElsePart() == null) {
+                                    return null;
+                                }
+                                return i;
+                            }
+
+                            @Override
                             public  J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                                 if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
