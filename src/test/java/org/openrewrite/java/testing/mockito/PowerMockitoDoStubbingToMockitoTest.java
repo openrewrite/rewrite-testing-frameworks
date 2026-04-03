@@ -148,6 +148,48 @@ class PowerMockitoDoStubbingToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void addsCommentForPrivateMethodStubbing() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class MyTest {
+
+                  private Calendar calendarSpy;
+
+                  @BeforeEach
+                  void setUp() throws Exception {
+                      calendarSpy = PowerMockito.spy(Calendar.getInstance());
+                      PowerMockito.doNothing().when(calendarSpy, "updateTime");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class MyTest {
+
+                  private Calendar calendarSpy;
+
+                  @BeforeEach
+                  void setUp() throws Exception {
+                      calendarSpy = PowerMockito.spy(Calendar.getInstance());
+                      // PowerMock private method stubbing is not supported by Mockito. Refactor the private method to package-private or extract to a collaborator.
+                      PowerMockito.doNothing().when(calendarSpy, "updateTime");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doStubbingWithStringMethodNameAndArgs() {
         //language=java
         rewriteRun(
