@@ -180,7 +180,7 @@ class Mockito1to3MigrationTest implements RewriteTest {
               import static org.mockito.ArgumentMatchers.anyList;
               import static org.mockito.ArgumentMatchers.any;
               import static org.mockito.ArgumentMatchers.anyString;
-              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.lenient;
 
               @ExtendWith(MockitoExtension.class)
               class MyTest {
@@ -196,7 +196,7 @@ class Mockito1to3MigrationTest implements RewriteTest {
 
                   @Test
                   void someTest() {
-                      when(subject.someMethod(any(), anyString(), anyList())).thenReturn(false);
+                      lenient().when(subject.someMethod(any(), anyString(), anyList())).thenReturn(false);
                   }
               }
               """
