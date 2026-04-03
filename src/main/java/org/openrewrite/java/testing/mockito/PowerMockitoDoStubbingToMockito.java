@@ -25,14 +25,14 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
+
 import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.openrewrite.java.tree.Flag.Private;
 
 public class PowerMockitoDoStubbingToMockito extends Recipe {
 
@@ -79,6 +79,19 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
 
                         String targetMethodName = (String) ((J.Literal) args.get(1)).getValue();
                         List<Expression> extraArgs = args.subList(2, args.size());
+
+                        // Private methods cannot be stubbed with standard Mockito; leave unchanged and add a comment
+                        JavaType.Method targetMethod = resolveTargetMethod(
+                                firstArg.getType(), targetMethodName, extraArgs.size());
+                        if (targetMethod != null && targetMethod.getFlags().contains(Private)) {
+                            String comment = " PowerMock private method stubbing is not supported by Mockito. Refactor the private method to package-private or extract to a collaborator.";
+                            if (mi.getPrefix().getComments().stream().noneMatch(c -> c.printComment(getCursor()).endsWith(comment.trim()))) {
+                                return mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(
+                                        mi.getPrefix().getComments(),
+                                        new TextComment(false, comment, "\n" + mi.getPrefix().getIndent(), Markers.EMPTY))));
+                            }
+                            return mi;
+                        }
 
                         // Rewrite: doX().when(instance, "method", args...) → doX().when(instance).method(args...)
 
