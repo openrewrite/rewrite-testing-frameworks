@@ -154,13 +154,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              package org.powermock.modules.junit4;
-
-              class PowerMockRunner {}
-              """
-          ),
-          java(
-            """
               import static org.mockito.Mockito.*;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -214,13 +207,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     void thatPowerMockitoIsReplacedInTestNGTests() {
         //language=java
         rewriteRun(
-          java(
-            """
-              package org.powermock.modules.junit4;
-
-              public class PowerMockRunner {}
-              """
-          ),
           java(
             """
               import static org.mockito.Mockito.*;
