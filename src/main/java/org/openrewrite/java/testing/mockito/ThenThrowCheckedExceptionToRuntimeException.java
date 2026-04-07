@@ -28,8 +28,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.openrewrite.internal.ListUtils;
+
 
 public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
     @Getter
@@ -42,6 +42,7 @@ public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
             "does not declare the exception.";
 
     private static final MethodMatcher WHEN_MATCHER = new MethodMatcher("org.mockito.Mockito when(..)");
+    private static final MethodMatcher THEN_THROW_MATCHER = new MethodMatcher("org.mockito.stubbing.OngoingStubbing thenThrow(..)");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -52,17 +53,7 @@ public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
-                        if (!"thenThrow".equals(mi.getSimpleName())) {
-                            return mi;
-                        }
-
-                        JavaType.Method methodType = mi.getMethodType();
-                        if (methodType == null) {
-                            return mi;
-                        }
-
-                        JavaType.FullyQualified declaringType = methodType.getDeclaringType();
-                        if (!TypeUtils.isAssignableTo("org.mockito.stubbing.OngoingStubbing", declaringType)) {
+                        if (!THEN_THROW_MATCHER.matches(mi)) {
                             return mi;
                         }
 
@@ -71,32 +62,22 @@ public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
                             return mi;
                         }
 
-                        List<Expression> newArgs = new ArrayList<>(mi.getArguments());
-                        boolean changed = false;
-                        for (int i = 0; i < newArgs.size(); i++) {
-                            Expression arg = newArgs.get(i);
+                        return mi.withArguments(ListUtils.map(mi.getArguments(), arg -> {
                             if (arg instanceof J.FieldAccess) {
                                 J.FieldAccess fa = (J.FieldAccess) arg;
                                 if ("class".equals(fa.getName().getSimpleName())) {
                                     JavaType exceptionType = fa.getTarget().getType();
-                                    if (isUndeclaredCheckedException(exceptionType, mockedMethodType)) {
-                                        Expression target = fa.getTarget();
-                                        if (target instanceof J.Identifier) {
-                                            J.Identifier newTarget = ((J.Identifier) target)
-                                                    .withSimpleName("RuntimeException")
-                                                    .withType(JavaType.ShallowClass.build("java.lang.RuntimeException"));
-                                            newArgs.set(i, fa.withTarget(newTarget));
-                                            changed = true;
-                                            maybeRemoveImport(((JavaType.FullyQualified) exceptionType).getFullyQualifiedName());
-                                        }
+                                    if (isUndeclaredCheckedException(exceptionType, mockedMethodType) &&
+                                            fa.getTarget() instanceof J.Identifier) {
+                                        maybeRemoveImport(((JavaType.FullyQualified) exceptionType).getFullyQualifiedName());
+                                        return fa.withTarget(((J.Identifier) fa.getTarget())
+                                                .withSimpleName("RuntimeException")
+                                                .withType(JavaType.ShallowClass.build("java.lang.RuntimeException")));
                                     }
                                 }
                             }
-                        }
-                        if (changed) {
-                            return mi.withArguments(newArgs);
-                        }
-                        return mi;
+                            return arg;
+                        }));
                     }
                 }
         );
@@ -124,8 +105,7 @@ public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
                 TypeUtils.isAssignableTo("java.lang.RuntimeException", exceptionType)) {
             return false;
         }
-        List<JavaType> thrownExceptions = mockedMethodType.getThrownExceptions();
-        for (JavaType thrown : thrownExceptions) {
+        for (JavaType thrown : mockedMethodType.getThrownExceptions()) {
             if (thrown instanceof JavaType.FullyQualified &&
                     TypeUtils.isAssignableTo(((JavaType.FullyQualified) thrown).getFullyQualifiedName(), exceptionType)) {
                 return false;
