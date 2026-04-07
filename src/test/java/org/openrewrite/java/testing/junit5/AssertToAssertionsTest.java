@@ -605,6 +605,8 @@ class AssertToAssertionsTest implements RewriteTest {
               import java.util.logging.Level;
               import java.util.logging.Logger;
 
+              import static org.junit.jupiter.api.Assertions.fail;
+
               public class UltimateQuestionTest {
 
                   private static final int THE_ANSWER = 42;
@@ -753,6 +755,8 @@ class AssertToAssertionsTest implements RewriteTest {
               """,
             """
               import org.junit.jupiter.api.Assertions;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
 
               public class UltimateQuestionTest {
 
