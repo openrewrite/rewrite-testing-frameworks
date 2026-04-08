@@ -31,9 +31,21 @@ class MigrateToOracleFreeTest implements RewriteTest {
         spec
           .recipeFromResource("/META-INF/rewrite/testcontainers.yml",
             "org.openrewrite.java.testing.testcontainers.MigrateToOracleFree")
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(
-            new InMemoryExecutionContext(),
-            "oracle-xe", "oracle-free"));
+          .parser(JavaParser.fromJavaVersion()
+            //language=java
+            .dependsOn(
+              """
+                package org.testcontainers.containers;
+                public class OracleContainer {
+                    public OracleContainer(String image) {}
+                }
+                """,
+              """
+                package org.testcontainers.oracle;
+                public class OracleContainer {
+                    public OracleContainer(String image) {}
+                }
+                """));
     }
 
     @DocumentExample
