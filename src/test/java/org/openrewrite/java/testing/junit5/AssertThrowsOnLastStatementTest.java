@@ -898,6 +898,57 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/867")
+    @Test
+    void lastStatementWithFieldAccessArgument() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  static final String HANDLE_FINISHED = "handle_finished";
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          doB(MyTest.HANDLE_FINISHED);
+                      });
+                  }
+
+                  void doA() {}
+                  void doB(String arg) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  static final String HANDLE_FINISHED = "handle_finished";
+
+                  @Test
+                  void test() {
+                      doA();
+                      assertThrows(Exception.class, () ->
+                          doB(MyTest.HANDLE_FINISHED));
+                  }
+
+                  void doA() {}
+                  void doB(String arg) {}
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite/issues/7082")
     @Test
     void lastStatementWithTypeCastArgument() {
