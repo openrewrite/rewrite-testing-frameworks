@@ -276,8 +276,9 @@ class RemoveTestPrefixTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/462")
     @Test
-    void skipImpliedMethodSource() {
+    void renameImpliedMethodSource() {
         //language=java
         rewriteRun(
           java(
@@ -294,6 +295,88 @@ class RemoveTestPrefixTest implements RewriteTest {
                   }
 
                   static Stream<Arguments> testMyDoSomethingLogic() {
+                      return Stream.empty();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.MethodSource;
+              import java.util.stream.Stream;
+
+              class ATest {
+                  @Test
+                  @MethodSource
+                  void myDoSomethingLogic(Arguments args) {
+                  }
+
+                  static Stream<Arguments> myDoSomethingLogic() {
+                      return Stream.empty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/462")
+    @Test
+    void renameImpliedMethodSourceWithoutSourceMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              class ATest {
+                  @Test
+                  @MethodSource
+                  void testMyDoSomethingLogic(Arguments args) {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              class ATest {
+                  @Test
+                  @MethodSource
+                  void myDoSomethingLogic(Arguments args) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/462")
+    @Test
+    void skipImpliedMethodSourceWhenSourceMethodConflicts() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.MethodSource;
+              import java.util.stream.Stream;
+
+              class ATest {
+                  @Test
+                  @MethodSource
+                  void testMyDoSomethingLogic(Arguments args) {
+                  }
+
+                  static Stream<Arguments> testMyDoSomethingLogic() {
+                      return Stream.empty();
+                  }
+
+                  static Stream<Arguments> myDoSomethingLogic() {
                       return Stream.empty();
                   }
               }

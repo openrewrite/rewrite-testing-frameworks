@@ -28,6 +28,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodDeclaration;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -125,11 +126,33 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Skip implied methodSource
+            // Handle implied methodSource: rename both test method and source method
+            boolean hasImpliedMethodSource = false;
             for (J.Annotation annotation : method.getLeadingAnnotations()) {
                 if (ANNOTATION_MATCHER.matches(annotation) &&
                         (annotation.getArguments() == null || annotation.getArguments().isEmpty())) {
-                    return m;
+                    hasImpliedMethodSource = true;
+                    break;
+                }
+            }
+            if (hasImpliedMethodSource) {
+                JavaType.FullyQualified declaringType = type.getDeclaringType();
+                if (declaringType != null) {
+                    for (JavaType.Method declaredMethod : declaringType.getMethods()) {
+                        if (declaredMethod.getName().equals(simpleName) &&
+                                declaredMethod.hasFlags(Flag.Static)) {
+                            // Check for conflict with source method's new name
+                            if (TypeUtils.findDeclaredMethod(declaringType, newMethodName,
+                                    declaredMethod.getParameterTypes()).isPresent()) {
+                                return m;
+                            }
+                            // Rename the source method too
+                            doAfterVisit(new ChangeMethodName(
+                                    MethodMatcher.methodPattern(declaredMethod),
+                                    newMethodName, false, false).getVisitor());
+                            break;
+                        }
+                    }
                 }
             }
 
