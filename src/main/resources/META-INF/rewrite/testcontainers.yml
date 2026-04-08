@@ -16,12 +16,28 @@
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
+displayName: Migrate from `oracle-xe` to `oracle-free`
+description: >-
+  Oracle Database Free is the successor of Oracle XE.
+  Migrate from `org.testcontainers:oracle-xe` to `org.testcontainers:oracle-free`.
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.OracleContainer
+      newFullyQualifiedTypeName: org.testcontainers.oracle.OracleContainer
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: oracle-xe
+      newArtifactId: oracle-free
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
 displayName: Testcontainers best practices
 description: Apply best practices to Testcontainers usage.
 preconditions:
   - org.openrewrite.Singleton
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
   - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 ---
 type: specs.openrewrite.org/v1beta/recipe
