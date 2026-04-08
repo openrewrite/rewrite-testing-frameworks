@@ -73,7 +73,7 @@ public class TestMethodsShouldBeVoid extends Recipe {
                 }
 
                 // Remove return statements that are not in nested classes or lambdas
-                return m.withBody((J.Block) new RemoveDirectReturns().visitBlock(requireNonNull(m.getBody()), ctx));
+                return m.withBody((J.Block) new RemoveDirectReturns().visit(requireNonNull(m.getBody()), ctx, getCursor().getParentTreeCursor()));
             }
         });
     }
