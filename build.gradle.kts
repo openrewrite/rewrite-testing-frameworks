@@ -58,6 +58,8 @@ recipeDependencies {
     testParserClasspath("org.springframework.boot:spring-boot-test:3.2.+")
 
     testParserClasspath("org.testcontainers:nginx:1.+")
+    testParserClasspath("org.testcontainers:oracle-free:1.+")
+    testParserClasspath("org.testcontainers:oracle-xe:1.+")
 
     testParserClasspath("org.testcontainers:testcontainers:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-cassandra:2.0.1")
