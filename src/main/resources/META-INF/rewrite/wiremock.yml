@@ -1,0 +1,55 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
+displayName: Upgrade WireMock to 3.x
+description: >-
+  Migrate WireMock dependencies from the old `com.github.tomakehurst` coordinates to the new
+  `org.wiremock` coordinates. WireMock 3.x changed its Maven coordinates and requires Java 11 or higher.
+  Old 2.x versions contain CVE-2023-44487.
+preconditions:
+  - org.openrewrite.Singleton
+tags:
+  - testing
+  - wiremock
+  - security
+recipeList:
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock
+      newGroupId: org.wiremock
+      newArtifactId: wiremock
+      newVersion: 3.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock-jre8
+      newGroupId: org.wiremock
+      newArtifactId: wiremock
+      newVersion: 3.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock-standalone
+      newGroupId: org.wiremock
+      newArtifactId: wiremock-standalone
+      newVersion: 3.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock-jre8-standalone
+      newGroupId: org.wiremock
+      newArtifactId: wiremock-standalone
+      newVersion: 3.x
