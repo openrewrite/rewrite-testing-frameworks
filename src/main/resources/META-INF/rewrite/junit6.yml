@@ -86,3 +86,4 @@ recipeList:
       propertyKey: junit.jupiter.tempdir.scope
   - org.openrewrite.properties.DeleteProperty:
       propertyKey: junit.jupiter.params.arguments.conversion.locale.format
+  - org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
