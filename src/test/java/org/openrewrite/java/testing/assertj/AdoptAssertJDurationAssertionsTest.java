@@ -277,9 +277,9 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
 
               class Foo {
                   void testMethod(Duration time, int variable) {
-                      assertThat(time).hasHours(19 + 4);
-                      assertThat(time).hasHours(29 - 6);
-                      assertThat(time).hasHours(115 / 5);
+                      assertThat(time).hasHours(19 + 5);
+                      assertThat(time).hasHours(29 - 5);
+                      assertThat(time).hasHours(120 / 5);
                       assertThat(time).hasHours(25);
                       assertThat(time).hasHours(25 * 2);
                       assertThat(time).hasHours(2 * variable);
