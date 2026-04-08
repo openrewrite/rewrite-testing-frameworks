@@ -184,6 +184,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
+  - org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictness
   - org.openrewrite.java.testing.mockito.AddMockitoJupiterDependency
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJupiter
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit4
