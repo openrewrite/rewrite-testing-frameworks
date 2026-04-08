@@ -33,6 +33,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -85,6 +86,12 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
         MethodMatcher assertThatMatcher = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
         MethodMatcher chainedAssertMatcher = new MethodMatcher("java..* " + chainedAssertion + "(..)");
         MethodMatcher assertToReplace = new MethodMatcher("org.assertj.core.api.* " + this.assertToReplace + "(..)");
+        List<MethodMatcher> intermediateMatchers = Arrays.asList(
+                new MethodMatcher("org.assertj.core.api.* as(..)"),
+                new MethodMatcher("org.assertj.core.api.* describedAs(..)"),
+                new MethodMatcher("org.assertj.core.api.* withFailMessage(..)"),
+                new MethodMatcher("org.assertj.core.api.* overridingErrorMessage(..)")
+        );
 
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -96,9 +103,19 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                     return mi;
                 }
 
-                // assertThat has method call
-                J.MethodInvocation assertThat = (J.MethodInvocation) mi.getSelect();
-                if (!assertThatMatcher.matches(assertThat) || !(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
+                // Walk past intermediate methods (as, describedAs, etc.) to find assertThat
+                List<J.MethodInvocation> intermediates = new ArrayList<>();
+                J.MethodInvocation current = (J.MethodInvocation) mi.getSelect();
+                while (!assertThatMatcher.matches(current)) {
+                    if (isIntermediate(current) && current.getSelect() instanceof J.MethodInvocation) {
+                        intermediates.add(current);
+                        current = (J.MethodInvocation) current.getSelect();
+                    } else {
+                        return mi;
+                    }
+                }
+                J.MethodInvocation assertThat = current;
+                if (!(assertThat.getArguments().get(0) instanceof J.MethodInvocation)) {
                     return mi;
                 }
 
@@ -142,11 +159,30 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 arguments.add(actual);
 
                 String template = getStringTemplateAndAppendArguments(assertThatArg, mi, arguments);
-                return JavaTemplate.builder(String.format(template, dedicatedAssertion))
+                J.MethodInvocation result = JavaTemplate.builder(String.format(template, dedicatedAssertion))
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
+
+                // Splice intermediate methods (as, describedAs, etc.) back into the chain
+                if (!intermediates.isEmpty()) {
+                    Expression chain = result.getSelect();
+                    for (int i = intermediates.size() - 1; i >= 0; i--) {
+                        chain = intermediates.get(i).withSelect(chain);
+                    }
+                    result = result.withSelect(chain);
+                }
+                return result;
+            }
+
+            private boolean isIntermediate(J.MethodInvocation method) {
+                for (MethodMatcher matcher : intermediateMatchers) {
+                    if (matcher.matches(method)) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             private String getStringTemplateAndAppendArguments(J.MethodInvocation assertThatArg, J.MethodInvocation methodToReplace, List<Expression> arguments) {
