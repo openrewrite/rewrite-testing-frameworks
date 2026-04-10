@@ -5248,6 +5248,25 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
+examples:
+- description: '`MigrateToOracleFreeTest#changeTypeAndImport`'
+  sources:
+  - before: |
+      import org.testcontainers.containers.OracleContainer;
+
+      class A {
+          private OracleContainer oracle = null;
+      }
+    after: |
+      import org.testcontainers.oracle.OracleContainer;
+
+      class A {
+          private OracleContainer oracle = null;
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
 examples:
 - description: '`TestcontainersBestPracticesTest#getHost`'
@@ -5363,3 +5382,26 @@ examples:
           }
       }
     language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
+examples:
+- description: '`UpgradeWiremockDependencyVersionTest#wiremockJre8ToWiremock`'
+  sources:
+  - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-jre8</artifactId>
+                <version>2.35.1</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
