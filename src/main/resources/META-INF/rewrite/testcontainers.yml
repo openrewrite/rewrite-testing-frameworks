@@ -22,6 +22,10 @@ description: >-
   Oracle Database Free is the successor of Oracle XE.
   Migrate from `org.testcontainers:oracle-xe` to `org.testcontainers:oracle-free`.
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
+      containerClass: org.testcontainers.containers.OracleContainer
+      imagePrefix: "gvenzl/oracle-xe"
+      newImage: "gvenzl/oracle-free:slim"
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.OracleContainer
       newFullyQualifiedTypeName: org.testcontainers.oracle.OracleContainer
