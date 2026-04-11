@@ -119,6 +119,53 @@ class ReplaceContainerImageNameTest implements RewriteTest {
     }
 
     @Test
+    void preservesTagWhenNewImageHasNoTag() {
+        rewriteRun(
+          spec -> spec
+            .recipe(new ReplaceContainerImageName(
+              "org.testcontainers.containers.ClickHouseContainer",
+              "yandex/clickhouse-server",
+              "clickhouse/clickhouse-server"))
+            .parser(JavaParser.fromJavaVersion()
+              //language=java
+              .dependsOn(
+                """
+                  package org.testcontainers.utility;
+                  public class DockerImageName {
+                      public DockerImageName(String image) {}
+                      public static DockerImageName parse(String image) { return new DockerImageName(image); }
+                  }
+                  """,
+                """
+                  package org.testcontainers.containers;
+                  import org.testcontainers.utility.DockerImageName;
+                  public class ClickHouseContainer {
+                      public ClickHouseContainer(DockerImageName image) {}
+                  }
+                  """)),
+          //language=java
+          java(
+            """
+              import org.testcontainers.containers.ClickHouseContainer;
+              import org.testcontainers.utility.DockerImageName;
+
+              class A {
+                  ClickHouseContainer ch = new ClickHouseContainer(DockerImageName.parse("yandex/clickhouse-server:21.8.15"));
+              }
+              """,
+            """
+              import org.testcontainers.containers.ClickHouseContainer;
+              import org.testcontainers.utility.DockerImageName;
+
+              class A {
+                  ClickHouseContainer ch = new ClickHouseContainer(DockerImageName.parse("clickhouse/clickhouse-server:21.8.15"));
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doesNotChangeImageOutsideDockerImageNameParse() {
         rewriteRun(
           //language=java

@@ -44,8 +44,10 @@ public class ReplaceContainerImageName extends Recipe {
     String imagePrefix;
 
     @Option(displayName = "New image",
-            description = "The new Docker image to use, including tag.",
-            example = "apache/kafka-native:3.8.0")
+            description = "The new Docker image to use. When a tag is included (e.g. `apache/kafka-native:4.0.2`), " +
+                          "the entire image string is replaced. When no tag is included (e.g. `clickhouse/clickhouse-server`), " +
+                          "only the image name prefix is replaced and the original tag is preserved.",
+            example = "apache/kafka-native:4.0.2")
     String newImage;
 
     @Override
@@ -88,8 +90,11 @@ public class ReplaceContainerImageName extends Recipe {
                 } else {
                     return l;
                 }
-                return l.withValue(newImage)
-                        .withValueSource("\"" + newImage + "\"");
+                // When newImage has no tag, preserve the original tag
+                String replacement = newImage.contains(":") ?
+                        newImage : newImage + value.substring(imagePrefix.length());
+                return l.withValue(replacement)
+                        .withValueSource("\"" + replacement + "\"");
             }
         });
     }
