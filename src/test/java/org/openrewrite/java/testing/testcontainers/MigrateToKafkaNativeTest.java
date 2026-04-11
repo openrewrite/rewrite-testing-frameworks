@@ -35,7 +35,8 @@ class MigrateToKafkaNativeTest implements RewriteTest {
               """
                 package org.testcontainers.utility;
                 public class DockerImageName {
-                    public static DockerImageName parse(String image) { return new DockerImageName(); }
+                    public DockerImageName(String image) {}
+                    public static DockerImageName parse(String image) { return new DockerImageName(image); }
                 }
                 """,
               """
