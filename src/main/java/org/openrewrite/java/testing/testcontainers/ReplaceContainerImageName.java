@@ -16,8 +16,7 @@
 package org.openrewrite.java.testing.testcontainers;
 
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -25,7 +24,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
-@RequiredArgsConstructor
+@Value
 @EqualsAndHashCode(callSuper = false)
 public class ReplaceContainerImageName extends Recipe {
 
@@ -37,24 +36,28 @@ public class ReplaceContainerImageName extends Recipe {
     @Option(displayName = "Container class",
             description = "The fully qualified name of the container class to match.",
             example = "org.testcontainers.containers.KafkaContainer")
-    private final String containerClass;
+    String containerClass;
 
     @Option(displayName = "Image prefix to match",
             description = "The Docker image prefix to match (e.g. `confluentinc/cp-kafka`).",
             example = "confluentinc/cp-kafka")
-    private final String imagePrefix;
+    String imagePrefix;
 
     @Option(displayName = "New image",
             description = "The new Docker image to use, including tag.",
             example = "apache/kafka-native:3.8.0")
-    private final String newImage;
+    String newImage;
 
-    @Getter
-    final String displayName = "Replace container image name";
+    @Override
+    public String getDisplayName() {
+        return "Replace container image name";
+    }
 
-    @Getter
-    final String description = "Replace a Docker image name in `DockerImageName.parse(image)` or " +
-            "`new DockerImageName(image)` constructor arguments for a specific container class.";
+    @Override
+    public String getDescription() {
+        return "Replace a Docker image name in `DockerImageName.parse(image)` or " +
+               "`new DockerImageName(image)` constructor arguments for a specific container class.";
+    }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
