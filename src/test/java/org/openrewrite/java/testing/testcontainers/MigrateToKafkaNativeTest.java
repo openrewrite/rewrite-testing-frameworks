@@ -74,7 +74,7 @@ class MigrateToKafkaNativeTest implements RewriteTest {
               import org.testcontainers.utility.DockerImageName;
 
               class A {
-                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
               }
               """
           )
@@ -91,7 +91,7 @@ class MigrateToKafkaNativeTest implements RewriteTest {
               import org.testcontainers.utility.DockerImageName;
 
               class A {
-                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
               }
               """,
             """
@@ -99,7 +99,7 @@ class MigrateToKafkaNativeTest implements RewriteTest {
               import org.testcontainers.utility.DockerImageName;
 
               class A {
-                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
               }
               """
           )

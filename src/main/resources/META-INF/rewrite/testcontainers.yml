@@ -44,7 +44,7 @@ recipeList:
   - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
       containerClass: org.testcontainers.containers.KafkaContainer
       imagePrefix: "confluentinc/cp-kafka"
-      newImage: "apache/kafka-native:3.8.0"
+      newImage: "apache/kafka-native:4.0.2"
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.KafkaContainer
       newFullyQualifiedTypeName: org.testcontainers.kafka.KafkaContainer

@@ -30,7 +30,7 @@ class ReplaceContainerImageNameTest implements RewriteTest {
           .recipe(new ReplaceContainerImageName(
             "org.testcontainers.containers.KafkaContainer",
             "confluentinc/cp-kafka",
-            "apache/kafka-native:3.8.0"))
+            "apache/kafka-native:4.0.2"))
           .parser(JavaParser.fromJavaVersion()
             //language=java
             .dependsOn(
@@ -69,7 +69,7 @@ class ReplaceContainerImageNameTest implements RewriteTest {
               import org.testcontainers.utility.DockerImageName;
 
               class A {
-                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
               }
               """
           )
@@ -86,7 +86,7 @@ class ReplaceContainerImageNameTest implements RewriteTest {
               import org.testcontainers.utility.DockerImageName;
 
               class A {
-                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+                  KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
               }
               """
           )
@@ -111,7 +111,7 @@ class ReplaceContainerImageNameTest implements RewriteTest {
               import org.testcontainers.utility.DockerImageName;
 
               class A {
-                  KafkaContainer kafka = new KafkaContainer(new DockerImageName("apache/kafka-native:3.8.0"));
+                  KafkaContainer kafka = new KafkaContainer(new DockerImageName("apache/kafka-native:4.0.2"));
               }
               """
           )
