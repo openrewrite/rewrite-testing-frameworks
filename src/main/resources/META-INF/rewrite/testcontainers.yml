@@ -31,12 +31,28 @@ recipeList:
       newArtifactId: oracle-free
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.MigrateToKafkaNative
+displayName: Migrate to Apache Kafka Native container
+description: >-
+  Replace `confluentinc/cp-kafka` with the much faster `apache/kafka-native` image
+  and migrate from `org.testcontainers.containers.KafkaContainer` to `org.testcontainers.kafka.KafkaContainer`.
+recipeList:
+  - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
+      containerClass: org.testcontainers.containers.KafkaContainer
+      imagePrefix: "confluentinc/cp-kafka"
+      newImage: "apache/kafka-native:3.8.0"
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.KafkaContainer
+      newFullyQualifiedTypeName: org.testcontainers.kafka.KafkaContainer
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
 displayName: Testcontainers best practices
 description: Apply best practices to Testcontainers usage.
 preconditions:
   - org.openrewrite.Singleton
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.MigrateToKafkaNative
   - org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
   - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 ---
