@@ -34,15 +34,26 @@ class MigrateToOracleFreeTest implements RewriteTest {
             //language=java
             .dependsOn(
               """
+                package org.testcontainers.utility;
+                public class DockerImageName {
+                    public DockerImageName(String image) {}
+                    public static DockerImageName parse(String image) { return new DockerImageName(image); }
+                }
+                """,
+              """
                 package org.testcontainers.containers;
+                import org.testcontainers.utility.DockerImageName;
                 public class OracleContainer {
                     public OracleContainer(String image) {}
+                    public OracleContainer(DockerImageName image) {}
                 }
                 """,
               """
                 package org.testcontainers.oracle;
+                import org.testcontainers.utility.DockerImageName;
                 public class OracleContainer {
                     public OracleContainer(String image) {}
+                    public OracleContainer(DockerImageName image) {}
                 }
                 """));
     }
@@ -65,6 +76,31 @@ class MigrateToOracleFreeTest implements RewriteTest {
 
               class A {
                   private OracleContainer oracle = null;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void replaceDockerImage() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testcontainers.containers.OracleContainer;
+              import org.testcontainers.utility.DockerImageName;
+
+              class A {
+                  OracleContainer oracle = new OracleContainer(DockerImageName.parse("gvenzl/oracle-xe:18.4.0-slim"));
+              }
+              """,
+            """
+              import org.testcontainers.oracle.OracleContainer;
+              import org.testcontainers.utility.DockerImageName;
+
+              class A {
+                  OracleContainer oracle = new OracleContainer(DockerImageName.parse("gvenzl/oracle-free:slim"));
               }
               """
           )

@@ -194,10 +194,10 @@ class TestcontainersBestPracticesTest implements RewriteTest {
                   }
                   """,
                 """
-                  import org.testcontainers.cassandra.CassandraContainer;
                   import org.testcontainers.kafka.KafkaContainer;
                   import org.testcontainers.localstack.LocalStackContainer;
                   import org.testcontainers.mysql.MySQLContainer;
+                  import org.testcontainers.cassandra.CassandraContainer;
 
                   class A {
                       private CassandraContainer cassandra = null;
