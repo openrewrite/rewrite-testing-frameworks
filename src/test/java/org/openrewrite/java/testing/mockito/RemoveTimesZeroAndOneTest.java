@@ -96,6 +96,27 @@ class RemoveTimesZeroAndOneTest implements RewriteTest {
     }
 
     @Test
+    void retainVerificationModeIdentifier() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import static org.mockito.Mockito.times;
+              import static org.mockito.Mockito.verify;
+              import org.mockito.verification.VerificationMode;
+
+              class MyTest {
+                  void test(Object myObject, VerificationMode verificationMode) {
+                      myObject.wait();
+                      verify(myObject, verificationMode).wait();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainTimesTwo() {
         rewriteRun(
           //language=Java
