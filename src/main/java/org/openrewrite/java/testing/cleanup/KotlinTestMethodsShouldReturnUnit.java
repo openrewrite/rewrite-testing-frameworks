@@ -104,12 +104,12 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
         }
 
         @Override
-        public J visitReturn(K.Return retrn, ExecutionContext ctx) {
-            Expression returnExpr = retrn.getExpression().getExpression();
+        public J visitReturn(K.Return return_, ExecutionContext ctx) {
+            Expression returnExpr = return_.getExpression().getExpression();
             //noinspection DataFlowIssue
             return returnExpr instanceof Statement ?
                     // Retain any side effects from statements in return expressions
-                    returnExpr.withPrefix(retrn.getPrefix()) :
+                    returnExpr.withPrefix(return_.getPrefix()) :
                     // Remove any other return statements entirely
                     null;
         }
