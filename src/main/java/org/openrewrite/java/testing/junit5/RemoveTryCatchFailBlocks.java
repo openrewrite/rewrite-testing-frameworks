@@ -129,7 +129,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
         private J.MethodInvocation replaceWithAssertDoesNotThrowWithoutStringExpression(ExecutionContext ctx, J.Try try_) {
             maybeAddImport("org.junit.jupiter.api.Assertions");
             maybeRemoveCatchTypes(try_);
-            return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()})")
+            return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()});")
                     .contextSensitive()
                     .imports("org.junit.jupiter.api.Assertions")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
@@ -153,7 +153,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             // Retain the fail(String) call argument
             maybeAddImport("org.junit.jupiter.api.Assertions");
             maybeRemoveCatchTypes(try_);
-            return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()}, #{any(String)})")
+            return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()}, #{any(String)});")
                     .imports("org.junit.jupiter.api.Assertions")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                     .build()
