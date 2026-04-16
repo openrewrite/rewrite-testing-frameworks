@@ -26,6 +26,7 @@ import org.openrewrite.kotlin.KotlinVisitor;
 import org.openrewrite.kotlin.marker.KObject;
 import org.openrewrite.kotlin.marker.SingleExpressionBlock;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.kotlin.tree.KotlinTypeUtils;
 import org.openrewrite.marker.Markers;
 
 import static java.util.Collections.emptyList;
@@ -52,7 +53,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
                 // Skip invalid signatures or already-correct return types
                 JavaType.Method methodType = m.getMethodType();
-                if (m.getBody() == null || methodType == null || TypeUtils.isOfClassType(methodType.getReturnType(), KOTLIN_UNIT.getFullyQualifiedName())) {
+                if (m.getBody() == null || methodType == null || KotlinTypeUtils.isKotlinUnit(methodType.getReturnType())) {
                     return m;
                 }
 
