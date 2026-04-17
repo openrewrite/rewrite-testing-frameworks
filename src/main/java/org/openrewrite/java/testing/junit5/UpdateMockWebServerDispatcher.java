@@ -37,21 +37,22 @@ import java.util.Collections;
 import java.util.List;
 
 public class UpdateMockWebServerDispatcher extends Recipe {
-    private static final String DISPATCHER_FQN = "mockwebserver3.Dispatcher";
-    private static final String RECORDED_REQUEST_FQN = "mockwebserver3.RecordedRequest";
-    private static final String MOCK_RESPONSE_FQN = "mockwebserver3.MockResponse";
-    private static final String MOCK_RESPONSE_BUILDER_FQN = "mockwebserver3.MockResponse$Builder";
+    private static final String OLD_DISPATCHER_FQN = "okhttp3.mockwebserver.Dispatcher";
+    private static final String OLD_RECORDED_REQUEST_FQN = "okhttp3.mockwebserver.RecordedRequest";
+    private static final String OLD_MOCK_RESPONSE_FQN = "okhttp3.mockwebserver.MockResponse";
+    private static final String NEW_MOCK_RESPONSE_FQN = "mockwebserver3.MockResponse";
+    private static final String NEW_MOCK_RESPONSE_BUILDER_FQN = "mockwebserver3.MockResponse$Builder";
 
     @Getter
-    final String displayName = "Restore `MockResponse` return type for `Dispatcher.dispatch()` overrides";
+    final String displayName = "Preserve `MockResponse` return type for `Dispatcher.dispatch()` overrides";
 
     @Getter
     final String description = "In mockwebserver3 5.x, `Dispatcher.dispatch()` returns `MockResponse`, not `MockResponse.Builder`. " +
-            "Undo the blanket `MockResponse` → `MockResponse.Builder` rename for `dispatch()` overrides, and wrap return expressions with `.build()`.";
+            "Pre-pin the return type to `mockwebserver3.MockResponse` and wrap return expressions with `.build()`, so the subsequent blanket `MockResponse` → `Builder` type change leaves `dispatch()` alone.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(DISPATCHER_FQN, false), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(OLD_DISPATCHER_FQN, false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
@@ -62,15 +63,15 @@ public class UpdateMockWebServerDispatcher extends Recipe {
                 if (rte == null) {
                     return m;
                 }
-                if (!TypeUtils.isOfClassType(rte.getType(), MOCK_RESPONSE_BUILDER_FQN.replace('$', '.'))) {
+                if (!TypeUtils.isOfClassType(rte.getType(), OLD_MOCK_RESPONSE_FQN)) {
                     return m;
                 }
 
-                JavaType.Class mockResponseType = JavaType.ShallowClass.build(MOCK_RESPONSE_FQN);
+                JavaType.Class mockResponseType = JavaType.ShallowClass.build(NEW_MOCK_RESPONSE_FQN);
                 JavaType.Method buildMethodType = new JavaType.Method(
                         null,
                         Flag.Public.getBitMask() | Flag.Final.getBitMask(),
-                        JavaType.ShallowClass.build(MOCK_RESPONSE_BUILDER_FQN),
+                        JavaType.ShallowClass.build(NEW_MOCK_RESPONSE_BUILDER_FQN),
                         "build",
                         mockResponseType,
                         (List<String>) null,
@@ -81,19 +82,22 @@ public class UpdateMockWebServerDispatcher extends Recipe {
                         null
                 );
 
-                // Wrap return expressions with .build()
+                // Wrap return expressions with .build(). The outer check already guarantees
+                // this is a dispatch override declared to return old MockResponse — every return
+                // must become a built MockResponse in v5. Expression types may already be partially
+                // retyped to Builder by prior ChangeMethodInvocationReturnType sub-recipes, so we
+                // don't gate on the expression's current type.
                 m = (J.MethodDeclaration) new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.Return visitReturn(J.Return aReturn, ExecutionContext c) {
                         J.Return r = super.visitReturn(aReturn, c);
                         Expression expr = r.getExpression();
-                        if (expr == null || !TypeUtils.isOfClassType(expr.getType(), MOCK_RESPONSE_BUILDER_FQN.replace('$', '.'))) {
+                        if (expr == null) {
                             return r;
                         }
                         J.MethodInvocation wrapped = JavaTemplate
-                                .builder("#{any(" + MOCK_RESPONSE_BUILDER_FQN + ")}.build()")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(c, "mockwebserver3"))
-                                .imports(MOCK_RESPONSE_FQN, MOCK_RESPONSE_FQN + ".Builder")
+                                .builder("#{any(" + OLD_MOCK_RESPONSE_FQN + ")}.build()")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(c, "mockwebserver-4.10", "okhttp-4.10"))
                                 .build()
                                 .apply(new Cursor(getCursor(), expr), expr.getCoordinates().replace(), expr);
                         wrapped = wrapped.withMethodType(buildMethodType)
@@ -102,7 +106,8 @@ public class UpdateMockWebServerDispatcher extends Recipe {
                     }
                 }.visitNonNull(m, ctx, getCursor().getParentTreeCursor());
 
-                // Change return type expression to MockResponse
+                // Pre-pin the return type to mockwebserver3.MockResponse so the blanket
+                // ChangeType(MockResponse -> Builder) that runs next won't match it.
                 J.Identifier newReturnType = new J.Identifier(
                         Tree.randomId(),
                         rte.getPrefix(),
@@ -119,7 +124,7 @@ public class UpdateMockWebServerDispatcher extends Recipe {
                     m = m.withMethodType(updatedMethodType)
                             .withName(m.getName().withType(updatedMethodType));
                 }
-                maybeAddImport(MOCK_RESPONSE_FQN);
+                maybeAddImport(NEW_MOCK_RESPONSE_FQN);
                 return m;
             }
 
@@ -132,7 +137,7 @@ public class UpdateMockWebServerDispatcher extends Recipe {
                     return false;
                 }
                 JavaType.FullyQualified p = TypeUtils.asFullyQualified(mt.getParameterTypes().get(0));
-                return p != null && RECORDED_REQUEST_FQN.equals(p.getFullyQualifiedName());
+                return p != null && OLD_RECORDED_REQUEST_FQN.equals(p.getFullyQualifiedName());
             }
         });
     }
