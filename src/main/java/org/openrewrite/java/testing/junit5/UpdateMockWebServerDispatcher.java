@@ -24,6 +24,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.Flag;
@@ -40,6 +41,8 @@ public class UpdateMockWebServerDispatcher extends Recipe {
     private static final String OLD_MOCK_RESPONSE_FQN = "okhttp3.mockwebserver.MockResponse";
     private static final String NEW_MOCK_RESPONSE_FQN = "mockwebserver3.MockResponse";
     private static final String NEW_MOCK_RESPONSE_BUILDER_FQN = "mockwebserver3.MockResponse$Builder";
+    private static final MethodMatcher DISPATCH_MATCHER = new MethodMatcher(
+            OLD_DISPATCHER_FQN + " dispatch(" + OLD_RECORDED_REQUEST_FQN + ")", true);
 
     @Getter
     final String displayName = "Preserve `MockResponse` return type for `Dispatcher.dispatch()` overrides";
@@ -54,7 +57,7 @@ public class UpdateMockWebServerDispatcher extends Recipe {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                if (!isDispatchOverride(m)) {
+                if (!DISPATCH_MATCHER.matches(m.getMethodType())) {
                     return m;
                 }
                 TypeTree rte = m.getReturnTypeExpression();
@@ -122,17 +125,6 @@ public class UpdateMockWebServerDispatcher extends Recipe {
                 return m;
             }
 
-            private boolean isDispatchOverride(J.MethodDeclaration m) {
-                if (!"dispatch".equals(m.getSimpleName())) {
-                    return false;
-                }
-                JavaType.Method mt = m.getMethodType();
-                if (mt == null || mt.getParameterTypes().size() != 1) {
-                    return false;
-                }
-                JavaType.FullyQualified p = TypeUtils.asFullyQualified(mt.getParameterTypes().get(0));
-                return p != null && OLD_RECORDED_REQUEST_FQN.equals(p.getFullyQualifiedName());
-            }
         });
     }
 }
