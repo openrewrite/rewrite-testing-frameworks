@@ -20,7 +20,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -33,7 +32,6 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.Collections;
 import java.util.List;
 
 public class UpdateMockWebServerDispatcher extends Recipe {
@@ -108,16 +106,12 @@ public class UpdateMockWebServerDispatcher extends Recipe {
 
                 // Pre-pin the return type to mockwebserver3.MockResponse so the blanket
                 // ChangeType(MockResponse -> Builder) that runs next won't match it.
-                J.Identifier newReturnType = new J.Identifier(
-                        Tree.randomId(),
-                        rte.getPrefix(),
-                        rte.getMarkers(),
-                        Collections.emptyList(),
-                        "MockResponse",
-                        mockResponseType,
-                        null
-                );
-                m = m.withReturnTypeExpression(newReturnType);
+                m = JavaTemplate.builder("MockResponse")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
+                        .imports(NEW_MOCK_RESPONSE_FQN)
+                        .build()
+                        .apply(new Cursor(getCursor().getParentOrThrow(), m),
+                                ((Expression) m.getReturnTypeExpression()).getCoordinates().replace());
                 JavaType.Method methodType = m.getMethodType();
                 if (methodType != null) {
                     JavaType.Method updatedMethodType = methodType.withReturnType(mockResponseType);
