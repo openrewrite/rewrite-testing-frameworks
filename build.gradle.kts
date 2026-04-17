@@ -83,6 +83,7 @@ dependencies {
     compileOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
     compileOnly("org.assertj:assertj-core:3.27.7")
     compileOnly("junit:junit:4.13.2")
+    compileOnly("org.apiguardian:apiguardian-api:1.1.2")
 
     compileOnly("org.projectlombok:lombok:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
