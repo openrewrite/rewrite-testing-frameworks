@@ -151,6 +151,65 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
     }
 
     @Test
+    void dispatcherReturnTypeAndGetPathRename() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import okhttp3.mockwebserver.Dispatcher;
+              import okhttp3.mockwebserver.MockResponse;
+              import okhttp3.mockwebserver.MockWebServer;
+              import okhttp3.mockwebserver.RecordedRequest;
+
+              class A {
+                  void configure() {
+                      MockWebServer mockRepo = new MockWebServer();
+                      mockRepo.setDispatcher(new Dispatcher() {
+                          @Override
+                          public MockResponse dispatch(RecordedRequest request) {
+                              String path = request.getPath();
+                              if (path == null) {
+                                  return new MockResponse().setResponseCode(404);
+                              }
+                              if ("/".equals(path)) {
+                                  return new MockResponse().setResponseCode(200);
+                              }
+                              return new MockResponse().setResponseCode(404);
+                          }
+                      });
+                  }
+              }
+              """,
+            """
+              import mockwebserver3.MockResponse;
+              import mockwebserver3.Dispatcher;
+              import mockwebserver3.MockWebServer;
+              import mockwebserver3.RecordedRequest;
+
+              class A {
+                  void configure() {
+                      MockWebServer mockRepo = new MockWebServer();
+                      mockRepo.setDispatcher(new Dispatcher() {
+                          @Override
+                          public MockResponse dispatch(RecordedRequest request) {
+                              String path = request.getTarget();
+                              if (path == null) {
+                                  return new MockResponse.Builder().code(404).build();
+                              }
+                              if ("/".equals(path)) {
+                                  return new MockResponse.Builder().code(200).build();
+                              }
+                              return new MockResponse.Builder().code(404).build();
+                          }
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void verifyMockResponseToBuilderMethodCoverage() {
         rewriteRun(
           //language=java

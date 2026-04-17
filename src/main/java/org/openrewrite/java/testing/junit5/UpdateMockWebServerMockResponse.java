@@ -103,8 +103,11 @@ public class UpdateMockWebServerMockResponse extends Recipe {
             recipes.add(new ChangeMethodInvocationReturnType(methodPattern, NEW_MOCKRESPONSE_FQN_BUILDER.replace("$", ".")));
             recipes.add(new ChangeMethodName(methodPattern, rep.getValue(), true, false));
         }
+        recipes.add(new ChangeMethodName("okhttp3.mockwebserver.RecordedRequest getPath()", "getTarget", true, false));
+        recipes.add(new ChangeMethodName("okhttp3.mockwebserver.RecordedRequest getRequestUrl()", "getUrl", true, false));
         recipes.add(new ChangeType(OLD_MOCKRESPONSE_FQN, NEW_MOCKRESPONSE_FQN_BUILDER, true));
         recipes.add(new ChangePackage("okhttp3.mockwebserver", "mockwebserver3", false));
+        recipes.add(new UpdateMockWebServerDispatcher());
         return recipes;
     }
 }
