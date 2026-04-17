@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.search.UsesType;
@@ -105,7 +106,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
         }
 
         @Override
-        public J visitReturn(K.Return return_, ExecutionContext ctx) {
+        public @Nullable J visitReturn(K.Return return_, ExecutionContext ctx) {
             Expression returnExpr = return_.getExpression().getExpression();
             //noinspection DataFlowIssue
             return returnExpr instanceof Statement ?

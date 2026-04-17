@@ -5248,6 +5248,27 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.MigrateToKafkaNative
+examples:
+- description: '`MigrateToKafkaNativeTest#migrateToKafkaNative`'
+  sources:
+  - before: |
+      import org.testcontainers.containers.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.3"));
+      }
+    after: |
+      import org.testcontainers.kafka.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
 examples:
 - description: '`MigrateToOracleFreeTest#changeTypeAndImport`'
@@ -5263,6 +5284,31 @@ examples:
 
       class A {
           private OracleContainer oracle = null;
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName
+examples:
+- description: '`ReplaceContainerImageNameTest#replaceConfluentWithKafkaNative`'
+  parameters:
+  - org.testcontainers.containers.KafkaContainer
+  - confluentinc/cp-kafka
+  - apache/kafka-native:4.0.2
+  sources:
+  - before: |
+      import org.testcontainers.containers.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.3"));
+      }
+    after: |
+      import org.testcontainers.containers.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
       }
     language: java
 ---

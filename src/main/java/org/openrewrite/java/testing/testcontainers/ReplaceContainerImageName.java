@@ -50,16 +50,10 @@ public class ReplaceContainerImageName extends Recipe {
             example = "apache/kafka-native:4.0.2")
     String newImage;
 
-    @Override
-    public String getDisplayName() {
-        return "Replace container image name";
-    }
+    String displayName = "Replace container image name";
 
-    @Override
-    public String getDescription() {
-        return "Replace a Docker image name in `DockerImageName.parse(image)` or " +
-               "`new DockerImageName(image)` constructor arguments for a specific container class.";
-    }
+    String description = "Replace a Docker image name in `DockerImageName.parse(image)` or " +
+            "`new DockerImageName(image)` constructor arguments for a specific container class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
