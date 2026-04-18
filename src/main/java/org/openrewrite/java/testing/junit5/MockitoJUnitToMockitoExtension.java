@@ -36,6 +36,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -95,38 +96,34 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 maybeRemoveImport("org.mockito.junit.MockitoJUnit");
                 maybeRemoveImport("org.mockito.quality.Strictness");
 
-                //noinspection DataFlowIssue
-                if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size()) {
-                    boolean hasRunWith = !FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty();
-                    boolean hasExtendWith = !FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty();
+                // Replace RunWith with ExtendsWith, optionally adding MockitoSettings if not already configured
+                if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size() &&
+                        FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty()) {
                     String strictness = getCursor().pollMessage(STRICTNESS_KEY);
-
-                    if (!hasRunWith && !hasExtendWith) {
-                        cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "mockito-junit-jupiter-3.12"))
-                                .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
-                                .build()
-                                .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-
-                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
-                        maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
-                    }
-
                     if (strictness == null) {
                         // As we are in a Rule, and rules where always warn by default,
                         // we cannot use junit5 Strictness.STRICT_STUBS during migration
                         strictness = "Strictness.WARN";
                     }
-                    if (!hasRunWith && !strictness.contains("STRICT_STUBS")) {
+                    if (!strictness.contains("STRICT_STUBS")) {
+                        maybeAddImport("org.mockito.junit.jupiter.MockitoSettings");
+                        maybeAddImport("org.mockito.quality.Strictness");
                         cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx, "junit-jupiter-api-5", "mockito-junit-jupiter-3.12", "mockito-core-3.12"))
                                 .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
                                 .build()
-                                .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-                        maybeAddImport("org.mockito.junit.jupiter.MockitoSettings");
-                        maybeAddImport("org.mockito.quality.Strictness");
+                                .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                    }
+                    if (FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty()) {
+                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
+                        maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
+                        cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "mockito-junit-jupiter-3.12"))
+                                .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
+                                .build()
+                                .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                     }
                 }
             }
