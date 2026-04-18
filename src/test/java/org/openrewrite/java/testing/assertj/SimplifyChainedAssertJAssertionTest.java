@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.assertj;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -62,7 +61,6 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
         );
     }
 
-    @Disabled(".as(reason) is not yet supported")
     @Test
     void stringIsEmptyDescribedAs() {
         rewriteRun(
@@ -84,6 +82,94 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               class MyTest {
                   void testMethod(String actual) {
                       assertThat(actual).as("Reason").isEmpty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void collectionSizeWithAs() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("size", "isEqualTo", "hasSize", "java.util.Collection")),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list) {
+                      assertThat(list.size()).as("Expected size to match").isEqualTo(5);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list) {
+                      assertThat(list).as("Expected size to match").hasSize(5);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void stringIsEmptyWithDescribedAs() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.lang.String")),
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(String actual) {
+                      assertThat(actual.isEmpty()).describedAs("Reason").isTrue();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(String actual) {
+                      assertThat(actual).describedAs("Reason").isEmpty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void multipleIntermediates() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.lang.String")),
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(String actual) {
+                      assertThat(actual.isEmpty()).as("check").withFailMessage("failed").isTrue();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(String actual) {
+                      assertThat(actual).as("check").withFailMessage("failed").isEmpty();
                   }
               }
               """

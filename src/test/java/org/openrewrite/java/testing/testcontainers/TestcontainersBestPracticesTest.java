@@ -26,7 +26,7 @@ import org.openrewrite.test.RewriteTest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -138,7 +138,7 @@ class TestcontainersBestPracticesTest implements RewriteTest {
                   """,
                 spec -> spec.after(after -> {
                     Matcher matcher = Pattern.compile("<version>(2\\.\\d+\\.\\d+)</version>").matcher(after);
-                    assertTrue(matcher.find());
+                    assertThat(matcher.find()).isTrue();
                     String afterVersion = matcher.group(1);
                     //language=xml
                     return """
@@ -194,10 +194,10 @@ class TestcontainersBestPracticesTest implements RewriteTest {
                   }
                   """,
                 """
-                  import org.testcontainers.cassandra.CassandraContainer;
                   import org.testcontainers.kafka.KafkaContainer;
                   import org.testcontainers.localstack.LocalStackContainer;
                   import org.testcontainers.mysql.MySQLContainer;
+                  import org.testcontainers.cassandra.CassandraContainer;
 
                   class A {
                       private CassandraContainer cassandra = null;

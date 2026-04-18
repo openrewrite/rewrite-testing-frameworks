@@ -16,12 +16,48 @@
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
+displayName: Migrate from `oracle-xe` to `oracle-free`
+description: >-
+  Oracle Database Free is the successor of Oracle XE.
+  Migrate from `org.testcontainers:oracle-xe` to `org.testcontainers:oracle-free`.
+recipeList:
+  - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
+      containerClass: org.testcontainers.containers.OracleContainer
+      imagePrefix: "gvenzl/oracle-xe"
+      newImage: "gvenzl/oracle-free:slim"
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.OracleContainer
+      newFullyQualifiedTypeName: org.testcontainers.oracle.OracleContainer
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.testcontainers
+      oldArtifactId: oracle-xe
+      newArtifactId: oracle-free
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.MigrateToKafkaNative
+displayName: Migrate to Apache Kafka Native container
+description: >-
+  Replace `confluentinc/cp-kafka` with the much faster `apache/kafka-native` image
+  and migrate from `org.testcontainers.containers.KafkaContainer` to `org.testcontainers.kafka.KafkaContainer`.
+recipeList:
+  - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
+      containerClass: org.testcontainers.containers.KafkaContainer
+      imagePrefix: "confluentinc/cp-kafka"
+      newImage: "apache/kafka-native:4.0.2"
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testcontainers.containers.KafkaContainer
+      newFullyQualifiedTypeName: org.testcontainers.kafka.KafkaContainer
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.TestContainersBestPractices
 displayName: Testcontainers best practices
 description: Apply best practices to Testcontainers usage.
 preconditions:
   - org.openrewrite.Singleton
 recipeList:
+  - org.openrewrite.java.testing.testcontainers.MigrateToKafkaNative
+  - org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
   - org.openrewrite.java.testing.testcontainers.Testcontainers2Migration
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -64,6 +100,10 @@ recipeList:
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.ClickHouseContainer
       image: "yandex/clickhouse-server:18.10.3"
+  - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
+      containerClass: org.testcontainers.containers.ClickHouseContainer
+      imagePrefix: "yandex/clickhouse-server"
+      newImage: "clickhouse/clickhouse-server"
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.CockroachContainer
       image: "cockroachdb/cockroach:v19.2.11"
@@ -118,9 +158,17 @@ recipeList:
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.ToxiproxyContainer
       image: "shopify/toxiproxy:2.1.0"
+  - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
+      containerClass: org.testcontainers.containers.ToxiproxyContainer
+      imagePrefix: "shopify/toxiproxy"
+      newImage: "ghcr.io/shopify/toxiproxy"
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.vault.VaultContainer
       image: "vault:1.1.3"
+  - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
+      containerClass: org.testcontainers.vault.VaultContainer
+      imagePrefix: "vault:"
+      newImage: "hashicorp/vault"
   # The following require a call to `DockerImageName.parse(image)`
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImage:
       containerClass: org.testcontainers.containers.KafkaContainer

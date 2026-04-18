@@ -25,7 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-@SuppressWarnings({"NumericOverflow", "divzero", "TryWithIdenticalCatches"})
+@SuppressWarnings({"NumericOverflow", "divzero", "TryWithIdenticalCatches", "ExcessiveLambdaUsage", "Convert2Lambda", "WrapperTypeMayBePrimitive", "RedundantThrows", "CodeBlock2Expr", "Convert2MethodRef"})
 class RemoveTryCatchFailBlocksTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
@@ -746,6 +746,68 @@ class RemoveTryCatchFailBlocksTest implements RewriteTest {
                   private class SubClass {
                     public void xyz() {
                     }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void tryCatchInsideLambda() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.io.IOException;
+              import java.util.function.Consumer;
+
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      run(o -> {
+                          try {
+                              doStuff();
+                          } catch (IOException | IllegalStateException e) {
+                              fail(e);
+                          }
+                      });
+                  }
+
+                  void run(Consumer<Object> c) {
+                      c.accept(null);
+                  }
+
+                  void doStuff() throws IOException {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+
+              import java.io.IOException;
+              import java.util.function.Consumer;
+
+              class MyTest {
+                  @Test
+                  public void testMethod() {
+                      run(o -> {
+                          Assertions.assertDoesNotThrow(() -> {
+                              doStuff();
+                          });
+                      });
+                  }
+
+                  void run(Consumer<Object> c) {
+                      c.accept(null);
+                  }
+
+                  void doStuff() throws IOException {
                   }
               }
               """

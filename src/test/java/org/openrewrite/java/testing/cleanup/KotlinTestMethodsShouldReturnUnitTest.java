@@ -25,6 +25,7 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
+@SuppressWarnings("ControlFlowWithEmptyBody")
 class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
 
     @Override
@@ -313,7 +314,7 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Test
 
               class ATest {
                   @Test

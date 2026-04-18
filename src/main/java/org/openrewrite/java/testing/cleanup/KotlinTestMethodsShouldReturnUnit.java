@@ -27,6 +27,7 @@ import org.openrewrite.kotlin.KotlinVisitor;
 import org.openrewrite.kotlin.marker.KObject;
 import org.openrewrite.kotlin.marker.SingleExpressionBlock;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.kotlin.tree.KotlinTypeUtils;
 import org.openrewrite.marker.Markers;
 
 import static java.util.Collections.emptyList;
@@ -53,7 +54,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
                 // Skip invalid signatures or already-correct return types
                 JavaType.Method methodType = m.getMethodType();
-                if (m.getBody() == null || methodType == null || TypeUtils.isOfType(methodType.getReturnType(), KOTLIN_UNIT)) {
+                if (m.getBody() == null || methodType == null || KotlinTypeUtils.isKotlinUnit(methodType.getReturnType())) {
                     return m;
                 }
 
@@ -67,7 +68,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
                 m = m.withMethodType(newMethodType).withName(m.getName().withType(newMethodType));
 
                 // Add an explicit Unit return type
-                if (m.getBody().getMarkers().findFirst(SingleExpressionBlock.class).isPresent()) {
+                if (m.getBody() != null && m.getBody().getMarkers().findFirst(SingleExpressionBlock.class).isPresent()) {
                     return m.withReturnTypeExpression(new J.Identifier(
                             Tree.randomId(),
                             Space.SINGLE_SPACE,
@@ -105,11 +106,12 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
         }
 
         @Override
-        public @Nullable J visitReturn(K.Return retrn, ExecutionContext ctx) {
-            Expression returnExpr = retrn.getExpression().getExpression();
+        public @Nullable J visitReturn(K.Return return_, ExecutionContext ctx) {
+            Expression returnExpr = return_.getExpression().getExpression();
+            //noinspection DataFlowIssue
             return returnExpr instanceof Statement ?
                     // Retain any side effects from statements in return expressions
-                    returnExpr.withPrefix(retrn.getPrefix()) :
+                    returnExpr.withPrefix(return_.getPrefix()) :
                     // Remove any other return statements entirely
                     null;
         }

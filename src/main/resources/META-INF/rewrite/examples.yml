@@ -1203,6 +1203,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertEqualsIntegralDeltaToAssertEquals
+examples:
+- description: '`AssertEqualsIntegralDeltaToAssertEqualsTest#removeIntDelta`'
+  sources:
+  - before: |
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      public class Test {
+          void test() {
+              assertEquals(1, 2, 0);
+          }
+      }
+    after: |
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      public class Test {
+          void test() {
+              assertEquals(1, 2);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
 examples:
 - description: '`AssertLiteralBooleanRemovedTest#assertWithStaticImports`'
@@ -4722,6 +4745,43 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
+examples:
+- description: '`PowerMockitoDoStubbingToMockitoTest#doNothingWithStringMethodName`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.BeforeEach;
+      import org.powermock.api.mockito.PowerMockito;
+      import java.util.Calendar;
+
+      class MyTest {
+
+          private Calendar calendarSpy;
+
+          @BeforeEach
+          void setUp() throws Exception {
+              calendarSpy = PowerMockito.spy(Calendar.getInstance());
+              PowerMockito.doNothing().when(calendarSpy, "clear");
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.BeforeEach;
+      import org.powermock.api.mockito.PowerMockito;
+      import java.util.Calendar;
+
+      class MyTest {
+
+          private Calendar calendarSpy;
+
+          @BeforeEach
+          void setUp() throws Exception {
+              calendarSpy = PowerMockito.spy(Calendar.getInstance());
+              PowerMockito.doNothing().when(calendarSpy).clear();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
 examples:
 - description: '`PowerMockitoMockStaticToMockitoTest#prepareForTestAnnotationIsReplacedBySingleField`'
@@ -4773,6 +4833,53 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.RemoveDoNothingForDefaultMocks
+examples:
+- description: '`RemoveDoNothingForDefaultMocksTest#removesDoNothingOnMockVoidMethod`'
+  sources:
+  - before: |
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import org.mockito.Mock;
+      import org.mockito.junit.MockitoJUnitRunner;
+      import java.io.BufferedWriter;
+      import java.io.IOException;
+
+      import static org.mockito.Mockito.doNothing;
+      import static org.mockito.ArgumentMatchers.anyString;
+
+      @RunWith(MockitoJUnitRunner.class)
+      class MyTest {
+          @Mock
+          private BufferedWriter bufferedWriter;
+
+          @Test
+          public void test() throws IOException {
+              doNothing().when(bufferedWriter).write(anyString());
+          }
+      }
+    after: |
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import org.mockito.Mock;
+      import org.mockito.junit.MockitoJUnitRunner;
+      import java.io.BufferedWriter;
+      import java.io.IOException;
+
+      import static org.mockito.ArgumentMatchers.anyString;
+
+      @RunWith(MockitoJUnitRunner.class)
+      class MyTest {
+          @Mock
+          private BufferedWriter bufferedWriter;
+
+          @Test
+          public void test() throws IOException {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.RemoveInitMocksIfRunnersSpecified
 examples:
 - description: '`RemoveInitMocksIfRunnersSpecifiedTest#removeInitMocksInJUnit5`'
@@ -4804,6 +4911,24 @@ examples:
           public void test() {
           }
       }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.RemovePowerMockClassExtensions
+examples:
+- description: '`RemovePowerMockClassExtensionsTest#extensionOfPowerMockTestCaseGetsRemoved`'
+  sources:
+  - before: |
+      import org.powermock.modules.testng.PowerMockTestCase;
+
+      public class MyPowerMockTestCase extends PowerMockTestCase {}
+    after: |
+      public class MyPowerMockTestCase {}
+    language: java
+  - before: |
+      package org.powermock.modules.testng;
+
+      public class PowerMockTestCase {}
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
@@ -5029,6 +5154,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.ThenThrowCheckedExceptionToRuntimeException
+examples:
+- description: '`ThenThrowCheckedExceptionToRuntimeExceptionTest#replacesUndeclaredCheckedExceptionWithRuntimeException`'
+  sources:
+  - before: |
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          void test(MyService service) {
+              when(service.execute("a", "b")).thenThrow(Exception.class);
+          }
+      }
+    after: |
+      import static org.mockito.Mockito.when;
+
+      class MyTest {
+          void test(MyService service) {
+              when(service.execute("a", "b")).thenThrow(RuntimeException.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.VerifyZeroToNoMoreInteractions
 examples:
 - description: '`VerifyZeroToNoMoreInteractionsTest#shouldReplaceToNoMoreInteractions`'
@@ -5096,6 +5244,71 @@ examples:
       import org.testcontainers.containers.NginxContainer;
       class Foo {
           NginxContainer container = new NginxContainer("nginx:1.9.4");
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.MigrateToKafkaNative
+examples:
+- description: '`MigrateToKafkaNativeTest#migrateToKafkaNative`'
+  sources:
+  - before: |
+      import org.testcontainers.containers.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.3"));
+      }
+    after: |
+      import org.testcontainers.kafka.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.MigrateToOracleFree
+examples:
+- description: '`MigrateToOracleFreeTest#changeTypeAndImport`'
+  sources:
+  - before: |
+      import org.testcontainers.containers.OracleContainer;
+
+      class A {
+          private OracleContainer oracle = null;
+      }
+    after: |
+      import org.testcontainers.oracle.OracleContainer;
+
+      class A {
+          private OracleContainer oracle = null;
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName
+examples:
+- description: '`ReplaceContainerImageNameTest#replaceConfluentWithKafkaNative`'
+  parameters:
+  - org.testcontainers.containers.KafkaContainer
+  - confluentinc/cp-kafka
+  - apache/kafka-native:4.0.2
+  sources:
+  - before: |
+      import org.testcontainers.containers.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.3"));
+      }
+    after: |
+      import org.testcontainers.containers.KafkaContainer;
+      import org.testcontainers.utility.DockerImageName;
+
+      class A {
+          KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:4.0.2"));
       }
     language: java
 ---
@@ -5215,3 +5428,26 @@ examples:
           }
       }
     language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
+examples:
+- description: '`UpgradeWiremockDependencyVersionTest#wiremockJre8ToWiremock`'
+  sources:
+  - before: |
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <dependencies>
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-jre8</artifactId>
+                <version>2.35.1</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+      </project>
+    path: pom.xml
+    language: xml

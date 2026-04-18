@@ -100,6 +100,69 @@ class AnyToNullableTest implements RewriteTest {
     }
 
     @Test
+    void shouldNotRemoveAnyImportWhenUntypedAnyIsStillUsed() {
+        //language=java
+        rewriteRun(
+          //language=xml
+          pomXml(
+                """
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>foo</artifactId>
+                <version>1.0.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-all</artifactId>
+                        <version>1.10.19</version>
+                    </dependency>
+                </dependencies>
+            </project>
+            """
+          ),
+          //language=java
+          java(
+                """
+            class Example {
+                String greet(Object obj, Object obj2) {
+                    return "Hello " + obj + obj2;
+                }
+            }
+            """
+          ),
+          //language=java
+          java(
+            """
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.any;
+
+              class MyTest {
+                   void test() {
+                      Example example = mock(Example.class);
+                      when(example.greet(any(Object.class), any())).thenReturn("Hello world");
+                   }
+              }
+              """,
+            """
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.nullable;
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+
+              class MyTest {
+                   void test() {
+                      Example example = mock(Example.class);
+                      when(example.greet(nullable(Object.class), any())).thenReturn("Hello world");
+                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doesNotTouchIfMockitoTwoPlus() {
         //language=java
         rewriteRun(
