@@ -29,6 +29,8 @@ import org.openrewrite.java.tree.J;
 
 import java.util.Comparator;
 
+import static java.util.Comparator.comparing;
+
 public class AddMockitoSettingsWithWarnStrictness extends Recipe {
 
     @Getter
@@ -55,15 +57,14 @@ public class AddMockitoSettingsWithWarnStrictness extends Recipe {
 
                         if (!FindAnnotations.find(cd.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty() &&
                             FindAnnotations.find(cd.withBody(null), MOCKITO_SETTINGS).isEmpty()) {
-                            cd = JavaTemplate.builder("@MockitoSettings(strictness = Strictness.WARN)")
+                            maybeAddImport("org.mockito.junit.jupiter.MockitoSettings");
+                            maybeAddImport("org.mockito.quality.Strictness");
+                            return JavaTemplate.builder("@MockitoSettings(strictness = Strictness.WARN)")
                                     .javaParser(JavaParser.fromJavaVersion()
                                             .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12"))
                                     .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
                                     .build()
-                                    .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(
-                                            Comparator.comparing(J.Annotation::getSimpleName)));
-                            maybeAddImport("org.mockito.junit.jupiter.MockitoSettings");
-                            maybeAddImport("org.mockito.quality.Strictness");
+                                    .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                         }
 
                         return cd;
