@@ -183,6 +183,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.MockUtilsToStatic
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
+  - org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictnessForLegacyMockito
   - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
   - org.openrewrite.java.testing.mockito.AddMockitoJupiterDependency
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJupiter
@@ -206,6 +207,22 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito anyObject()
       newMethodName: any
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictnessForLegacyMockito
+displayName: Add `@MockitoSettings(strictness = Strictness.WARN)` for legacy Mockito modules
+description: >-
+  Adds `@MockitoSettings(strictness = Strictness.WARN)` to test classes annotated with
+  `@ExtendWith(MockitoExtension.class)` only when the module depends on a pre-3.0 version of Mockito.
+  This preserves the lenient stubbing behavior from Mockito 1.x/2.x and prevents
+  `UnnecessaryStubbingException` errors once MockitoExtension's strict stubbing default kicks in.
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.mockito
+      artifactIdPattern: "*"
+      version: "(,3.0)"
+recipeList:
+  - org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictness
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJupiter
