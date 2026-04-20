@@ -31,6 +31,7 @@ import org.openrewrite.groovy.tree.G;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.tree.ParseError;
 
@@ -242,10 +243,7 @@ public class GradleUseJunitJupiter extends Recipe {
     }
 
     private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(ExecutionContext ctx, boolean forEachInvocation) {
-        String groovySnippet = "plugins {\n" +
-                "    id 'java'\n" +
-                "}\n" +
-                "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
+        String groovySnippet = "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
                 "    useJUnitPlatform()\n" +
                 "}";
         SourceFile sourceFile = GradleParser.builder()
@@ -260,6 +258,6 @@ public class GradleUseJunitJupiter extends Recipe {
             throw ((ParseError) sourceFile).toException();
         }
         G.CompilationUnit cu = (G.CompilationUnit) sourceFile;
-        return Optional.of((J.MethodInvocation) cu.getStatements().get(1));
+        return Optional.of(((J.MethodInvocation) cu.getStatements().get(0)).withPrefix(Space.format("\n")));
     }
 }
