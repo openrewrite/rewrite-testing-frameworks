@@ -253,6 +253,8 @@ description: Replace JUnit 4's `junit.framework.AssertionFailedError` and `org.j
 tags:
   - testing
   - junit
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: junit.framework.AssertionFailedError

@@ -221,6 +221,7 @@ preconditions:
       groupIdPattern: org.mockito
       artifactIdPattern: "*"
       version: "(,3.0)"
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictness
 ---
@@ -234,6 +235,7 @@ preconditions:
   - org.openrewrite.java.dependencies.search.ModuleHasDependency:
       groupIdPattern: org.junit.jupiter
       artifactIdPattern: junit-jupiter*
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
       targetFramework: jupiter
@@ -248,6 +250,7 @@ preconditions:
   - org.openrewrite.java.dependencies.search.ModuleHasDependency:
       groupIdPattern: junit
       artifactIdPattern: junit
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
       targetFramework: junit4
@@ -262,6 +265,7 @@ preconditions:
   - org.openrewrite.java.dependencies.search.ModuleHasDependency:
       groupIdPattern: org.testng
       artifactIdPattern: testng*
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
       targetFramework: testng

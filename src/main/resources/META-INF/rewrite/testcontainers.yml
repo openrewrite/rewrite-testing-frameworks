@@ -21,6 +21,8 @@ displayName: Migrate from `oracle-xe` to `oracle-free`
 description: >-
   Oracle Database Free is the successor of Oracle XE.
   Migrate from `org.testcontainers:oracle-xe` to `org.testcontainers:oracle-free`.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
       containerClass: org.testcontainers.containers.OracleContainer
@@ -40,6 +42,8 @@ displayName: Migrate to Apache Kafka Native container
 description: >-
   Replace `confluentinc/cp-kafka` with the much faster `apache/kafka-native` image
   and migrate from `org.testcontainers.containers.KafkaContainer` to `org.testcontainers.kafka.KafkaContainer`.
+preconditions:
+  - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.testcontainers.ReplaceContainerImageName:
       containerClass: org.testcontainers.containers.KafkaContainer
