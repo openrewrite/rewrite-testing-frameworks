@@ -99,7 +99,8 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             @Override
                             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                                 if (service(AnnotationService.class).matches(getCursor(), MOCKITO_EXTENSION_MATCHER) ||
-                                        service(AnnotationService.class).matches(getCursor(), MOCKITO_JUNIT_MATCHER)) {
+                                        service(AnnotationService.class).matches(getCursor(), MOCKITO_JUNIT_MATCHER) ||
+                                        getCursor().getParentTreeCursor().firstEnclosing(J.ClassDeclaration.class) != null) {
                                     return super.visitClassDeclaration(classDecl, ctx);
                                 }
                                 return classDecl;

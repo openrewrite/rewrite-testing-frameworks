@@ -361,6 +361,8 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
             """
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.junit.jupiter.MockitoExtension;
               import org.mockito.MockitoAnnotations;
@@ -381,9 +383,23 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
 
                   public void test() {
                   }
+
+                  @Nested
+                  class NestedTests {
+                      @Test
+                      public void nestedTestCase() {
+                      }
+
+                      @AfterEach
+                      public void tearDown() throws Exception {
+                          mocks.close();
+                      }
+                  }
               }
               """,
             """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -391,6 +407,13 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
               class A {
 
                   public void test() {
+                  }
+
+                  @Nested
+                  class NestedTests {
+                      @Test
+                      public void nestedTestCase() {
+                      }
                   }
               }
               """
