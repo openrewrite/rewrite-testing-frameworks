@@ -3235,6 +3235,64 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
+examples:
+- description: '`MockitoJUnitToMockitoExtensionTest#existingExtendWithRemovesSilentMockitoRuleAndAddsMockitoSettingsLenient`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.junit.Rule;
+      import org.junit.Test;
+      import org.mockito.Mock;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import org.mockito.junit.MockitoJUnit;
+      import org.mockito.junit.MockitoRule;
+
+      import java.util.List;
+
+      import static org.mockito.Mockito.when;
+
+      @ExtendWith(MockitoExtension.class)
+      public class MyTest {
+
+          @Rule
+          public MockitoRule rule = MockitoJUnit.rule().silent();
+
+          @Mock
+          private List<String> mockList;
+
+          @Test
+          public void testing() {
+              when(mockList.add("one")).thenReturn(true);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.junit.Test;
+      import org.mockito.Mock;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import org.mockito.junit.jupiter.MockitoSettings;
+      import org.mockito.quality.Strictness;
+
+      import java.util.List;
+
+      import static org.mockito.Mockito.when;
+
+      @ExtendWith(MockitoExtension.class)
+      @MockitoSettings(strictness = Strictness.LENIENT)
+      public class MyTest {
+
+          @Mock
+          private List<String> mockList;
+
+          @Test
+          public void testing() {
+              when(mockList.add("one")).thenReturn(true);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
 examples:
 - description: '`ParameterizedRunnerToParameterizedTest#parameterizedTestToParameterizedTestsWithMethodSource`'
@@ -4594,6 +4652,106 @@ examples:
           @Test
           void test() {
               List<String> list = Mockito.mock(List.class);
+          }
+      }
+    language: java
+- description: '`MockitoBestPracticesTest#mockito5`'
+  sources:
+  - before: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:3.12.4")
+          testImplementation("org.mockito:mockito-junit-jupiter:3.12.4")
+      }
+      test {
+         useJUnitPlatform()
+      }
+    path: build.gradle
+    language: groovy
+  - before: |
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.Mock;
+      import org.mockito.Mockito;
+      import org.mockito.MockitoAnnotations;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import java.sql.Connection;
+      import java.util.List;
+
+      @ExtendWith(MockitoExtension.class)
+      class MyTest {
+          @Mock
+          Connection conn;
+
+          AutoCloseable mocks;
+
+          @BeforeEach
+          void beforeEach() {
+            mocks = MockitoAnnotations.openMocks(this);
+          }
+
+          @Test
+          void test() {
+              List<String> list = Mockito.mock(List.class);
+          }
+
+          @AfterEach
+          void afterEach() {
+              if (mocks != null) {
+                  mocks.close();
+              }
+          }
+
+          @Nested
+          class NestedClass {
+              @Test
+              void test() {
+                  List<String> list = Mockito.mock(List.class);
+              }
+
+              @AfterEach
+              void afterEach() {
+                  if (mocks != null) {
+                      mocks.close();
+                  }
+              }
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Nested;
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.mockito.Mock;
+      import org.mockito.Mockito;
+      import org.mockito.junit.jupiter.MockitoExtension;
+      import java.sql.Connection;
+      import java.util.List;
+
+      @ExtendWith(MockitoExtension.class)
+      class MyTest {
+          @Mock
+          Connection conn;
+
+          @Test
+          void test() {
+              List<String> list = Mockito.mock(List.class);
+          }
+
+          @Nested
+          class NestedClass {
+              @Test
+              void test() {
+                  List<String> list = Mockito.mock(List.class);
+              }
           }
       }
     language: java

@@ -27,7 +27,7 @@ import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
 
-public class MockitoBestPracticesTest implements RewriteTest {
+class MockitoBestPracticesTest implements RewriteTest {
 
         @Override
         public void defaults(RecipeSpec spec) {
