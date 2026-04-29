@@ -44,10 +44,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.and(
-                        Preconditions.or(
-                                new UsesType<>("org.powermock..*", false),
-                                new UsesType<>("org.mockito..*", false)
-                        ),
+                        new UsesType<>("org.powermock..*", false),
                         Preconditions.not(new KotlinFileChecker<>())
                 ),
                 new PowerMockitoToMockitoVisitor()

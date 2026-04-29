@@ -383,7 +383,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
 
+              @PrepareForTest({Calendar.class})
               public class MyTest {
 
                   private MockedStatic<Calendar> mockedCalendar;
@@ -461,7 +463,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
               import org.junit.jupiter.api.Test;
               import org.mockito.MockedStatic;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
 
+              @PrepareForTest({Currency.class})
               public class MyTest {
 
                   private MockedStatic<Currency> mockedCurrency;
@@ -618,6 +622,31 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
                   @Test
                   public void testStaticMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/980")
+    @Test
+    void mockitoOnlyFileWithoutPowerMockitoIsLeftUntouched() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+
+              import java.util.Calendar;
+
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+
+                  @Test
+                  void testStaticMethod() {
+                      mockStatic(Calendar.class);
                   }
               }
               """
