@@ -59,6 +59,10 @@ recipeList:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-migrationsupport
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit
+      artifactId: junit-bom
+      newVersion: 6.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter*
       newVersion: 6.x
