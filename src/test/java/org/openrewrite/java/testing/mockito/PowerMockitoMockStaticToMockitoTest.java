@@ -644,6 +644,27 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
         );
     }
 
+    @Test
+    void mockStaticReturnedFromHelperMethodShouldNotBeRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+
+              import org.mockito.MockedStatic;
+
+              class TestClass {
+                  @SuppressWarnings("rawtypes")
+                  private static MockedStatic<String> mockStringStatic() {
+                      return mockStatic(String.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/358")
     @Test
     void doesNotExplodeOnTopLevelMethodDeclaration() {

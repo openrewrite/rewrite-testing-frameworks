@@ -183,9 +183,10 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
             determineTestGroups();
 
-            // Remove bare mockStatic() calls that aren't part of a variable declaration, assignment, or try-with-resources
+            // Remove bare mockStatic() calls that aren't part of a variable declaration, assignment, return, or try-with-resources
             if (!getCursor().getPath(o -> o instanceof J.VariableDeclarations ||
                                           o instanceof J.Assignment ||
+                                          o instanceof J.Return ||
                                           o instanceof J.Try.Resource).hasNext()) {
                 //noinspection DataFlowIssue
                 return null;
