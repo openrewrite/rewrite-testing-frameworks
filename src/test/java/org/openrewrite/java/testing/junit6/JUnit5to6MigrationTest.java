@@ -21,8 +21,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.regex.Pattern;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.javaVersion;
@@ -77,13 +75,10 @@ class JUnit5to6MigrationTest implements RewriteTest {
                   </dependencyManagement>
               </project>
               """,
-            spec -> spec.after(actual -> {
-                assertThat(Pattern.compile("<junit-jupiter\\.version>6\\.\\d+\\.\\d+</junit-jupiter\\.version>")
-                  .matcher(actual).find())
-                  .as("junit-jupiter.version property should be upgraded to 6.x; actual:\n%s", actual)
-                  .isTrue();
-                return actual;
-            })
+            spec -> spec.after(actual -> assertThat(actual)
+              .as("junit-jupiter.version property should be upgraded to 6.x")
+              .containsPattern("<junit-jupiter\\.version>6\\.\\d+\\.\\d+</junit-jupiter\\.version>")
+              .actual())
           )
         );
     }
