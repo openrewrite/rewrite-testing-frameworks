@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.junit6;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -36,10 +35,7 @@ class JUnit5to6MigrationTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api"))
-          .recipe(Environment.builder()
-            .scanRuntimeClasspath("org.openrewrite.java.testing.junit6")
-            .build()
-            .activateRecipes("org.openrewrite.java.testing.junit6.JUnit5to6Migration"));
+          .recipeFromResources("org.openrewrite.java.testing.junit6.JUnit5to6Migration");
     }
 
     @Test
