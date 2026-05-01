@@ -118,7 +118,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
                                 return ((J.NewArray) a).getInitializer();
                             }
-                            if (a instanceof J.Assignment && ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
+                            if (a instanceof J.Assignment && ((J.Assignment) a).getAssignment() instanceof J.NewArray &&
+                                    ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
                                 // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
                                 return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
                             }
