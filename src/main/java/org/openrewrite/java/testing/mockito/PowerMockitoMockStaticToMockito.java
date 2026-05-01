@@ -113,23 +113,28 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 if (PREPARE_FOR_TEST_MATCHER.matches(j)) {
                     List<Expression> arguments = j.getArguments();
                     if (arguments != null && !arguments.isEmpty()) {
-                        mockedStaticClasses.addAll(ListUtils.flatMap(arguments, a -> {
+                        List<Expression> extracted = ListUtils.flatMap(arguments, a -> {
                             if (a instanceof J.NewArray && ((J.NewArray) a).getInitializer() != null) {
                                 // case `@PrepareForTest( {Object1.class, Object2.class ...} )`
-                                return ((J.NewArray) a).getInitializer();
+                                return ListUtils.map(((J.NewArray) a).getInitializer(),
+                                        e -> e instanceof J.FieldAccess ? e : null);
                             }
                             if (a instanceof J.Assignment && ((J.Assignment) a).getAssignment() instanceof J.NewArray &&
                                     ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer() != null) {
                                 // case `@PrepareForTest( value = {Object1.class, Object2.class ...} }`
-                                return ((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer();
+                                return ListUtils.map(((J.NewArray) ((J.Assignment) a).getAssignment()).getInitializer(),
+                                        e -> e instanceof J.FieldAccess ? e : null);
                             }
                             if (a instanceof J.FieldAccess) {
                                 // case `@PrepareForTest(Object1.class)`
                                 return a;
                             }
                             return null;
-                        }));
-                        doAfterVisit(new RemoveAnnotationVisitor(PREPARE_FOR_TEST_MATCHER));
+                        });
+                        if (!extracted.isEmpty()) {
+                            mockedStaticClasses.addAll(extracted);
+                            doAfterVisit(new RemoveAnnotationVisitor(PREPARE_FOR_TEST_MATCHER));
+                        }
                     }
                 }
             }

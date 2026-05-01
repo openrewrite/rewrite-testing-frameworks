@@ -917,7 +917,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/982")
     @Test
-    void prepareForTestWithFullyQualifiedNamesStringLiteralDoesNotCrash() {
+    void prepareForTestWithFullyQualifiedNamesStringLiteralIsLeftUnchanged() {
         //language=java
         rewriteRun(
           java(
@@ -932,16 +932,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
                   public void testSomething() {
                   }
               }
-              """,
-            """
-              import org.junit.Test;
-
-              public class MyTest {
-
-                  @Test
-                  public void testSomething() {
-                  }
-              }
               """
           )
         );
@@ -949,7 +939,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/982")
     @Test
-    void prepareForTestWithFullyQualifiedNamesStringArrayDoesNotCrash() {
+    void prepareForTestWithFullyQualifiedNamesStringArrayIsLeftUnchanged() {
         //language=java
         rewriteRun(
           java(
@@ -958,16 +948,6 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import org.powermock.core.classloader.annotations.PrepareForTest;
 
               @PrepareForTest(fullyQualifiedNames = {"com.example.Foo", "com.example.Bar"})
-              public class MyTest {
-
-                  @Test
-                  public void testSomething() {
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-
               public class MyTest {
 
                   @Test
