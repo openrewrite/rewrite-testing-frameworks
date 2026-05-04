@@ -92,6 +92,10 @@ public class CsvSourceToValueSource extends Recipe {
                                     if (values.isEmpty() || hasMultipleColumns(values)) {
                                         return m;
                                     }
+                                    // Single quotes are CsvSource's default quote char; conversion would change the parsed value
+                                    if (anyContainsSingleQuote(values)) {
+                                        return m;
+                                    }
                                     // Non-String types can't represent values containing whitespace as unquoted literals
                                     if (!"String".equals(paramType) && anyContainsWhitespace(values)) {
                                         return m;
@@ -247,6 +251,10 @@ public class CsvSourceToValueSource extends Recipe {
 
                     private boolean hasMultipleColumns(List<String> values) {
                         return values.stream().anyMatch(v -> v.indexOf(',') >= 0);
+                    }
+
+                    private boolean anyContainsSingleQuote(List<String> values) {
+                        return values.stream().anyMatch(v -> v.indexOf('\'') >= 0);
                     }
 
                     private boolean anyContainsWhitespace(List<String> values) {

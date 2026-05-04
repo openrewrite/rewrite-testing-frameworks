@@ -613,6 +613,30 @@ class CsvSourceToValueSourceTest implements RewriteTest {
     }
 
     @Test
+    void doNotReplaceTextBlockWithSingleQuotes() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(textBlock = \"""
+                      'apple'
+                      banana
+                      \""")
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotReplaceTextBlockWithMultipleColumns() {
         rewriteRun(
           //language=java
