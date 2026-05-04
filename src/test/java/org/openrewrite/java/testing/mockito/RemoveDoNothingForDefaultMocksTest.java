@@ -280,6 +280,65 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
     }
 
     @Test
+    void retainsDoNothingWithArgumentCaptor() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.ArgumentCaptor;
+              import org.mockito.Mock;
+
+              import static org.mockito.Mockito.doNothing;
+
+              class ExampleTest {
+                  @Mock
+                  Client client;
+                  ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+                  void setUp() {
+                      doNothing().when(client).send(captor.capture());
+                  }
+
+                  interface Client {
+                      void send(String message);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingWithNestedArgumentCaptor() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.ArgumentCaptor;
+              import org.mockito.Mock;
+
+              import static org.mockito.ArgumentMatchers.eq;
+              import static org.mockito.Mockito.doNothing;
+
+              class ExampleTest {
+                  @Mock
+                  Client client;
+                  ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+                  void setUp() {
+                      doNothing().when(client).send(eq("prefix"), captor.capture());
+                  }
+
+                  interface Client {
+                      void send(String prefix, String message);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void noChangeWithoutDoNothing() {
         rewriteRun(
           //language=Java
