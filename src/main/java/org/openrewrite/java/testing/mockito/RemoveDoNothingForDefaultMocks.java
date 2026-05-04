@@ -25,11 +25,13 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RemoveDoNothingForDefaultMocks extends Recipe {
 
@@ -43,6 +45,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
 
     private static final MethodMatcher DO_NOTHING_MATCHER = new MethodMatcher("org.mockito.Mockito doNothing()");
     private static final MethodMatcher STUBBER_WHEN_MATCHER = new MethodMatcher("org.mockito.stubbing.Stubber when(..)");
+    private static final MethodMatcher CAPTURE_MATCHER = new MethodMatcher("org.mockito.ArgumentCaptor capture()");
     private static final AnnotationMatcher MOCK_ANNOTATION_MATCHER = new AnnotationMatcher("@org.mockito.Mock");
 
     @Override
@@ -100,7 +103,33 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         }
                         String mockName = ((J.Identifier) whenCall.getArguments().get(0)).getSimpleName();
                         Set<String> mockFieldNames = getCursor().getNearestMessage("mockFieldNames");
-                        return mockFieldNames != null && mockFieldNames.contains(mockName);
+                        if (mockFieldNames == null || !mockFieldNames.contains(mockName)) {
+                            return false;
+                        }
+                        // Preserve stubbings whose arguments include ArgumentCaptor.capture(),
+                        // which registers a matcher used to capture later real invocations.
+                        return !containsCapture(mi.getArguments());
+                    }
+
+                    private boolean containsCapture(java.util.List<Expression> arguments) {
+                        AtomicBoolean found = new AtomicBoolean();
+                        JavaIsoVisitor<AtomicBoolean> visitor = new JavaIsoVisitor<AtomicBoolean>() {
+                            @Override
+                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean acc) {
+                                if (CAPTURE_MATCHER.matches(method)) {
+                                    acc.set(true);
+                                    return method;
+                                }
+                                return super.visitMethodInvocation(method, acc);
+                            }
+                        };
+                        for (Expression arg : arguments) {
+                            visitor.visit(arg, found);
+                            if (found.get()) {
+                                return true;
+                            }
+                        }
+                        return false;
                     }
                 }
         );
