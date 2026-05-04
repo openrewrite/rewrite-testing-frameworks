@@ -456,7 +456,48 @@ class CsvSourceToValueSourceTest implements RewriteTest {
     }
 
     @Test
-    void skipTextBlock() {
+    void preserveTextBlockAsValue() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(\"""
+                          # Lower-case letters
+                          asdf
+                          a
+                          \""")
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = \"""
+                          # Lower-case letters
+                          asdf
+                          a
+                          \""")
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void replaceTextBlockAttribute() {
         rewriteRun(
           //language=java
           java(
@@ -473,6 +514,122 @@ class CsvSourceToValueSourceTest implements RewriteTest {
                       \""")
                   void testWithStrings(String fruit) {
                       System.out.println(fruit);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = {"apple", "banana", "cherry"})
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void replaceTextBlockAttributeIgnoringCommentsAndBlankLines() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(textBlock = \"""
+                      # Lower-case letters
+                      asdf
+                      a
+
+                      # Numbers
+                      1
+                      123
+                      \""")
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = {"asdf", "a", "1", "123"})
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void replaceTextBlockAttributeForIntegers() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(textBlock = \"""
+                      # numbers
+                      1
+                      2
+                      3
+                      \""")
+                  void testWithIntegers(int number) {
+                      System.out.println(number);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(ints = {1, 2, 3})
+                  void testWithIntegers(int number) {
+                      System.out.println(number);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotReplaceTextBlockWithMultipleColumns() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(textBlock = \"""
+                      apple, 1
+                      banana, 2
+                      cherry, 3
+                      \""")
+                  void testWithMultipleParams(String fruit, int count) {
+                      System.out.println(fruit + ": " + count);
                   }
               }
               """
