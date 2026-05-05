@@ -67,6 +67,11 @@ public class UseAssertSame extends Recipe {
                     binary.getRight().getType() == JavaType.Primitive.Null) {
                     return mi;
                 }
+                // Skip primitive comparisons — `==` is value equality, not reference equality
+                if (binary.getLeft().getType() instanceof JavaType.Primitive ||
+                    binary.getRight().getType() instanceof JavaType.Primitive) {
+                    return mi;
+                }
                 List<Expression> newArguments = new ArrayList<>();
                 newArguments.add(binary.getLeft());
                 newArguments.add(binary.getRight());
