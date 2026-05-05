@@ -213,6 +213,28 @@ class UseAssertSameTest implements RewriteTest {
     }
 
     @Test
+    void primitiveComparisonShouldNotConvert() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class MyTest {
+
+                  @Test
+                  public void test() {
+                      assertTrue(123L == 123);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void assertFalseNullShouldNotConvert() {
         //language=java
         rewriteRun(
