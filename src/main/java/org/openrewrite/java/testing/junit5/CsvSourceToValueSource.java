@@ -22,6 +22,7 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -34,6 +35,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,18 +76,33 @@ public class CsvSourceToValueSource extends Recipe {
                         for (J.Annotation annotation : m.getLeadingAnnotations()) {
                             Optional<Annotated> annotated = new Annotated.Matcher(CSV_SOURCE_MATCHER).get(annotation, getCursor());
                             if (annotated.isPresent() && annotation.getArguments() != null && annotation.getArguments().size() == 1) {
-                                // Skip if textBlock attribute is used
-                                if (annotated.get().getAttribute("textBlock").isPresent()) {
-                                    return m;
-                                }
                                 // Get the parameter type
                                 String paramType = getParameterType((J.VariableDeclarations) m.getParameters().get(0));
                                 if (paramType == null) {
                                     return m;
                                 }
 
-                                // For Strings, merely swap out the annotation
-                                if ("String".equals(paramType)) {
+                                Optional<Literal> textBlockAttribute = annotated.get().getAttribute("textBlock");
+                                List<String> values;
+                                if (textBlockAttribute.isPresent()) {
+                                    String textBlock = textBlockAttribute.get().getString();
+                                    if (textBlock == null) {
+                                        return m;
+                                    }
+                                    values = parseTextBlockLines(textBlock);
+                                    if (values.isEmpty() || values.stream().anyMatch(v -> v.indexOf(',') >= 0)) {
+                                        return m;
+                                    }
+                                    // Single quotes are CsvSource's default quote char; conversion would change the parsed value
+                                    if (values.stream().anyMatch(v -> v.indexOf('\'') >= 0)) {
+                                        return m;
+                                    }
+                                    // Non-String types can't represent values containing whitespace as unquoted literals
+                                    if (!"String".equals(paramType) && values.stream().anyMatch(StringUtils::containsWhitespace)) {
+                                        return m;
+                                    }
+                                } else if ("String".equals(paramType)) {
+                                    // Preserve original argument formatting (e.g. text blocks, custom spacing)
                                     maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
                                     maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
                                     Expression templateArg = annotation.getArguments().get(0) instanceof J.Assignment ?
@@ -96,22 +113,20 @@ public class CsvSourceToValueSource extends Recipe {
                                             .imports("org.junit.jupiter.params.provider.ValueSource")
                                             .build()
                                             .apply(getCursor(), annotation.getCoordinates().replace());
-                                    // Retain formatting by swapping in the original argument
                                     return updated.withLeadingAnnotations(ListUtils.map(updated.getLeadingAnnotations(), ann ->
                                             VALUE_SOURCE_MATCHER.matches(ann) ?
                                                     ann.withArguments(ListUtils.map(ann.getArguments(),
                                                             arg -> ((J.Assignment) arg).withAssignment(templateArg.withPrefix(Space.SINGLE_SPACE)))) :
                                                     ann));
-                                }
-
-                                Optional<Literal> valueAttribute = annotated.get().getDefaultAttribute("value");
-                                if (!valueAttribute.isPresent()) {
-                                    return m;
-                                }
-                                List<String> values = valueAttribute.get().getStrings();
-                                // Extract values from CsvSource
-                                if (values.isEmpty()) {
-                                    return m;
+                                } else {
+                                    Optional<Literal> valueAttribute = annotated.get().getDefaultAttribute("value");
+                                    if (!valueAttribute.isPresent()) {
+                                        return m;
+                                    }
+                                    values = valueAttribute.get().getStrings();
+                                    if (values.isEmpty()) {
+                                        return m;
+                                    }
                                 }
 
                                 // Build a new ValueSource annotation
@@ -139,6 +154,10 @@ public class CsvSourceToValueSource extends Recipe {
                         String formattedValues;
 
                         switch (paramType) {
+                            case "String":
+                                attributeName = "strings";
+                                formattedValues = formatStringValues(values);
+                                break;
                             case "int":
                             case "Integer":
                                 attributeName = "ints";
@@ -211,6 +230,24 @@ public class CsvSourceToValueSource extends Recipe {
                         return String.join(", ", values.stream()
                                 .map(v -> "'" + v.trim() + "'")
                                 .toArray(String[]::new));
+                    }
+
+                    private String formatStringValues(List<String> values) {
+                        return String.join(", ", values.stream()
+                                .map(v -> "\"" + v.trim().replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
+                                .toArray(String[]::new));
+                    }
+
+                    private List<String> parseTextBlockLines(String textBlock) {
+                        List<String> result = new ArrayList<>();
+                        for (String line : textBlock.split("\n")) {
+                            String trimmed = line.trim();
+                            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                                continue;
+                            }
+                            result.add(trimmed);
+                        }
+                        return result;
                     }
 
                     private @Nullable String getParameterType(J.VariableDeclarations param) {
