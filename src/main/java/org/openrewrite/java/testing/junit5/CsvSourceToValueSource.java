@@ -22,6 +22,7 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -89,15 +90,15 @@ public class CsvSourceToValueSource extends Recipe {
                                         return m;
                                     }
                                     values = parseTextBlockLines(textBlock);
-                                    if (values.isEmpty() || hasMultipleColumns(values)) {
+                                    if (values.isEmpty() || values.stream().anyMatch(v -> v.indexOf(',') >= 0)) {
                                         return m;
                                     }
                                     // Single quotes are CsvSource's default quote char; conversion would change the parsed value
-                                    if (anyContainsSingleQuote(values)) {
+                                    if (values.stream().anyMatch(v -> v.indexOf('\'') >= 0)) {
                                         return m;
                                     }
                                     // Non-String types can't represent values containing whitespace as unquoted literals
-                                    if (!"String".equals(paramType) && anyContainsWhitespace(values)) {
+                                    if (!"String".equals(paramType) && values.stream().anyMatch(StringUtils::containsWhitespace)) {
                                         return m;
                                     }
                                 } else if ("String".equals(paramType)) {
@@ -247,25 +248,6 @@ public class CsvSourceToValueSource extends Recipe {
                             result.add(trimmed);
                         }
                         return result;
-                    }
-
-                    private boolean hasMultipleColumns(List<String> values) {
-                        return values.stream().anyMatch(v -> v.indexOf(',') >= 0);
-                    }
-
-                    private boolean anyContainsSingleQuote(List<String> values) {
-                        return values.stream().anyMatch(v -> v.indexOf('\'') >= 0);
-                    }
-
-                    private boolean anyContainsWhitespace(List<String> values) {
-                        for (String v : values) {
-                            for (int i = 0; i < v.length(); i++) {
-                                if (Character.isWhitespace(v.charAt(i))) {
-                                    return true;
-                                }
-                            }
-                        }
-                        return false;
                     }
 
                     private @Nullable String getParameterType(J.VariableDeclarations param) {
