@@ -542,6 +542,128 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Test
+    void removeJunitVintageEngineFromMavenBuild() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>my-project</artifactId>
+                  <version>1.0.0</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>junit</groupId>
+                          <artifactId>junit</artifactId>
+                          <version>4.13.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.junit.vintage</groupId>
+                          <artifactId>junit-vintage-engine</artifactId>
+                          <version>5.7.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>my-project</artifactId>
+                  <version>1.0.0</version>
+              </project>
+              """
+          ),
+          srcTestJava(
+            java(
+              """
+                import org.junit.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void removeJunitVintageEngineFromMavenDependencyManagement() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>my-project</artifactId>
+                  <version>1.0.0</version>
+                  <dependencyManagement>
+                      <dependencies>
+                          <dependency>
+                              <groupId>junit</groupId>
+                              <artifactId>junit</artifactId>
+                              <version>4.13.2</version>
+                          </dependency>
+                          <dependency>
+                              <groupId>org.junit.vintage</groupId>
+                              <artifactId>junit-vintage-engine</artifactId>
+                              <version>5.7.2</version>
+                          </dependency>
+                      </dependencies>
+                  </dependencyManagement>
+              </project>
+              """,
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>my-project</artifactId>
+                  <version>1.0.0</version>
+              </project>
+              """
+          ),
+          srcTestJava(
+            java(
+              """
+                import org.junit.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                public class MyTest {
+                    @Test
+                    public void hello() {
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    @Test
     void bumpSurefireOnOlderMavenVersions() {
         rewriteRun(
           spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),

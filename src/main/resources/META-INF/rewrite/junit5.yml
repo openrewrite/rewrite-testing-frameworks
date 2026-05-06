@@ -103,8 +103,14 @@ recipeList:
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: junit
       artifactId: junit
+  - org.openrewrite.maven.RemoveManagedDependency:
+      groupId: junit
+      artifactId: junit
   - org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
   - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.junit.vintage
+      artifactId: junit-vintage-engine
+  - org.openrewrite.maven.RemoveManagedDependency:
       groupId: org.junit.vintage
       artifactId: junit-vintage-engine
   - org.openrewrite.maven.ExcludeDependency:
