@@ -255,4 +255,50 @@ class UseAssertSameTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void onlyConvertsReferenceComparisons() {
+        // Wrappers are reference types so == is reference equality (assertSame).
+        // With a primitive operand Java unboxes, so defer to AssertTrueComparisonToAssertEquals.
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class MyTest {
+
+                  @Test
+                  public void test() {
+                      int primitive = 5;
+                      Integer a = 5;
+                      Integer b = a;
+                      assertTrue(primitive == a);
+                      assertTrue(a == b);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertSame;
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class MyTest {
+
+                  @Test
+                  public void test() {
+                      int primitive = 5;
+                      Integer a = 5;
+                      Integer b = a;
+                      assertTrue(primitive == a);
+                      assertSame(a, b);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

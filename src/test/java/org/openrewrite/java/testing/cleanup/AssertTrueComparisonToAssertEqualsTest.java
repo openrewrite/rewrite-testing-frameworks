@@ -177,4 +177,57 @@ class AssertTrueComparisonToAssertEqualsTest implements RewriteTest {
         );
     }
 
+    @SuppressWarnings({"NumberEquality", "SimplifiableAssertion"})
+    @Test
+    void onlyRewritesWhenAtLeastOneOperandIsPrimitive() {
+        // Mixed primitive-wrapper rewrites because Java unboxes (== is value equality).
+        // Wrapper-wrapper is reference equality and stays for UseAssertSame to emit assertSame.
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              import java.util.HashMap;
+              import java.util.Map;
+
+              public class Test {
+                  void test() {
+                      Map<String, Double> map = new HashMap<>();
+                      map.put("k", 0.5);
+                      double d = 0.5;
+                      int i = 5;
+                      Integer iBoxed = 5;
+                      Double a = 0.5;
+                      Double b = a;
+                      Assertions.assertTrue(map.get("k") == d);
+                      Assertions.assertTrue(i == iBoxed);
+                      Assertions.assertTrue(a == b);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              import java.util.HashMap;
+              import java.util.Map;
+
+              public class Test {
+                  void test() {
+                      Map<String, Double> map = new HashMap<>();
+                      map.put("k", 0.5);
+                      double d = 0.5;
+                      int i = 5;
+                      Integer iBoxed = 5;
+                      Double a = 0.5;
+                      Double b = a;
+                      Assertions.assertEquals(map.get("k"), d);
+                      Assertions.assertEquals(i, iBoxed);
+                      Assertions.assertTrue(a == b);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
