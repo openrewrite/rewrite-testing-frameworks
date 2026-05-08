@@ -36,7 +36,8 @@ public class UseAssertSame extends Recipe {
 
     @Getter
     final String description = "Prefers the usage of `assertSame` or `assertNotSame` methods instead of using of vanilla `assertTrue` " +
-            "or `assertFalse` with a boolean comparison.";
+            "or `assertFalse` with a boolean comparison. Only applies when both operands are reference types — " +
+            "primitive operands are handled by `AssertTrueComparisonToAssertEquals`.";
 
     private static final MethodMatcher ASSERT_TRUE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(..)");
     private static final MethodMatcher ASSERT_FALSE_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertFalse(..)");
@@ -67,9 +68,10 @@ public class UseAssertSame extends Recipe {
                     binary.getRight().getType() == JavaType.Primitive.Null) {
                     return mi;
                 }
-                // Skip primitive comparisons — `==` is value equality, not reference equality
-                if (binary.getLeft().getType() instanceof JavaType.Primitive ||
-                    binary.getRight().getType() instanceof JavaType.Primitive) {
+                // Skip when either operand has value-equality semantics under == (primitives, plus
+                // the wrapper-primitive case where Java unboxes). Defer to AssertTrueComparisonToAssertEquals.
+                if (isPrimitiveValueType(binary.getLeft().getType()) ||
+                    isPrimitiveValueType(binary.getRight().getType())) {
                     return mi;
                 }
                 List<Expression> newArguments = new ArrayList<>();
@@ -109,6 +111,14 @@ public class UseAssertSame extends Recipe {
                         new UsesMethod<>(ASSERT_TRUE_MATCHER),
                         new UsesMethod<>(ASSERT_FALSE_MATCHER)),
                 visitor);
+    }
+
+    // String is a JavaType.Primitive enum value but its == is reference equality (assertSame is correct).
+    private static boolean isPrimitiveValueType(JavaType type) {
+        return type instanceof JavaType.Primitive &&
+               type != JavaType.Primitive.Null &&
+               type != JavaType.Primitive.String &&
+               type != JavaType.Primitive.None;
     }
 
 }

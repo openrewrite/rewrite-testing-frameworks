@@ -28,6 +28,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 public class AssertTrueComparisonToAssertEquals extends Recipe {
     private static final MethodMatcher ASSERT_TRUE = new MethodMatcher(
@@ -99,14 +100,36 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
                     return false;
                 }
 
-                // Prevent breaking identity comparison.
-                // Objects that are compared with == should not be compared with `.equals()` instead.
-                // Out of the primitives == is not allowed when both are of type String
-                return binary.getLeft().getType() instanceof JavaType.Primitive &&
-                       binary.getRight().getType() instanceof JavaType.Primitive &&
-                       !(binary.getLeft().getType() == JavaType.Primitive.String &&
-                            binary.getRight().getType() == JavaType.Primitive.String);
+                // Prevent breaking identity comparison: wrapper-wrapper and reference-reference == are
+                // reference equality and belong to UseAssertSame, not assertEquals. We rewrite when:
+                //   - both operands are primitive (excluding String == String, which is reference identity), OR
+                //   - one operand is primitive and the other a numeric wrapper (Java unboxes; == is value).
+                JavaType leftType = binary.getLeft().getType();
+                JavaType rightType = binary.getRight().getType();
+                if (leftType instanceof JavaType.Primitive && rightType instanceof JavaType.Primitive) {
+                    return !(leftType == JavaType.Primitive.String && rightType == JavaType.Primitive.String);
+                }
+                return (isPrimitiveValueType(leftType) && isNumericWrapper(rightType)) ||
+                       (isNumericWrapper(leftType) && isPrimitiveValueType(rightType));
             }
         });
+    }
+
+    private static boolean isPrimitiveValueType(JavaType type) {
+        return type instanceof JavaType.Primitive &&
+               type != JavaType.Primitive.Null &&
+               type != JavaType.Primitive.String &&
+               type != JavaType.Primitive.None;
+    }
+
+    private static boolean isNumericWrapper(JavaType type) {
+        return TypeUtils.isOfClassType(type, "java.lang.Boolean") ||
+               TypeUtils.isOfClassType(type, "java.lang.Byte") ||
+               TypeUtils.isOfClassType(type, "java.lang.Character") ||
+               TypeUtils.isOfClassType(type, "java.lang.Short") ||
+               TypeUtils.isOfClassType(type, "java.lang.Integer") ||
+               TypeUtils.isOfClassType(type, "java.lang.Long") ||
+               TypeUtils.isOfClassType(type, "java.lang.Float") ||
+               TypeUtils.isOfClassType(type, "java.lang.Double");
     }
 }
