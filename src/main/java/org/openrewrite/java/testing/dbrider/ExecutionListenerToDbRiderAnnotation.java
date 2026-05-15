@@ -198,7 +198,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
         private boolean canTestExecutionListenerBeRemoved() {
             if (listener == null && listeners != null && listeners.getInitializer() != null &&
                 listeners.getInitializer().stream().allMatch(listener -> isTypeReference(listener, DBRIDER_TEST_EXECUTION_LISTENER))) {
-                return (getMigratedInheritListeners() == null && getMigratedMergeMode() != null);
+                return getMigratedInheritListeners() == null && getMigratedMergeMode() != null;
             }
             return false;
         }

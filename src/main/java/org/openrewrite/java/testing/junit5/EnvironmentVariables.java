@@ -95,18 +95,18 @@ public class EnvironmentVariables extends Recipe {
                 return variableDecls;
             }
             J.VariableDeclarations vd = (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule").asVisitor(a ->
-                            (new JavaIsoVisitor<ExecutionContext>() {
+                            new JavaIsoVisitor<ExecutionContext>() {
                                 @Override
                                 public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
                                     return systemStubsTemplate(ctx).apply(updateCursor(annotation), annotation.getCoordinates().replace());
                                 }
-                            }).visit(a.getTree(), ctx, a.getCursor().getParentOrThrow()))
+                            }.visit(a.getTree(), ctx, a.getCursor().getParentOrThrow()))
                     .visit(variableDecls, ctx, getCursor().getParentOrThrow());
 
             if (variableDecls != vd) {
                 // put message to first enclosing ClassDeclaration, to inform that we have an env var rule.
                 getCursor()
-                        .dropParentUntil(c -> c instanceof J.ClassDeclaration)
+                        .dropParentUntil(J.ClassDeclaration.class::isInstance)
                         .putMessage(HAS_ENV_VAR_RULE, true);
             }
 
@@ -123,7 +123,7 @@ public class EnvironmentVariables extends Recipe {
                 int argCount = argCount(m);
                 J j =
                         getEnvVarClearTemplate(ctx, argCount)
-                                .apply(updateCursor(m), m.getCoordinates().replace(), (Object[]) getArgs(m, argCount));
+                                .apply(updateCursor(m), m.getCoordinates().replace(), getArgs(m, argCount));
 
                 if (getCursor().getParentTreeCursor().getValue() instanceof J.Block &&
                         !(j instanceof Statement)) {

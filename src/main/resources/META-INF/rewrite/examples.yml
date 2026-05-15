@@ -2374,6 +2374,66 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit.JUnit6BestPractices
+examples:
+- description: '`JUnit6BestPracticesTest#junit5ToJunit6`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.MethodOrderer;
+      import org.junit.jupiter.api.TestMethodOrder;
+      import org.junit.jupiter.api.Test;
+
+      @TestMethodOrder(MethodOrderer.Alphanumeric.class)
+      public class MyTest {
+          @Test
+          public void test1() {
+          }
+
+          @Test
+          public void test2() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.MethodOrderer;
+      import org.junit.jupiter.api.TestMethodOrder;
+      import org.junit.jupiter.api.Test;
+
+      @TestMethodOrder(MethodOrderer.MethodName.class)
+      class MyTest {
+          @Test
+          void test1() {
+          }
+
+          @Test
+          void test2() {
+          }
+      }
+    language: java
+  - before: |
+      <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.example</groupId>
+          <artifactId>example</artifactId>
+          <version>1.0.0</version>
+          <properties>
+              <junit-jupiter.version>5.14.4</junit-jupiter.version>
+          </properties>
+          <dependencyManagement>
+              <dependencies>
+                  <dependency>
+                      <groupId>org.junit</groupId>
+                      <artifactId>junit-bom</artifactId>
+                      <version>${junit-jupiter.version}</version>
+                      <type>pom</type>
+                      <scope>import</scope>
+                  </dependency>
+              </dependencies>
+          </dependencyManagement>
+      </project>
+    path: pom.xml
+    language: xml
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
 examples:
 - description: '`AddHamcrestJUnitDependencyTest#shouldAddWhenUsingAssertThat`'

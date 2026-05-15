@@ -364,7 +364,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
 
         private boolean isVarDeclared(J.ClassDeclaration cd, String varName) {
             return cd.getBody().getStatements().stream()
-                    .filter(s -> s instanceof J.VariableDeclarations)
+                    .filter(J.VariableDeclarations.class::isInstance)
                     .map(J.VariableDeclarations.class::cast)
                     .flatMap(vd -> vd.getVariables().stream())
                     .anyMatch(var -> var.getSimpleName().equals(varName));
