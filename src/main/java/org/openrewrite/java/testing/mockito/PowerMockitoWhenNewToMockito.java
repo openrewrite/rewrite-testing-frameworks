@@ -76,7 +76,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                             Cursor containingMethod = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
                             Expression argument = select2.getArguments().get(0);
                             if (argument instanceof J.FieldAccess) {
-                                ArrayList<J.FieldAccess> listOfMocks = containingMethod.getMessage("POWERMOCKITO_WHEN_NEW_REPLACED", new ArrayList<J.FieldAccess>());
+                                List<J.FieldAccess> listOfMocks = containingMethod.getMessage("POWERMOCKITO_WHEN_NEW_REPLACED", new ArrayList<J.FieldAccess>());
                                 listOfMocks.add((J.FieldAccess) argument);
                                 containingMethod.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", listOfMocks);
                                 return null;

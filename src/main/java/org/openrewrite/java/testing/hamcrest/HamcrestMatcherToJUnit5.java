@@ -145,7 +145,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
 
                     //we do not handle nested matchers
                     if (!(matcherInvocation.getArguments().get(0) instanceof J.Empty)) {
-                        if ((matcherInvocation.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
+                        if (matcherInvocation.getArguments().get(0).getType().toString().startsWith("org.hamcrest")) {
                             return mi;
                         }
                     }

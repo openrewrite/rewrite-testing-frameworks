@@ -346,7 +346,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
         private boolean canTestExecutionListenerBeRemoved() {
             if (listener == null && listeners != null && listeners.getInitializer() != null &&
                 listeners.getInitializer().stream().allMatch(l -> isTypeReference(l, MOCKITO_TEST_EXECUTION_LISTENER))) {
-                return (getMigratedInheritListeners() == null && getMigratedMergeMode() != null);
+                return getMigratedInheritListeners() == null && getMigratedMergeMode() != null;
             }
             return false;
         }

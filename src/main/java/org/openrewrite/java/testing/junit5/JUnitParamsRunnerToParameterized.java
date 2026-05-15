@@ -176,7 +176,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 return false;
             }
             return method.getParameters().stream()
-                    .filter(param -> param instanceof J.VariableDeclarations)
+                    .filter(J.VariableDeclarations.class::isInstance)
                     .map(J.VariableDeclarations.class::cast)
                     .anyMatch(v -> v.getLeadingAnnotations().stream().anyMatch(CONVERTER_MATCHER::matches));
         }
@@ -370,7 +370,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                     method.getMethodType() != null &&
                     methodNames.contains(enclosingMethod.getSimpleName()) &&
                     method.getMethodType().getDeclaringType() == classType) {
-                Cursor classCursor = getCursor().dropParentUntil(j -> j instanceof J.ClassDeclaration);
+                Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
                 classCursor.computeMessageIfAbsent(REFERENCED_METHODS, k -> new ArrayList<>()).add(method.getSimpleName());
             }
             return super.visitMethodInvocation(method, ctx);
