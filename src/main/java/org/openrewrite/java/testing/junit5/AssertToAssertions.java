@@ -68,6 +68,16 @@ public class AssertToAssertions extends Recipe {
         }
 
         @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+            if (cd.getExtends() != null && TypeUtils.isOfType(ASSERTION_TYPE, cd.getExtends().getType())) {
+                cd = cd.withExtends(null);
+                maybeRemoveImport("org.junit.Assert");
+            }
+            return cd;
+        }
+
+        @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
             if (!isJunitAssertMethod(m)) {

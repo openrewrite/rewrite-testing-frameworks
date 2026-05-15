@@ -994,10 +994,8 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Test
-    void extendsAssertWithUnqualifiedAssertionsLeavesBrokenCode() {
-        // `after` is the broken output the recipes currently produce.
+    void extendsAssertWithUnqualifiedAssertions() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           //language=java
           java(
             """
@@ -1013,13 +1011,12 @@ class JUnit5MigrationTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Assert;
               import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
               import static org.junit.jupiter.api.Assertions.assertTrue;
 
-              public class MyTest extends Assert {
+              public class MyTest {
                   @Test
                   public void shouldPass() {
                       assertEquals(1, 1, "expected message");
