@@ -100,10 +100,7 @@ class JUnit6BestPracticesTest implements RewriteTest {
                   </dependencyManagement>
               </project>
               """,
-            spec -> spec.after(actual -> {
-                return assertThat(actual)
-                        .containsPattern("<junit-jupiter\\.version>6\\.\\d+\\.\\d+</junit-jupiter\\.version>").actual();
-            })
+            spec -> spec.after(actual -> assertThat(actual).containsPattern("<junit-jupiter\\.version>6\\.\\d+\\.\\d+</junit-jupiter\\.version>").actual())
           )
         );
     }
