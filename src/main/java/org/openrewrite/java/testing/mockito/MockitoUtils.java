@@ -60,7 +60,7 @@ public class MockitoUtils {
                 .build()
                 .apply(
                         new Cursor(visitor.getCursor().getParentOrThrow(), classDecl),
-                        (firstTestMethod != null) ?
+                        firstTestMethod != null ?
                                 firstTestMethod.getCoordinates().before() :
                                 classDecl.getBody().getCoordinates().lastStatement()
                 );

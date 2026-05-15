@@ -166,7 +166,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         List<Object> unitInfo = getUnitInfo(m.getSimpleName(), Math.toIntExact(argValue));
                         String methodName = (String) unitInfo.get(0);
                         int methodArg = (int) unitInfo.get(1);
-                        if (!(m.getSimpleName().equals(methodName))) {
+                        if (!m.getSimpleName().equals(methodName)) {
                             // update method invocation with new name and arg
                             String template = String.format("#{any()}.%s(%d)", methodName, methodArg);
                             return applyTemplate(ctx, m, template, m.getSelect());

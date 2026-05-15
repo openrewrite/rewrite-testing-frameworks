@@ -32,7 +32,8 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypedTree;
 import org.openrewrite.marker.Markers;
 
-import java.util.Collections;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
     @Getter
@@ -105,7 +106,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     .build();
 
                 maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
-                TypedTree rawClazz = clazz instanceof J.ParameterizedType ? (TypedTree) ((J.ParameterizedType) clazz).getClazz() : clazz;
+                TypedTree rawClazz = clazz instanceof J.ParameterizedType ? ((J.ParameterizedType) clazz).getClazz() : clazz;
                 Expression classLiteral = toClassLiteral(rawClazz);
                 return reason != null ?
                     template.apply(getCursor(), mi.getCoordinates().replace(), classLiteral, expression, reason) :
@@ -116,9 +117,9 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 JavaType clazzType = clazz.getType();
                 JavaType.Parameterized classType = new JavaType.Parameterized(null,
                     JavaType.ShallowClass.build("java.lang.Class"),
-                    Collections.singletonList(clazzType != null ? clazzType : JavaType.Unknown.getInstance()));
+                    singletonList(clazzType != null ? clazzType : JavaType.Unknown.getInstance()));
                 J.Identifier classKeyword = new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY,
-                    Collections.emptyList(), "class", classType, null);
+                    emptyList(), "class", classType, null);
                 Expression target = ((Expression) clazz).withPrefix(Space.EMPTY);
                 return new J.FieldAccess(Tree.randomId(), Space.EMPTY, Markers.EMPTY,
                     target, JLeftPadded.build(classKeyword), classType);

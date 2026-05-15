@@ -324,7 +324,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     private static String getSafeAfterMethodName(String baseName, List<Statement> existingStatements) {
         return existingStatements.stream()
-                .filter(it -> it instanceof J.MethodDeclaration)
+                .filter(J.MethodDeclaration.class::isInstance)
                 .map(it -> ((J.MethodDeclaration) it).getSimpleName())
                 .filter(s -> s.matches("^" + baseName + "(\\d+)?$"))
                 .max(Comparator.comparingInt(s -> s.equals(baseName) ? 0 : Integer.parseInt(s.substring(baseName.length()))))

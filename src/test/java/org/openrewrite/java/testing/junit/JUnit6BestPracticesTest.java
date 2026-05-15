@@ -101,9 +101,8 @@ class JUnit6BestPracticesTest implements RewriteTest {
               </project>
               """,
             spec -> spec.after(actual -> {
-                assertThat(actual)
-                  .containsPattern("<junit-jupiter\\.version>6\\.\\d+\\.\\d+</junit-jupiter\\.version>");
-                return actual;
+                return assertThat(actual)
+                        .containsPattern("<junit-jupiter\\.version>6\\.\\d+\\.\\d+</junit-jupiter\\.version>").actual();
             })
           )
         );
