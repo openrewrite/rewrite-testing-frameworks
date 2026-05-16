@@ -32,8 +32,6 @@ import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.trait.Literal;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JContainer;
-import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -149,38 +147,7 @@ public class CsvSourceToValueSource extends Recipe {
                                         .build()
                                         .apply(getCursor(), annotation.getCoordinates().replace());
                                 if (fromTextBlock && values.size() > 1) {
-                                    String annotationIndent = annotation.getPrefix().getIndent();
-                                    String elementIndent = "\n" + annotationIndent + "        ";
-                                    String closingIndent = "\n" + annotationIndent;
-                                    return replaced.withLeadingAnnotations(ListUtils.map(replaced.getLeadingAnnotations(), ann -> {
-                                        if (!VALUE_SOURCE_MATCHER.matches(ann) || ann.getArguments() == null) {
-                                            return ann;
-                                        }
-                                        return ann.withArguments(ListUtils.map(ann.getArguments(), arg -> {
-                                            if (!(arg instanceof J.Assignment) ||
-                                                    !(((J.Assignment) arg).getAssignment() instanceof J.NewArray)) {
-                                                return arg;
-                                            }
-                                            J.Assignment assignment = (J.Assignment) arg;
-                                            J.NewArray newArray = (J.NewArray) assignment.getAssignment();
-                                            if (newArray.getPadding().getInitializer() == null) {
-                                                return arg;
-                                            }
-                                            List<JRightPadded<Expression>> padded = newArray.getPadding().getInitializer().getPadding().getElements();
-                                            int lastIdx = padded.size() - 1;
-                                            List<JRightPadded<Expression>> updatedPadded = ListUtils.map(padded, (i, rp) -> {
-                                                Expression e = rp.getElement().withPrefix(Space.format(elementIndent));
-                                                JRightPadded<Expression> withElement = rp.withElement(e);
-                                                if (i == lastIdx) {
-                                                    return withElement.withAfter(Space.format(closingIndent));
-                                                }
-                                                return withElement;
-                                            });
-                                            JContainer<Expression> newInitializer = newArray.getPadding().getInitializer()
-                                                    .getPadding().withElements(updatedPadded);
-                                            return assignment.withAssignment(newArray.getPadding().withInitializer(newInitializer));
-                                        }));
-                                    }));
+                                    return autoFormat(replaced, ctx);
                                 }
                                 return replaced;
                             }
