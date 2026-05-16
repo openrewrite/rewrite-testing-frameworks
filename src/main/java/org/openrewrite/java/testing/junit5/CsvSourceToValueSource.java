@@ -38,7 +38,9 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
+import static java.util.stream.Collectors.joining;
 import static org.openrewrite.java.tree.JavaType.Primitive;
 
 public class CsvSourceToValueSource extends Recipe {
@@ -84,7 +86,8 @@ public class CsvSourceToValueSource extends Recipe {
 
                                 Optional<Literal> textBlockAttribute = annotated.get().getAttribute("textBlock");
                                 List<String> values;
-                                if (textBlockAttribute.isPresent()) {
+                                boolean fromTextBlock = textBlockAttribute.isPresent();
+                                if (fromTextBlock) {
                                     String textBlock = textBlockAttribute.get().getString();
                                     if (textBlock == null) {
                                         return m;
@@ -130,7 +133,7 @@ public class CsvSourceToValueSource extends Recipe {
                                 }
 
                                 // Build a new ValueSource annotation
-                                String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values);
+                                String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values, fromTextBlock);
                                 if (valueSourceAnnotationTemplate == null) {
                                     return m;
                                 }
@@ -138,104 +141,87 @@ public class CsvSourceToValueSource extends Recipe {
                                 // Replace the annotation
                                 maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
                                 maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
-                                return JavaTemplate.builder(valueSourceAnnotationTemplate)
+                                J.MethodDeclaration replaced = JavaTemplate.builder(valueSourceAnnotationTemplate)
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
                                         .imports("org.junit.jupiter.params.provider.ValueSource")
                                         .build()
                                         .apply(getCursor(), annotation.getCoordinates().replace());
+                                if (fromTextBlock && values.size() > 1) {
+                                    return autoFormat(replaced, ctx);
+                                }
+                                return replaced;
                             }
                         }
 
                         return m;
                     }
 
-                    private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values) {
+                    private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values, boolean multiLine) {
                         String attributeName;
                         String formattedValues;
 
+                        String delimiter = multiLine && values.size() > 1 ? ",\n " : ", ";
+                        Function<String, String> mapper;
                         switch (paramType) {
                             case "String":
                                 attributeName = "strings";
-                                formattedValues = formatStringValues(values);
+                                mapper = v -> "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
                                 break;
                             case "int":
                             case "Integer":
                                 attributeName = "ints";
-                                formattedValues = format(values);
+                                mapper = Function.identity();
                                 break;
                             case "long":
                             case "Long":
                                 attributeName = "longs";
-                                formattedValues = formatLongValues(values);
+                                mapper = v -> v.endsWith("L") || v.endsWith("l") ? v : v + "L";
                                 break;
                             case "double":
                             case "Double":
                                 attributeName = "doubles";
-                                formattedValues = format(values);
+                                mapper = Function.identity();
                                 break;
                             case "float":
                             case "Float":
                                 attributeName = "floats";
-                                formattedValues = formatFloatValues(values);
+                                mapper = v -> v.endsWith("f") || v.endsWith("F") ? v : v + "f";
                                 break;
                             case "boolean":
                             case "Boolean":
                                 attributeName = "booleans";
-                                formattedValues = format(values);
+                                mapper = Function.identity();
                                 break;
                             case "char":
                             case "Character":
                                 attributeName = "chars";
-                                formattedValues = formatCharValues(values);
+                                mapper = v -> "'" + v + "'";
                                 break;
                             case "byte":
                             case "Byte":
                                 attributeName = "bytes";
-                                formattedValues = format(values);
+                                mapper = Function.identity();
                                 break;
                             case "short":
                             case "Short":
                                 attributeName = "shorts";
-                                formattedValues = format(values);
+                                mapper = Function.identity();
                                 break;
                             default:
                                 return null;
                         }
+                        formattedValues = values.stream()
+                                .map(String::trim)
+                                .map(mapper)
+                                .collect(joining(delimiter));
 
                         if (values.size() == 1) {
                             return "@ValueSource(" + attributeName + " = " + formattedValues + ")";
                         }
+                        if (multiLine) {
+                            return "@ValueSource(" + attributeName + " = {\n" + formattedValues + "\n})";
+                        }
                         return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
-                    }
-
-                    private String format(List<String> values) {
-                        return String.join(", ", values.stream()
-                                .map(String::trim)
-                                .toArray(String[]::new));
-                    }
-
-                    private String formatLongValues(List<String> values) {
-                        return String.join(", ", values.stream()
-                                .map(v -> v.trim().endsWith("L") || v.trim().endsWith("l") ? v.trim() : v.trim() + "L")
-                                .toArray(String[]::new));
-                    }
-
-                    private String formatFloatValues(List<String> values) {
-                        return String.join(", ", values.stream()
-                                .map(v -> v.trim().endsWith("f") || v.trim().endsWith("F") ? v.trim() : v.trim() + "f")
-                                .toArray(String[]::new));
-                    }
-
-                    private String formatCharValues(List<String> values) {
-                        return String.join(", ", values.stream()
-                                .map(v -> "'" + v.trim() + "'")
-                                .toArray(String[]::new));
-                    }
-
-                    private String formatStringValues(List<String> values) {
-                        return String.join(", ", values.stream()
-                                .map(v -> "\"" + v.trim().replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
-                                .toArray(String[]::new));
                     }
 
                     private List<String> parseTextBlockLines(String textBlock) {

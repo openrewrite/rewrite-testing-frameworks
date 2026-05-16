@@ -523,9 +523,54 @@ class CsvSourceToValueSourceTest implements RewriteTest {
 
               class TestClass {
                   @ParameterizedTest
-                  @ValueSource(strings = {"apple", "banana", "cherry"})
+                  @ValueSource(strings = {
+                          "apple",
+                          "banana",
+                          "cherry"
+                  })
                   void testWithStrings(String fruit) {
                       System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void replaceTextBlockAttributePlacesEachItemOnItsOwnLine() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(textBlock = \"""
+                      DateFormat.getTimeInstance(DateFormat.SHORT)
+                      DateFormat.getDateTimeInstance()
+                      DateFormat.getInstance()
+                      \""")
+                  void findDateFormatMethods(String methodCall) {
+                      System.out.println(methodCall);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = {
+                          "DateFormat.getTimeInstance(DateFormat.SHORT)",
+                          "DateFormat.getDateTimeInstance()",
+                          "DateFormat.getInstance()"
+                  })
+                  void findDateFormatMethods(String methodCall) {
+                      System.out.println(methodCall);
                   }
               }
               """
@@ -564,7 +609,12 @@ class CsvSourceToValueSourceTest implements RewriteTest {
 
               class TestClass {
                   @ParameterizedTest
-                  @ValueSource(strings = {"asdf", "a", "1", "123"})
+                  @ValueSource(strings = {
+                          "asdf",
+                          "a",
+                          "1",
+                          "123"
+                  })
                   void testWithStrings(String fruit) {
                       System.out.println(fruit);
                   }
@@ -602,7 +652,11 @@ class CsvSourceToValueSourceTest implements RewriteTest {
 
               class TestClass {
                   @ParameterizedTest
-                  @ValueSource(ints = {1, 2, 3})
+                  @ValueSource(ints = {
+                          1,
+                          2,
+                          3
+                  })
                   void testWithIntegers(int number) {
                       System.out.println(number);
                   }
