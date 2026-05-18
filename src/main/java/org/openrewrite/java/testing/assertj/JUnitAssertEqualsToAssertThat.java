@@ -67,7 +67,8 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                 }
-                if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
+                JavaType.Primitive deltaType = floatingPointDeltaType(mi);
+                if (args.size() == 3 && deltaType == null) {
                     Expression message = args.get(2);
                     return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
@@ -87,7 +88,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                                 .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                     }
                     maybeAddImport(ASSERTJ, "within", false);
-                    return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
+                    return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, " + withinExpression(deltaType, args.get(2)) + ");")
                             .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
@@ -105,7 +106,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
                 }
                 maybeAddImport(ASSERTJ, "within", false);
-                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isCloseTo(#{any()}, " + withinExpression(deltaType, args.get(2)) + ");")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                         .imports("java.util.function.Supplier")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
@@ -113,15 +114,29 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                         .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected, args.get(2));
             }
 
-            private boolean isFloatingPointType(Expression expression) {
-                JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
-                if (fullyQualified != null) {
-                    String typeName = fullyQualified.getFullyQualifiedName();
-                    return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
+            private String withinExpression(JavaType.Primitive paramType, Expression delta) {
+                // When the delta argument's expression type is narrower than the resolved parameter type
+                // (e.g. literal `0` widened to `float` at the call site), insert an explicit cast so that
+                // AssertJ resolves `within(...)` to the matching Offset<T> overload.
+                JavaType argType = delta.getType();
+                if (TypeUtils.asPrimitive(argType) == paramType) {
+                    return "within(#{any()})";
                 }
+                JavaType.FullyQualified fq = TypeUtils.asFullyQualified(argType);
+                if (fq != null && paramType.getClassName().equals(fq.getFullyQualifiedName())) {
+                    return "within(#{any()})";
+                }
+                return "within((" + paramType.getKeyword() + ") #{any()})";
+            }
 
-                JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
-                return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
+            private JavaType.Primitive floatingPointDeltaType(J.MethodInvocation mi) {
+                // Inspect the resolved method's third parameter type, not the argument's expression type:
+                // a literal like `0` passed to `assertEquals(float, float, float)` is widened to float by the compiler.
+                if (mi.getMethodType() == null || mi.getMethodType().getParameterTypes().size() < 3) {
+                    return null;
+                }
+                JavaType.Primitive primitive = TypeUtils.asPrimitive(mi.getMethodType().getParameterTypes().get(2));
+                return primitive == JavaType.Primitive.Double || primitive == JavaType.Primitive.Float ? primitive : null;
             }
 
             private boolean isIntegralType(Expression expression) {

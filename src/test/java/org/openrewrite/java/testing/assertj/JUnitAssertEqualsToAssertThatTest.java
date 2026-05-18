@@ -442,6 +442,45 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
     }
 
     @Test
+    void floatWithIntegerLiteralDelta() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Assertions.assertEquals(7f, getHeight(), 0);
+                  }
+                  private float getHeight() {
+                      return 7f;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(getHeight()).isCloseTo(7f, within((float) 0));
+                  }
+                  private float getHeight() {
+                      return 7f;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void longActualWithDoubleDelta() {
         //language=java
         rewriteRun(
