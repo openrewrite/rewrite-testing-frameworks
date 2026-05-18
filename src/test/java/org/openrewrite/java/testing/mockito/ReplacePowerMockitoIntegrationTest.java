@@ -505,6 +505,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   void tearDownStaticMocks() {
                       mockedStringFilter.closeOnDemand();
                   }
+
                   @Test
                   public void testStaticMock() {
                       mockedStringFilter.when(() -> StringFilter.splitFilterStringValues(anyString())).thenReturn(new String[]{"Fee", "Faa", "Foo"});
