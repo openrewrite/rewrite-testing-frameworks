@@ -46,7 +46,7 @@ public class EnclosedToNested extends Recipe {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 maybeRemoveImport(ENCLOSED);
                 maybeRemoveImport(RUN_WITH);
-                return (J.ClassDeclaration) new RemoveAnnotationVisitor(new AnnotationMatcher(RUN_WITH_ENCLOSED)).visitNonNull(cd, ctx);
+                return (J.ClassDeclaration) new RemoveAnnotationVisitor(new AnnotationMatcher(RUN_WITH_ENCLOSED)).visitNonNull(cd, ctx, getCursor().getParentTreeCursor());
             }
         });
     }
