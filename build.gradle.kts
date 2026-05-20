@@ -29,6 +29,7 @@ recipeDependencies {
     parserClasspath("org.junit.jupiter:junit-jupiter-params:5.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-params:6.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-migrationsupport:5.+")
+    parserClasspath("org.junit-pioneer:junit-pioneer:2.+")
     parserClasspath("org.mockito:mockito-all:1.10.19")
     parserClasspath("org.mockito:mockito-core:3.+")
     parserClasspath("org.mockito:mockito-core:5.+")
