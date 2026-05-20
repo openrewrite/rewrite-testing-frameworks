@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit6;
 
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -42,18 +43,14 @@ public class RemoveJreOther extends Recipe {
             new AnnotationMatcher("@org.junit.jupiter.api.condition.EnabledOnJre"),
             new AnnotationMatcher("@org.junit.jupiter.api.condition.DisabledOnJre"));
 
-    @Override
-    public String getDisplayName() {
-        return "Remove deprecated `JRE.OTHER` from `@EnabledOnJre`/`@DisabledOnJre` arrays";
-    }
+    @Getter
+    final String displayName = "Remove deprecated `JRE.OTHER` from `@EnabledOnJre`/`@DisabledOnJre` arrays";
 
-    @Override
-    public String getDescription() {
-        return "JUnit 6.1 deprecated `JRE.OTHER` in favor of `int`/`int[]` annotation attributes. " +
-                "This recipe removes `JRE.OTHER` entries from `@EnabledOnJre` and `@DisabledOnJre` array " +
-                "values when other JRE constants remain. Lone `JRE.OTHER` usages are left untouched " +
-                "because they have no mechanical replacement; review them manually.";
-    }
+    @Getter
+    final String description = "JUnit 6.1 deprecated `JRE.OTHER` in favor of `int`/`int[]` annotation attributes. " +
+            "This recipe removes `JRE.OTHER` entries from `@EnabledOnJre` and `@DisabledOnJre` array " +
+            "values when other JRE constants remain. Lone `JRE.OTHER` usages are left untouched " +
+            "because they have no mechanical replacement; review them manually.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -88,10 +85,7 @@ public class RemoveJreOther extends Recipe {
                     return expr;
                 }
                 List<Expression> filtered = ListUtils.map(initializer, el -> isJreOther(el) ? null : el);
-                if (filtered.size() == initializer.size()) {
-                    return expr;
-                }
-                return array.withInitializer(filtered);
+                return filtered == initializer ? expr : array.withInitializer(filtered);
             }
 
             private boolean isJreOther(Expression expr) {
