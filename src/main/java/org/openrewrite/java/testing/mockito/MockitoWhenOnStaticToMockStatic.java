@@ -22,6 +22,10 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.kotlin.tree.K;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -60,7 +64,23 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree preVisit(Tree tree, ExecutionContext ctx) {
+                stopAfterPreVisit();
+                if (tree instanceof J.CompilationUnit) {
+                    return javaVisitor().visit(tree, ctx);
+                }
+                if (tree instanceof K.CompilationUnit) {
+                    return kotlinVisitor().visit(tree, ctx);
+                }
+                return tree;
+            }
+        });
+    }
+
+    private JavaIsoVisitor<ExecutionContext> javaVisitor() {
+        return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
@@ -114,30 +134,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     }
                     return statement;
                 });
-            }
-
-            private J.@Nullable MethodInvocation getWhenArg(Statement statement) {
-                if (statement instanceof J.MethodInvocation && MOCKITO_WHEN.matches(((J.MethodInvocation) statement).getSelect())) {
-                    J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) statement).getSelect();
-                    if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
-                        J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
-                        if (whenArg.getMethodType() != null && whenArg.getMethodType().hasFlags(Static)) {
-                            return whenArg;
-                        }
-                    }
-                }
-                return null;
-            }
-
-            private JavaType.@Nullable Class getTypeFromInvocation(J.MethodInvocation whenArg) {
-                J.Identifier clazz = null;
-                // Having a fieldType implies that something is a field rather than a class itself
-                if (whenArg.getSelect() instanceof J.Identifier && ((J.Identifier) whenArg.getSelect()).getFieldType() == null) {
-                    clazz = (J.Identifier) whenArg.getSelect();
-                } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
-                    clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
-                }
-                return clazz != null && clazz.getType() != null ? (JavaType.Class) clazz.getType() : null;
             }
 
             private J.Try tryWithMockedStatic(J.Block block, List<Statement> statements, Integer index,
@@ -258,7 +254,125 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                         .build();
             }
-        });
+        };
+    }
+
+    private KotlinIsoVisitor<ExecutionContext> kotlinVisitor() {
+        return new KotlinIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                J.MethodInvocation whenArg = getWhenArg(m);
+                if (whenArg == null) {
+                    return m;
+                }
+                JavaType.Class invokedType = getTypeFromInvocation(whenArg);
+                if (invokedType == null) {
+                    return m;
+                }
+
+                String paramName = findEnclosingMockStaticUseParam(getCursor(), invokedType);
+                if (paramName == null) {
+                    J.Identifier classProperty = findMockedStaticVariable(getCursor(), invokedType);
+                    if (classProperty == null) {
+                        return m;
+                    }
+                    paramName = classProperty.getSimpleName();
+                }
+
+                String returnTypeName = getReturnTypeName(whenArg);
+                Expression thenReturnArg = m.getArguments().get(0);
+                J.MethodInvocation rewritten = KotlinTemplate.builder(String.format(
+                                "%s.`when`<%s> { #{any()} }.thenReturn(#{any()})",
+                                paramName, returnTypeName))
+                        .imports("org.mockito.MockedStatic")
+                        .parser(KotlinParser.builder().classpathFromResources(ctx, "mockito-core-5"))
+                        .build()
+                        .apply(getCursor(), m.getCoordinates().replace(), whenArg, thenReturnArg);
+                maybeRemoveImport("org.mockito.Mockito.when");
+                return rewritten;
+            }
+        };
+    }
+
+    private static J.@Nullable MethodInvocation getWhenArg(Statement statement) {
+        if (statement instanceof J.MethodInvocation && MOCKITO_WHEN.matches(((J.MethodInvocation) statement).getSelect())) {
+            J.MethodInvocation when = (J.MethodInvocation) ((J.MethodInvocation) statement).getSelect();
+            if (when != null && when.getArguments().get(0) instanceof J.MethodInvocation) {
+                J.MethodInvocation whenArg = (J.MethodInvocation) when.getArguments().get(0);
+                if (whenArg.getMethodType() != null && whenArg.getMethodType().hasFlags(Static)) {
+                    return whenArg;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static JavaType.@Nullable Class getTypeFromInvocation(J.MethodInvocation whenArg) {
+        J.Identifier clazz = null;
+        // Having a fieldType implies that something is a field rather than a class itself
+        if (whenArg.getSelect() instanceof J.Identifier && ((J.Identifier) whenArg.getSelect()).getFieldType() == null) {
+            clazz = (J.Identifier) whenArg.getSelect();
+        } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
+            clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
+        }
+        return clazz != null && clazz.getType() != null ? (JavaType.Class) clazz.getType() : null;
+    }
+
+    private static @Nullable String findEnclosingMockStaticUseParam(Cursor cursor, JavaType invokedType) {
+        Cursor c = cursor;
+        while ((c = c.getParent()) != null) {
+            if (!(c.getValue() instanceof J.Lambda)) {
+                continue;
+            }
+            J.Lambda lambda = c.getValue();
+            Cursor p = c;
+            while ((p = p.getParent()) != null) {
+                Object pv = p.getValue();
+                if (pv instanceof J.MethodInvocation) {
+                    J.MethodInvocation parentInv = (J.MethodInvocation) pv;
+                    if ("use".equals(parentInv.getSimpleName()) &&
+                            parentInv.getSelect() instanceof J.MethodInvocation) {
+                        J.MethodInvocation receiver = (J.MethodInvocation) parentInv.getSelect();
+                        if (receiver.getMethodType() != null &&
+                                isMockedStaticOfType(invokedType, receiver.getMethodType().getReturnType())) {
+                            return lambdaParamName(lambda);
+                        }
+                    }
+                    break;
+                }
+                if (pv instanceof J) {
+                    // Lambda's nearest J ancestor isn't a method invocation — not a `.use { }` block
+                    break;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String lambdaParamName(J.Lambda lambda) {
+        List<J> params = lambda.getParameters().getParameters();
+        if (params.isEmpty() || params.get(0) instanceof J.Empty) {
+            return "it";
+        }
+        J first = params.get(0);
+        if (first instanceof J.VariableDeclarations) {
+            return ((J.VariableDeclarations) first).getVariables().get(0).getSimpleName();
+        }
+        return "it";
+    }
+
+    private static String getReturnTypeName(J.MethodInvocation whenArg) {
+        if (whenArg.getMethodType() != null) {
+            JavaType returnType = whenArg.getMethodType().getReturnType();
+            if (returnType instanceof JavaType.FullyQualified) {
+                return ((JavaType.FullyQualified) returnType).getClassName();
+            }
+            if (returnType instanceof JavaType.Primitive) {
+                return ((JavaType.Primitive) returnType).getKeyword();
+            }
+        }
+        return "Any";
     }
 
     private static List<J.Try.Resource> getMatchingFilteredResources(@Nullable List<J.Try.Resource> resources, JavaType className) {
