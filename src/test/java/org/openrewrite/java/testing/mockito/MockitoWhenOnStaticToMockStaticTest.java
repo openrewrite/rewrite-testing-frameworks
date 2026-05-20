@@ -1847,4 +1847,220 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void shouldRewriteKotlinMockitoWhenInsideMockStaticUseWithImplicitIt() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use {
+                          `when`(Calendar.getInstance()).thenReturn(calendarMock)
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use {
+                          it.`when`<Calendar> { Calendar.getInstance() }.thenReturn(calendarMock)
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRewriteKotlinMockitoWhenInsideMockStaticUseWithNamedParam() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use { mockCal ->
+                          `when`(Calendar.getInstance()).thenReturn(calendarMock)
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use { mockCal ->
+                          mockCal.`when`<Calendar> { Calendar.getInstance() }.thenReturn(calendarMock)
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRewriteKotlinMockitoWhenWithMultipleStatementsInUseBlock() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock1: Calendar = mock(Calendar::class.java)
+                      val calendarMock2: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use {
+                          `when`(Calendar.getInstance()).thenReturn(calendarMock1)
+                          `when`(Calendar.getInstance()).thenReturn(calendarMock2)
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock1: Calendar = mock(Calendar::class.java)
+                      val calendarMock2: Calendar = mock(Calendar::class.java)
+                      mockStatic(Calendar::class.java).use {
+                          it.`when`<Calendar> { Calendar.getInstance() }.thenReturn(calendarMock1)
+                          it.`when`<Calendar> { Calendar.getInstance() }.thenReturn(calendarMock2)
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRewriteKotlinMockitoWhenWithClassLevelMockedStaticProperty() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Test
+              import org.mockito.MockedStatic
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  private lateinit var mockCal: MockedStatic<Calendar>
+
+                  @BeforeEach
+                  fun setUp() {
+                      mockCal = mockStatic(Calendar::class.java)
+                  }
+
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      `when`(Calendar.getInstance()).thenReturn(calendarMock)
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Test
+              import org.mockito.MockedStatic
+              import org.mockito.Mockito.mock
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  private lateinit var mockCal: MockedStatic<Calendar>
+
+                  @BeforeEach
+                  fun setUp() {
+                      mockCal = mockStatic(Calendar::class.java)
+                  }
+
+                  @Test
+                  fun testStaticMethod() {
+                      val calendarMock: Calendar = mock(Calendar::class.java)
+                      mockCal.`when`<Calendar> { Calendar.getInstance() }.thenReturn(calendarMock)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldNotRewriteKotlinMockitoWhenWhenStaticClassDoesNotMatchUseReceiver() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+              import java.util.UUID
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      mockStatic(Calendar::class.java).use {
+                          `when`(UUID.randomUUID()).thenReturn(UUID.randomUUID())
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
