@@ -1,0 +1,59 @@
+#
+# Copyright 2026 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit6.MigrateJUnitPioneerToJupiter
+displayName: Migrate JUnit Pioneer extensions to native JUnit Jupiter equivalents
+description: >-
+  Migrates `@DefaultLocale`, `@DefaultTimeZone`, `@SetSystemProperty`, `@ClearSystemProperty`,
+  `@RestoreSystemProperties` (and their `@Reads.../@Writes...` companions) from JUnit Pioneer
+  to the native equivalents added in JUnit Jupiter 6.1. The `junit-pioneer` dependency is
+  not removed since other Pioneer features (e.g. `@RetryingTest`, `@CartesianTest`) have no
+  Jupiter equivalent.
+tags:
+  - testing
+  - junit
+  - jupiter
+  - junit-pioneer
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.DefaultLocale
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.DefaultLocale
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.DefaultTimeZone
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.DefaultTimeZone
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.SetSystemProperty
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.SetSystemProperty
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.ClearSystemProperty
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.ClearSystemProperty
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.RestoreSystemProperties
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.RestoreSystemProperties
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.ReadsDefaultLocale
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.ReadsDefaultLocale
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.WritesDefaultLocale
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.WritesDefaultLocale
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.ReadsDefaultTimeZone
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.ReadsDefaultTimeZone
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.WritesDefaultTimeZone
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.WritesDefaultTimeZone
