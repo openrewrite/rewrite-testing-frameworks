@@ -80,12 +80,8 @@ public class RemoveJreOther extends Recipe {
                     return expr;
                 }
                 J.NewArray array = (J.NewArray) expr;
-                List<Expression> initializer = array.getInitializer();
-                if (initializer == null || initializer.size() < 2) {
-                    return expr;
-                }
-                List<Expression> filtered = ListUtils.map(initializer, el -> isJreOther(el) ? null : el);
-                return filtered == initializer ? expr : array.withInitializer(filtered);
+                List<Expression> filtered = ListUtils.map(array.getInitializer(), el -> isJreOther(el) ? null : el);
+                return filtered == array.getInitializer() ? expr : array.withInitializer(filtered);
             }
 
             private boolean isJreOther(Expression expr) {
