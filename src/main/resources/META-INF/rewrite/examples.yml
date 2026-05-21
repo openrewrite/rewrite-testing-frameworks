@@ -3946,6 +3946,37 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit6.MigrateJUnitPioneerToJupiter
+examples:
+- description: '`MigrateJUnitPioneerToJupiterTest#migrateDefaultLocaleAndDefaultTimeZone`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.junitpioneer.jupiter.DefaultLocale;
+      import org.junitpioneer.jupiter.DefaultTimeZone;
+
+      class MyTest {
+          @Test
+          @DefaultLocale("en-US")
+          @DefaultTimeZone("UTC")
+          void test() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.util.DefaultLocale;
+      import org.junit.jupiter.api.util.DefaultTimeZone;
+
+      class MyTest {
+          @Test
+          @DefaultLocale("en-US")
+          @DefaultTimeZone("UTC")
+          void test() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit6.MigrateMethodOrdererAlphanumeric
 examples:
 - description: '`MigrateMethodOrdererAlphanumericTest#migrateAlphanumericInTestMethodOrder`'
@@ -4101,6 +4132,35 @@ examples:
           }
 
           private static class Method {}
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit6.RemoveJreOther
+examples:
+- description: '`RemoveJreOtherTest#stripJreOtherFromEnabledOnJreArray`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.condition.EnabledOnJre;
+      import org.junit.jupiter.api.condition.JRE;
+
+      class MyTest {
+          @Test
+          @EnabledOnJre({JRE.JAVA_21, JRE.OTHER})
+          void test() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.condition.EnabledOnJre;
+      import org.junit.jupiter.api.condition.JRE;
+
+      class MyTest {
+          @Test
+          @EnabledOnJre({JRE.JAVA_21})
+          void test() {
+          }
       }
     language: java
 ---
