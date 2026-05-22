@@ -248,24 +248,56 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                           mockA1.when(() -> A.getNumber()).thenReturn(-1);
                           assertEquals(A.getNumber(), -1);
 
-                          try (MockedStatic<A> mockA2 = mockStatic(A.class)) {
-                              mockA2.when(() -> A.getNumber()).thenReturn(-2);
-                              assertEquals(A.getNumber(), -2);
+                          mockA1.when(() -> A.getNumber()).thenReturn(-2);
+                          assertEquals(A.getNumber(), -2);
 
-                              if (true) {
-                                  try (MockedStatic<A> mockA3 = mockStatic(A.class)) {
-                                      mockA3.when(() -> A.getNumber()).thenReturn(-3);
-                                      assertEquals(A.getNumber(), -3);
+                          if (true) {
+                              mockA1.when(() -> A.getNumber()).thenReturn(-3);
+                              assertEquals(A.getNumber(), -3);
 
-                                      try (MockedStatic<A> mockA4 = mockStatic(A.class)) {
-                                          mockA4.when(() -> A.getNumber()).thenReturn(-4);
-                                          assertEquals(A.getNumber(), -4);
-                                      }
-                                  }
-                              }
-
-                              assertEquals(A.getNumber(), -2);
+                              mockA1.when(() -> A.getNumber()).thenReturn(-4);
+                              assertEquals(A.getNumber(), -4);
                           }
+
+                          assertEquals(A.getNumber(), -2);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldShareSingleMockedStaticForConsecutiveStubbingsOfSameClass() {
+        // https://github.com/openrewrite/rewrite-testing-frameworks/issues/1004
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenReturn(1);
+                      when(A.getNumber()).thenReturn(2);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(1);
+                          mockA1.when(() -> A.getNumber()).thenReturn(2);
                       }
                   }
               }
