@@ -88,7 +88,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 List<Statement> newStatements = isMethodDeclarationWithAnnotation(containingMethod, BEFORE) ?
                         maybeStatementsToMockedStatic(block, block.getStatements(), ctx) :
-                        maybeWrapStatementsInTryWithResourcesMockedStatic(block, block.getStatements(), ctx);
+                        maybeWrapStatementsInTryWithResourcesMockedStatic(block, block.getStatements(), ctx, new HashMap<>());
 
                 J.Block b = super.visitBlock(block.withStatements(newStatements), ctx);
                 return maybeAutoFormat(block, b, ctx);
@@ -108,10 +108,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     }
                 }
                 return list;
-            }
-
-            private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.Block block, List<Statement> statements, ExecutionContext ctx) {
-                return maybeWrapStatementsInTryWithResourcesMockedStatic(block, statements, ctx, new HashMap<>());
             }
 
             private List<Statement> maybeWrapStatementsInTryWithResourcesMockedStatic(J.Block block, List<Statement> statements, ExecutionContext ctx,
