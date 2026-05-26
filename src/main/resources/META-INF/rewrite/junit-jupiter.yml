@@ -46,6 +46,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
   - org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
   - org.openrewrite.java.testing.junit5.UseAssertSame
+  - org.openrewrite.java.testing.junit.RemoveJupiterMigrationSupport
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
