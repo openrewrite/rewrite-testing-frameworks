@@ -339,6 +339,162 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
     }
 
     @Test
+    void retainsDoNothingInSwitchExpressionArm() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              import static org.mockito.Mockito.doNothing;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      String status = System.getProperty("status", "ACTIVE");
+                      switch (status) {
+                          case "ACTIVE" -> doNothing().when(bufferedWriter).write("active");
+                          default -> {}
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesDoNothingInSwitchExpressionArmBlockLeavingEmptyBlock() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              import static org.mockito.Mockito.doNothing;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      String status = System.getProperty("status", "ACTIVE");
+                      switch (status) {
+                          case "ACTIVE" -> {
+                              doNothing().when(bufferedWriter).write("active");
+                          }
+                          default -> {}
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      String status = System.getProperty("status", "ACTIVE");
+                      switch (status) {
+                          case "ACTIVE" -> {
+                          }
+                          default -> {}
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesDoNothingWhenNotSoleStatementInSwitchExpressionArmBlock() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              import static org.mockito.Mockito.doNothing;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      String status = System.getProperty("status", "ACTIVE");
+                      switch (status) {
+                          case "ACTIVE" -> {
+                              doNothing().when(bufferedWriter).write("active");
+                              System.out.println("other statement");
+                          }
+                          default -> {}
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      String status = System.getProperty("status", "ACTIVE");
+                      switch (status) {
+                          case "ACTIVE" -> {
+                              System.out.println("other statement");
+                          }
+                          default -> {}
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainsDoNothingInsideLambdaBody() {
         rewriteRun(
           //language=Java
@@ -348,8 +504,8 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
-
               import java.io.BufferedWriter;
+              import java.io.IOException;
               import java.util.List;
 
               import static org.mockito.Mockito.doNothing;
@@ -360,9 +516,115 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
                   private BufferedWriter bufferedWriter;
 
                   @Test
-                  public void test() {
-                      List<String> paths = List.of("/path/1", "/path/2");
-                      paths.forEach(path -> doNothing().when(bufferedWriter).write(path));
+                  public void test() throws IOException {
+                      List<String> texts = List.of("first", "second");
+                      texts.forEach(text -> doNothing().when(bufferedWriter).write(text));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesDoNothingInLambdaBlockLeavingEmptyBlock() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              import static org.mockito.Mockito.doNothing;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      Runnable r = () -> {
+                          doNothing().when(bufferedWriter).write("test");
+                      };
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      Runnable r = () -> {
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesDoNothingWhenNotSoleStatementInLambdaBlock() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              import static org.mockito.Mockito.doNothing;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      Runnable r = () -> {
+                          doNothing().when(bufferedWriter).write("test");
+                          System.out.println("other statement");
+                      };
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      Runnable r = () -> {
+                          System.out.println("other statement");
+                      };
                   }
               }
               """
