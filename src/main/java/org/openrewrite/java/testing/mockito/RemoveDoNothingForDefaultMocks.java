@@ -74,6 +74,12 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (mi != null && isDoNothingOnMockField(mi)) {
+                            // Do not remove if the invocation is the body of a lambda
+                            // removing it would leave an empty lambda body which does not compile
+                            Object parent = getCursor().getParentTreeCursor().getValue();
+                            if (parent instanceof J.Lambda) {
+                                return mi;
+                            }
                             maybeRemoveImport("org.mockito.Mockito.doNothing");
                             return null;
                         }

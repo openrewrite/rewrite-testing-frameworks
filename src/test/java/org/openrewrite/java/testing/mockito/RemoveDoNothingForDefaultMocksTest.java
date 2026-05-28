@@ -339,6 +339,38 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
     }
 
     @Test
+    void retainsDoNothingInsideLambdaBody() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              import java.io.BufferedWriter;
+              import java.util.List;
+
+              import static org.mockito.Mockito.doNothing;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() {
+                      List<String> paths = List.of("/path/1", "/path/2");
+                      paths.forEach(path -> doNothing().when(bufferedWriter).write(path));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void noChangeWithoutDoNothing() {
         rewriteRun(
           //language=Java
