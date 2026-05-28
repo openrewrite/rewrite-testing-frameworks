@@ -74,7 +74,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         if (mi != null && isDoNothingOnMockField(mi)) {
-                            // Retain becuase if removed would leave a dangling -> producing uncompilable code
+                            // Retain because if removed would leave a dangling -> producing uncompilable code
                             if (isExpressionLambdaBody() || isSwitchExpressionArm()) {
                                 return mi;
                             }
