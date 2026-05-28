@@ -73,9 +73,10 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                     @Override
                     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                        if (mi != null && isDoNothingOnMockField(mi)) {
+                        if (isDoNothingOnMockField(mi)) {
                             // Retain because if removed would leave a dangling -> producing uncompilable code
-                            if (isExpressionLambdaBody() || isSwitchExpressionArm()) {
+                            Object value = getCursor().getParentTreeCursor().getValue();
+                            if (value instanceof J.Lambda || value instanceof J.Case && ((J.Case) value).getStatements().isEmpty()) {
                                 return mi;
                             }
                             maybeRemoveImport("org.mockito.Mockito.doNothing");
@@ -113,15 +114,6 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         // Preserve stubbings whose arguments include ArgumentCaptor.capture(),
                         // which registers a matcher used to capture later real invocations.
                         return !containsCapture(mi.getArguments());
-                    }
-
-                    private boolean isExpressionLambdaBody() {
-                        return getCursor().getParentTreeCursor().getValue() instanceof J.Lambda;
-                    }
-
-                    private boolean isSwitchExpressionArm() {
-                        Object parent = getCursor().getParentTreeCursor().getValue();
-                        return parent instanceof J.Case && ((J.Case) parent).getStatements().isEmpty();
                     }
 
                     private boolean containsCapture(java.util.List<Expression> arguments) {
