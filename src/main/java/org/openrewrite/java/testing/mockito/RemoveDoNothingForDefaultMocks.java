@@ -73,7 +73,12 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                     @Override
                     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                        if (mi != null && isDoNothingOnMockField(mi)) {
+                        if (isDoNothingOnMockField(mi)) {
+                            // Retain because if removed would leave a dangling -> producing uncompilable code
+                            Object value = getCursor().getParentTreeCursor().getValue();
+                            if (value instanceof J.Lambda || value instanceof J.Case && ((J.Case) value).getStatements().isEmpty()) {
+                                return mi;
+                            }
                             maybeRemoveImport("org.mockito.Mockito.doNothing");
                             return null;
                         }
