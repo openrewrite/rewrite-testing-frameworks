@@ -16,11 +16,9 @@
 package org.openrewrite.java.testing.assertj;
 
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -73,49 +71,6 @@ class StaticImportsTest implements RewriteTest {
                       assertThat(true).isTrue();
                       assertThat(exampleList).hasSize(0);
                       fail("This is a failure");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Disabled("Requires changes in AssertJ to adopt `assertThatClass` and `assertThatInterface`")
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/664")
-    @Test
-    void assertionsForClassTypes() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.util.List;
-              import org.assertj.core.api.AssertionsForClassTypes;
-              import org.assertj.core.api.AssertionsForInterfaceTypes;
-              import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-              import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-
-              public class Test {
-                  List<String> exampleList;
-                  void method() {
-                      AssertionsForInterfaceTypes.assertThat(exampleList).hasSize(0);
-                      AssertionsForClassTypes.assertThat(true).isTrue();
-                      assertThat(true).isTrue();
-                      assertThat(exampleList).hasSize(0);
-                  }
-              }
-              """,
-            """
-              import java.util.List;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              public class Test {
-                  List<String> exampleList;
-                  void method() {
-                      assertThat(exampleList).hasSize(0);
-                      assertThat(true).isTrue();
-                      assertThat(true).isTrue();
-                      assertThat(exampleList).hasSize(0);
                   }
               }
               """

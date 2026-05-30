@@ -85,6 +85,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.CollapseConsecutiveAssertThatStatements
   - org.openrewrite.java.testing.assertj.ReturnActual
   - org.openrewrite.java.testing.assertj.SimplifyRedundantAssertJChains
+  - org.openrewrite.java.testing.assertj.MigrateAssertionsForClassAndInterfaceTypes
   - org.openrewrite.java.testing.assertj.StaticImports
 
 ---
@@ -98,18 +99,36 @@ tags:
   - testing
   - assertj
 recipeList:
-# https://github.com/openrewrite/rewrite-testing-frameworks/issues/664
-#  - org.openrewrite.java.ChangeMethodTargetToStatic:
-#      methodPattern: "org.assertj.core.api.AssertionsForClassTypes assertThat(..)"
-#      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
-#  - org.openrewrite.java.ChangeMethodTargetToStatic:
-#      methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes assertThat(..)"
-#      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+  # AssertionsForClassTypes / AssertionsForInterfaceTypes are converged onto Assertions by
+  # MigrateAssertionsForClassAndInterfaceTypes; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/664
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: "org.assertj.core.api.Fail fail(..)"
       fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
   - org.openrewrite.java.UseStaticImport:
       methodPattern: "org.assertj.core.api.Assertions *(..)"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.MigrateAssertionsForClassAndInterfaceTypes
+displayName: Migrate `AssertionsForClassTypes` and `AssertionsForInterfaceTypes` to `Assertions`
+description: >-
+  AssertJ deprecated `AssertionsForClassTypes` and `AssertionsForInterfaceTypes` in favor of the unified
+  `Assertions` entry point. This recipe retargets their static methods to `Assertions`, using `assertThatObject`
+  where a plain `assertThat` would otherwise re-bind to a more specific overload and stop compiling
+  (see https://github.com/openrewrite/rewrite-testing-frameworks/issues/664).
+preconditions:
+  - org.openrewrite.Singleton
+tags:
+  - testing
+  - assertj
+recipeList:
+  - org.openrewrite.java.testing.assertj.MigrateAssertionsForClassTypes
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: "org.assertj.core.api.AssertionsForClassTypes *(..)"
+      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: "org.assertj.core.api.AssertionsForInterfaceTypes *(..)"
+      fullyQualifiedTargetTypeName: "org.assertj.core.api.Assertions"
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
