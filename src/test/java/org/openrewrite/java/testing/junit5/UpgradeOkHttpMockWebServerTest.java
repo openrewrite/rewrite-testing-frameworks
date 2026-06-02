@@ -138,7 +138,8 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
               .classpathFromResources(new InMemoryExecutionContext(),
                 "mockwebserver-4.10",
                 "okhttp-4.10",
-                "okio-jvm-3.12"
+                "okio-jvm-3.12",
+                "junit-4"
               )),
           mavenProject("project",
             //language=xml
