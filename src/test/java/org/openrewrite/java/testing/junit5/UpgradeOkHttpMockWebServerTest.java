@@ -87,9 +87,9 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
                 <project>
                   <modelVersion>4.0.0</modelVersion>
                   <parent>
-                    <groupId>com.huawei.openstack4j.connectors</groupId>
-                    <artifactId>openstack4j-connectors</artifactId>
-                    <version>1.0.26</version>
+                    <groupId>com.github.scribejava</groupId>
+                    <artifactId>scribejava</artifactId>
+                    <version>8.3.3</version>
                   </parent>
                   <groupId>com.example</groupId>
                   <artifactId>demo</artifactId>
