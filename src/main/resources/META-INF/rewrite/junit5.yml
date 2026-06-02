@@ -314,7 +314,7 @@ recipeList:
       acceptTransitive: true
       scope: test
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: "mockwebserver3.MockWebServer shutdown()"
+      methodPattern: "okhttp3.mockwebserver.MockWebServer shutdown()"
       newMethodName: close
   - org.openrewrite.java.testing.junit5.UpdateMockWebServerMockResponse
 ---

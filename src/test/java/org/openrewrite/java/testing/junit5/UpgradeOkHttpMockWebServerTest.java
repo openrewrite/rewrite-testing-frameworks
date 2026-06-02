@@ -126,4 +126,72 @@ class UpgradeOkHttpMockWebServerTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void shouldRenameShutdownToCloseAlongWithPackageChange() {
+        rewriteRun(
+          spec -> spec
+            .recipeFromResource(
+              "/META-INF/rewrite/junit5.yml",
+              "org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer")
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(),
+                "mockwebserver-4.10",
+                "okhttp-4.10",
+                "okio-jvm-3.12"
+              )),
+          mavenProject("project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>com.squareup.okhttp3</groupId>
+                      <artifactId>mockwebserver</artifactId>
+                      <version>4.10.0</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom ->
+                assertThat(pom)
+                  .doesNotContain("<artifactId>mockwebserver</artifactId>")
+                  .contains("<artifactId>mockwebserver3</artifactId>")
+                  .actual()
+              )
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import okhttp3.mockwebserver.MockWebServer;
+
+                  class ApiTest {
+                      MockWebServer server = new MockWebServer();
+                      void stop() {
+                          server.shutdown();
+                      }
+                  }
+                  """,
+                """
+                  import mockwebserver3.MockWebServer;
+
+                  class ApiTest {
+                      MockWebServer server = new MockWebServer();
+                      void stop() {
+                          server.close();
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
 }
