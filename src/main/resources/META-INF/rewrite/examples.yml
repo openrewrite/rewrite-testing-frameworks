@@ -861,6 +861,37 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.MigrateAssertionsForClassAndInterfaceTypes
+examples:
+- description: '`MigrateAssertionsForClassAndInterfaceTypesTest#collisionTypesUseAssertThatObject`'
+  sources:
+  - before: |
+      import org.assertj.core.api.AssertionsForClassTypes;
+
+      import java.util.Map;
+      import java.util.Set;
+
+      class Test {
+          void method(Set<String> set, Map<String, Integer> map) {
+              AssertionsForClassTypes.assertThat(set).hasNoNullFieldsOrProperties();
+              AssertionsForClassTypes.assertThat(map).isNotNull();
+          }
+      }
+    after: |
+      import org.assertj.core.api.Assertions;
+
+      import java.util.Map;
+      import java.util.Set;
+
+      class Test {
+          void method(Set<String> set, Map<String, Integer> map) {
+              Assertions.assertThatObject(set).hasNoNullFieldsOrProperties();
+              Assertions.assertThatObject(map).isNotNull();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.ReturnActual
 examples:
 - description: '`ReturnActualTest#singleAssertionAndReturn`'
