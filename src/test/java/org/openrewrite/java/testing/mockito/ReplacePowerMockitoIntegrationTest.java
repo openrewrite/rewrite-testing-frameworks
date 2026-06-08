@@ -48,6 +48,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               "powermock-api-mockito-1",
               "powermock-api-support-1",
               "powermock-module-junit4",
+              "powermock-reflect-1",
               "testng-7"))
           .typeValidationOptions(TypeValidation.builder()
             .cursorAcyclic(false)
@@ -1838,6 +1839,49 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
                   @Test
                   void testSomething() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/moderneinc/customer-requests/issues/2358")
+    void whiteboxIsMigratedAndUnmigratableUsageIsFlagged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = new MyService();
+                      Whitebox.setInternalState(service, "name", "value");
+                      MyService other = Whitebox.newInstance(MyService.class);
+                  }
+              }
+              """,
+            """
+              import org.powermock.reflect.Whitebox;
+
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      Field nameField = service.getClass().getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      nameField.set(service, "value");
+                      MyService other = /* PowerMock `Whitebox` call could not be automatically migrated to reflection; migrate manually */ Whitebox.newInstance(MyService.class);
                   }
               }
               """
