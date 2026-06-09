@@ -24,6 +24,9 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
@@ -37,6 +40,7 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
 
     private static final String POWER_MOCK_RUNNER_DELEGATE = "org.powermock.modules.junit4.PowerMockRunnerDelegate";
     private static final String POWER_MOCK_RUNNER = "org.powermock.modules.junit4.PowerMockRunner";
+    private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";
     private static final AnnotationMatcher DELEGATE_MATCHER =
             new AnnotationMatcher("@" + POWER_MOCK_RUNNER_DELEGATE);
     private static final AnnotationMatcher RUN_WITH_POWER_MOCK_RUNNER_MATCHER =
@@ -47,8 +51,9 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
 
     @Getter
     final String description = "Replaces `@RunWith(PowerMockRunner.class)`. If `@PowerMockRunnerDelegate(X.class)` " +
-            "is present, promotes the delegate runner to `@RunWith(X.class)`. Otherwise, removes the " +
-            "`@RunWith(PowerMockRunner.class)` annotation entirely.";
+            "is present, promotes the delegate runner to `@RunWith(X.class)`. Otherwise, replaces it with " +
+            "`@RunWith(MockitoJUnitRunner.class)` when the class uses Mockito annotations like `@Mock`, or removes " +
+            "the `@RunWith(PowerMockRunner.class)` annotation entirely.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -84,7 +89,26 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                             }));
                         }
 
-                        // No delegate — just remove @RunWith(PowerMockRunner.class)
+                        // No delegate, but Mockito annotations are used — switch to the Mockito JUnit 4 runner
+                        // so the mocks remain initialized
+                        if (declaresMockitoAnnotation(cd)) {
+                            maybeAddImport(MOCKITO_JUNIT_RUNNER);
+                            return (J.ClassDeclaration) new JavaIsoVisitor<ExecutionContext>() {
+                                @Override
+                                public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
+                                    if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
+                                        return JavaTemplate.builder("@RunWith(MockitoJUnitRunner.class)")
+                                                .imports("org.junit.runner.RunWith", MOCKITO_JUNIT_RUNNER)
+                                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4", "mockito-core"))
+                                                .build()
+                                                .apply(getCursor(), annotation.getCoordinates().replace());
+                                    }
+                                    return annotation;
+                                }
+                            }.visitNonNull(cd, ctx, getCursor().getParentOrThrow());
+                        }
+
+                        // No delegate and no Mockito annotations — just remove @RunWith(PowerMockRunner.class)
                         maybeRemoveImport("org.junit.runner.RunWith");
                         return cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
                             if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
@@ -92,6 +116,13 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                             }
                             return annotation;
                         }));
+                    }
+
+                    private boolean declaresMockitoAnnotation(J.ClassDeclaration cd) {
+                        return !FindAnnotations.find(cd, "@org.mockito.Mock").isEmpty() ||
+                                !FindAnnotations.find(cd, "@org.mockito.Spy").isEmpty() ||
+                                !FindAnnotations.find(cd, "@org.mockito.Captor").isEmpty() ||
+                                !FindAnnotations.find(cd, "@org.mockito.InjectMocks").isEmpty();
                     }
 
                     private @Nullable Expression findDelegateRunnerArg(J.ClassDeclaration cd) {

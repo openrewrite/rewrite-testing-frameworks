@@ -173,16 +173,13 @@ class Mockito1to3MigrationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
 
               import static org.mockito.ArgumentMatchers.anyList;
               import static org.mockito.ArgumentMatchers.any;
               import static org.mockito.ArgumentMatchers.anyString;
               import static org.mockito.Mockito.when;
 
-              @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object objectMock;
@@ -288,7 +285,9 @@ class Mockito1to3MigrationTest implements RewriteTest {
     }
 
     @Test
-    void addMockitoJupiterDependencyIfMockitoExtensionIsAdded() {
+    void doesNotAddMockitoExtensionOrJupiterDependency() {
+        // The migration upgrades the Mockito dependency but must not add `@ExtendWith(MockitoExtension.class)`
+        // nor the `mockito-junit-jupiter` dependency; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/875
         rewriteRun(
           //language=groovy
           buildGradle(
@@ -317,7 +316,6 @@ class Mockito1to3MigrationTest implements RewriteTest {
               dependencies {
                   testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
                   testImplementation("org.mockito:mockito-core:3.12.4")
-                  testImplementation "org.mockito:mockito-junit-jupiter:3.12.4"
               }
               test {
                   useJUnitPlatform()
@@ -361,12 +359,6 @@ class Mockito1to3MigrationTest implements RewriteTest {
                         <artifactId>mockito-core</artifactId>
                         <version>3.12.4</version>
                     </dependency>
-                  <dependency>
-                    <groupId>org.mockito</groupId>
-                    <artifactId>mockito-junit-jupiter</artifactId>
-                    <version>3.12.4</version>
-                    <scope>test</scope>
-                  </dependency>
                 </dependencies>
               </project>
               """
@@ -377,22 +369,6 @@ class Mockito1to3MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
               import org.mockito.Mock;
 
-              class MyTest {
-                  @Mock
-                  Object myMock;
-
-                  @Test
-                  void someTest() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.extension.ExtendWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.jupiter.MockitoExtension;
-
-              @ExtendWith(MockitoExtension.class)
               class MyTest {
                   @Mock
                   Object myMock;

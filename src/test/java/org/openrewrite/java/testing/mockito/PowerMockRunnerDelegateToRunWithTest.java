@@ -102,6 +102,53 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
     }
 
     @Test
+    void replacesRunWithPowerMockRunnerWithMockitoJUnitRunnerWhenMockAnnotationsPresent() {
+        //language=java
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "mockito-core",
+              "powermock-module-junit4")),
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              public class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  public void testSomething() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.class)
+              public class MyTest {
+                  @Mock
+                  Object myMock;
+
+                  @Test
+                  public void testSomething() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void removesRunWithPowerMockRunnerWithoutDelegate() {
         //language=java
         rewriteRun(

@@ -251,6 +251,100 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
+    void doNotAddWhenSpringExtensionPresent() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core", "spring-test-6.1")
+            .dependsOn("public class Service {}")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+              @ExtendWith(SpringExtension.class)
+              class MyTest {
+                  @Mock
+                  Service service;
+                  @Test
+                  void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotAddToAbstractClass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              abstract class BaseTest {
+                  @Mock
+                  Service service;
+                  @Test
+                  void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotAddToInterfaceOrClassWithoutOwnMockitoAnnotations() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              interface MyService {}
+
+              class HelperWithoutMocks {
+                  @Test
+                  void test() {}
+              }
+
+              class MyTest {
+                  @Mock
+                  MyService service;
+                  @Test
+                  void test() {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              interface MyService {}
+
+              class HelperWithoutMocks {
+                  @Test
+                  void test() {}
+              }
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyService service;
+                  @Test
+                  void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotAddIfPresentInKotlinWithJUnit5() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
