@@ -10,3 +10,5 @@ bin/
 .vscode/
 src/main/generated/
 working-set*/
+
+.context/
