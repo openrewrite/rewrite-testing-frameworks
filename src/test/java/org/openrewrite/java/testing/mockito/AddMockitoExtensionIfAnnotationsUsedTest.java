@@ -345,6 +345,50 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     }
 
     @Test
+    void addToEnclosingClassForNestedMock() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mock;
+
+              class OuterTest {
+                  @Nested
+                  class InnerTest {
+                      @Mock
+                      Service service;
+
+                      @Test
+                      void test() {}
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class OuterTest {
+                  @Nested
+                  class InnerTest {
+                      @Mock
+                      Service service;
+
+                      @Test
+                      void test() {}
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotAddIfPresentInKotlinWithJUnit5() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()

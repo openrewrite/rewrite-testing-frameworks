@@ -27,12 +27,16 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.search.IsLikelyTest;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.tree.K;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Comparator.comparing;
 import static org.openrewrite.Preconditions.*;
@@ -41,6 +45,13 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
 
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
     private static final String RUN_WITH = "org.junit.runner.RunWith";
+    // Explicit list rather than a wildcard like `org.mockito.*`, which would also match non-injection annotations
+    // such as `@DoNotMock`, `@CheckReturnValue` or `@Incubating` and cause false positives.
+    private static final List<String> MOCKITO_FIELD_ANNOTATIONS = Arrays.asList(
+            "org.mockito.Captor",
+            "org.mockito.Mock",
+            "org.mockito.Spy",
+            "org.mockito.InjectMocks");
 
     @Getter
     final String displayName = "Adds Mockito extensions to Mockito tests";
@@ -91,7 +102,7 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                if (shouldSkip(classDecl, EXTEND_WITH)) {
+                if (shouldSkip(classDecl, service(AnnotationService.class).getAllAnnotations(getCursor()), EXTEND_WITH)) {
                     return classDecl;
                 }
                 maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
@@ -111,7 +122,7 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                if (shouldSkip(classDecl, RUN_WITH)) {
+                if (shouldSkip(classDecl, service(AnnotationService.class).getAllAnnotations(getCursor()), RUN_WITH)) {
                     return classDecl;
                 }
                 maybeAddImport("org.mockito.junit.MockitoJUnitRunner");
@@ -131,7 +142,7 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
         return new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                if (shouldSkip(classDecl, EXTEND_WITH)) {
+                if (shouldSkip(classDecl, service(AnnotationService.class).getAllAnnotations(getCursor()), EXTEND_WITH)) {
                     return classDecl;
                 }
                 maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
@@ -152,26 +163,26 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
      * not already register an extension or runner (e.g. {@code SpringExtension}). This avoids redundant or harmful
      * additions; see <a href="https://github.com/openrewrite/rewrite-testing-frameworks/issues/875">#875</a>.
      */
-    private static boolean shouldSkip(J.ClassDeclaration classDecl, String existingExtensionType) {
+    private static boolean shouldSkip(J.ClassDeclaration classDecl, List<J.Annotation> classAnnotations, String existingExtensionType) {
         // Interfaces, enums, annotations and abstract bases are not concrete Mockito test classes
         if (classDecl.getKind() != J.ClassDeclaration.Kind.Type.Class ||
                 classDecl.getModifiers().stream().anyMatch(m -> m.getType() == J.Modifier.Type.Abstract)) {
             return true;
         }
-        // Don't add when the class already registers an extension or runner directly (e.g. SpringExtension)
-        for (J.Annotation annotation : classDecl.getLeadingAnnotations()) {
+        // Don't add when the class already registers an extension or runner (e.g. SpringExtension)
+        for (J.Annotation annotation : classAnnotations) {
             if (TypeUtils.isOfClassType(annotation.getType(), existingExtensionType)) {
                 return true;
             }
         }
-        // Only add to classes that themselves declare Mockito annotations
+        // Only add to classes that declare Mockito annotations. The search spans the class subtree on purpose: a
+        // `@Mock` in a `@Nested` inner class should annotate the enclosing class, since JUnit 5 propagates the
+        // extension to nested classes (and the visitor only annotates the outermost class).
         return !declaresMockitoAnnotation(classDecl);
     }
 
     private static boolean declaresMockitoAnnotation(J.ClassDeclaration classDecl) {
-        return !FindAnnotations.find(classDecl, "@org.mockito.Mock").isEmpty() ||
-                !FindAnnotations.find(classDecl, "@org.mockito.Spy").isEmpty() ||
-                !FindAnnotations.find(classDecl, "@org.mockito.Captor").isEmpty() ||
-                !FindAnnotations.find(classDecl, "@org.mockito.InjectMocks").isEmpty();
+        return MOCKITO_FIELD_ANNOTATIONS.stream()
+                .anyMatch(fqn -> !FindAnnotations.find(classDecl, "@" + fqn).isEmpty());
     }
 }
