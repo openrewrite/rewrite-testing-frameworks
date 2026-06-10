@@ -169,7 +169,7 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
     private static boolean shouldSkip(J.ClassDeclaration classDecl) {
         // Interfaces, enums, annotations and abstract bases are not concrete Mockito test classes
         if (classDecl.getKind() != J.ClassDeclaration.Kind.Type.Class ||
-                classDecl.getModifiers().stream().anyMatch(m -> m.getType() == J.Modifier.Type.Abstract)) {
+                classDecl.hasModifier(J.Modifier.Type.Abstract)) {
             return true;
         }
         // Only add to classes that declare Mockito annotations. The search spans the class subtree on purpose: a
