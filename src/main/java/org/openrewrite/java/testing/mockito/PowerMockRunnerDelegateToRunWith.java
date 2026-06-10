@@ -91,7 +91,7 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
 
                         // No delegate, but Mockito annotations are used — switch to the Mockito JUnit 4 runner
                         // so the mocks remain initialized
-                        if (declaresMockitoAnnotation(cd)) {
+                        if (!FindAnnotations.find(cd, "@org.mockito.*").isEmpty()) {
                             maybeAddImport(MOCKITO_JUNIT_RUNNER);
                             return (J.ClassDeclaration) new JavaIsoVisitor<ExecutionContext>() {
                                 @Override
@@ -116,13 +116,6 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                             }
                             return annotation;
                         }));
-                    }
-
-                    private boolean declaresMockitoAnnotation(J.ClassDeclaration cd) {
-                        return !FindAnnotations.find(cd, "@org.mockito.Mock").isEmpty() ||
-                                !FindAnnotations.find(cd, "@org.mockito.Spy").isEmpty() ||
-                                !FindAnnotations.find(cd, "@org.mockito.Captor").isEmpty() ||
-                                !FindAnnotations.find(cd, "@org.mockito.InjectMocks").isEmpty();
                     }
 
                     private @Nullable Expression findDelegateRunnerArg(J.ClassDeclaration cd) {
