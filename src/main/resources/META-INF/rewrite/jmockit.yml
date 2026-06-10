@@ -43,11 +43,22 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: mockit.integration.junit4.JMockit
       newFullyQualifiedTypeName: org.mockito.junit.MockitoJUnitRunner
+  # Unlike the generic Mockito migration (see https://github.com/openrewrite/rewrite-testing-frameworks/issues/875),
+  # JMockit tests using `@Mocked` without `@ExtendWith(JMockitExtension.class)` (the javaagent style) have no extension
+  # to carry over, so the converted `@Mock` fields would never be initialized. Add the extension here; the hardened
+  # recipe leaves classes that already register an extension/runner untouched.
+  - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-core
       version: 5.x
       onlyIfUsing: org.mockito.*
+      acceptTransitive: true
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-junit-jupiter
+      version: 5.x
+      onlyIfUsing: org.mockito.junit.jupiter.MockitoExtension
       acceptTransitive: true
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.jmockit
