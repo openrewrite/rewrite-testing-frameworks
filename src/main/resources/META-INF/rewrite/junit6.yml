@@ -66,6 +66,15 @@ recipeList:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter*
       newVersion: 6.x
+  # Gradle no longer adds junit-platform-launcher to the test runtime classpath automatically;
+  # for Maven the maven-surefire-plugin already provides it, so only Gradle builds are changed.
+  - org.openrewrite.gradle.AddDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-launcher
+      version: 6.x
+      onlyIfUsing: org.junit.jupiter.api.*
+      configuration: testRuntimeOnly
+      acceptTransitive: true
   - org.openrewrite.maven.UpgradePluginVersion:
       groupId: org.apache.maven.plugins
       artifactId: maven-failsafe-plugin
