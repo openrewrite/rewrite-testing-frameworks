@@ -1214,6 +1214,248 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
     }
 
     @Test
+    void invokeMethodInReturn() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String compute() { return "result"; }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  String test() {
+                      MyService service = new MyService();
+                      return Whitebox.invokeMethod(service, "compute");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+
+              class MyServiceTest {
+                  String test() throws Exception {
+                      MyService service = new MyService();
+                      Method computeMethod = service.getClass().getDeclaredMethod("compute");
+                      computeMethod.setAccessible(true);
+                      String computeResult = (String) computeMethod.invoke(service);
+                      return computeResult;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getInternalStateInMethodCallArg() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "x";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void check(String actual) {}
+                  void test() {
+                      MyService service = new MyService();
+                      check(Whitebox.getInternalState(service, "name"));
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void check(String actual) {}
+
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      Field nameField = service.getClass().getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      String nameValue = (String) nameField.get(service);
+                      check(nameValue);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getInternalStateInIfCondition() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "x";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = new MyService();
+                      if (Whitebox.getInternalState(service, "name") != null) {
+                          System.out.println("x");
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      Field nameField = service.getClass().getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      Object nameValue = nameField.get(service);
+                      if (nameValue != null) {
+                          System.out.println("x");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void nestedCallInsideForLoopHoistedIntoLoopBody() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "x";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void check(String actual) {}
+                  void test() {
+                      MyService service = new MyService();
+                      for (int i = 0; i < 3; i++) {
+                          check(Whitebox.getInternalState(service, "name"));
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void check(String actual) {}
+
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      for (int i = 0; i < 3; i++) {
+                          Field nameField = service.getClass().getDeclaredField("name");
+                          nameField.setAccessible(true);
+                          String nameValue = (String) nameField.get(service);
+                          check(nameValue);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void twoNestedWhiteboxCallsOneStatement() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String a = "1";
+                  private String b = "2";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void check(String x, String y) {}
+                  void test() {
+                      MyService service = new MyService();
+                      check(Whitebox.getInternalState(service, "a"), Whitebox.getInternalState(service, "b"));
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void check(String x, String y) {}
+
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      Field aField = service.getClass().getDeclaredField("a");
+                      aField.setAccessible(true);
+                      String aValue = (String) aField.get(service);
+                      Field bField = service.getClass().getDeclaredField("b");
+                      bField.setAccessible(true);
+                      String bValue = (String) bField.get(service);
+                      check(aValue, bValue);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shortCircuitGuardedCallLeftUnchanged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "x";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  boolean test(boolean cond) {
+                      MyService service = new MyService();
+                      return cond && Whitebox.getInternalState(service, "name") != null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void getInternalStatePrimitiveResultUsesBoxedCast() {
         //language=java
         rewriteRun(

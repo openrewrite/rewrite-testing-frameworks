@@ -22,6 +22,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -86,14 +88,15 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
     final String description = "Replace `org.powermock.reflect.Whitebox` calls (`setInternalState`, " +
             "`getInternalState`, `invokeMethod`, static `invokeMethod`, `invokeConstructor`, `getField` and " +
             "`getMethod`, including the `Class where` overloads) with plain Java reflection using " +
-            "`java.lang.reflect.Field`, `Method` and `Constructor`. Field/constructor lookups " +
+            "`java.lang.reflect.Field`, `Method` and `Constructor`. Calls nested in expression position " +
+            "(returns, arguments, conditions) are hoisted into preceding statements. Field/constructor lookups " +
             "use `getDeclaredField`/`getDeclaredConstructor` on the named class, which differs from PowerMock " +
             "for members inherited from a superclass.";
 
     /**
-     * Where a result-producing reflection call stores its result. {@code varName} is the declared
-     * variable receiving the value, or null when the result is discarded (the call was a bare
-     * statement); {@code castType} is that variable's declared type.
+     * Where a result-producing reflection call stores its result: an existing declared variable
+     * (Phase A) or a generated temporary local (Phase B). {@code varName} is null when the result
+     * is discarded (the call was a bare statement).
      */
     private static final class ResultSink {
         private final @Nullable String varName;
@@ -140,8 +143,8 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
         public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
             J.Block b = super.visitBlock(block, ctx);
 
-            // Replace Whitebox calls that are themselves a statement or a single-variable declaration
-            // initializer. Process in reverse so coordinates remain valid after each replacement.
+            // Phase A: replace Whitebox calls that are themselves a statement or a single-variable
+            // declaration initializer. Process in reverse so coordinates remain valid after each replacement.
             List<Statement> statements = b.getStatements();
             for (int i = statements.size() - 1; i >= 0; i--) {
                 Statement stmt = statements.get(i);
@@ -166,6 +169,28 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                     recordReplacement(mi, resolvedMethod);
                     // Re-read statements list since the block has been rebuilt
                     statements = b.getStatements();
+                }
+            }
+
+            // Phase B: hoist Whitebox calls nested in expression position (return/arguments/conditions/...),
+            // introducing a temp local before the enclosing statement and referencing it in place.
+            List<UUID> originalIds = new ArrayList<>();
+            for (Statement s : b.getStatements()) {
+                originalIds.add(s.getId());
+            }
+            for (UUID id : originalIds) {
+                Statement s = findStatementById(b, id);
+                while (s != null) {
+                    J.MethodInvocation nested = findNestedWhiteboxResultCall(s, ctx);
+                    if (nested == null) {
+                        break;
+                    }
+                    J.Block hoisted = hoistNestedCall(b, s, nested, ctx);
+                    if (hoisted == b) {
+                        break; // could not migrate this nested call; leave it for the comment recipe
+                    }
+                    b = hoisted;
+                    s = findStatementById(b, id);
                 }
             }
 
@@ -229,6 +254,129 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 return new ResultSink(vd.getVariables().get(0).getSimpleName(), getCastType(vd.getType()));
             }
             return new ResultSink(null, null);
+        }
+
+        private @Nullable Statement findStatementById(J.Block b, UUID id) {
+            for (Statement s : b.getStatements()) {
+                if (s.getId().equals(id)) {
+                    return s;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Find the first result-producing Whitebox call nested in expression position within
+         * {@code enclosing}, excluding the call Phase A targets directly, calls in short-circuit
+         * or ternary positions (hoisting would change evaluation), and calls inside nested
+         * blocks/lambdas/anonymous classes (handled by their own block).
+         */
+        private J.@Nullable MethodInvocation findNestedWhiteboxResultCall(Statement enclosing, ExecutionContext ctx) {
+            J.MethodInvocation primary = extractWhiteboxInvocation(enclosing);
+            UUID primaryId = primary != null ? primary.getId() : null;
+            J.MethodInvocation[] holder = {null};
+            new JavaIsoVisitor<ExecutionContext>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext c) {
+                    if (holder[0] == null &&
+                            !method.getId().equals(primaryId) &&
+                            isMigratableWhiteboxResult(method) &&
+                            !inCarveOut(getCursor())) {
+                        holder[0] = method;
+                        return method;
+                    }
+                    return super.visitMethodInvocation(method, c);
+                }
+
+                @Override
+                public J.Block visitBlock(J.Block nestedBlock, ExecutionContext c) {
+                    return nestedBlock; // nested blocks have their own scope and are handled separately
+                }
+
+                @Override
+                public J.Lambda visitLambda(J.Lambda lambda, ExecutionContext c) {
+                    return lambda;
+                }
+
+                @Override
+                public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext c) {
+                    return newClass;
+                }
+            }.visit(enclosing, ctx);
+            return holder[0];
+        }
+
+        // True when the call sits in a short-circuit (&&/||) right operand or a ternary branch,
+        // where hoisting would change whether the reflective call executes.
+        private boolean inCarveOut(Cursor callCursor) {
+            Object child = callCursor.getValue();
+            for (Cursor c = callCursor.getParent(); c != null; c = c.getParent()) {
+                Object val = c.getValue();
+                if (val instanceof J.Binary) {
+                    J.Binary bin = (J.Binary) val;
+                    if ((bin.getOperator() == J.Binary.Type.And || bin.getOperator() == J.Binary.Type.Or) &&
+                            bin.getRight() == child) {
+                        return true;
+                    }
+                } else if (val instanceof J.Ternary) {
+                    J.Ternary ternary = (J.Ternary) val;
+                    if (ternary.getTruePart() == child || ternary.getFalsePart() == child) {
+                        return true;
+                    }
+                }
+                child = val;
+            }
+            return false;
+        }
+
+        private J.Block hoistNestedCall(J.Block b, Statement enclosing, J.MethodInvocation nested, ExecutionContext ctx) {
+            Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
+            JavaType.Method resolved = resolveFor(nested);
+            String tempName = resultTempName(nested, blockCursor);
+            ResultSink sink = new ResultSink(tempName, getCastType(nested.getType()));
+            String template = buildReplacementTemplate(nested, sink, blockCursor, resolved);
+            if (template == null) {
+                return b;
+            }
+            J.Block rebuilt = JavaTemplate.builder(template)
+                    .contextSensitive()
+                    .javaParser(JavaParser.fromJavaVersion())
+                    .imports(templateImports(resolved).toArray(new String[0]))
+                    .build()
+                    .apply(blockCursor, enclosing.getCoordinates().before(), buildTemplateArgs(nested, resolved));
+
+            J.Identifier ref = new J.Identifier(randomId(), nested.getPrefix(), Markers.EMPTY, emptyList(),
+                    tempName, nested.getType(), null);
+            rebuilt = (J.Block) new JavaVisitor<ExecutionContext>() {
+                @Override
+                public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext c) {
+                    if (method.getId().equals(nested.getId())) {
+                        return ref;
+                    }
+                    return super.visitMethodInvocation(method, c);
+                }
+            }.visitNonNull(rebuilt, ctx);
+
+            recordReplacement(nested, resolved);
+            return rebuilt;
+        }
+
+        private String resultTempName(J.MethodInvocation mi, Cursor scope) {
+            String base;
+            if (GET_FIELD.matches(mi)) {
+                base = "reflectField";
+            } else if (GET_METHOD.matches(mi)) {
+                base = "reflectMethod";
+            } else if (INVOKE_CONSTRUCTOR_ARGS.matches(mi) || INVOKE_CONSTRUCTOR_EXPLICIT.matches(mi)) {
+                base = "reflectInstance";
+            } else if (INVOKE_METHOD.matches(mi) || INVOKE_METHOD_STATIC.matches(mi)) {
+                String literal = extractStringLiteral(mi.getArguments().get(1));
+                base = literal != null ? literal + "Result" : "reflectResult";
+            } else {
+                String literal = extractStringLiteral(mi.getArguments().get(1));
+                base = literal != null ? literal + "Value" : "reflectValue";
+            }
+            return generateVariableName(base, scope, INCREMENT_NUMBER);
         }
 
         private @Nullable String buildReplacementTemplate(J.MethodInvocation mi, ResultSink sink,
