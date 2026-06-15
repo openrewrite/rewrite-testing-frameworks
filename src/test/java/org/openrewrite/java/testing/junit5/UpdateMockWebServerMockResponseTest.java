@@ -117,14 +117,13 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
               """,
             """
               import mockwebserver3.MockResponse;
-              import mockwebserver3.MockResponse.Builder;
               import okhttp3.Headers;
               import mockwebserver3.MockWebServer;
 
               class A {
                   private Headers.Builder headersBuilder = new Headers.Builder();
                   private MockWebServer mockWebServer = new MockWebServer();
-                  private Builder mockResponse = new MockResponse.Builder()
+                  private MockResponse.Builder mockResponse = new MockResponse.Builder()
                       .status("a")
                       .headers(headersBuilder.build())
                       .setHeader("headerA", "someValue");
