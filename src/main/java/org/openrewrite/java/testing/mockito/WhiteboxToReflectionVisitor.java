@@ -235,6 +235,13 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 varName + ".setAccessible(true);\n";
     }
 
+    // `Field <var> = <whereClass>.getDeclaredField(<name>); <var>.setAccessible(true);` —
+    // used by the 4-arg setInternalState(target, field, value, Class) where-overload.
+    String fieldLookupPrefixWhere(String varName) {
+        return "Field " + varName + " = #{any(java.lang.Class)}.getDeclaredField(#{any(java.lang.String)});\n" +
+                varName + ".setAccessible(true);\n";
+    }
+
     // True when castType denotes a meaningful type to cast to (i.e. not null and not Object).
     boolean isNonObjectCast(@Nullable String castType) {
         return castType != null && !"Object".equals(castType) && !"java.lang.Object".equals(castType);

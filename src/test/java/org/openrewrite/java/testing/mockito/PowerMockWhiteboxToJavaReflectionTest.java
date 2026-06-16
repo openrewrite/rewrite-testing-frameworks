@@ -77,9 +77,6 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
     }
 
     @Test
-<<<<<<< HEAD
-    void migratesSetGetAndInvokeInOneMethod() {
-=======
     void setInternalStateWithWhereClass() {
         //language=java
         rewriteRun(
@@ -170,8 +167,7 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
     }
 
     @Test
-    void getInternalStateWithAssignment() {
->>>>>>> origin/main
+    void migratesSetGetAndInvokeInOneMethod() {
         //language=java
         rewriteRun(
           java(

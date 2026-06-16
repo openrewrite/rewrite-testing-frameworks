@@ -35,14 +35,17 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
 
     private static final MethodMatcher SET_INTERNAL_STATE =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object)");
+    private static final MethodMatcher SET_INTERNAL_STATE_WHERE =
+            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object, java.lang.Class)");
 
     @Getter
     final String displayName = "Replace PowerMock `Whitebox.setInternalState()` with Java reflection";
 
     @Getter
-    final String description = "Replace `Whitebox.setInternalState(Object, String, Object)` with `java.lang.reflect.Field` " +
-            "access. The field lookup uses `getDeclaredField` on the target object's class, which differs from " +
-            "PowerMock's class-hierarchy traversal for fields inherited from a superclass.";
+    final String description = "Replace `Whitebox.setInternalState(Object, String, Object)` and " +
+            "`Whitebox.setInternalState(Object, String, Object, Class)` with `java.lang.reflect.Field` access. " +
+            "The 3-arg overload looks up the field on the target's class; the 4-arg where-overload uses the " +
+            "supplied Class to resolve fields declared on a superclass.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -52,7 +55,7 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
     private static class SetInternalStateVisitor extends WhiteboxToReflectionVisitor {
 
         SetInternalStateVisitor() {
-            super("java.lang.reflect.Field", SET_INTERNAL_STATE);
+            super("java.lang.reflect.Field", SET_INTERNAL_STATE, SET_INTERNAL_STATE_WHERE);
         }
 
         @Override
@@ -63,13 +66,20 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
                 return null;
             }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            return fieldLookupPrefix(varName) +
+            String prefix = mi.getArguments().size() == 4
+                    ? fieldLookupPrefixWhere(varName)
+                    : fieldLookupPrefix(varName);
+            return prefix +
                     varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
         }
 
         @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
+            if (args.size() == 4) {
+                // whereClass, fieldName, target, value
+                return new Object[]{args.get(3), args.get(1), args.get(0), args.get(2)};
+            }
             // target, fieldName, target, value
             return new Object[]{args.get(0), args.get(1), args.get(0), args.get(2)};
         }
