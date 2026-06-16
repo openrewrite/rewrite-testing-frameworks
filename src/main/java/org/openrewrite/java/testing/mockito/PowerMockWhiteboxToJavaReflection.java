@@ -40,6 +40,8 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
     private static final String WHITEBOX_FQN = "org.powermock.reflect.Whitebox";
     private static final MethodMatcher SET_INTERNAL_STATE =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object)");
+    private static final MethodMatcher SET_INTERNAL_STATE_WHERE =
+            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object, java.lang.Class)");
     private static final MethodMatcher GET_INTERNAL_STATE =
             new MethodMatcher("org.powermock.reflect.Whitebox getInternalState(java.lang.Object, java.lang.String)");
     private static final MethodMatcher INVOKE_METHOD =
@@ -125,7 +127,7 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                                     templateArgs
                             );
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, WHITEBOX_REPLACED, true);
-                    if (SET_INTERNAL_STATE.matches(mi) || GET_INTERNAL_STATE.matches(mi)) {
+                    if (SET_INTERNAL_STATE.matches(mi) || SET_INTERNAL_STATE_WHERE.matches(mi) || GET_INTERNAL_STATE.matches(mi)) {
                         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, NEEDS_FIELD_IMPORT, true);
                     }
                     if (INVOKE_METHOD.matches(mi)) {
@@ -144,7 +146,10 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             List<Expression> args = mi.getArguments();
 
             if (SET_INTERNAL_STATE.matches(mi) && args.size() == 3) {
-                return buildSetInternalStateTemplate(args, scope);
+                return buildSetInternalStateTemplate(args, scope, false);
+            }
+            if (SET_INTERNAL_STATE_WHERE.matches(mi) && args.size() == 4) {
+                return buildSetInternalStateTemplate(args, scope, true);
             }
             if (GET_INTERNAL_STATE.matches(mi) && args.size() == 2) {
                 return buildGetInternalStateTemplate(args, statement, scope);
@@ -162,6 +167,10 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
                 // target, fieldName, target, value
                 return new Object[]{args.get(0), args.get(1), args.get(0), args.get(2)};
             }
+            if (SET_INTERNAL_STATE_WHERE.matches(mi) && args.size() == 4) {
+                // whereClass, fieldName, target, value
+                return new Object[]{args.get(3), args.get(1), args.get(0), args.get(2)};
+            }
             if (GET_INTERNAL_STATE.matches(mi) && args.size() == 2) {
                 // target, fieldName, target
                 return new Object[]{args.get(0), args.get(1), args.get(0)};
@@ -172,13 +181,16 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
             return new Object[0];
         }
 
-        private @Nullable String buildSetInternalStateTemplate(List<Expression> args, Cursor scope) {
+        private @Nullable String buildSetInternalStateTemplate(List<Expression> args, Cursor scope, boolean where) {
             String fieldName = extractStringLiteral(args.get(1));
             if (fieldName == null) {
                 return null;
             }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            return "Field " + varName + " = #{any(java.lang.Object)}.getClass().getDeclaredField(#{any(java.lang.String)});\n" +
+            String lookup = where ?
+                    "Field " + varName + " = #{any(java.lang.Class)}.getDeclaredField(#{any(java.lang.String)});\n" :
+                    "Field " + varName + " = #{any(java.lang.Object)}.getClass().getDeclaredField(#{any(java.lang.String)});\n";
+            return lookup +
                     varName + ".setAccessible(true);\n" +
                     varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
         }
@@ -325,7 +337,8 @@ public class PowerMockWhiteboxToJavaReflection extends Recipe {
         private J.@Nullable MethodInvocation extractWhiteboxInvocation(Statement statement) {
             if (statement instanceof J.MethodInvocation) {
                 J.MethodInvocation mi = (J.MethodInvocation) statement;
-                if (SET_INTERNAL_STATE.matches(mi) || GET_INTERNAL_STATE.matches(mi) || INVOKE_METHOD.matches(mi)) {
+                if (SET_INTERNAL_STATE.matches(mi) || SET_INTERNAL_STATE_WHERE.matches(mi) ||
+                        GET_INTERNAL_STATE.matches(mi) || INVOKE_METHOD.matches(mi)) {
                     return mi;
                 }
             }
