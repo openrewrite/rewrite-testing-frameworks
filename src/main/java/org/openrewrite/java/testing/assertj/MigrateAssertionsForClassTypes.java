@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -61,18 +62,14 @@ public class MigrateAssertionsForClassTypes extends Recipe {
             "org.assertj.core.api.AssertDelegateTarget"
     );
 
-    @Override
-    public String getDisplayName() {
-        return "Use `Assertions.assertThatObject` for ambiguous `AssertionsForClassTypes.assertThat` calls";
-    }
+    @Getter
+    final String displayName = "Use `Assertions.assertThatObject` for ambiguous `AssertionsForClassTypes.assertThat` calls";
 
-    @Override
-    public String getDescription() {
-        return "The deprecated `AssertionsForClassTypes.assertThat(T)` always returns an `ObjectAssert`, while the " +
-               "unified `Assertions.assertThat` additionally offers more specific overloads (e.g. for `Iterable`, " +
-               "`Map`, `Predicate`). For arguments matching those overloads, rename `assertThat` to `assertThatObject` " +
-               "so that migrating to `Assertions` keeps returning an `ObjectAssert` and the code keeps compiling.";
-    }
+    @Getter
+    final String description = "The deprecated `AssertionsForClassTypes.assertThat(T)` always returns an `ObjectAssert`, while the " +
+            "unified `Assertions.assertThat` additionally offers more specific overloads (e.g. for `Iterable`, " +
+            "`Map`, `Predicate`). For arguments matching those overloads, rename `assertThat` to `assertThatObject` " +
+            "so that migrating to `Assertions` keeps returning an `ObjectAssert` and the code keeps compiling.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

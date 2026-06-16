@@ -77,7 +77,101 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
     }
 
     @Test
+<<<<<<< HEAD
     void migratesSetGetAndInvokeInOneMethod() {
+=======
+    void setInternalStateWithWhereClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Parent {
+                  private String name;
+              }
+              """
+          ),
+          java(
+            """
+              class Child extends Parent {
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      Child child = new Child();
+                      Whitebox.setInternalState(child, "name", "newValue", Parent.class);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      Child child = new Child();
+                      Field nameField = Parent.class.getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      nameField.set(child, "newValue");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setInternalStateWithWhereClassVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Parent {
+                  private String name;
+              }
+              """
+          ),
+          java(
+            """
+              class Child extends Parent {
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      Child child = new Child();
+                      Class<?> where = Parent.class;
+                      Whitebox.setInternalState(child, "name", "newValue", where);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      Child child = new Child();
+                      Class<?> where = Parent.class;
+                      Field nameField = where.getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      nameField.set(child, "newValue");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getInternalStateWithAssignment() {
+>>>>>>> origin/main
         //language=java
         rewriteRun(
           java(
