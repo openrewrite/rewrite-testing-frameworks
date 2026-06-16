@@ -28,21 +28,21 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.List;
 
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
+
 public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
 
     private static final MethodMatcher SET_INTERNAL_STATE =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object)");
-    private static final MethodMatcher SET_INTERNAL_STATE_WHERE =
-            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object, java.lang.Class)");
 
     @Getter
     final String displayName = "Replace PowerMock `Whitebox.setInternalState()` with Java reflection";
 
     @Getter
-    final String description = "Replace `Whitebox.setInternalState(Object, String, Object)` and the `Class where` " +
-            "overload with `java.lang.reflect.Field` access. The field lookup uses `getDeclaredField` on the target " +
-            "object's class (or the `where` class), which differs from PowerMock's class-hierarchy traversal for " +
-            "fields inherited from a superclass.";
+    final String description = "Replace `Whitebox.setInternalState(Object, String, Object)` with `java.lang.reflect.Field` " +
+            "access. The field lookup uses `getDeclaredField` on the target object's class, which differs from " +
+            "PowerMock's class-hierarchy traversal for fields inherited from a superclass.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -52,25 +52,24 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
     private static class SetInternalStateVisitor extends WhiteboxToReflectionVisitor {
 
         SetInternalStateVisitor() {
-            super("java.lang.reflect.Field", SET_INTERNAL_STATE, SET_INTERNAL_STATE_WHERE);
+            super("java.lang.reflect.Field", SET_INTERNAL_STATE);
         }
 
         @Override
-        String buildTemplate(J.MethodInvocation mi, ResultSink sink, Cursor scope,
-                             JavaType.@Nullable Method resolvedMethod) {
-            String varName = fieldVarName(mi.getArguments().get(1), scope);
-            String receiver = SET_INTERNAL_STATE_WHERE.matches(mi) ? "#{any(java.lang.Class)}" : "#{any(java.lang.Object)}.getClass()";
-            return fieldLookupPrefix(varName, receiver) +
+        @Nullable String buildTemplate(J.MethodInvocation mi, ResultSink sink, Cursor scope,
+                                       JavaType.@Nullable Method resolvedMethod) {
+            String fieldName = extractStringLiteral(mi.getArguments().get(1));
+            if (fieldName == null) {
+                return null;
+            }
+            String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
+            return fieldLookupPrefix(varName) +
                     varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
         }
 
         @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
-            if (SET_INTERNAL_STATE_WHERE.matches(mi)) {
-                // where, fieldName, target, value
-                return new Object[]{args.get(3), args.get(1), args.get(0), args.get(2)};
-            }
             // target, fieldName, target, value
             return new Object[]{args.get(0), args.get(1), args.get(0), args.get(2)};
         }

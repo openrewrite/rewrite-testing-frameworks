@@ -31,14 +31,10 @@ import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
-import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
-import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
 /**
  * Shared machinery for replacing a single {@code org.powermock.reflect.Whitebox} API family with
@@ -53,19 +49,6 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     static final String WHITEBOX_FQN = "org.powermock.reflect.Whitebox";
 
     private static final String WHITEBOX_REPLACED = "whiteboxReplaced";
-
-    private static final Map<String, String> BOXED_TYPES = new HashMap<>();
-
-    static {
-        BOXED_TYPES.put("int", "Integer");
-        BOXED_TYPES.put("long", "Long");
-        BOXED_TYPES.put("double", "Double");
-        BOXED_TYPES.put("float", "Float");
-        BOXED_TYPES.put("boolean", "Boolean");
-        BOXED_TYPES.put("byte", "Byte");
-        BOXED_TYPES.put("short", "Short");
-        BOXED_TYPES.put("char", "Character");
-    }
 
     private final String reflectiveImport;
     private final List<MethodMatcher> matchers;
@@ -103,8 +86,8 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     abstract Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod);
 
     /**
-     * The target method/constructor the call reflects on, when it can be unambiguously resolved;
-     * used to derive declared parameter types for class literals.
+     * The target method the call reflects on, when it can be unambiguously resolved; used to derive
+     * declared parameter types for class literals.
      */
     JavaType.@Nullable Method resolve(J.MethodInvocation mi) {
         return null;
@@ -194,8 +177,8 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return imports;
     }
 
-    // Non-java.lang fully-qualified parameter types of the resolved method/constructor that the
-    // generated class literals (e.g. `List.class`) need imported.
+    // Non-java.lang fully-qualified parameter types of the resolved method that the generated class
+    // literals (e.g. `List.class`) need imported.
     private List<String> resolvedParamImports(JavaType.@Nullable Method resolvedMethod) {
         if (resolvedMethod == null) {
             return emptyList();
@@ -231,6 +214,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 Expression init = varDecls.getVariables().get(0).getInitializer();
                 if (init instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) init;
+                    // A void call (setInternalState) cannot initialize a variable declaration.
                     if (matches(mi) && !returnsVoid(mi)) {
                         return mi;
                     }
@@ -240,106 +224,20 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return null;
     }
 
-    // A void Whitebox call (e.g. setInternalState) cannot produce a variable declaration initializer.
     private boolean returnsVoid(J.MethodInvocation mi) {
         return mi.getMethodType() != null && JavaType.Primitive.Void == mi.getMethodType().getReturnType();
     }
 
-    // `Field <var> = <receiver>.getDeclaredField(<name>); <var>.setAccessible(true);` — shared by the
-    // instance (receiver `obj.getClass()`) and `Class where` (receiver the where-class) get/set variants.
-    String fieldLookupPrefix(String varName, String fieldReceiver) {
-        return "Field " + varName + " = " + fieldReceiver + ".getDeclaredField(#{any(java.lang.String)});\n" +
+    // `Field <var> = <target>.getClass().getDeclaredField(<name>); <var>.setAccessible(true);` —
+    // shared by the get/set field variants.
+    String fieldLookupPrefix(String varName) {
+        return "Field " + varName + " = #{any(java.lang.Object)}.getClass().getDeclaredField(#{any(java.lang.String)});\n" +
                 varName + ".setAccessible(true);\n";
     }
 
     // True when castType denotes a meaningful type to cast to (i.e. not null and not Object).
     boolean isNonObjectCast(@Nullable String castType) {
         return castType != null && !"Object".equals(castType) && !"java.lang.Object".equals(castType);
-    }
-
-    /**
-     * For calls whose result type IS the reflective object ({@code getField}/{@code getMethod}),
-     * reuse the result variable as the local; otherwise generate one.
-     */
-    String resultLocalName(ResultSink sink, Expression nameExpr, Cursor scope, boolean field) {
-        if (sink.varName != null) {
-            return sink.varName;
-        }
-        return field ? fieldVarName(nameExpr, scope) : methodVarName(nameExpr, scope);
-    }
-
-    boolean hasArrayArg(List<Expression> args, int fromIndex) {
-        for (int i = fromIndex; i < args.size(); i++) {
-            if (TypeUtils.asArray(args.get(i).getType()) != null) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Get the class literal for a parameter at the given argument index, where the first declared
-     * parameter is at argument index 2 (target, name, params...).
-     */
-    @Nullable String getParamClassLiteral(List<Expression> args, int argIndex,
-                                          JavaType.@Nullable Method resolvedMethod) {
-        return getParamClassLiteral(args, argIndex, resolvedMethod, 2);
-    }
-
-    /**
-     * Get the class literal for a parameter, where {@code firstParamArgIndex} is the argument index of
-     * the first declared parameter (2 for {@code invokeMethod}: target, name, params...; 1 for
-     * {@code invokeConstructor}: class, params...). Prefers the resolved method's declared parameter
-     * type, falls back to the argument's compile-time type, and returns null if neither is available.
-     */
-    @Nullable String getParamClassLiteral(List<Expression> args, int argIndex,
-                                          JavaType.@Nullable Method resolvedMethod, int firstParamArgIndex) {
-        if (resolvedMethod != null) {
-            int paramIdx = argIndex - firstParamArgIndex;
-            List<JavaType> paramTypes = resolvedMethod.getParameterTypes();
-            if (paramIdx >= 0 && paramIdx < paramTypes.size()) {
-                String literal = classLiteralFromType(paramTypes.get(paramIdx));
-                if (literal != null) {
-                    return literal;
-                }
-            }
-        }
-        return getClassLiteral(args.get(argIndex));
-    }
-
-    /**
-     * Extract the element type {@code X} from a {@code Class<X>}-typed expression (e.g. {@code MyService.class}).
-     */
-    JavaType.@Nullable FullyQualified classLiteralElementType(Expression classExpr) {
-        JavaType.Parameterized parameterized = TypeUtils.asParameterized(classExpr.getType());
-        if (parameterized != null && !parameterized.getTypeParameters().isEmpty()) {
-            return TypeUtils.asFullyQualified(parameterized.getTypeParameters().get(0));
-        }
-        return null;
-    }
-
-    /**
-     * Generate the local variable name for a reflective {@code Field}. When the field name is a
-     * String literal we derive a readable name (e.g. {@code nameField}); otherwise we fall back to
-     * a generic {@code reflectField} base. Uniqueness within scope is guaranteed by INCREMENT_NUMBER.
-     */
-    String fieldVarName(Expression nameExpr, Cursor scope) {
-        return reflectVarName(nameExpr, "Field", "reflectField", scope);
-    }
-
-    /**
-     * Generate the local variable name for a reflective {@code Method}. See {@link #fieldVarName}.
-     */
-    String methodVarName(Expression nameExpr, Cursor scope) {
-        return reflectVarName(nameExpr, "Method", "reflectMethod", scope);
-    }
-
-    // Derive a unique local name from a String-literal name (`name` + suffix, e.g. `nameField`),
-    // falling back to a generic base when the name is not a literal.
-    private String reflectVarName(Expression nameExpr, String suffix, String fallbackBase, Cursor scope) {
-        String literal = extractStringLiteral(nameExpr);
-        String base = literal != null ? literal + suffix : fallbackBase;
-        return generateVariableName(base, scope, INCREMENT_NUMBER);
     }
 
     @Nullable String extractStringLiteral(Expression expr) {
@@ -349,21 +247,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return null;
     }
 
-    private @Nullable String getClassLiteral(Expression expr) {
-        return classLiteralFromType(expr.getType());
-    }
-
-    private @Nullable String classLiteralFromType(@Nullable JavaType type) {
-        if (type instanceof JavaType.Primitive) {
-            return ((JavaType.Primitive) type).getKeyword() + ".class";
-        }
-        if (type instanceof JavaType.FullyQualified) {
-            return ((JavaType.FullyQualified) type).getClassName() + ".class";
-        }
-        return null;
-    }
-
-    private @Nullable String getCastType(@Nullable JavaType type) {
+    @Nullable String getCastType(@Nullable JavaType type) {
         if (type instanceof JavaType.FullyQualified) {
             return ((JavaType.FullyQualified) type).getClassName();
         }
@@ -371,15 +255,6 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             return ((JavaType.Primitive) type).getKeyword();
         }
         return null;
-    }
-
-    /**
-     * {@code Field.get}/{@code Method.invoke} return {@code Object} (boxing primitives), so a primitive
-     * declared type must be cast to its wrapper (a direct {@code (int) object} cast does not compile);
-     * the surrounding assignment then auto-unboxes.
-     */
-    String boxedCastType(String castType) {
-        return BOXED_TYPES.getOrDefault(castType, castType);
     }
 
     private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {

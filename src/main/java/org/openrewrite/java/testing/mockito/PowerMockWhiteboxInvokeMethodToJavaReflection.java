@@ -27,24 +27,23 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
 public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
 
     private static final MethodMatcher INVOKE_METHOD =
             new MethodMatcher("org.powermock.reflect.Whitebox invokeMethod(java.lang.Object, java.lang.String, ..)");
-    private static final MethodMatcher INVOKE_METHOD_STATIC =
-            new MethodMatcher("org.powermock.reflect.Whitebox invokeMethod(java.lang.Class, java.lang.String, ..)");
 
     @Getter
     final String displayName = "Replace PowerMock `Whitebox.invokeMethod()` with Java reflection";
 
     @Getter
-    final String description = "Replace instance and static `Whitebox.invokeMethod(..)` calls with " +
-            "`java.lang.reflect.Method` lookup and `invoke()`. Parameter types are taken from the unambiguously " +
-            "resolved target method, falling back to each argument's compile-time class; calls passing an " +
-            "explicit `Class[]` array are left unchanged for manual migration.";
+    final String description = "Replace `Whitebox.invokeMethod(Object, String, ..)` with `java.lang.reflect.Method` " +
+            "lookup and `invoke()`. Parameter types are taken from the unambiguously resolved target method, " +
+            "falling back to each argument's compile-time class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -54,39 +53,27 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
     private static class InvokeMethodVisitor extends WhiteboxToReflectionVisitor {
 
         InvokeMethodVisitor() {
-            super("java.lang.reflect.Method", INVOKE_METHOD, INVOKE_METHOD_STATIC);
+            super("java.lang.reflect.Method", INVOKE_METHOD);
         }
 
         @Override
         JavaType.@Nullable Method resolve(J.MethodInvocation mi) {
-            if (INVOKE_METHOD.matches(mi)) {
-                return resolveTargetMethod(mi.getArguments());
-            }
-            if (INVOKE_METHOD_STATIC.matches(mi)) {
-                return resolveStaticTargetMethod(mi.getArguments());
-            }
-            return null;
+            return resolveTargetMethod(mi.getArguments());
         }
 
         @Override
         @Nullable String buildTemplate(J.MethodInvocation mi, ResultSink sink, Cursor scope,
                                        JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
-            if (hasArrayArg(args, 2)) {
-                // Explicit `Class<?>[]` parameter-type overload (or an array passed as varargs) cannot be
-                // mechanically expanded; leave for manual migration (flagged downstream).
+            String methodName = extractStringLiteral(args.get(1));
+            if (methodName == null) {
                 return null;
             }
-            boolean isStatic = INVOKE_METHOD_STATIC.matches(mi);
-            String varName = methodVarName(args.get(1), scope);
-            // Static calls take a Class target; instance calls take an Object whose class we look up.
-            String declaredMethodReceiver = isStatic ? "#{any(java.lang.Class)}" : "#{any(java.lang.Object)}.getClass()";
-            String invokeTarget = isStatic ? "null" : "#{any(java.lang.Object)}";
+            String varName = generateVariableName(methodName + "Method", scope, INCREMENT_NUMBER);
 
             // getDeclaredMethod line
             StringBuilder sb = new StringBuilder();
-            sb.append("Method ").append(varName).append(" = ").append(declaredMethodReceiver)
-                    .append(".getDeclaredMethod(#{any(java.lang.String)}");
+            sb.append("Method ").append(varName).append(" = #{any(java.lang.Object)}.getClass().getDeclaredMethod(#{any(java.lang.String)}");
             for (int i = 2; i < args.size(); i++) {
                 String classLiteral = getParamClassLiteral(args, i, resolvedMethod);
                 if (classLiteral != null) {
@@ -103,12 +90,12 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
             // invoke line
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
-                    sb.append(sink.castType).append(" ").append(sink.varName).append(" = (").append(boxedCastType(sink.castType)).append(") ");
+                    sb.append(sink.castType).append(" ").append(sink.varName).append(" = (").append(sink.castType).append(") ");
                 } else {
                     sb.append("Object ").append(sink.varName).append(" = ");
                 }
             }
-            sb.append(varName).append(".invoke(").append(invokeTarget);
+            sb.append(varName).append(".invoke(#{any(java.lang.Object)}");
             for (int i = 2; i < args.size(); i++) {
                 sb.append(", #{any(java.lang.Object)}");
             }
@@ -121,16 +108,14 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
             List<Object> result = new ArrayList<>();
-            result.add(args.get(0)); // receiver for getDeclaredMethod (Class for static, Object for instance)
+            result.add(args.get(0)); // target for getDeclaredMethod
             result.add(args.get(1)); // methodName
             for (int i = 2; i < args.size(); i++) {
                 if (getParamClassLiteral(args, i, resolvedMethod) == null) {
                     result.add(args.get(i)); // arg.getClass() fallback for getDeclaredMethod
                 }
             }
-            if (!INVOKE_METHOD_STATIC.matches(mi)) {
-                result.add(args.get(0)); // target for invoke (static uses the null literal, no placeholder)
-            }
+            result.add(args.get(0)); // target for invoke
             for (int i = 2; i < args.size(); i++) {
                 result.add(args.get(i)); // arg for invoke
             }
@@ -138,46 +123,63 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         }
 
         /**
-         * Resolve the target method from the first argument's type and the method name.
-         * Returns null if the method cannot be unambiguously resolved (not found, overloaded,
-         * or missing type information).
+         * Get the class literal for a parameter at the given argument index. Prefers the resolved
+         * method's declared parameter type, falls back to the argument's compile-time type, and
+         * returns null if neither is available.
+         */
+        private @Nullable String getParamClassLiteral(List<Expression> args, int argIndex,
+                                                      JavaType.@Nullable Method resolvedMethod) {
+            if (resolvedMethod != null) {
+                String literal = classLiteralFromType(resolvedMethod.getParameterTypes().get(argIndex - 2));
+                if (literal != null) {
+                    return literal;
+                }
+            }
+            return classLiteralFromType(args.get(argIndex).getType());
+        }
+
+        /**
+         * Resolve the target method from the first argument's type and the method name, walking the
+         * supertype chain. Returns null if the method cannot be unambiguously resolved (not found,
+         * overloaded, or missing type information).
          */
         private JavaType.@Nullable Method resolveTargetMethod(List<Expression> args) {
             if (args.size() <= 2) {
                 return null;
             }
+            String methodName = extractStringLiteral(args.get(1));
+            if (methodName == null) {
+                return null;
+            }
             JavaType targetType = args.get(0).getType();
-            JavaType.FullyQualified fq = targetType instanceof JavaType.FullyQualified ? (JavaType.FullyQualified) targetType : null;
-            return findUniqueMethod(fq, extractStringLiteral(args.get(1)), args.size() - 2);
-        }
-
-        /**
-         * Resolve the static target method from the {@code Class} literal's element type and the method name.
-         */
-        private JavaType.@Nullable Method resolveStaticTargetMethod(List<Expression> args) {
-            if (args.size() <= 2) {
+            if (!(targetType instanceof JavaType.FullyQualified)) {
                 return null;
             }
-            return findUniqueMethod(classLiteralElementType(args.get(0)), extractStringLiteral(args.get(1)), args.size() - 2);
-        }
-
-        private JavaType.@Nullable Method findUniqueMethod(JavaType.@Nullable FullyQualified targetType,
-                                                           @Nullable String methodName, int expectedParamCount) {
-            if (targetType == null || methodName == null) {
-                return null;
-            }
+            int expectedParamCount = args.size() - 2;
             JavaType.Method match = null;
-            for (Iterator<JavaType.Method> it = targetType.getVisibleMethods(); it.hasNext(); ) {
-                JavaType.Method method = it.next();
-                if (method.getName().equals(methodName) &&
-                        method.getParameterTypes().size() == expectedParamCount) {
-                    if (match != null) {
-                        return null; // ambiguous overload
+            for (JavaType.FullyQualified current = (JavaType.FullyQualified) targetType;
+                 current != null; current = current.getSupertype()) {
+                for (JavaType.Method method : current.getMethods()) {
+                    if (method.getName().equals(methodName) &&
+                            method.getParameterTypes().size() == expectedParamCount) {
+                        if (match != null) {
+                            return null; // ambiguous overload
+                        }
+                        match = method;
                     }
-                    match = method;
                 }
             }
             return match;
+        }
+
+        private @Nullable String classLiteralFromType(@Nullable JavaType type) {
+            if (type instanceof JavaType.Primitive) {
+                return ((JavaType.Primitive) type).getKeyword() + ".class";
+            }
+            if (type instanceof JavaType.FullyQualified) {
+                return ((JavaType.FullyQualified) type).getClassName() + ".class";
+            }
+            return null;
         }
     }
 }
