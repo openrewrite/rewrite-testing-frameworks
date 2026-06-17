@@ -24,7 +24,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
+class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -34,7 +34,7 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
               "powermock-core-1",
               "powermock-reflect-1"
             ))
-          .recipeFromResources("org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection");
+          .recipe(new PowerMockWhiteboxSetInternalStateToJavaReflection());
     }
 
     @DocumentExample
@@ -167,15 +167,13 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
     }
 
     @Test
-    void migratesSetGetAndInvokeInOneMethod() {
+    void throwsExceptionNotDuplicatedWhenAlreadyPresent() {
         //language=java
         rewriteRun(
           java(
             """
               class MyService {
                   private String name;
-                  private String description = "d";
-                  private String compute() { return name; }
               }
               """
           ),
@@ -184,30 +182,21 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
               import org.powermock.reflect.Whitebox;
 
               class MyServiceTest {
-                  void test() {
+                  void testSetField() throws Exception {
                       MyService service = new MyService();
-                      Whitebox.setInternalState(service, "name", "newValue");
-                      String desc = Whitebox.getInternalState(service, "description");
-                      String result = Whitebox.invokeMethod(service, "compute");
+                      Whitebox.setInternalState(service, "name", "expectedValue");
                   }
               }
               """,
             """
               import java.lang.reflect.Field;
-              import java.lang.reflect.Method;
 
               class MyServiceTest {
-                  void test() throws Exception {
+                  void testSetField() throws Exception {
                       MyService service = new MyService();
                       Field nameField = service.getClass().getDeclaredField("name");
                       nameField.setAccessible(true);
-                      nameField.set(service, "newValue");
-                      Field descriptionField = service.getClass().getDeclaredField("description");
-                      descriptionField.setAccessible(true);
-                      String desc = (String) descriptionField.get(service);
-                      Method computeMethod = service.getClass().getDeclaredMethod("compute");
-                      computeMethod.setAccessible(true);
-                      String result = (String) computeMethod.invoke(service);
+                      nameField.set(service, "expectedValue");
                   }
               }
               """
@@ -216,13 +205,122 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
     }
 
     @Test
-    void noChangeWhenWhiteboxNotUsed() {
+    void whiteboxInsideIfBlock() {
         //language=java
         rewriteRun(
           java(
             """
+              class MyService {
+                  private String name;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
               class MyServiceTest {
-                  void test() {
+                  void testSetFieldConditionally(boolean condition) {
+                      MyService service = new MyService();
+                      if (condition) {
+                          Whitebox.setInternalState(service, "name", "expectedValue");
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testSetFieldConditionally(boolean condition) throws Exception {
+                      MyService service = new MyService();
+                      if (condition) {
+                          Field nameField = service.getClass().getDeclaredField("name");
+                          nameField.setAccessible(true);
+                          nameField.set(service, "expectedValue");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void multipleWhiteboxCallsSameFieldName() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testSetFieldTwice() {
+                      MyService svc1 = new MyService();
+                      MyService svc2 = new MyService();
+                      Whitebox.setInternalState(svc1, "name", "first");
+                      Whitebox.setInternalState(svc2, "name", "second");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testSetFieldTwice() throws Exception {
+                      MyService svc1 = new MyService();
+                      MyService svc2 = new MyService();
+                      Field nameField1 = svc1.getClass().getDeclaredField("name");
+                      nameField1.setAccessible(true);
+                      nameField1.set(svc1, "first");
+                      Field nameField = svc2.getClass().getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      nameField.set(svc2, "second");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void throwsNotAddedWhenThrowableAlreadyPresent() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testSetField() throws Throwable {
+                      MyService service = new MyService();
+                      Whitebox.setInternalState(service, "name", "expectedValue");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testSetField() throws Throwable {
+                      MyService service = new MyService();
+                      Field nameField = service.getClass().getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      nameField.set(service, "expectedValue");
                   }
               }
               """

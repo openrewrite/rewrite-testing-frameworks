@@ -59,3 +59,17 @@ recipeList:
   - org.openrewrite.maven.RemoveManagedDependency:
       groupId: org.powermock
       artifactId: powermock*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
+displayName: Replace PowerMock `Whitebox` with Java reflection
+description: >-
+  Replace `org.powermock.reflect.Whitebox` calls (`setInternalState`, `getInternalState`, `invokeMethod`)
+  with plain Java reflection using `java.lang.reflect.Field` and `java.lang.reflect.Method`.
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxSetInternalStateToJavaReflection
+  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetInternalStateToJavaReflection
+  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxInvokeMethodToJavaReflection
