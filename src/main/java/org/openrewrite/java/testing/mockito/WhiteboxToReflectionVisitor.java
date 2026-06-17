@@ -37,6 +37,8 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
 /**
  * Shared machinery for replacing a single {@code org.powermock.reflect.Whitebox} API family with
@@ -286,6 +288,52 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
      */
     String boxedCastType(String castType) {
         return BOXED_TYPES.getOrDefault(castType, castType);
+    }
+
+    /**
+     * For calls whose result type IS the reflective object ({@code getField}/{@code getMethod}),
+     * reuse the result variable as the local; otherwise generate one.
+     */
+    String resultLocalName(ResultSink sink, Expression nameExpr, Cursor scope, boolean field) {
+        if (sink.varName != null) {
+            return sink.varName;
+        }
+        return field ? fieldVarName(nameExpr, scope) : methodVarName(nameExpr, scope);
+    }
+
+    /**
+     * Generate the local variable name for a reflective {@code Field}. When the field name is a
+     * String literal we derive a readable name (e.g. {@code nameField}); otherwise we fall back to
+     * a generic {@code reflectField} base. Uniqueness within scope is guaranteed by INCREMENT_NUMBER.
+     */
+    String fieldVarName(Expression nameExpr, Cursor scope) {
+        return reflectVarName(nameExpr, "Field", "reflectField", scope);
+    }
+
+    /**
+     * Generate the local variable name for a reflective {@code Method}. See {@link #fieldVarName}.
+     */
+    String methodVarName(Expression nameExpr, Cursor scope) {
+        return reflectVarName(nameExpr, "Method", "reflectMethod", scope);
+    }
+
+    // Derive a unique local name from a String-literal name (`name` + suffix, e.g. `nameField`),
+    // falling back to a generic base when the name is not a literal.
+    private String reflectVarName(Expression nameExpr, String suffix, String fallbackBase, Cursor scope) {
+        String literal = extractStringLiteral(nameExpr);
+        String base = literal != null ? literal + suffix : fallbackBase;
+        return generateVariableName(base, scope, INCREMENT_NUMBER);
+    }
+
+    // True when any argument from {@code fromIndex} onward is an array — used to skip calls that pass an
+    // explicit {@code Class[]} varargs array, which we cannot expand into individual class literals.
+    boolean hasArrayArg(List<Expression> args, int fromIndex) {
+        for (int i = fromIndex; i < args.size(); i++) {
+            if (TypeUtils.asArray(args.get(i).getType()) != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
