@@ -90,7 +90,7 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
             // invoke line
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
-                    sb.append(sink.castType).append(" ").append(sink.varName).append(" = (").append(sink.castType).append(") ");
+                    sb.append(sink.castType).append(" ").append(sink.varName).append(" = (").append(boxedCastType(sink.castType)).append(") ");
                 } else {
                     sb.append("Object ").append(sink.varName).append(" = ");
                 }

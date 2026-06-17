@@ -67,7 +67,7 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
             String prefix = fieldLookupPrefix(varName);
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
-                    return prefix + sink.castType + " " + sink.varName + " = (" + sink.castType + ") " + varName + ".get(#{any(java.lang.Object)});";
+                    return prefix + sink.castType + " " + sink.varName + " = (" + boxedCastType(sink.castType) + ") " + varName + ".get(#{any(java.lang.Object)});";
                 }
                 return prefix + "Object " + sink.varName + " = " + varName + ".get(#{any(java.lang.Object)});";
             }

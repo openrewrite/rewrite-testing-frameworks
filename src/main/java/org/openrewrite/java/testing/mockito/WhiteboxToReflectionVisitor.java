@@ -31,7 +31,9 @@ import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -49,6 +51,19 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     static final String WHITEBOX_FQN = "org.powermock.reflect.Whitebox";
 
     private static final String WHITEBOX_REPLACED = "whiteboxReplaced";
+
+    private static final Map<String, String> BOXED_TYPES = new HashMap<>();
+
+    static {
+        BOXED_TYPES.put("int", "Integer");
+        BOXED_TYPES.put("long", "Long");
+        BOXED_TYPES.put("double", "Double");
+        BOXED_TYPES.put("float", "Float");
+        BOXED_TYPES.put("boolean", "Boolean");
+        BOXED_TYPES.put("byte", "Byte");
+        BOXED_TYPES.put("short", "Short");
+        BOXED_TYPES.put("char", "Character");
+    }
 
     private final String reflectiveImport;
     private final List<MethodMatcher> matchers;
@@ -262,6 +277,15 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             return ((JavaType.Primitive) type).getKeyword();
         }
         return null;
+    }
+
+    /**
+     * {@code Field.get}/{@code Method.invoke} return {@code Object} (boxing primitives), so a primitive
+     * declared type must be cast to its wrapper (a direct {@code (int) object} cast does not compile);
+     * the surrounding assignment then auto-unboxes.
+     */
+    String boxedCastType(String castType) {
+        return BOXED_TYPES.getOrDefault(castType, castType);
     }
 
     private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
