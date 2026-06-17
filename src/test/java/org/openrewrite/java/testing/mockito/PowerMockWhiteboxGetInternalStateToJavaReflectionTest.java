@@ -75,4 +75,42 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
           )
         );
     }
+
+    @Test
+    void primitiveResultUsesBoxedCast() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private int count = 3;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = new MyService();
+                      int count = Whitebox.getInternalState(service, "count");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      Field countField = service.getClass().getDeclaredField("count");
+                      countField.setAccessible(true);
+                      int count = (Integer) countField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
