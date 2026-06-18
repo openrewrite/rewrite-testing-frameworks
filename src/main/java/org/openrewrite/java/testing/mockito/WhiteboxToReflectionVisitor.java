@@ -336,6 +336,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return false;
     }
 
+
     private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
         if (md.getThrows() != null && md.getThrows().stream()
                 .anyMatch(j -> TypeUtils.isOfClassType(j.getType(), "java.lang.Exception") ||

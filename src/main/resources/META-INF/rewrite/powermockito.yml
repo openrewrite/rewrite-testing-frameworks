@@ -64,7 +64,7 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
 displayName: Replace PowerMock `Whitebox` with Java reflection
 description: >-
-  Replace `org.powermock.reflect.Whitebox` calls (`setInternalState`, `getInternalState`, `invokeMethod`, `getMethod`)
+  Replace `org.powermock.reflect.Whitebox` calls (`setInternalState`, `getInternalState`, `invokeMethod`, `getField`, `getMethod`)
   with plain Java reflection using `java.lang.reflect.Field` and `java.lang.reflect.Method`.
 tags:
   - testing
@@ -73,4 +73,5 @@ recipeList:
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxSetInternalStateToJavaReflection
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetInternalStateToJavaReflection
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxInvokeMethodToJavaReflection
+  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetFieldToJavaReflection
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetMethodToJavaReflection
