@@ -325,6 +325,18 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return generateVariableName(base, scope, INCREMENT_NUMBER);
     }
 
+    // True when any argument from {@code fromIndex} onward is an array — used to skip calls that pass an
+    // explicit {@code Class[]} varargs array, which we cannot expand into individual class literals.
+    boolean hasArrayArg(List<Expression> args, int fromIndex) {
+        for (int i = fromIndex; i < args.size(); i++) {
+            if (TypeUtils.asArray(args.get(i).getType()) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
         if (md.getThrows() != null && md.getThrows().stream()
                 .anyMatch(j -> TypeUtils.isOfClassType(j.getType(), "java.lang.Exception") ||
