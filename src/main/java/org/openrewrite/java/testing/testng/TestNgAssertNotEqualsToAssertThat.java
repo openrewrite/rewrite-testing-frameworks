@@ -40,6 +40,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
     @Getter
     final String description = "Convert TestNG-style `assertNotEquals()` to AssertJ's `assertThat().isNotEqualTo()`.";
 
+    private static final String ASSERTJ = "org.assertj.core.api.Assertions";
     private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertNotEquals(..)");
 
     @Override
@@ -52,74 +53,63 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                 }
 
                 List<Expression> args = method.getArguments();
-
-                Expression expected = args.get(1);
                 Expression actual = args.get(0);
+                Expression expected = args.get(1);
+
+                // Iterators are single-pass; `isNotEqualTo` would compare iterator identity which is never what TestNG
+                // intends. Leave the call untouched rather than rewrite it wrong.
+                if (TypeUtils.isAssignableTo("java.util.Iterator", actual.getType())) {
+                    return method;
+                }
+
+                maybeRemoveImport("org.testng.Assert");
+                maybeAddImport(ASSERTJ, "assertThat", false);
 
                 if (args.size() == 2) {
                     method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3"))
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
-                            .apply(
-                                    getCursor(),
-                                    method.getCoordinates().replace(),
-                                    actual,
-                                    expected
-                            );
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
                 } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                     Expression message = args.get(2);
                     method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3"))
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
-                            .apply(
-                                    getCursor(),
-                                    method.getCoordinates().replace(),
-                                    actual,
-                                    message,
-                                    expected
-                            );
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected);
                 } else if (args.size() == 3) {
-                    method = JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3"))
-                            .build()
-                            .apply(
-                                    getCursor(),
-                                    method.getCoordinates().replace(),
-                                    actual,
-                                    expected,
-                                    args.get(2)
-                            );
-                    maybeAddImport("org.assertj.core.api.Assertions", "within", false);
+                    if (isIntegralType(actual)) {
+                        method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
+                                .staticImports(ASSERTJ + ".assertThat")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                .build()
+                                .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
+                    } else {
+                        maybeAddImport(ASSERTJ, "within", false);
+                        method = JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
+                                .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                .build()
+                                .apply(getCursor(), method.getCoordinates().replace(), actual, expected, args.get(2));
+                    }
                 } else {
                     Expression message = args.get(3);
-                    method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3"))
-                            .build()
-                            .apply(
-                                    getCursor(),
-                                    method.getCoordinates().replace(),
-                                    actual,
-                                    message,
-                                    expected,
-                                    args.get(2)
-                            );
-
-                    maybeAddImport("org.assertj.core.api.Assertions", "within", false);
+                    if (isIntegralType(actual)) {
+                        method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});")
+                                .staticImports(ASSERTJ + ".assertThat")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                .build()
+                                .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected);
+                    } else {
+                        maybeAddImport(ASSERTJ, "within", false);
+                        method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));")
+                                .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                .build()
+                                .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected, args.get(2));
+                    }
                 }
-
-                //Make sure there is a static import for "org.assertj.core.api.Assertions.assertThat" (even if not referenced)
-                maybeRemoveImport("org.testng.Assert");
-
-                // Remove import for "org.testng.Assert" if no longer used.
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
 
                 return method;
             }
@@ -134,7 +124,16 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                 JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
                 return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
             }
+
+            private boolean isIntegralType(Expression expression) {
+                JavaType.FullyQualified fq = TypeUtils.asFullyQualified(expression.getType());
+                if (fq != null) {
+                    String typeName = fq.getFullyQualifiedName();
+                    return "java.lang.Long".equals(typeName) || "java.lang.Integer".equals(typeName);
+                }
+                JavaType.Primitive p = TypeUtils.asPrimitive(expression.getType());
+                return p == JavaType.Primitive.Long || p == JavaType.Primitive.Int;
+            }
         });
     }
-
 }

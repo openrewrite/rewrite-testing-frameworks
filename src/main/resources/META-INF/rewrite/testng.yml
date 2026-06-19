@@ -32,6 +32,18 @@ recipeList:
       version: 3.x
       onlyIfUsing: org.testng.*
       acceptTransitive: true
+  # The Picnic Refaster rules cover assertTrue/assertFalse/assertNull/assertNotNull/fail and a handful of
+  # exact-type assert(Not)Equals/assert(Not)Same variants. Because Refaster only fires on exact static type
+  # matches, generic `Object`/message variants slip through; the hand-written recipes below close those gaps.
+  # Future evolution (left intentionally undone, see issue/backlog): (1) Refaster maps the message argument to
+  # `.withFailMessage(...)` whereas the hand-written recipes use `.as(...)` -- pick one convention module-wide;
+  # (2) optionally add hand-written assertTrue/False/Null/NotNull recipes mirroring the JUnit ones to cover the
+  # variants Refaster misses.
   - tech.picnic.errorprone.refasterrules.TestNGToAssertJRulesRecipes
   - org.openrewrite.java.testing.testng.TestNgAssertEqualsToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertNotEqualsToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertEqualsNoOrderToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertEqualsDeepToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertSameToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertNotSameToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertThrowsToAssertThat
