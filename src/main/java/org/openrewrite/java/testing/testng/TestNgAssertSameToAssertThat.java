@@ -45,6 +45,7 @@ public class TestNgAssertSameToAssertThat extends Recipe {
         return Preconditions.check(new UsesMethod<>(TESTNG_ASSERT_METHOD), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                method = super.visitMethodInvocation(method, ctx);
                 if (!TESTNG_ASSERT_METHOD.matches(method)) {
                     return method;
                 }

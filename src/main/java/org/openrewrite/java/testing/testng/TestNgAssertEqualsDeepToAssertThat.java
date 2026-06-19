@@ -51,6 +51,7 @@ public class TestNgAssertEqualsDeepToAssertThat extends Recipe {
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        method = super.visitMethodInvocation(method, ctx);
                         boolean isEquals = EQUALS_DEEP_MATCHER.matches(method);
                         boolean isNotEquals = NOT_EQUALS_DEEP_MATCHER.matches(method);
                         if (!isEquals && !isNotEquals) {

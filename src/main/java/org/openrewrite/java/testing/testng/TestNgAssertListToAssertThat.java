@@ -57,6 +57,7 @@ public class TestNgAssertListToAssertThat extends Recipe {
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        method = super.visitMethodInvocation(method, ctx);
                         String assertion;
                         if (CONTAINS_OBJECT.matches(method)) {
                             assertion = "contains";
