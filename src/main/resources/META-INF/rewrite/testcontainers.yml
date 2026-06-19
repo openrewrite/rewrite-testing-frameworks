@@ -78,7 +78,117 @@ recipeList:
       oldFullyQualifiedTypeName: org.testcontainers.containers.DockerComposeContainer
       newFullyQualifiedTypeName: org.testcontainers.containers.ComposeContainer
   - org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
+  - org.openrewrite.java.testing.testcontainers.Testcontainers2LocalStack
   - org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.testcontainers.Testcontainers2LocalStack
+displayName: Migrate removed `LocalStackContainer` members to Testcontainers 2.x
+description: >-
+  Testcontainers 2.x removed the nested `LocalStackContainer.Service` enum and the
+  `getEndpointOverride(...)` method. Replace `LocalStackContainer.Service` constants with the
+  equivalent service name strings and `getEndpointOverride(service)` with `getEndpoint()`, so code
+  continues to compile against Testcontainers 2.x. This runs while the type is still
+  `org.testcontainers.containers.localstack.LocalStackContainer`, before it is renamed.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  # Testcontainers 2.x removed the `LocalStackContainer.Service` enum; replace each constant with its service name string.
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: API_GATEWAY
+      literalValue: '"apigateway"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: EC2
+      literalValue: '"ec2"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: KINESIS
+      literalValue: '"kinesis"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: DYNAMODB
+      literalValue: '"dynamodb"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: DYNAMODB_STREAMS
+      literalValue: '"dynamodbstreams"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: S3
+      literalValue: '"s3"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: FIREHOSE
+      literalValue: '"firehose"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: LAMBDA
+      literalValue: '"lambda"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: SNS
+      literalValue: '"sns"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: SQS
+      literalValue: '"sqs"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: REDSHIFT
+      literalValue: '"redshift"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: SES
+      literalValue: '"ses"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: ROUTE53
+      literalValue: '"route53"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: CLOUDFORMATION
+      literalValue: '"cloudformation"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: CLOUDWATCH
+      literalValue: '"cloudwatch"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: SSM
+      literalValue: '"ssm"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: SECRETSMANAGER
+      literalValue: '"secretsmanager"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: STEPFUNCTIONS
+      literalValue: '"stepfunctions"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: CLOUDWATCHLOGS
+      literalValue: '"logs"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: STS
+      literalValue: '"sts"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: IAM
+      literalValue: '"iam"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.testcontainers.containers.localstack.LocalStackContainer$Service
+      constantName: KMS
+      literalValue: '"kms"'
+  # Testcontainers 2.x removed `getEndpointOverride(Service)`; all services share the single `getEndpoint()`.
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.testcontainers.containers.localstack.LocalStackContainer getEndpointOverride(..)
+      newMethodName: getEndpoint
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.testcontainers.containers.localstack.LocalStackContainer getEndpoint(..)
+      argumentIndex: 0
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.testcontainers.GetHostMigration

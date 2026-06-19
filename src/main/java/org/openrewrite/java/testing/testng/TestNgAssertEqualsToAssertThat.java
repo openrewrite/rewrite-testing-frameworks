@@ -38,8 +38,10 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
     final String displayName = "TestNG `assertEquals` to AssertJ";
 
     @Getter
-    final String description = "Convert TestNG-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`.";
+    final String description = "Convert TestNG-style `assertEquals()` to AssertJ's `assertThat().isEqualTo()`, " +
+                               "using element-wise assertions (`containsExactly`/`containsExactlyElementsOf`) for arrays and collections.";
 
+    private static final String ASSERTJ = "org.assertj.core.api.Assertions";
     private static final MethodMatcher TESTNG_ASSERT_METHOD = new MethodMatcher("org.testng.Assert assertEquals(..)");
 
     @Override
@@ -47,79 +49,150 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
         return Preconditions.check(new UsesMethod<>(TESTNG_ASSERT_METHOD), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                method = super.visitMethodInvocation(method, ctx);
                 if (!TESTNG_ASSERT_METHOD.matches(method)) {
                     return method;
                 }
 
                 List<Expression> args = method.getArguments();
-                Expression expected = args.get(1);
                 Expression actual = args.get(0);
+                Expression expected = args.get(1);
+                JavaType actualType = actual.getType();
 
-                //always add the import (even if not referenced)
                 maybeRemoveImport("org.testng.Assert");
+                maybeAddImport(ASSERTJ, "assertThat", false);
 
-                // Remove import for "org.testng.Assert" if no longer used.
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                if (TypeUtils.asArray(actualType) != null) {
+                    return arrayAssertion(method, args, actual, expected, ctx);
+                }
+                // Iterators are single-pass; `isEqualTo` would compare iterator identity. Convert through
+                // `toIterable()` and wrap the expected iterator in an `Iterable` lambda (`() -> expected`) so the
+                // comparison stays element-wise, matching TestNG semantics.
+                if (TypeUtils.isAssignableTo("java.util.Iterator", actualType)) {
+                    return iteratorAssertion(method, args, actual, expected, ctx);
+                }
+                if (TypeUtils.isAssignableTo("java.util.Set", actualType)) {
+                    return elementsOfAssertion(method, args, actual, expected, "containsExactlyInAnyOrderElementsOf", ctx);
+                }
+                if (TypeUtils.isAssignableTo("java.lang.Iterable", actualType)) {
+                    return elementsOfAssertion(method, args, actual, expected, "containsExactlyElementsOf", ctx);
+                }
+                return scalarAssertion(method, args, actual, expected, ctx);
+            }
 
+            private J.MethodInvocation arrayAssertion(J.MethodInvocation method, List<Expression> args, Expression actual, Expression expected, ExecutionContext ctx) {
+                if (args.size() == 2) {
+                    return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
+                }
+                if (args.size() == 3 && isFloatingPointType(args.get(2))) {
+                    maybeAddImport(ASSERTJ, "within", false);
+                    return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
+                            .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, expected, args.get(2));
+                }
+                if (args.size() == 3) {
+                    return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, args.get(2), expected);
+                }
+                maybeAddImport(ASSERTJ, "within", false);
+                return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any(String)}).containsExactly(#{anyArray()}, within(#{any()}));")
+                        .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().replace(), actual, args.get(3), expected, args.get(2));
+            }
+
+            private J.MethodInvocation elementsOfAssertion(J.MethodInvocation method, List<Expression> args, Expression actual, Expression expected, String assertion, ExecutionContext ctx) {
+                if (args.size() == 2) {
+                    return JavaTemplate.builder("assertThat(#{any()})." + assertion + "(#{any()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
+                }
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)})." + assertion + "(#{any()});")
+                        .staticImports(ASSERTJ + ".assertThat")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().replace(), actual, args.get(2), expected);
+            }
+
+            private J.MethodInvocation iteratorAssertion(J.MethodInvocation method, List<Expression> args, Expression actual, Expression expected, ExecutionContext ctx) {
+                if (args.size() == 2) {
+                    return JavaTemplate.builder("assertThat(#{any()}).toIterable().containsExactlyElementsOf(() -> #{any()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
+                }
+                return JavaTemplate.builder("assertThat(#{any()}).toIterable().as(#{any(String)}).containsExactlyElementsOf(() -> #{any()});")
+                        .staticImports(ASSERTJ + ".assertThat")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().replace(), actual, args.get(2), expected);
+            }
+
+            private J.MethodInvocation scalarAssertion(J.MethodInvocation method, List<Expression> args, Expression actual, Expression expected, ExecutionContext ctx) {
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3"))
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
                 }
                 if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
                     Expression message = args.get(2);
                     return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat")
-                            .imports("java.util.function.Supplier")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3"))
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
-                            .apply(
-                                    getCursor(),
-                                    method.getCoordinates().replace(),
-                                    actual,
-                                    message,
-                                    expected
-                            );
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected);
                 }
                 if (args.size() == 3) {
-                    //always add the import (even if not referenced)
-                    maybeAddImport("org.assertj.core.api.Assertions", "within", false);
+                    // When actual is integral but delta is floating-point, use isEqualTo instead of isCloseTo
+                    // to avoid a type mismatch (e.g. AbstractIntegerAssert.isCloseTo requires Offset<Integer>, not Offset<Double>).
+                    if (isIntegralType(actual)) {
+                        return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
+                                .staticImports(ASSERTJ + ".assertThat")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                .build()
+                                .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
+                    }
+                    maybeAddImport(ASSERTJ, "within", false);
                     return JavaTemplate.builder("assertThat(#{any()}).isCloseTo(#{any()}, within(#{any()}));")
-                            .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "assertj-core-3"))
+                            .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), method.getCoordinates().replace(), actual, expected, args.get(2));
-
                 }
 
                 // The assertEquals is using a floating point with a delta argument and a message.
                 Expression message = args.get(3);
-
-                //always add the import (even if not referenced)
-                maybeAddImport("org.assertj.core.api.Assertions", "within", false);
+                if (isIntegralType(actual)) {
+                    return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isEqualTo(#{any()});")
+                            .staticImports(ASSERTJ + ".assertThat")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected);
+                }
+                maybeAddImport(ASSERTJ, "within", false);
                 return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isCloseTo(#{any()}, within(#{any()}));")
-                        .staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within")
-                        .imports("java.util.function.Supplier")
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "assertj-core-3"))
+                        .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
-                        .apply(
-                                getCursor(),
-                                method.getCoordinates().replace(),
-                                actual,
-                                message,
-                                expected,
-                                args.get(2)
-                        );
+                        .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected, args.get(2));
             }
 
             private boolean isFloatingPointType(Expression expression) {
-
                 JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
                 if (fullyQualified != null) {
                     String typeName = fullyQualified.getFullyQualifiedName();
@@ -129,7 +202,16 @@ public class TestNgAssertEqualsToAssertThat extends Recipe {
                 JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
                 return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
             }
+
+            private boolean isIntegralType(Expression expression) {
+                JavaType.FullyQualified fq = TypeUtils.asFullyQualified(expression.getType());
+                if (fq != null) {
+                    String typeName = fq.getFullyQualifiedName();
+                    return "java.lang.Long".equals(typeName) || "java.lang.Integer".equals(typeName);
+                }
+                JavaType.Primitive p = TypeUtils.asPrimitive(expression.getType());
+                return p == JavaType.Primitive.Long || p == JavaType.Primitive.Int;
+            }
         });
     }
-
 }

@@ -35,6 +35,9 @@ import static java.util.Collections.emptyList;
 public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
     private static final String TEST_ANNOTATION_PATTERN = "org..* *Test*";
+    // `UsesType` matches against fully qualified type names, so it needs a single-token glob rather
+    // than the two-token (`<owner> <name>`) form `AnnotationMatcher` uses above.
+    private static final String TEST_ANNOTATION_TYPE_PATTERN = "org.junit..*Test*";
     private static final JavaType.Class KOTLIN_UNIT = (JavaType.Class) JavaType.buildType("kotlin.Unit");
 
     @Getter
@@ -47,7 +50,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_PATTERN, true), new KotlinIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true), new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
