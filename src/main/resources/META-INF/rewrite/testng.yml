@@ -47,3 +47,4 @@ recipeList:
   - org.openrewrite.java.testing.testng.TestNgAssertSameToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertNotSameToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertThrowsToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertListToAssertThat
