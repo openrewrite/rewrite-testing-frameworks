@@ -47,7 +47,7 @@ public class JUnitFailToAssertJFail extends Recipe {
         return Preconditions.check(new UsesMethod<>(FAIL_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = method;
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (!FAIL_MATCHER.matches(mi)) {
                     return mi;
                 }

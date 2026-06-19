@@ -92,7 +92,7 @@ recipeList:
       artifactId: byte-buddy*
       newVersion: 1.12.19
   - org.openrewrite.java.testing.mockito.ReplaceInitMockToOpenMock
-#  - org.openrewrite.java.testing.mockito.CloseUnclosedStaticMocks
+  - org.openrewrite.java.testing.mockito.CloseUnclosedStaticMocks
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
@@ -184,8 +184,13 @@ recipeList:
   - org.openrewrite.java.testing.mockito.ReplacePowerMockito
   - org.openrewrite.java.testing.junit5.MockitoJUnitToMockitoExtension
   - org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictnessForLegacyMockito
-  - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
-  - org.openrewrite.java.testing.mockito.AddMockitoJupiterDependency
+  # Intentionally NOT applied as part of the migration; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/875
+  # `@ExtendWith(MockitoExtension.class)` cannot be added safely: the extension may already be provided by a super class,
+  # an interface, a meta-annotation, an explicit `MockitoAnnotations.openMocks(this)` call, or `SpringExtension` (which
+  # already initializes `@Mock` fields), so adding it is at best redundant and at worst breaks the test lifecycle.
+  # Do not re-enable these without first making the recipes aware of those cases.
+  # - org.openrewrite.java.testing.mockito.AddMockitoExtensionIfAnnotationsUsed
+  # - org.openrewrite.java.testing.mockito.AddMockitoJupiterDependency
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJupiter
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForJUnit4
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListenerForTestNG

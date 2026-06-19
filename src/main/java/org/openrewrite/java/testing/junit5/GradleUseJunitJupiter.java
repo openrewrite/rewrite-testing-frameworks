@@ -22,6 +22,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.SourceFile;
+import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.gradle.GradleParser;
 import org.openrewrite.gradle.IsBuildGradle;
@@ -241,7 +242,22 @@ public class GradleUseJunitJupiter extends Recipe {
         }
     }
 
+    private static final String TEMPLATE_KEY = GradleUseJunitJupiter.class.getName() + ".template.";
+
     private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(ExecutionContext ctx, boolean forEachInvocation) {
+        // Parsing a Gradle snippet spins up the Groovy compiler and resolves the Gradle classpath, which is expensive.
+        // The result depends only on `forEachInvocation`, so cache the parsed template on the (run-scoped) context to
+        // pay that cost once per run rather than once per modified build script. Caching on the context rather than
+        // statically keeps the type-attributed LST (and the Gradle type graph it references) from being retained
+        // beyond the lifetime of the run.
+        J.MethodInvocation template = ctx.computeMessageIfAbsent(TEMPLATE_KEY + forEachInvocation,
+                k -> parseTemplate(ctx, forEachInvocation));
+        // Hand back a copy with fresh ids so reusing the cached template (across files, or across multiple matching
+        // test blocks within one script) never produces colliding ids in the resulting tree.
+        return template == null ? Optional.empty() : Optional.of(withNewIds(template));
+    }
+
+    private static J.@Nullable MethodInvocation parseTemplate(ExecutionContext ctx, boolean forEachInvocation) {
         String groovySnippet = "plugins {\n" +
                 "    id 'java'\n" +
                 "}\n" +
@@ -254,12 +270,22 @@ public class GradleUseJunitJupiter extends Recipe {
                 .findFirst()
                 .orElse(null);
         if (sourceFile == null) {
-            return Optional.empty();
+            return null;
         }
         if (sourceFile instanceof ParseError) {
             throw ((ParseError) sourceFile).toException();
         }
         G.CompilationUnit cu = (G.CompilationUnit) sourceFile;
-        return Optional.of((J.MethodInvocation) cu.getStatements().get(1));
+        return (J.MethodInvocation) cu.getStatements().get(1);
+    }
+
+    private static J.MethodInvocation withNewIds(J.MethodInvocation template) {
+        return (J.MethodInvocation) new GroovyIsoVisitor<Integer>() {
+            @Override
+            public @Nullable J visit(@Nullable Tree tree, Integer p) {
+                J j = super.visit(tree, p);
+                return j == null ? null : j.withId(Tree.randomId());
+            }
+        }.visitNonNull(template, 0);
     }
 }
