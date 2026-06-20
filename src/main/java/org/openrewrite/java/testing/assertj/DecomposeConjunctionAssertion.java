@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -82,8 +83,7 @@ public class DecomposeConjunctionAssertion extends Recipe {
 
             private List<Statement> decompose(J.MethodInvocation isTrue) {
                 J.MethodInvocation assertThat = (J.MethodInvocation) isTrue.getSelect();
-                List<Expression> conjuncts = new ArrayList<>();
-                flattenConjuncts(assertThat.getArguments().get(0), conjuncts);
+                List<Expression> conjuncts = flattenConjuncts(assertThat.getArguments().get(0));
 
                 // Subsequent statements reuse the original indentation, without the original leading comments
                 Space subsequentPrefix = Space.build(isTrue.getPrefix().getLastWhitespace(), emptyList());
@@ -99,14 +99,13 @@ public class DecomposeConjunctionAssertion extends Recipe {
                 return result;
             }
 
-            private void flattenConjuncts(Expression expression, List<Expression> conjuncts) {
+            private List<Expression> flattenConjuncts(Expression expression) {
                 Expression unwrapped = expression.unwrap();
                 if (unwrapped instanceof J.Binary && ((J.Binary) unwrapped).getOperator() == J.Binary.Type.And) {
-                    flattenConjuncts(((J.Binary) unwrapped).getLeft(), conjuncts);
-                    flattenConjuncts(((J.Binary) unwrapped).getRight(), conjuncts);
-                } else {
-                    conjuncts.add(unwrapped);
+                    J.Binary and = (J.Binary) unwrapped;
+                    return ListUtils.flatMap(asList(and.getLeft(), and.getRight()), this::flattenConjuncts);
                 }
+                return singletonList(unwrapped);
             }
         });
     }
