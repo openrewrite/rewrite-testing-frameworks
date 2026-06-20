@@ -50,6 +50,8 @@ recipeList:
   - org.openrewrite.java.testing.testng.TestNgToAssertj
   - org.openrewrite.java.testing.assertj.AdoptAssertJDurationAssertions
   - org.openrewrite.java.testing.assertj.IsEqualToIgnoringMillisToIsCloseToRecipe
+  # Decompose compound conditions first, so each conjunct can be simplified by the recipes below
+  - org.openrewrite.java.testing.assertj.DecomposeConjunctionAssertion
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
