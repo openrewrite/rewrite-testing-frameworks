@@ -467,6 +467,11 @@ class AssertJBestPracticesTest implements RewriteTest {
 //              arguments("long[]", "assertThat(x.length).isGreaterThan(4)", "assertThat(x).hasSizeGreaterThan(4)"),
 //              arguments("char[]", "assertThat(x.length).isGreaterThanOrEqualTo(1)", "assertThat(x).hasSizeGreaterThanOrEqualTo(1)"),
               // Related to Collection
+              arguments("java.lang.Iterable", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
+              arguments(
+                "java.util.Collection<String>",
+                "assertThat(x).hasSize(0)",
+                "assertThat(x).isEmpty()"),
               arguments(
                 "java.util.Collection<String>",
                 "assertThat(x.isEmpty()).isTrue()",

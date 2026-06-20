@@ -512,7 +512,7 @@ recipeList:
       assertToReplace: hasSize
       literalArgument: 0
       dedicatedAssertion: isEmpty
-      requiredType: java.util.Collection
+      requiredType: java.lang.Iterable
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: hasSize
       literalArgument: 0
