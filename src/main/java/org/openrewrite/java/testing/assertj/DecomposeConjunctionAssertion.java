@@ -29,7 +29,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -81,22 +80,15 @@ public class DecomposeConjunctionAssertion extends Recipe {
                 return argument instanceof J.Binary && ((J.Binary) argument).getOperator() == J.Binary.Type.And;
             }
 
-            private List<Statement> decompose(J.MethodInvocation isTrue) {
+            private List<Expression> decompose(J.MethodInvocation isTrue) {
                 J.MethodInvocation assertThat = (J.MethodInvocation) isTrue.getSelect();
-                List<Expression> conjuncts = flattenConjuncts(assertThat.getArguments().get(0));
-
                 // Subsequent statements reuse the original indentation, without the original leading comments
                 Space subsequentPrefix = Space.build(isTrue.getPrefix().getLastWhitespace(), emptyList());
-
-                List<Statement> result = new ArrayList<>();
-                for (int i = 0; i < conjuncts.size(); i++) {
-                    // The conjuncts are all boolean, so the `assertThat(boolean)` overload and `isTrue()` types are preserved
-                    J.MethodInvocation newAssertThat = assertThat.withArguments(
-                            singletonList(conjuncts.get(i).withPrefix(Space.EMPTY)));
-                    J.MethodInvocation statement = isTrue.withSelect(newAssertThat);
-                    result.add(statement.withPrefix(i == 0 ? isTrue.getPrefix() : subsequentPrefix));
-                }
-                return result;
+                // The conjuncts are all boolean, so the `assertThat(boolean)` overload and `isTrue()` types are preserved
+                return ListUtils.flatMap(flattenConjuncts(assertThat.getArguments().get(0)), (i, conjunct) -> {
+                    J.MethodInvocation newAssertThat = assertThat.withArguments(singletonList(conjunct.withPrefix(Space.EMPTY)));
+                    return isTrue.withSelect(newAssertThat).withPrefix(i == 0 ? isTrue.getPrefix() : subsequentPrefix);
+                });
             }
 
             private List<Expression> flattenConjuncts(Expression expression) {
