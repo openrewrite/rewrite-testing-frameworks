@@ -53,6 +53,9 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
+  # Must run before AssertJObjectRulesRecipes, which would otherwise turn `assertThat(null == x).isTrue()`
+  # into the uncompilable `assertThat(null).isSameAs(x)`; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/868
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJNullRelatedAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeFromIsEqualToAssertion
   # Must run before AssertJNumberRulesRecipes, which would otherwise rewrite the int `array.length`
@@ -521,7 +524,7 @@ recipeList:
       assertToReplace: hasSize
       literalArgument: 0
       dedicatedAssertion: isEmpty
-      requiredType: java.util.Collection
+      requiredType: java.lang.Iterable
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: hasSize
       literalArgument: 0

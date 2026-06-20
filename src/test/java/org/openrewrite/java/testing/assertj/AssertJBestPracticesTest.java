@@ -143,6 +143,40 @@ class AssertJBestPracticesTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/868")
+    @Test
+    void nullReferenceComparisonsConvergeToIsNull() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Object a, Object b, Object c, Object d) {
+                      assertThat(null == a).isEqualTo(true);
+                      assertThat(b == null).isEqualTo(true);
+                      assertThat(c != null).isEqualTo(true);
+                      assertThat(d == null).isEqualTo(false);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Object a, Object b, Object c, Object d) {
+                      assertThat(a).isNull();
+                      assertThat(b).isNull();
+                      assertThat(c).isNotNull();
+                      assertThat(d).isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class CollapseAfterConversion {
         @Test
@@ -375,7 +409,9 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("Boolean", "assertThat(x).isEqualTo(false)", "assertThat(x).isFalse()"),
               arguments("Object", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
               arguments("Object", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
-              arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isSameAs(null)"),
+              arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isNull()"),
+              arguments("Object", "assertThat(null == x).isTrue()", "assertThat(x).isNull()"),
+              arguments("Object", "assertThat(x != null).isTrue()", "assertThat(x).isNotNull()"),
               arguments("Object", "assertThat(x.toString()).isEqualTo(\"y\")", "assertThat(x).hasToString(\"y\")"),
               arguments("Object", "assertThat(x.hashCode()).isEqualTo(y.hashCode())", "assertThat(x).hasSameHashCodeAs(y)"),
               arguments("Object", "assertThat(x instanceof String).isTrue()", "assertThat(x).isInstanceOf(String.class)"),
@@ -468,6 +504,11 @@ class AssertJBestPracticesTest implements RewriteTest {
               // `hasSizeGreaterThanOrEqualTo(1)` is further simplified to `isNotEmpty()` by AssertJEnumerableRules
               arguments("char[]", "assertThat(x.length).isGreaterThanOrEqualTo(1)", "assertThat(x).isNotEmpty()"),
               // Related to Collection
+              arguments("java.lang.Iterable", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
+              arguments(
+                "java.util.Collection<String>",
+                "assertThat(x).hasSize(0)",
+                "assertThat(x).isEmpty()"),
               arguments(
                 "java.util.Collection<String>",
                 "assertThat(x.isEmpty()).isTrue()",

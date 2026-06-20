@@ -74,7 +74,7 @@ public class SimplifyArrayLengthAssertion extends Recipe {
                                 break;
                             case "isEqualTo":
                                 Expression otherArray = arrayOfLength(argument);
-                                if (isZeroLiteral(argument)) {
+                                if (J.Literal.isLiteralValue(argument, 0)) {
                                     template = "assertThat(#{any()}).isEmpty()";
                                     secondArgument = null;
                                 } else if (otherArray != null) {
@@ -112,10 +112,6 @@ public class SimplifyArrayLengthAssertion extends Recipe {
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), parameters);
-                    }
-
-                    private boolean isZeroLiteral(@Nullable Expression expression) {
-                        return expression instanceof J.Literal && Integer.valueOf(0).equals(((J.Literal) expression).getValue());
                     }
 
                     private @Nullable Expression arrayOfLength(@Nullable Expression expression) {
