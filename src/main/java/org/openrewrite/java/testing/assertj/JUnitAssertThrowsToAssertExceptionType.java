@@ -22,7 +22,6 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -167,10 +166,9 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                 if (cu == null) {
                     return false;
                 }
-                AtomicBoolean safe = new AtomicBoolean(true);
-                new JavaIsoVisitor<Integer>() {
+                return new JavaIsoVisitor<AtomicBoolean>() {
                     @Override
-                    public J.Identifier visitIdentifier(J.Identifier identifier, Integer integer) {
+                    public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean safe) {
                         if (safe.get() && Objects.equals(identifier.getFieldType(), variable)) {
                             Object parent = getCursor().getParentTreeCursor().getValue();
                             boolean ok = false;
@@ -188,10 +186,9 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                                 safe.set(false);
                             }
                         }
-                        return super.visitIdentifier(identifier, integer);
+                        return super.visitIdentifier(identifier, safe);
                     }
-                }.visit(cu, 0);
-                return safe.get();
+                }.reduce(cu, new AtomicBoolean(true)).get();
             }
         });
     }
@@ -204,8 +201,9 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
     @RequiredArgsConstructor
     private static class RetypeExecutableVariable extends JavaIsoVisitor<ExecutionContext> {
 
+        private static final JavaType.ShallowClass THROWING_CALLABLE_TYPE = JavaType.ShallowClass.build(THROWING_CALLABLE);
+
         private final JavaType.Variable variable;
-        private final JavaType.ShallowClass throwingCallable = JavaType.ShallowClass.build(THROWING_CALLABLE);
 
         @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
@@ -221,7 +219,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
             TypeTree typeExpression = mv.getTypeExpression();
             J.Identifier newTypeExpression = new J.Identifier(Tree.randomId(),
                     typeExpression == null ? Space.EMPTY : typeExpression.getPrefix(),
-                    Markers.EMPTY, emptyList(), "ThrowingCallable", throwingCallable, null);
+                    Markers.EMPTY, emptyList(), "ThrowingCallable", THROWING_CALLABLE_TYPE, null);
             return mv.withTypeExpression(newTypeExpression);
         }
 
@@ -230,7 +228,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
             J.Identifier id = super.visitIdentifier(identifier, ctx);
             JavaType.Variable fieldType = id.getFieldType();
             if (Objects.equals(fieldType, variable)) {
-                return id.withType(throwingCallable).withFieldType(fieldType.withType(throwingCallable));
+                return id.withType(THROWING_CALLABLE_TYPE).withFieldType(fieldType.withType(THROWING_CALLABLE_TYPE));
             }
             return id;
         }
