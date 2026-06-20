@@ -92,9 +92,9 @@ public class SimplifyAssertJNullRelatedAssertion extends Recipe {
 
                 // Only handle comparisons against the `null` literal; leave `x == y` to AssertJObjectRules (isSameAs)
                 Expression actual;
-                if (isNullLiteral(binary.getLeft())) {
+                if (J.Literal.isLiteralValue(binary.getLeft(), null)) {
                     actual = binary.getRight();
-                } else if (isNullLiteral(binary.getRight())) {
+                } else if (J.Literal.isLiteralValue(binary.getRight(), null)) {
                     actual = binary.getLeft();
                 } else {
                     return mi;
@@ -132,10 +132,6 @@ public class SimplifyAssertJNullRelatedAssertion extends Recipe {
                     }
                 }
                 return null;
-            }
-
-            private boolean isNullLiteral(Expression expression) {
-                return expression instanceof J.Literal && ((J.Literal) expression).getValue() == null;
             }
         });
     }
