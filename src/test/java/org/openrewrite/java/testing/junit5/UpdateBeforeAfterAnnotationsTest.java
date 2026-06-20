@@ -209,6 +209,50 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/501")
+    @Test
+    void removeJUnit4AnnotationWhenJupiterEquivalentAlreadyPresent() {
+        //language=java
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api")),
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.After;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.AfterEach;
+
+              class TestBase {
+                  @Before
+                  @BeforeEach
+                  void setup() {
+                  }
+
+                  @After
+                  @AfterEach
+                  void tearDown() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.AfterEach;
+
+              class TestBase {
+                  @BeforeEach
+                  void setup() {
+                  }
+
+                  @AfterEach
+                  void tearDown() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/59")
     @Test
     void retainPublicModifierOnOverriddenMethod() {

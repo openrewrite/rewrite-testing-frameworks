@@ -20,10 +20,15 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class UpdateBeforeAfterAnnotations extends Recipe {
     @Getter
@@ -31,6 +36,13 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
 
     @Getter
     final String description = "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit Jupiter equivalents.";
+
+    private static final Map<String, String> JUNIT4_TO_JUPITER = new LinkedHashMap<String, String>() {{
+        put("org.junit.Before", "org.junit.jupiter.api.BeforeEach");
+        put("org.junit.After", "org.junit.jupiter.api.AfterEach");
+        put("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll");
+        put("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll");
+    }};
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -48,11 +60,30 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         @Override
         public J preVisit(J tree, ExecutionContext ctx) {
             stopAfterPreVisit();
-            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
-            doAfterVisit(new ChangeType("org.junit.After", "org.junit.jupiter.api.AfterEach", true).getVisitor());
-            doAfterVisit(new ChangeType("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll", true).getVisitor());
-            doAfterVisit(new ChangeType("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll", true).getVisitor());
+            // Remove the JUnit 4 annotation where the Jupiter equivalent is already present, to avoid creating a
+            // duplicate annotation when the type is subsequently changed below.
+            doAfterVisit(new RemoveRedundantJUnit4LifecycleAnnotations());
+            JUNIT4_TO_JUPITER.forEach((from, to) -> doAfterVisit(new ChangeType(from, to, true).getVisitor()));
             return tree;
+        }
+    }
+
+    private static class RemoveRedundantJUnit4LifecycleAnnotations extends JavaIsoVisitor<ExecutionContext> {
+
+        @Override
+        public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+            J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+            for (Map.Entry<String, String> pair : JUNIT4_TO_JUPITER.entrySet()) {
+                AnnotationMatcher junit4 = new AnnotationMatcher("@" + pair.getKey());
+                AnnotationMatcher jupiter = new AnnotationMatcher("@" + pair.getValue());
+                boolean hasJunit4 = md.getLeadingAnnotations().stream().anyMatch(junit4::matches);
+                boolean hasJupiter = md.getLeadingAnnotations().stream().anyMatch(jupiter::matches);
+                if (hasJunit4 && hasJupiter) {
+                    md = (J.MethodDeclaration) new RemoveAnnotationVisitor(junit4)
+                            .visitNonNull(md, ctx, getCursor().getParentOrThrow());
+                }
+            }
+            return md;
         }
     }
 }
