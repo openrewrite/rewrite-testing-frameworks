@@ -55,6 +55,9 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeFromIsEqualToAssertion
+  # Must run before AssertJNumberRulesRecipes, which would otherwise rewrite the int `array.length`
+  # assertion (e.g. `isGreaterThanOrEqualTo(1)`) to `isPositive()` before we reach `hasSizeGreaterThanOrEqualTo`
+  - org.openrewrite.java.testing.assertj.SimplifyArrayLengthAssertion
   - org.openrewrite.java.testing.assertj.SimplifySequencedCollectionAssertions
   - org.openrewrite.java.testing.assertj.SimplifyStreamMapToExtracting
 
@@ -149,6 +152,12 @@ tags:
   - assertj
 recipeList:
   # Simplify Chained AssertJ Assertions
+  # Comparable Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: compareTo
+      assertToReplace: isZero
+      dedicatedAssertion: isEqualByComparingTo
+      requiredType: java.math.BigDecimal
   # String Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isEmpty
