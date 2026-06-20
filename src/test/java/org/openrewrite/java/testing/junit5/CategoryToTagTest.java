@@ -248,6 +248,36 @@ class CategoryToTagTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/447")
+    @Test
+    void nestedCategoryClass() {
+        rewriteRun(
+          java(
+            """
+              public class Appenders {
+                  public interface Cassandra {}
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.experimental.categories.Category;
+
+              @Category(Appenders.Cassandra.class)
+              public class B {
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Tag;
+
+              @Tag("Cassandra")
+              public class B {
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/305")
     @Test
     void fullyQualifiedClass() {
