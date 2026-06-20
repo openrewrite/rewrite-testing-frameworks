@@ -76,7 +76,7 @@ public class DecomposeConjunctionAssertion extends Recipe {
                 if (!IS_TRUE_MATCHER.matches(mi) || !ASSERT_THAT_MATCHER.matches(mi.getSelect())) {
                     return false;
                 }
-                Expression argument = unwrapParentheses(((J.MethodInvocation) mi.getSelect()).getArguments().get(0));
+                Expression argument = ((J.MethodInvocation) mi.getSelect()).getArguments().get(0).unwrap();
                 return argument instanceof J.Binary && ((J.Binary) argument).getOperator() == J.Binary.Type.And;
             }
 
@@ -100,20 +100,13 @@ public class DecomposeConjunctionAssertion extends Recipe {
             }
 
             private void flattenConjuncts(Expression expression, List<Expression> conjuncts) {
-                Expression unwrapped = unwrapParentheses(expression);
+                Expression unwrapped = expression.unwrap();
                 if (unwrapped instanceof J.Binary && ((J.Binary) unwrapped).getOperator() == J.Binary.Type.And) {
                     flattenConjuncts(((J.Binary) unwrapped).getLeft(), conjuncts);
                     flattenConjuncts(((J.Binary) unwrapped).getRight(), conjuncts);
                 } else {
                     conjuncts.add(unwrapped);
                 }
-            }
-
-            private Expression unwrapParentheses(Expression expression) {
-                while (expression instanceof J.Parentheses) {
-                    expression = (Expression) ((J.Parentheses<?>) expression).getTree();
-                }
-                return expression;
             }
         });
     }
