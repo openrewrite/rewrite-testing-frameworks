@@ -25,6 +25,7 @@ import org.openrewrite.Option;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeMethodAccessLevelVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -34,11 +35,13 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toList;
 
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
@@ -166,18 +169,25 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             return m;
         }
 
+        private static final List<AnnotationMatcher> JUNIT5_METHOD_ANNOTATIONS = Arrays.asList(
+                "org.junit.jupiter.api.Test",
+                "org.junit.jupiter.api.RepeatedTest",
+                "org.junit.jupiter.params.ParameterizedTest",
+                "org.junit.jupiter.api.TestFactory",
+                "org.junit.jupiter.api.TestTemplate",
+                "org.junit.jupiter.api.AfterEach",
+                "org.junit.jupiter.api.BeforeEach",
+                "org.junit.jupiter.api.AfterAll",
+                "org.junit.jupiter.api.BeforeAll").stream()
+                .map(fqn -> new AnnotationMatcher("@" + fqn, true))
+                .collect(toList());
+
         private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterEach") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeEach") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.AfterAll") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.BeforeAll")) {
-                    return true;
+                for (AnnotationMatcher matcher : JUNIT5_METHOD_ANNOTATIONS) {
+                    if (matcher.matches(a)) {
+                        return true;
+                    }
                 }
             }
             return false;
