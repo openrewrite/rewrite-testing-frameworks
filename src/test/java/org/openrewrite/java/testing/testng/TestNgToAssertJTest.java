@@ -141,6 +141,43 @@ class TestNgToAssertJTest implements RewriteTest {
         );
     }
 
+    /**
+     * Qualified `Assert.assertX(...)` calls should become static-imported `assertThat(...)`, rather than
+     * mirroring the source qualification as `Assertions.assertThat(...)`; see
+     * <a href="https://github.com/openrewrite/rewrite-testing-frameworks/issues/1029">issue 1029</a>.
+     */
+    @Test
+    void qualifiedAssertBecomesStaticImport() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.testng.TestNgToAssertj"),
+          //language=java
+          java(
+            """
+              import org.testng.Assert;
+
+              class Test {
+                  void test(Object value, Object actual, Object expected, boolean flag) {
+                      Assert.assertNotNull(value);
+                      Assert.assertEquals(actual, expected);
+                      Assert.assertTrue(flag, "should be true");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test(Object value, Object actual, Object expected, boolean flag) {
+                      assertThat(value).isNotNull();
+                      assertThat(actual).isEqualTo(expected);
+                      assertThat(flag).withFailMessage("should be true").isTrue();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void assertEqualsAndNotEquals() {
         rewriteRun(
