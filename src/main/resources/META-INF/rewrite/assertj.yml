@@ -55,8 +55,14 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
+  # Must run before AssertJObjectRulesRecipes, which would otherwise turn `assertThat(null == x).isTrue()`
+  # into the uncompilable `assertThat(null).isSameAs(x)`; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/868
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJNullRelatedAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeFromIsEqualToAssertion
+  # Must run before AssertJNumberRulesRecipes, which would otherwise rewrite the int `array.length`
+  # assertion (e.g. `isGreaterThanOrEqualTo(1)`) to `isPositive()` before we reach `hasSizeGreaterThanOrEqualTo`
+  - org.openrewrite.java.testing.assertj.SimplifyArrayLengthAssertion
   - org.openrewrite.java.testing.assertj.SimplifySequencedCollectionAssertions
   - org.openrewrite.java.testing.assertj.SimplifyStreamMapToExtracting
 
@@ -151,6 +157,12 @@ tags:
   - assertj
 recipeList:
   # Simplify Chained AssertJ Assertions
+  # Comparable Assertions
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
+      chainedAssertion: compareTo
+      assertToReplace: isZero
+      dedicatedAssertion: isEqualByComparingTo
+      requiredType: java.math.BigDecimal
   # String Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isEmpty
@@ -514,7 +526,7 @@ recipeList:
       assertToReplace: hasSize
       literalArgument: 0
       dedicatedAssertion: isEmpty
-      requiredType: java.util.Collection
+      requiredType: java.lang.Iterable
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion:
       assertToReplace: hasSize
       literalArgument: 0

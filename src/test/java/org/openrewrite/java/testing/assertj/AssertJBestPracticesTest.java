@@ -143,6 +143,40 @@ class AssertJBestPracticesTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/868")
+    @Test
+    void nullReferenceComparisonsConvergeToIsNull() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Object a, Object b, Object c, Object d) {
+                      assertThat(null == a).isEqualTo(true);
+                      assertThat(b == null).isEqualTo(true);
+                      assertThat(c != null).isEqualTo(true);
+                      assertThat(d == null).isEqualTo(false);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(Object a, Object b, Object c, Object d) {
+                      assertThat(a).isNull();
+                      assertThat(b).isNull();
+                      assertThat(c).isNotNull();
+                      assertThat(d).isNotNull();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class CollapseAfterConversion {
         @Test
@@ -375,16 +409,18 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("Boolean", "assertThat(x).isEqualTo(false)", "assertThat(x).isFalse()"),
               arguments("Object", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
               arguments("Object", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
-              arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isSameAs(null)"),
+              arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isNull()"),
+              arguments("Object", "assertThat(null == x).isTrue()", "assertThat(x).isNull()"),
+              arguments("Object", "assertThat(x != null).isTrue()", "assertThat(x).isNotNull()"),
               arguments("Object", "assertThat(x.toString()).isEqualTo(\"y\")", "assertThat(x).hasToString(\"y\")"),
               arguments("Object", "assertThat(x.hashCode()).isEqualTo(y.hashCode())", "assertThat(x).hasSameHashCodeAs(y)"),
               arguments("Object", "assertThat(x instanceof String).isTrue()", "assertThat(x).isInstanceOf(String.class)"),
-//              // Related to Comparable
-//              arguments("java.math.BigDecimal", "assertThat(x.compareTo(y)).isZero()", "assertThat(x).isEqualByComparingTo(y)"),
-//              arguments("int", "assertThat(x >= y).isTrue()", "assertThat(x).isGreaterThanOrEqualTo(y)"),
-//              arguments("long", "assertThat(x > y).isTrue()", "assertThat(x).isGreaterThan(y)"),
-//              arguments("double", "assertThat(x <= y).isTrue()", "assertThat(x).isLessThanOrEqualTo(y)"),
-//              arguments("float", "assertThat(x < y).isTrue()", "assertThat(x).isLessThan(y)"),
+              // Related to Comparable
+              arguments("java.math.BigDecimal", "assertThat(x.compareTo(y)).isZero()", "assertThat(x).isEqualByComparingTo(y)"),
+              arguments("int", "assertThat(x >= y).isTrue()", "assertThat(x).isGreaterThanOrEqualTo(y)"),
+              arguments("long", "assertThat(x > y).isTrue()", "assertThat(x).isGreaterThan(y)"),
+              arguments("double", "assertThat(x <= y).isTrue()", "assertThat(x).isLessThanOrEqualTo(y)"),
+              arguments("float", "assertThat(x < y).isTrue()", "assertThat(x).isLessThan(y)"),
               // Related to String
               arguments("String", "assertThat(x.isEmpty()).isTrue()", "assertThat(x).isEmpty()"),
               arguments("String", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
@@ -459,14 +495,20 @@ class AssertJBestPracticesTest implements RewriteTest {
                 "assertThat(x.isAbsolute()).isFalse()",
                 "assertThat(x).isRelative()"),
               // Related to Array
-//              arguments("Object[]", "assertThat(x.length).isZero()", "assertThat(x).isEmpty()"),
-//              arguments("String[]", "assertThat(x.length).isEqualTo(7)", "assertThat(x).hasSize(7)"),
-//              arguments("int[]", "assertThat(x.length).isEqualTo(y.length)", "assertThat(x).hasSameSizeAs(y)"),
-//              arguments("boolean[]", "assertThat(x.length).isLessThanOrEqualTo(2)", "assertThat(x).hasSizeLessThanOrEqualTo(2)"),
-//              arguments("double[]", "assertThat(x.length).isLessThan(5)", "assertThat(x).hasSizeLessThan(5)"),
-//              arguments("long[]", "assertThat(x.length).isGreaterThan(4)", "assertThat(x).hasSizeGreaterThan(4)"),
-//              arguments("char[]", "assertThat(x.length).isGreaterThanOrEqualTo(1)", "assertThat(x).hasSizeGreaterThanOrEqualTo(1)"),
+              arguments("Object[]", "assertThat(x.length).isZero()", "assertThat(x).isEmpty()"),
+              arguments("String[]", "assertThat(x.length).isEqualTo(7)", "assertThat(x).hasSize(7)"),
+              arguments("int[]", "assertThat(x.length).isEqualTo(y.length)", "assertThat(x).hasSameSizeAs(y)"),
+              arguments("boolean[]", "assertThat(x.length).isLessThanOrEqualTo(2)", "assertThat(x).hasSizeLessThanOrEqualTo(2)"),
+              arguments("double[]", "assertThat(x.length).isLessThan(5)", "assertThat(x).hasSizeLessThan(5)"),
+              arguments("long[]", "assertThat(x.length).isGreaterThan(4)", "assertThat(x).hasSizeGreaterThan(4)"),
+              // `hasSizeGreaterThanOrEqualTo(1)` is further simplified to `isNotEmpty()` by AssertJEnumerableRules
+              arguments("char[]", "assertThat(x.length).isGreaterThanOrEqualTo(1)", "assertThat(x).isNotEmpty()"),
               // Related to Collection
+              arguments("java.lang.Iterable", "assertThat(x).hasSize(0)", "assertThat(x).isEmpty()"),
+              arguments(
+                "java.util.Collection<String>",
+                "assertThat(x).hasSize(0)",
+                "assertThat(x).isEmpty()"),
               arguments(
                 "java.util.Collection<String>",
                 "assertThat(x.isEmpty()).isTrue()",
@@ -533,8 +575,7 @@ class AssertJBestPracticesTest implements RewriteTest {
           String argumentsType, String assertToReplace, String dedicatedAssertion) {
             var template =
               """
-                import %1$s;
-                import static org.assertj.core.api.Assertions.assertThat;
+                %1$simport static org.assertj.core.api.Assertions.assertThat;
 
                 class A {
                     void test(%2$s x, %2$s y, Object value) {
@@ -542,9 +583,12 @@ class AssertJBestPracticesTest implements RewriteTest {
                     }
                 }
                 """;
-            String imprt = argumentsType
+            String fqType = argumentsType
               .replaceAll("^([A-Z])", "java.lang.$1")
-              .replaceAll("<.*>", "");
+              .replaceAll("<.*>", "")
+              .replaceAll("\\[\\]", "");
+            // Primitives (e.g. int, float) have no package and need no import
+            String imprt = fqType.contains(".") ? "import " + fqType + ";\n" : "";
             rewriteRun(
               java(
                 template.formatted(imprt, argumentsType, assertToReplace),
