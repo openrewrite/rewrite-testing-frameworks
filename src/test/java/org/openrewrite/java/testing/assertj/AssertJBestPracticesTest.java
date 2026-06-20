@@ -343,6 +343,74 @@ class AssertJBestPracticesTest implements RewriteTest {
               )
             );
         }
+
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/387")
+        @Test
+        void decomposeConjunctionIntoDedicatedAssertions() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+              //language=java
+              java(
+                """
+                  import static org.junit.jupiter.api.Assertions.assertTrue;
+
+                  class A {
+                      void test(String name, int count) {
+                          assertTrue(name != null && count > 5);
+                      }
+                  }
+                  """,
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class A {
+                      void test(String name, int count) {
+                          assertThat(name).isNotNull();
+                          assertThat(count).isGreaterThan(5);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/387")
+        @Test
+        void decomposeConjunctionWithMethodCallStaysSeparate() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+              //language=java
+              java(
+                """
+                  import static org.junit.jupiter.api.Assertions.assertTrue;
+
+                  class A {
+                      int notification() {
+                          return 1;
+                      }
+
+                      void test() {
+                          assertTrue(notification() > 5 && notification() < 10);
+                      }
+                  }
+                  """,
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class A {
+                      int notification() {
+                          return 1;
+                      }
+
+                      void test() {
+                          assertThat(notification()).isGreaterThan(5);
+                          assertThat(notification()).isLessThan(10);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/496")
