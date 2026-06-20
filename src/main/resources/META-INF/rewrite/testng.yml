@@ -48,3 +48,8 @@ recipeList:
   - org.openrewrite.java.testing.testng.TestNgAssertNotSameToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertThrowsToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertListToAssertThat
+  # Normalize the AssertJ entry points we introduce to a static import, regardless of how the original TestNG
+  # assertion was qualified, so qualified `Assert.assertX(...)` calls don't become qualified
+  # `Assertions.assertThat(...)`; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/1029
+  - org.openrewrite.java.UseStaticImport:
+      methodPattern: "org.assertj.core.api.Assertions *(..)"
