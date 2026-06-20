@@ -45,6 +45,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.LifecycleNonPrivate
   - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
   - org.openrewrite.java.testing.junit5.AssertTrueInstanceofToAssertInstanceOf
+  - org.openrewrite.java.testing.junit5.ImplausibleTimeoutToMinutes
   - org.openrewrite.java.testing.junit5.UseAssertSame
   - org.openrewrite.java.testing.junit.RemoveJupiterMigrationSupport
 
