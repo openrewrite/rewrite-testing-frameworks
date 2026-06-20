@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -35,6 +36,27 @@ class StaticImportsTest implements RewriteTest {
             .scanRuntimeClasspath("org.openrewrite.java.testing")
             .build()
             .activateRecipes("org.openrewrite.java.testing.junit5.StaticImports"));
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/459")
+    @Test
+    void doNotStaticImportWhenShadowedByLocalMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              import org.junit.jupiter.api.Assertions;
+
+              public class Test {
+                  public static void assertEquals(List<String> expected, List<String> actual) {
+                      // explicit Assertions reference is required to disambiguate from the method declared above
+                      Assertions.assertEquals(expected.toString(), actual.toString());
+                  }
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample
