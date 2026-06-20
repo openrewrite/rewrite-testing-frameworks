@@ -73,6 +73,151 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
     }
 
     @Test
+    void variableExecutable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.function.Executable;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      Executable executable = () -> foo();
+                      assertThrows(NullPointerException.class, executable);
+                  }
+                  void foo() {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      ThrowingCallable executable = () -> foo();
+                      assertThatExceptionOfType(NullPointerException.class).isThrownBy(executable);
+                  }
+                  void foo() {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void variableExecutableWithMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.function.Executable;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      Executable executable = () -> foo();
+                      assertThrows(NullPointerException.class, executable, "message");
+                  }
+                  void foo() {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      ThrowingCallable executable = () -> foo();
+                      assertThatExceptionOfType(NullPointerException.class).as("message").isThrownBy(executable);
+                  }
+                  void foo() {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldExecutable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.function.Executable;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  private final Executable executable = () -> foo();
+
+                  public void throwsExceptionWithSpecificType() {
+                      assertThrows(NullPointerException.class, executable);
+                  }
+                  void foo() {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              public class SimpleExpectedExceptionTest {
+                  private final ThrowingCallable executable = () -> foo();
+
+                  public void throwsExceptionWithSpecificType() {
+                      assertThatExceptionOfType(NullPointerException.class).isThrownBy(executable);
+                  }
+                  void foo() {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotRetypeExecutableSharedWithOtherJUnitAssertion() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.function.Executable;
+
+              import static org.junit.jupiter.api.Assertions.assertAll;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class SimpleExpectedExceptionTest {
+                  public void throwsExceptionWithSpecificType() {
+                      Executable executable = () -> foo();
+                      assertThrows(NullPointerException.class, executable);
+                      assertAll(executable);
+                  }
+                  void foo() {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void memberReference() {
         //language=java
         rewriteRun(
