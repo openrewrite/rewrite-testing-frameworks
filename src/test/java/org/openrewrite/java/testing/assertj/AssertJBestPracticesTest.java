@@ -411,6 +411,37 @@ class AssertJBestPracticesTest implements RewriteTest {
               )
             );
         }
+
+        @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/387")
+        @Test
+        void decomposeConjunctionWithSameSubjectCollapsesToChain() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+              //language=java
+              java(
+                """
+                  import static org.junit.jupiter.api.Assertions.assertTrue;
+
+                  class A {
+                      void test(int x) {
+                          assertTrue(x > 5 && x < 10);
+                      }
+                  }
+                  """,
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class A {
+                      void test(int x) {
+                          assertThat(x)
+                                  .isGreaterThan(5)
+                                  .isLessThan(10);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/496")
