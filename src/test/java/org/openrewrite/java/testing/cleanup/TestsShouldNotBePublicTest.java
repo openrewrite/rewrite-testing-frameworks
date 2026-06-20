@@ -495,6 +495,44 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/308")
+    @Test
+    void removePublicClassModifierForMetaAnnotatedTestMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.lang.annotation.Retention;
+              import java.lang.annotation.RetentionPolicy;
+              import org.junit.jupiter.api.Test;
+
+              @Retention(RetentionPolicy.RUNTIME)
+              @Test
+              public @interface CustomTest {
+              }
+              """
+          ),
+          java(
+            """
+              public class ATest {
+
+                  @CustomTest
+                  void testMethod() {
+                  }
+              }
+              """,
+            """
+              class ATest {
+
+                  @CustomTest
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/309")
     @Test
     void baseclassForTestsNeedsToStayPublic() {
