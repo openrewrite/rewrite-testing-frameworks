@@ -52,6 +52,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.IsEqualToIgnoringMillisToIsCloseToRecipe
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeFromIsEqualToAssertion
   - org.openrewrite.java.testing.assertj.SimplifySequencedCollectionAssertions

@@ -336,7 +336,7 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isSameAs(null)"),
               arguments("Object", "assertThat(x.toString()).isEqualTo(\"y\")", "assertThat(x).hasToString(\"y\")"),
               arguments("Object", "assertThat(x.hashCode()).isEqualTo(y.hashCode())", "assertThat(x).hasSameHashCodeAs(y)"),
-//              arguments("Object", "assertThat(x instanceof String).isTrue()", "assertThat(x).isInstanceOf(String.class)"),
+              arguments("Object", "assertThat(x instanceof String).isTrue()", "assertThat(x).isInstanceOf(String.class)"),
 //              // Related to Comparable
 //              arguments("java.math.BigDecimal", "assertThat(x.compareTo(y)).isZero()", "assertThat(x).isEqualByComparingTo(y)"),
 //              arguments("int", "assertThat(x >= y).isTrue()", "assertThat(x).isGreaterThanOrEqualTo(y)"),
