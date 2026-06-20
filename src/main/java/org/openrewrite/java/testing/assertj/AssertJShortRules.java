@@ -73,7 +73,7 @@ public class AssertJShortRules {
   static final class AbstractShortAssertIsZero {
     @BeforeTemplate
     AbstractShortAssert<?> before(AbstractShortAssert<?> shortAssert) {
-      return shortAssert.isEqualTo((short) 0);
+      return Refaster.anyOf(shortAssert.isEqualTo((short) 0), shortAssert.isSameAs((short) 0));
     }
 
     @AfterTemplate
@@ -89,7 +89,7 @@ public class AssertJShortRules {
   static final class AbstractShortAssertIsNotZero {
     @BeforeTemplate
     AbstractShortAssert<?> before(AbstractShortAssert<?> shortAssert) {
-      return shortAssert.isNotEqualTo((short) 0);
+      return Refaster.anyOf(shortAssert.isNotEqualTo((short) 0), shortAssert.isNotSameAs((short) 0));
     }
 
     @AfterTemplate
@@ -105,7 +105,7 @@ public class AssertJShortRules {
   static final class AbstractShortAssertIsOne {
     @BeforeTemplate
     AbstractShortAssert<?> before(AbstractShortAssert<?> shortAssert) {
-      return shortAssert.isEqualTo((short) 1);
+      return Refaster.anyOf(shortAssert.isEqualTo((short) 1), shortAssert.isSameAs((short) 1));
     }
 
     @AfterTemplate

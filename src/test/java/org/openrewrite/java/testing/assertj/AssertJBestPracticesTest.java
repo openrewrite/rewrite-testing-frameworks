@@ -101,6 +101,48 @@ class AssertJBestPracticesTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1032")
+    @Test
+    void isSameAsZeroConvergesToIsZeroInSingleRun() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(int a, int b, int c, long d, double e, float f, byte g, short h) {
+                      assertThat(a).isNotSameAs(0);
+                      assertThat(b).isSameAs(0);
+                      assertThat(c).isSameAs(1);
+                      assertThat(d).isNotSameAs(0L);
+                      assertThat(e).isSameAs(0.0);
+                      assertThat(f).isSameAs(0f);
+                      assertThat(g).isSameAs((byte) 0);
+                      assertThat(h).isSameAs((short) 0);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(int a, int b, int c, long d, double e, float f, byte g, short h) {
+                      assertThat(a).isNotZero();
+                      assertThat(b).isZero();
+                      assertThat(c).isOne();
+                      assertThat(d).isNotZero();
+                      assertThat(e).isZero();
+                      assertThat(f).isZero();
+                      assertThat(g).isZero();
+                      assertThat(h).isZero();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class CollapseAfterConversion {
         @Test

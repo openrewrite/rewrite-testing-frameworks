@@ -41,6 +41,7 @@ class AssertJLongRulesTest implements RewriteTest {
                       class A {
                           public void test(long l) {
                               Assertions.assertThat(l).isEqualTo(0L);
+                              Assertions.assertThat(l).isSameAs(0L);
                           }
                       }
                       """,
@@ -49,6 +50,7 @@ class AssertJLongRulesTest implements RewriteTest {
 
                       class A {
                           public void test(long l) {
+                              Assertions.assertThat(l).isZero();
                               Assertions.assertThat(l).isZero();
                           }
                       }
@@ -68,6 +70,7 @@ class AssertJLongRulesTest implements RewriteTest {
                       class A {
                           public void test(long l) {
                               Assertions.assertThat(l).isNotEqualTo(0L);
+                              Assertions.assertThat(l).isNotSameAs(0L);
                           }
                       }
                       """,
@@ -76,6 +79,7 @@ class AssertJLongRulesTest implements RewriteTest {
 
                       class A {
                           public void test(long l) {
+                              Assertions.assertThat(l).isNotZero();
                               Assertions.assertThat(l).isNotZero();
                           }
                       }
@@ -159,6 +163,7 @@ class AssertJLongRulesTest implements RewriteTest {
               class A {
                   public void test(long l) {
                       Assertions.assertThat(l).isEqualTo(1L);
+                      Assertions.assertThat(l).isSameAs(1L);
                   }
               }
               """,
@@ -167,6 +172,7 @@ class AssertJLongRulesTest implements RewriteTest {
 
               class A {
                   public void test(long l) {
+                      Assertions.assertThat(l).isOne();
                       Assertions.assertThat(l).isOne();
                   }
               }

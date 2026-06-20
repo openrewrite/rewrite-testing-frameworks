@@ -72,7 +72,7 @@ public class AssertJLongRules {
   static final class AbstractLongAssertIsZero {
     @BeforeTemplate
     AbstractLongAssert<?> before(AbstractLongAssert<?> longAssert) {
-      return longAssert.isEqualTo(0);
+      return Refaster.anyOf(longAssert.isEqualTo(0), longAssert.isSameAs(0));
     }
 
     @AfterTemplate
@@ -88,7 +88,7 @@ public class AssertJLongRules {
   static final class AbstractLongAssertIsNotZero {
     @BeforeTemplate
     AbstractLongAssert<?> before(AbstractLongAssert<?> longAssert) {
-      return longAssert.isNotEqualTo(0);
+      return Refaster.anyOf(longAssert.isNotEqualTo(0), longAssert.isNotSameAs(0));
     }
 
     @AfterTemplate
@@ -104,7 +104,7 @@ public class AssertJLongRules {
   static final class AbstractLongAssertIsOne {
     @BeforeTemplate
     AbstractLongAssert<?> before(AbstractLongAssert<?> longAssert) {
-      return longAssert.isEqualTo(1);
+      return Refaster.anyOf(longAssert.isEqualTo(1), longAssert.isSameAs(1));
     }
 
     @AfterTemplate

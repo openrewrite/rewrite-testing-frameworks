@@ -41,6 +41,7 @@ class AssertJByteRulesTest implements RewriteTest {
                       class A {
                           public void test(byte b) {
                               Assertions.assertThat(b).isEqualTo((byte)0);
+                              Assertions.assertThat(b).isSameAs((byte)0);
                           }
                       }
                       """,
@@ -49,6 +50,7 @@ class AssertJByteRulesTest implements RewriteTest {
 
                       class A {
                           public void test(byte b) {
+                              Assertions.assertThat(b).isZero();
                               Assertions.assertThat(b).isZero();
                           }
                       }
@@ -68,6 +70,7 @@ class AssertJByteRulesTest implements RewriteTest {
                       class A {
                           public void test(byte b) {
                               Assertions.assertThat(b).isNotEqualTo((byte)0);
+                              Assertions.assertThat(b).isNotSameAs((byte)0);
                           }
                       }
                       """,
@@ -76,6 +79,7 @@ class AssertJByteRulesTest implements RewriteTest {
 
                       class A {
                           public void test(byte b) {
+                              Assertions.assertThat(b).isNotZero();
                               Assertions.assertThat(b).isNotZero();
                           }
                       }
@@ -159,6 +163,7 @@ class AssertJByteRulesTest implements RewriteTest {
               class A {
                   public void test(byte b) {
                       Assertions.assertThat(b).isEqualTo((byte)1);
+                      Assertions.assertThat(b).isSameAs((byte)1);
                   }
               }
               """,
@@ -167,6 +172,7 @@ class AssertJByteRulesTest implements RewriteTest {
 
               class A {
                   public void test(byte b) {
+                      Assertions.assertThat(b).isOne();
                       Assertions.assertThat(b).isOne();
                   }
               }

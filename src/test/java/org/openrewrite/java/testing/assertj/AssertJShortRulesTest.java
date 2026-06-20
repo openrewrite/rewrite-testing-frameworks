@@ -41,6 +41,7 @@ class AssertJShortRulesTest implements RewriteTest {
                       class A {
                           public void test(short s) {
                               Assertions.assertThat(s).isEqualTo((short)0);
+                              Assertions.assertThat(s).isSameAs((short)0);
                           }
                       }
                       """,
@@ -49,6 +50,7 @@ class AssertJShortRulesTest implements RewriteTest {
 
                       class A {
                           public void test(short s) {
+                              Assertions.assertThat(s).isZero();
                               Assertions.assertThat(s).isZero();
                           }
                       }
@@ -68,6 +70,7 @@ class AssertJShortRulesTest implements RewriteTest {
                       class A {
                           public void test(short s) {
                               Assertions.assertThat(s).isNotEqualTo((short)0);
+                              Assertions.assertThat(s).isNotSameAs((short)0);
                           }
                       }
                       """,
@@ -76,6 +79,7 @@ class AssertJShortRulesTest implements RewriteTest {
 
                       class A {
                           public void test(short s) {
+                              Assertions.assertThat(s).isNotZero();
                               Assertions.assertThat(s).isNotZero();
                           }
                       }
@@ -159,6 +163,7 @@ class AssertJShortRulesTest implements RewriteTest {
               class A {
                   public void test(short s) {
                       Assertions.assertThat(s).isEqualTo((short)1);
+                      Assertions.assertThat(s).isSameAs((short)1);
                   }
               }
               """,
@@ -167,6 +172,7 @@ class AssertJShortRulesTest implements RewriteTest {
 
               class A {
                   public void test(short s) {
+                      Assertions.assertThat(s).isOne();
                       Assertions.assertThat(s).isOne();
                   }
               }

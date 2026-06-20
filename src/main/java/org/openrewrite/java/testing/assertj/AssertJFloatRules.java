@@ -107,7 +107,9 @@ public class AssertJFloatRules {
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert) {
       return Refaster.anyOf(
           floatAssert.isEqualTo(0),
-          floatAssert.isEqualTo(0f)
+          floatAssert.isEqualTo(0f),
+          floatAssert.isSameAs(0),
+          floatAssert.isSameAs(0f)
       );
     }
 
@@ -126,7 +128,9 @@ public class AssertJFloatRules {
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert) {
       return Refaster.anyOf(
           floatAssert.isNotEqualTo(0),
-          floatAssert.isNotEqualTo(0f)
+          floatAssert.isNotEqualTo(0f),
+          floatAssert.isNotSameAs(0),
+          floatAssert.isNotSameAs(0f)
       );
     }
 
@@ -145,7 +149,9 @@ public class AssertJFloatRules {
     AbstractFloatAssert<?> before(AbstractFloatAssert<?> floatAssert) {
       return Refaster.anyOf(
           floatAssert.isEqualTo(1),
-          floatAssert.isEqualTo(1f)
+          floatAssert.isEqualTo(1f),
+          floatAssert.isSameAs(1),
+          floatAssert.isSameAs(1f)
       );
     }
 

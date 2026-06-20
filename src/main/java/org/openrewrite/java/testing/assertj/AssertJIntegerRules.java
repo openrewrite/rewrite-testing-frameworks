@@ -72,7 +72,7 @@ public class AssertJIntegerRules {
   static final class AbstractIntegerAssertIsZero {
     @BeforeTemplate
     AbstractIntegerAssert<?> before(AbstractIntegerAssert<?> intAssert) {
-      return intAssert.isEqualTo(0);
+      return Refaster.anyOf(intAssert.isEqualTo(0), intAssert.isSameAs(0));
     }
 
     @AfterTemplate
@@ -88,7 +88,7 @@ public class AssertJIntegerRules {
   static final class AbstractIntegerAssertIsNotZero {
     @BeforeTemplate
     AbstractIntegerAssert<?> before(AbstractIntegerAssert<?> intAssert) {
-      return intAssert.isNotEqualTo(0);
+      return Refaster.anyOf(intAssert.isNotEqualTo(0), intAssert.isNotSameAs(0));
     }
 
     @AfterTemplate
@@ -104,7 +104,7 @@ public class AssertJIntegerRules {
   static final class AbstractIntegerAssertIsOne {
     @BeforeTemplate
     AbstractIntegerAssert<?> before(AbstractIntegerAssert<?> intAssert) {
-      return intAssert.isEqualTo(1);
+      return Refaster.anyOf(intAssert.isEqualTo(1), intAssert.isSameAs(1));
     }
 
     @AfterTemplate
