@@ -76,9 +76,14 @@ recipeList:
   - tech.picnic.errorprone.refasterrules.AssertJObjectRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJOptionalRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPathRulesRecipes
+  # Our type-specific rules must run before AssertJPrimitiveRulesRecipes, which normalizes
+  # `isSameAs`/`isNotSameAs` to `isEqualTo`/`isNotEqualTo`. Running our rules first lets, for instance,
+  # `isNotSameAs(0)` collapse straight to `isNotZero()` within a single cycle, rather than only reaching
+  # `isNotEqualTo(0)` and needing another run to converge.
+  # See https://github.com/openrewrite/rewrite-testing-frameworks/issues/1032
+  - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
-  - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJStringRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJThrowingCallableRulesRecipes
 

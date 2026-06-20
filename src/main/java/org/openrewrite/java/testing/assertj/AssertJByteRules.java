@@ -73,7 +73,7 @@ public class AssertJByteRules {
   static final class AbstractByteAssertIsZero {
     @BeforeTemplate
     AbstractByteAssert<?> before(AbstractByteAssert<?> byteAssert) {
-      return byteAssert.isEqualTo((byte) 0);
+      return Refaster.anyOf(byteAssert.isEqualTo((byte) 0), byteAssert.isSameAs((byte) 0));
     }
 
     @AfterTemplate
@@ -89,7 +89,7 @@ public class AssertJByteRules {
   static final class AbstractByteAssertIsNotZero {
     @BeforeTemplate
     AbstractByteAssert<?> before(AbstractByteAssert<?> byteAssert) {
-      return byteAssert.isNotEqualTo((byte) 0);
+      return Refaster.anyOf(byteAssert.isNotEqualTo((byte) 0), byteAssert.isNotSameAs((byte) 0));
     }
 
     @AfterTemplate
@@ -105,7 +105,7 @@ public class AssertJByteRules {
   static final class AbstractByteAssertIsOne {
     @BeforeTemplate
     AbstractByteAssert<?> before(AbstractByteAssert<?> byteAssert) {
-      return byteAssert.isEqualTo((byte) 1);
+      return Refaster.anyOf(byteAssert.isEqualTo((byte) 1), byteAssert.isSameAs((byte) 1));
     }
 
     @AfterTemplate

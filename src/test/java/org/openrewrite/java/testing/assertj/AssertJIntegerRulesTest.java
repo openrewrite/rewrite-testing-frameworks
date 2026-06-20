@@ -41,6 +41,7 @@ class AssertJIntegerRulesTest implements RewriteTest {
                       class A {
                           public void test(int i) {
                               Assertions.assertThat(i).isEqualTo(0);
+                              Assertions.assertThat(i).isSameAs(0);
                           }
                       }
                       """,
@@ -49,6 +50,7 @@ class AssertJIntegerRulesTest implements RewriteTest {
 
                       class A {
                           public void test(int i) {
+                              Assertions.assertThat(i).isZero();
                               Assertions.assertThat(i).isZero();
                           }
                       }
@@ -68,6 +70,7 @@ class AssertJIntegerRulesTest implements RewriteTest {
                       class A {
                           public void test(int i) {
                               Assertions.assertThat(i).isNotEqualTo(0);
+                              Assertions.assertThat(i).isNotSameAs(0);
                           }
                       }
                       """,
@@ -76,6 +79,7 @@ class AssertJIntegerRulesTest implements RewriteTest {
 
                       class A {
                           public void test(int i) {
+                              Assertions.assertThat(i).isNotZero();
                               Assertions.assertThat(i).isNotZero();
                           }
                       }
@@ -159,6 +163,7 @@ class AssertJIntegerRulesTest implements RewriteTest {
               class A {
                   public void test(int i) {
                       Assertions.assertThat(i).isEqualTo(1);
+                      Assertions.assertThat(i).isSameAs(1);
                   }
               }
               """,
@@ -167,6 +172,7 @@ class AssertJIntegerRulesTest implements RewriteTest {
 
               class A {
                   public void test(int i) {
+                      Assertions.assertThat(i).isOne();
                       Assertions.assertThat(i).isOne();
                   }
               }
