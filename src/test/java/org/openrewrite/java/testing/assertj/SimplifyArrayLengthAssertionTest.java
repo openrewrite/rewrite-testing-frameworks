@@ -64,7 +64,6 @@ class SimplifyArrayLengthAssertionTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
       "assertThat(x.length).isZero()                    | assertThat(x).isEmpty()",
       "assertThat(x.length).isEqualTo(0)                | assertThat(x).isEmpty()",
@@ -75,6 +74,7 @@ class SimplifyArrayLengthAssertionTest implements RewriteTest {
       "assertThat(x.length).isGreaterThan(4)            | assertThat(x).hasSizeGreaterThan(4)",
       "assertThat(x.length).isGreaterThanOrEqualTo(1)   | assertThat(x).hasSizeGreaterThanOrEqualTo(1)",
     })
+    @ParameterizedTest
     void simplifiesArrayLengthAssertions(String before, String after) {
         rewriteRun(
           //language=java

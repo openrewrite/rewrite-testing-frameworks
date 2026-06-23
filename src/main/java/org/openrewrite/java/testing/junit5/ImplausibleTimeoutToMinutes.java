@@ -47,19 +47,13 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
     @Nullable
     Integer thresholdSeconds;
 
-    @Override
-    public String getDisplayName() {
-        return "Make implausibly long `@Timeout` values explicit in minutes";
-    }
+    String displayName = "Make implausibly long `@Timeout` values explicit in minutes";
 
-    @Override
-    public String getDescription() {
-        return "JUnit Jupiter's `@Timeout` defaults to `TimeUnit.SECONDS`, so a value such as `@Timeout(10000)` is " +
-                "interpreted as almost three hours, which is most likely a mistake where milliseconds were intended. " +
-                "This recipe rewrites such implausibly large second-based timeouts to the equivalent number of minutes, " +
-                "for instance `@Timeout(value = 167, unit = TimeUnit.MINUTES)`, preserving the original (likely " +
-                "erroneous) semantics while making the mistake far more visible for review.";
-    }
+    String description = "JUnit Jupiter's `@Timeout` defaults to `TimeUnit.SECONDS`, so a value such as `@Timeout(10000)` is " +
+            "interpreted as almost three hours, which is most likely a mistake where milliseconds were intended. " +
+            "This recipe rewrites such implausibly large second-based timeouts to the equivalent number of minutes, " +
+            "for instance `@Timeout(value = 167, unit = TimeUnit.MINUTES)`, preserving the original (likely " +
+            "erroneous) semantics while making the mistake far more visible for review.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

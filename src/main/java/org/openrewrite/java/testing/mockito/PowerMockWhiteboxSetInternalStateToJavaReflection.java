@@ -66,9 +66,9 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
                 return null;
             }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            String prefix = mi.getArguments().size() == 4
-                    ? fieldLookupPrefixWhere(varName)
-                    : fieldLookupPrefix(varName);
+            String prefix = mi.getArguments().size() == 4 ?
+                    fieldLookupPrefixWhere(varName) :
+                    fieldLookupPrefix(varName);
             return prefix +
                     varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
         }

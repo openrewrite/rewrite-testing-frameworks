@@ -36,9 +36,7 @@ import org.openrewrite.marker.Markers;
 
 import java.util.Set;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 
 public class SimplifyAssertJInstanceOfAssertion extends Recipe {
 

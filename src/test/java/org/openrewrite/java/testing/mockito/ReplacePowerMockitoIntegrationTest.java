@@ -1846,8 +1846,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
-    @Test
     @Issue("https://github.com/moderneinc/customer-requests/issues/2358")
+    @Test
     void whiteboxIsMigratedAndUnmigratableUsageIsFlagged() {
         //language=java
         rewriteRun(
