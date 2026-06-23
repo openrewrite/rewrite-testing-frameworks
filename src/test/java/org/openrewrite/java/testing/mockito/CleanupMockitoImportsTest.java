@@ -173,6 +173,27 @@ class CleanupMockitoImportsTest implements RewriteTest {
     }
 
     @Test
+    void doNotRemoveMockStaticImportPossiblyAssociatedWithAnUntypedMockitoMethod() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
+          java(
+            """
+              import static org.mockito.Mockito.mockStatic;
+
+              class MyObjectTest {
+                void test() {
+                  mockStatic(MyObject.class);
+                }
+              }
+              class MyObject {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotRemoveStartImportsPossiblyAssociatedWithAnUntypedMockitoMethod() {
         //language=java
         rewriteRun(
