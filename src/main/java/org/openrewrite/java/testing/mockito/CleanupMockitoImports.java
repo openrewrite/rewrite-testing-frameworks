@@ -67,6 +67,8 @@ public class CleanupMockitoImports extends Recipe {
                 "ignoreStubs",
                 "inOrder",
                 "mock",
+                "mockConstruction",
+                "mockStatic",
                 "mockingDetails",
                 "never",
                 "only",
