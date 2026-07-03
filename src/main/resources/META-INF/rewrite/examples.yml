@@ -163,6 +163,7 @@ examples:
       class A {
           public void test(byte b) {
               Assertions.assertThat(b).isEqualTo((byte)0);
+              Assertions.assertThat(b).isSameAs((byte)0);
           }
       }
     after: |
@@ -170,6 +171,7 @@ examples:
 
       class A {
           public void test(byte b) {
+              Assertions.assertThat(b).isZero();
               Assertions.assertThat(b).isZero();
           }
       }
@@ -188,6 +190,9 @@ examples:
               Assertions.assertThat(d).isEqualTo(0);
               Assertions.assertThat(d).isEqualTo(0.0);
               Assertions.assertThat(d).isEqualTo(0d);
+              Assertions.assertThat(d).isSameAs(0);
+              Assertions.assertThat(d).isSameAs(0.0);
+              Assertions.assertThat(d).isSameAs(0d);
           }
       }
     after: |
@@ -195,6 +200,9 @@ examples:
 
       class A {
           public void test(double d) {
+              Assertions.assertThat(d).isZero();
+              Assertions.assertThat(d).isZero();
+              Assertions.assertThat(d).isZero();
               Assertions.assertThat(d).isZero();
               Assertions.assertThat(d).isZero();
               Assertions.assertThat(d).isZero();
@@ -217,6 +225,8 @@ examples:
               Assertions.assertThat(f).isEqualTo(0.0f);
               Assertions.assertThat(f).isEqualTo(0F);
               Assertions.assertThat(f).isEqualTo(0.0F);
+              Assertions.assertThat(f).isSameAs(0);
+              Assertions.assertThat(f).isSameAs(0f);
           }
       }
     after: |
@@ -224,6 +234,8 @@ examples:
 
       class A {
           public void test(float f) {
+              Assertions.assertThat(f).isZero();
+              Assertions.assertThat(f).isZero();
               Assertions.assertThat(f).isZero();
               Assertions.assertThat(f).isZero();
               Assertions.assertThat(f).isZero();
@@ -244,6 +256,7 @@ examples:
       class A {
           public void test(int i) {
               Assertions.assertThat(i).isEqualTo(0);
+              Assertions.assertThat(i).isSameAs(0);
           }
       }
     after: |
@@ -251,6 +264,7 @@ examples:
 
       class A {
           public void test(int i) {
+              Assertions.assertThat(i).isZero();
               Assertions.assertThat(i).isZero();
           }
       }
@@ -267,6 +281,7 @@ examples:
       class A {
           public void test(long l) {
               Assertions.assertThat(l).isEqualTo(0L);
+              Assertions.assertThat(l).isSameAs(0L);
           }
       }
     after: |
@@ -274,6 +289,7 @@ examples:
 
       class A {
           public void test(long l) {
+              Assertions.assertThat(l).isZero();
               Assertions.assertThat(l).isZero();
           }
       }
@@ -290,6 +306,7 @@ examples:
       class A {
           public void test(short s) {
               Assertions.assertThat(s).isEqualTo((short)0);
+              Assertions.assertThat(s).isSameAs((short)0);
           }
       }
     after: |
@@ -297,6 +314,7 @@ examples:
 
       class A {
           public void test(short s) {
+              Assertions.assertThat(s).isZero();
               Assertions.assertThat(s).isZero();
           }
       }
@@ -376,6 +394,30 @@ examples:
                       .isNotNull()
                       .hasSize(3)
                       .containsExactly("a", "b", "c");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.DecomposeConjunctionAssertion
+examples:
+- description: '`DecomposeConjunctionAssertionTest#decomposeConjunction`'
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(String name, int count) {
+              assertThat(name != null && count > 0).isTrue();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(String name, int count) {
+              assertThat(name != null).isTrue();
+              assertThat(count > 0).isTrue();
           }
       }
     language: java
@@ -918,6 +960,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyArrayLengthAssertion
+examples:
+- description: '`SimplifyArrayLengthAssertionTest#hasSize`'
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod(String[] array) {
+              assertThat(array.length).isEqualTo(7);
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod(String[] array) {
+              assertThat(array).hasSize(7);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJAssertion
 examples:
 - description: '`SimplifyAssertJAssertionTest#convertsStringIsEqualToNull`'
@@ -938,6 +1003,56 @@ examples:
       import static org.assertj.core.api.Assertions.assertThat;
       class Test {
           void test(String a) {
+              assertThat(a).isNull();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
+examples:
+- description: '`SimplifyAssertJInstanceOfAssertionTest#isTrueToIsInstanceOf`'
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(Object error) {
+              assertThat(error instanceof RuntimeException).isTrue();
+              assertThat(error instanceof RuntimeException).isFalse();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(Object error) {
+              assertThat(error).isInstanceOf(RuntimeException.class);
+              assertThat(error).isNotInstanceOf(RuntimeException.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJNullRelatedAssertion
+examples:
+- description: '`SimplifyAssertJNullRelatedAssertionTest#nullOnEitherSide`'
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(Object a) {
+              assertThat(null == a).isTrue();
+              assertThat(a == null).isTrue();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(Object a) {
+              assertThat(a).isNull();
               assertThat(a).isNull();
           }
       }
@@ -1021,6 +1136,33 @@ examples:
               String b = "ab";
 
               assertThat(a).hasSameSizeAs(b);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyHasSizeFromIsEqualToAssertion
+examples:
+- description: '`SimplifyHasSizeFromIsEqualToAssertionTest#iterableSize`'
+  sources:
+  - before: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod(List<String> predecessors) {
+              assertThat(4).isEqualTo(predecessors.size());
+          }
+      }
+    after: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class MyTest {
+          void testMethod(List<String> predecessors) {
+              assertThat(predecessors).hasSize(4);
           }
       }
     language: java
@@ -3078,6 +3220,33 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.ImplausibleTimeoutToMinutes
+examples:
+- description: '`ImplausibleTimeoutToMinutesTest#implicitValueAndUnit`'
+  parameters:
+  - 'null'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Timeout;
+
+      class MyTest {
+          @Timeout(10000)
+          void test() {
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Timeout;
+
+      import java.util.concurrent.TimeUnit;
+
+      class MyTest {
+          @Timeout(value = 167, unit = TimeUnit.MINUTES)
+          void test() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnit4to5Migration
 examples:
 - description: '`EnclosedToNestedTest#oneInnerClass`'
@@ -3177,19 +3346,25 @@ examples:
     after: |
       package org.openrewrite.java.testing.junit5;
 
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
       import org.junit.jupiter.api.Test;
-      import org.junit.jupiter.api.extension.ExtendWith;
       import org.mockito.Mock;
-      import org.mockito.junit.jupiter.MockitoExtension;
+      import org.mockito.MockitoAnnotations;
 
       import java.util.List;
 
       import static org.mockito.Mockito.verify;
 
-      @ExtendWith(MockitoExtension.class)
       public class MockitoTests {
+          private AutoCloseable mocks;
           @Mock
           List<String> mockedList;
+
+          @BeforeEach
+          public void initMocks() {
+              mocks = MockitoAnnotations.openMocks(this);
+          }
 
           @Test
           public void usingAnnotationBasedMock() {
@@ -3199,6 +3374,11 @@ examples:
 
               verify(mockedList).add("one");
               verify(mockedList).clear();
+          }
+
+          @AfterEach
+          void tearDown() throws Exception {
+              mocks.close();
           }
       }
     language: java
@@ -4258,6 +4438,56 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.AddMockitoJupiterDependency
+examples:
+- description: '`AddMockitoJupiterDependencyTest#addsMockitoJupiterDependencyWhenMockUsedInJUnit5`'
+  sources:
+  - before: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:3.12.4")
+      }
+      test {
+          useJUnitPlatform()
+      }
+    after: |
+      plugins {
+          id 'java-library'
+      }
+      repositories {
+          mavenCentral()
+      }
+      dependencies {
+          testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+          testImplementation("org.mockito:mockito-core:3.12.4")
+          testImplementation "org.mockito:mockito-junit-jupiter:3.12.4"
+      }
+      test {
+          useJUnitPlatform()
+      }
+    path: build.gradle
+    language: groovy
+  - before: |
+      import org.junit.jupiter.api.Test;
+      import org.mockito.Mock;
+
+      class MyTest {
+          @Mock
+          Object myMock;
+
+          @Test
+          void someTest() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictness
 examples:
 - description: '`AddMockitoSettingsWithWarnStrictnessTest#addsMockitoSettingsWhenExtendWithPresent`'
@@ -4614,16 +4844,13 @@ examples:
     after: |
       import org.junit.jupiter.api.BeforeEach;
       import org.junit.jupiter.api.Test;
-      import org.junit.jupiter.api.extension.ExtendWith;
       import org.mockito.Mock;
-      import org.mockito.junit.jupiter.MockitoExtension;
 
       import static org.mockito.ArgumentMatchers.anyList;
       import static org.mockito.ArgumentMatchers.any;
       import static org.mockito.ArgumentMatchers.anyString;
       import static org.mockito.Mockito.when;
 
-      @ExtendWith(MockitoExtension.class)
       class MyTest {
           @Mock
           Object objectMock;
@@ -5104,6 +5331,193 @@ examples:
           public SpringJUnit4ClassRunner(Class<?> clazz) {}
           @Override public org.junit.runner.Description getDescription() { return null; }
           @Override public void run(org.junit.runner.notification.RunNotifier notifier) {}
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetFieldToJavaReflection
+examples:
+- description: '`PowerMockWhiteboxGetFieldToJavaReflectionTest#getFieldReturnsFieldVariable`'
+  sources:
+  - before: |
+      class MyService {
+          private String name;
+      }
+    language: java
+  - before: |
+      import java.lang.reflect.Field;
+      import org.powermock.reflect.Whitebox;
+
+      class MyServiceTest {
+          void test() {
+              Field f = Whitebox.getField(MyService.class, "name");
+          }
+      }
+    after: |
+      import java.lang.reflect.Field;
+
+      class MyServiceTest {
+          void test() throws Exception {
+              Field f = MyService.class.getDeclaredField("name");
+              f.setAccessible(true);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetInternalStateToJavaReflection
+examples:
+- description: '`PowerMockWhiteboxGetInternalStateToJavaReflectionTest#getInternalStateWithAssignment`'
+  sources:
+  - before: |
+      class MyService {
+          private String name = "hello";
+      }
+    language: java
+  - before: |
+      import org.powermock.reflect.Whitebox;
+
+      class MyServiceTest {
+          void testGetField() {
+              MyService service = new MyService();
+              String result = Whitebox.getInternalState(service, "name");
+          }
+      }
+    after: |
+      import java.lang.reflect.Field;
+
+      class MyServiceTest {
+          void testGetField() throws Exception {
+              MyService service = new MyService();
+              Field nameField = service.getClass().getDeclaredField("name");
+              nameField.setAccessible(true);
+              String result = (String) nameField.get(service);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetMethodToJavaReflection
+examples:
+- description: '`PowerMockWhiteboxGetMethodToJavaReflectionTest#getMethodWithParamType`'
+  sources:
+  - before: |
+      class MyService {
+          private String greet(String name) { return "Hello " + name; }
+      }
+    language: java
+  - before: |
+      import java.lang.reflect.Method;
+      import org.powermock.reflect.Whitebox;
+
+      class MyServiceTest {
+          void test() {
+              Method m = Whitebox.getMethod(MyService.class, "greet", String.class);
+          }
+      }
+    after: |
+      import java.lang.reflect.Method;
+
+      class MyServiceTest {
+          void test() throws Exception {
+              Method m = MyService.class.getDeclaredMethod("greet", String.class);
+              m.setAccessible(true);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxInvokeConstructorToJavaReflection
+examples:
+- description: '`PowerMockWhiteboxInvokeConstructorToJavaReflectionTest#invokeConstructorNoArgs`'
+  sources:
+  - before: |
+      class MyService {
+          private MyService() {
+          }
+      }
+    language: java
+  - before: |
+      import org.powermock.reflect.Whitebox;
+
+      class MyServiceTest {
+          void test() {
+              MyService s = Whitebox.invokeConstructor(MyService.class);
+          }
+      }
+    after: |
+      import java.lang.reflect.Constructor;
+
+      class MyServiceTest {
+          void test() throws Exception {
+              Constructor<MyService> myServiceConstructor = MyService.class.getDeclaredConstructor();
+              myServiceConstructor.setAccessible(true);
+              MyService s = myServiceConstructor.newInstance();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxInvokeMethodToJavaReflection
+examples:
+- description: '`PowerMockWhiteboxInvokeMethodToJavaReflectionTest#invokeMethodNoArgs`'
+  sources:
+  - before: |
+      class MyService {
+          private String compute() { return "result"; }
+      }
+    language: java
+  - before: |
+      import org.powermock.reflect.Whitebox;
+
+      class MyServiceTest {
+          void testInvoke() {
+              MyService service = new MyService();
+              String result = Whitebox.invokeMethod(service, "compute");
+          }
+      }
+    after: |
+      import java.lang.reflect.Method;
+
+      class MyServiceTest {
+          void testInvoke() throws Exception {
+              MyService service = new MyService();
+              Method computeMethod = service.getClass().getDeclaredMethod("compute");
+              computeMethod.setAccessible(true);
+              String result = (String) computeMethod.invoke(service);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxSetInternalStateToJavaReflection
+examples:
+- description: '`PowerMockWhiteboxSetInternalStateToJavaReflectionTest#setInternalStateReplacedWithReflection`'
+  sources:
+  - before: |
+      class MyService {
+          private String name;
+      }
+    language: java
+  - before: |
+      import org.powermock.reflect.Whitebox;
+
+      class MyServiceTest {
+          void testSetField() {
+              MyService service = new MyService();
+              Whitebox.setInternalState(service, "name", "expectedValue");
+          }
+      }
+    after: |
+      import java.lang.reflect.Field;
+
+      class MyServiceTest {
+          void testSetField() throws Exception {
+              MyService service = new MyService();
+              Field nameField = service.getClass().getDeclaredField("name");
+              nameField.setAccessible(true);
+              nameField.set(service, "expectedValue");
+          }
       }
     language: java
 ---
@@ -5744,6 +6158,223 @@ examples:
 
       class Foo {
           NginxContainer container = new NginxContainer();
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testcontainers.Testcontainers2LocalStack
+examples:
+- description: '`Testcontainers2LocalStackTest#getEndpointOverrideToGetEndpoint`'
+  sources:
+  - before: |
+      import org.testcontainers.containers.localstack.LocalStackContainer;
+
+      import java.net.URI;
+
+      class A {
+          URI endpoint(LocalStackContainer localStackContainer) {
+              return localStackContainer.getEndpointOverride(LocalStackContainer.Service.SQS);
+          }
+      }
+    after: |
+      import org.testcontainers.containers.localstack.LocalStackContainer;
+
+      import java.net.URI;
+
+      class A {
+          URI endpoint(LocalStackContainer localStackContainer) {
+              return localStackContainer.getEndpoint();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertEqualsDeepToAssertThat
+examples:
+- description: '`TestNgAssertEqualsDeepToAssertThatTest#assertEqualsDeep`'
+  sources:
+  - before: |
+      import java.util.Map;
+
+      import static org.testng.Assert.assertEqualsDeep;
+
+      class Test {
+          void test(Map<String, Object> actual, Map<String, Object> expected) {
+              assertEqualsDeep(actual, expected);
+              assertEqualsDeep(actual, expected, "foo");
+          }
+      }
+    after: |
+      import java.util.Map;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(Map<String, Object> actual, Map<String, Object> expected) {
+              assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+              assertThat(actual).as("foo").usingRecursiveComparison().isEqualTo(expected);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertEqualsNoOrderToAssertThat
+examples:
+- description: '`TestNgAssertEqualsNoOrderToAssertThatTest#arraysUseContainsExactlyInAnyOrder`'
+  sources:
+  - before: |
+      import static org.testng.Assert.assertEqualsNoOrder;
+
+      class Test {
+          void test(Object[] actual, Object[] expected) {
+              assertEqualsNoOrder(actual, expected);
+              assertEqualsNoOrder(actual, expected, "foo");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(Object[] actual, Object[] expected) {
+              assertThat(actual).containsExactlyInAnyOrder(expected);
+              assertThat(actual).as("foo").containsExactlyInAnyOrder(expected);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertEqualsToAssertThat
+examples:
+- description: '`TestNgAssertEqualsToAssertThatTest#collectionsUseElementWiseAssertion`'
+  sources:
+  - before: |
+      import java.util.List;
+
+      import static org.testng.Assert.assertEquals;
+
+      class Test {
+          void test(List<String> actual, List<String> expected) {
+              assertEquals(actual, expected);
+              assertEquals(actual, expected, "foo");
+          }
+      }
+    after: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(List<String> actual, List<String> expected) {
+              assertThat(actual).containsExactlyElementsOf(expected);
+              assertThat(actual).as("foo").containsExactlyElementsOf(expected);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertListToAssertThat
+examples:
+- description: '`TestNgAssertListToAssertThatTest#containsAndNotContainsObject`'
+  sources:
+  - before: |
+      import java.util.List;
+
+      import static org.testng.Assert.assertListContainsObject;
+      import static org.testng.Assert.assertListNotContainsObject;
+
+      class Test {
+          void test(List<String> list, String value) {
+              assertListContainsObject(list, value, "foo");
+              assertListNotContainsObject(list, value, "bar");
+          }
+      }
+    after: |
+      import java.util.List;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(List<String> list, String value) {
+              assertThat(list).as("foo").contains(value);
+              assertThat(list).as("bar").doesNotContain(value);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertNotSameToAssertThat
+examples:
+- description: '`TestNgAssertNotSameToAssertThatTest#assertNotSame`'
+  sources:
+  - before: |
+      import static org.testng.Assert.assertNotSame;
+
+      class Test {
+          void test(Object actual, Object expected) {
+              assertNotSame(actual, expected);
+              assertNotSame(actual, expected, "foo");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(Object actual, Object expected) {
+              assertThat(actual).isNotSameAs(expected);
+              assertThat(actual).as("foo").isNotSameAs(expected);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertSameToAssertThat
+examples:
+- description: '`TestNgAssertSameToAssertThatTest#assertSame`'
+  sources:
+  - before: |
+      import static org.testng.Assert.assertSame;
+
+      class Test {
+          void test(Object actual, Object expected) {
+              assertSame(actual, expected);
+              assertSame(actual, expected, "foo");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class Test {
+          void test(Object actual, Object expected) {
+              assertThat(actual).isSameAs(expected);
+              assertThat(actual).as("foo").isSameAs(expected);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertThrowsToAssertThat
+examples:
+- description: '`TestNgAssertThrowsToAssertThatTest#assertThrowsWithType`'
+  sources:
+  - before: |
+      import static org.testng.Assert.assertThrows;
+
+      class Test {
+          void test() {
+              assertThrows(RuntimeException.class, () -> {
+                  throw new RuntimeException();
+              });
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+      class Test {
+          void test() {
+              assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> {
+                  throw new RuntimeException();
+              });
+          }
       }
     language: java
 ---

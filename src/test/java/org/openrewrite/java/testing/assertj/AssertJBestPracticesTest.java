@@ -493,11 +493,8 @@ class AssertJBestPracticesTest implements RewriteTest {
         );
     }
 
-    /**
-     * Chained AssertJ assertions should be simplified to the corresponding dedicated assertion, as
-     * per <a
-     * href="https://next.sonarqube.com/sonarqube/coding_rules?open=java%3AS5838&rule_key=java%3AS5838">java:S5838</a>
-     */
+    /// Chained AssertJ assertions should be simplified to the corresponding dedicated assertion, as
+    /// per <a href="https://next.sonarqube.com/sonarqube/coding_rules?open=java%3AS5838&rule_key=java%3AS5838">java:S5838</a>
     @Nested
     class SonarDedicatedAssertions {
         private static Stream<Arguments> replacements() {

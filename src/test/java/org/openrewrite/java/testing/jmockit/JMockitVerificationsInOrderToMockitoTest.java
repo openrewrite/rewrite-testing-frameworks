@@ -24,9 +24,7 @@ import org.openrewrite.test.TypeValidation;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
-/**
- * Not doing full testing of VerificationsInOrder as it is covered in JMockitVerificationsToMockitoTest
- */
+/// Not doing full testing of VerificationsInOrder as it is covered in JMockitVerificationsToMockitoTest
 class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
 
     @Override

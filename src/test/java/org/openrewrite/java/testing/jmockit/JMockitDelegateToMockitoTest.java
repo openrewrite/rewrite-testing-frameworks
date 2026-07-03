@@ -25,11 +25,9 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
-/**
- * At the moment, JMockit Delegates are not migrated to mockito. What I'm seeing is that they are being trashed
- * with the template being printed out. These tests were written to try to replicate this issue, however I was unable to.
- * They may help anyone who wants to add Delegate migration.
- */
+/// At the moment, JMockit Delegates are not migrated to mockito. What I'm seeing is that they are being trashed
+/// with the template being printed out. These tests were written to try to replicate this issue, however I was unable to.
+/// They may help anyone who wants to add Delegate migration.
 @Disabled
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/522")
 @SuppressWarnings("ResultOfMethodCallIgnored")

@@ -388,10 +388,8 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
         );
     }
 
-    /**
-     * A degenerate case showing we don't perform the conversion when the <code>assertThrows</code> appears
-     * immediately inside a J.Lambda.
-     */
+    /// A degenerate case showing we don't perform the conversion when the `assertThrows` appears
+    /// immediately inside a J.Lambda.
     @Test
     void assertThrowsConsumerUsage() {
         //language=java
@@ -414,10 +412,8 @@ class JUnitAssertThrowsToAssertExceptionTypeTest implements RewriteTest {
         );
     }
 
-    /**
-     * A degenerate case showing we don't perform the conversion when the <code>assertThrows</code> appears
-     * immediately inside a J.Lambda.
-     */
+    /// A degenerate case showing we don't perform the conversion when the `assertThrows` appears
+    /// immediately inside a J.Lambda.
     @Test
     void assertThrowsSupplierUsage() {
         //language=java

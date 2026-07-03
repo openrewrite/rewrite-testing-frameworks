@@ -31,9 +31,7 @@ class TestNgToAssertJTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.testing.assertj.Assertj");
     }
 
-    /**
-     * Verify that we can throw new Exception from the JavaTemplate in the generated recipe.
-     */
+    /// Verify that we can throw new Exception from the JavaTemplate in the generated recipe.
     @DocumentExample
     @Test
     void failWithMessage() {
@@ -66,9 +64,7 @@ class TestNgToAssertJTest implements RewriteTest {
         );
     }
 
-    /**
-     * Verify some assertions as implemented through Refaster rules converted to Recipes. No need to test all variants.
-     */
+    /// Verify some assertions as implemented through Refaster rules converted to Recipes. No need to test all variants.
     @Test
     void assertTrueFalse() {
         rewriteRun(
@@ -141,11 +137,9 @@ class TestNgToAssertJTest implements RewriteTest {
         );
     }
 
-    /**
-     * Qualified `Assert.assertX(...)` calls should become static-imported `assertThat(...)`, rather than
-     * mirroring the source qualification as `Assertions.assertThat(...)`; see
-     * <a href="https://github.com/openrewrite/rewrite-testing-frameworks/issues/1029">issue 1029</a>.
-     */
+    /// Qualified `Assert.assertX(...)` calls should become static-imported `assertThat(...)`, rather than
+    /// mirroring the source qualification as `Assertions.assertThat(...)`; see
+    /// <a href="https://github.com/openrewrite/rewrite-testing-frameworks/issues/1029">issue 1029</a>.
     @Test
     void qualifiedAssertBecomesStaticImport() {
         rewriteRun(

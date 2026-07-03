@@ -25,9 +25,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-/**
- * Validates the recipes related to upgrading from Mockito 1 to Mockito 3
- */
+/// Validates the recipes related to upgrading from Mockito 1 to Mockito 3
 @SuppressWarnings({"NotNullFieldNotInitialized", "NewClassNamingConvention"})
 class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
 
@@ -42,9 +40,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration"));
     }
 
-    /**
-     * Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock
-     */
+    /// Replace org.mockito.MockitoAnnotations.Mock with org.mockito.Mock
     @DocumentExample
     @Test
     void replaceMockAnnotation() {
@@ -129,10 +125,8 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
         );
     }
 
-    /**
-     * Mockito 1 used Matchers.anyVararg() to match the arguments to a variadic function.
-     * Mockito 2+ uses Matchers.any() to match anything including the arguments to a variadic function.
-     */
+    /// Mockito 1 used Matchers.anyVararg() to match the arguments to a variadic function.
+    /// Mockito 2+ uses Matchers.any() to match anything including the arguments to a variadic function.
     @Test
     void replacesAnyVararg() {
         //language=java
@@ -176,11 +170,9 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
         );
     }
 
-    /**
-     * Mockito 1 has InvocationOnMock.getArgumentAt(int, Class)
-     * Mockito 3 has InvocationOnMock.getArgument(int, Class)
-     * swap 'em
-     */
+    /// Mockito 1 has InvocationOnMock.getArgumentAt(int, Class)
+    /// Mockito 3 has InvocationOnMock.getArgument(int, Class)
+    /// swap 'em
     @Test
     void replacesGetArgumentAt() {
         //language=java

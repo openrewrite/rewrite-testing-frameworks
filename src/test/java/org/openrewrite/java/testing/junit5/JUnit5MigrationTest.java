@@ -940,12 +940,10 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
-    /**
-     * The bug this test is reproducing is likely not specific to the JUnit5 upgrade, it's just where it was first
-     * encountered and isolated. It would probably be reproducible using other recipes that reorder method parameters,
-     * provided that a Javadoc link refers to an affected method, and the link has a newline in between the parameters.
-     * If that proves to be true, this test should be generalized and moved to the tests of {@code rewrite-java}.
-     */
+    /// The bug this test is reproducing is likely not specific to the JUnit5 upgrade, it's just where it was first
+    /// encountered and isolated. It would probably be reproducible using other recipes that reorder method parameters,
+    /// provided that a Javadoc link refers to an affected method, and the link has a newline in between the parameters.
+    /// If that proves to be true, this test should be generalized and moved to the tests of `rewrite-java`.
     @Issue("https://github.com/openrewrite/rewrite/issues/6001")
     @Test
     void correctlyHandleALineBreakInAJavadocLinkThatReferencesAMethodWhoseParametersGetReordered() {

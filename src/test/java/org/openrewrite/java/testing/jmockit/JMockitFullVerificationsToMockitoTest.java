@@ -23,9 +23,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
 
-/**
- * Not doing comprehensive testing as it is covered in JMockitVerificationsToMockitoTest and shares same code path
- */
+/// Not doing comprehensive testing as it is covered in JMockitVerificationsToMockitoTest and shares same code path
 @SuppressWarnings("SpellCheckingInspection")
 class JMockitFullVerificationsToMockitoTest implements RewriteTest {
 

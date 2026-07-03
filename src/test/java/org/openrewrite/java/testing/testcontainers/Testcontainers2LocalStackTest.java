@@ -187,11 +187,9 @@ class Testcontainers2LocalStackTest implements RewriteTest {
         );
     }
 
-    /**
-     * End-to-end reproduction of the customer-reported Kotlin files (issue #2437) run through the full
-     * {@code Testcontainers2Migration}, asserting the LocalStack member references are migrated alongside
-     * the type rename so the result compiles against Testcontainers 2.x.
-     */
+    /// End-to-end reproduction of the customer-reported Kotlin files (issue #2437) run through the full
+    /// `Testcontainers2Migration`, asserting the LocalStack member references are migrated alongside
+    /// the type rename so the result compiles against Testcontainers 2.x.
     @Nested
     class FullMigration implements RewriteTest {
 
