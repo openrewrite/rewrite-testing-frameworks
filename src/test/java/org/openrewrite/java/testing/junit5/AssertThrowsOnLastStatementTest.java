@@ -20,10 +20,12 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AssertThrowsOnLastStatementTest implements RewriteTest {
 
@@ -33,7 +35,251 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             //.logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertThrowsOnLastStatement());
+    }
+
+    @Test
+    void kotlinExtractsArgumentAsInferredVal() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+
+              class MyTest {
+                  fun test() {
+                      val exception = assertThrows(IllegalArgumentException::class.java) {
+                          foo()
+                          bar(baz())
+                      }
+                  }
+                  fun foo() {}
+                  fun bar(s: String) {}
+                  fun baz(): String = ""
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+
+              class MyTest {
+                  fun test() {
+                      foo()
+                      val baz = baz()
+                      val exception = assertThrows(IllegalArgumentException::class.java) {
+                          bar(baz)
+                      }
+                  }
+                  fun foo() {}
+                  fun bar(s: String) {}
+                  fun baz(): String = ""
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinHoistsLeadingStatements() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+
+              class MyTest {
+                  fun test() {
+                      assertThrows(IllegalArgumentException::class.java) {
+                          foo()
+                          foo()
+                      }
+                  }
+                  fun foo() {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+
+              class MyTest {
+                  fun test() {
+                      foo()
+                      assertThrows(IllegalArgumentException::class.java) {
+                          foo()
+                      }
+                  }
+                  fun foo() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinMultipleExtractedArgumentsGetUniqueNames() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+
+              class MyTest {
+                  fun test() {
+                      assertThrows(IllegalArgumentException::class.java) {
+                          foo()
+                          bar(baz(), baz())
+                      }
+                  }
+                  fun foo() {}
+                  fun bar(a: String, b: String) {}
+                  fun baz(): String = ""
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+
+              class MyTest {
+                  fun test() {
+                      foo()
+                      val baz = baz()
+                      val baz1 = baz()
+                      assertThrows(IllegalArgumentException::class.java) {
+                          bar(baz, baz1)
+                      }
+                  }
+                  fun foo() {}
+                  fun bar(a: String, b: String) {}
+                  fun baz(): String = ""
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinReifiedAssertThrowsIsNotChanged() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.assertThrows
+
+              class MyTest {
+                  fun test() {
+                      assertThrows<IllegalArgumentException> {
+                          foo()
+                          bar(baz())
+                      }
+                  }
+                  fun foo() {}
+                  fun bar(s: String) {}
+                  fun baz(): String = ""
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void javaNestedAssertThrows() {
+        // Only assertThrows calls that are direct method-body statements are rewritten; the inner nested one is left untouched
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {
+                          foo();
+                          assertThrows(IllegalArgumentException.class, () -> {
+                              foo();
+                              bar(baz());
+                          });
+                      });
+                  }
+                  void foo() {}
+                  void bar(String s) {}
+                  String baz() { return ""; }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      foo();
+                      assertThrows(RuntimeException.class, () ->
+                          assertThrows(IllegalArgumentException.class, () -> {
+                              foo();
+                              bar(baz());
+                          }));
+                  }
+                  void foo() {}
+                  void bar(String s) {}
+                  String baz() { return ""; }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void javaFactoryMethodArgumentUsesTypeBasedName() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {
+                          doA();
+                          testThing(List.of("a"));
+                      });
+                  }
+                  void doA() {}
+                  void testThing(List<String> values) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      List<String> list = List.of("a");
+                      assertThrows(RuntimeException.class, () ->
+                          testThing(list));
+                  }
+                  void doA() {}
+                  void testThing(List<String> values) {}
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample

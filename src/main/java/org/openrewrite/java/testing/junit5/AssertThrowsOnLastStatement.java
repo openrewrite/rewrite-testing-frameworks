@@ -25,6 +25,8 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.VariableNameUtils;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.*;
@@ -52,6 +54,13 @@ public class AssertThrowsOnLastStatement extends Recipe {
         MethodMatcher assertThrowsMatcher = new MethodMatcher(
                 "org.junit.jupiter.api.Assertions assertThrows(java.lang.Class, org.junit.jupiter.api.function.Executable, ..)");
         return Preconditions.check(new UsesMethod<>(assertThrowsMatcher), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+                // Only Java and Kotlin are supported, as the extracted variable declaration is rendered per language
+                return (sourceFile instanceof J.CompilationUnit || sourceFile instanceof K.CompilationUnit) &&
+                        super.isAcceptable(sourceFile, ctx);
+            }
+
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
@@ -142,11 +151,28 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
             private Statement extractExpressionArguments(J.Block body, Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
                 if (lambdaStatement instanceof J.MethodInvocation) {
+                    boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
                     Map<String, Integer> generatedVariableSuffixes = new HashMap<>();
                     return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {
                         if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty || e instanceof J.Lambda || e instanceof J.TypeCast || e instanceof J.FieldAccess) {
                             return e;
+                        }
+
+                        String variableName = getVariableName(e, generatedVariableSuffixes);
+
+                        // Kotlin infers the type; add `val name = expr` as a statement on the method body, since replacing
+                        // the expression in place would wrap the template as `var o = <template>` and fail to parse
+                        if (kotlin) {
+                            J.Block methodBody = getCursor().firstEnclosingOrThrow(J.MethodDeclaration.class).getBody();
+                            Cursor bodyCursor = new Cursor(getCursor(), methodBody);
+                            J.Block applied = KotlinTemplate.builder("val #{} = #{any()}")
+                                    .build()
+                                    .apply(bodyCursor, methodBody.getCoordinates().lastStatement(), variableName, e);
+                            List<Statement> appliedStatements = applied.getStatements();
+                            J.VariableDeclarations varDecl = (J.VariableDeclarations) appliedStatements.get(appliedStatements.size() - 1);
+                            precedingVars.add(varDecl.withPrefix(varPrefix).withType(e.getType()));
+                            return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(e.getType());
                         }
 
                         Object variableTypeShort = "Object";
@@ -174,7 +200,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                         Cursor blockCursor = new Cursor(getCursor(), body);
                         Cursor c = new Cursor(blockCursor, lambdaStatement);
-                        J.VariableDeclarations varDecl = JavaTemplate.apply("#{} #{} = #{any()};", c, lambdaStatement.getCoordinates().replace(), variableTypeShort, getVariableName(e, generatedVariableSuffixes), e);
+                        J.VariableDeclarations varDecl = JavaTemplate.apply("#{} #{} = #{any()};", c, lambdaStatement.getCoordinates().replace(), variableTypeShort, variableName, e);
                         precedingVars.add(varDecl.withPrefix(varPrefix).withType(variableTypeFqn));
                         return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(variableTypeFqn);
                     }));
