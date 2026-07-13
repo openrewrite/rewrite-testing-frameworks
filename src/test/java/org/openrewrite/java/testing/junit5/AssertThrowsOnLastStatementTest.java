@@ -40,6 +40,57 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           .recipe(new AssertThrowsOnLastStatement());
     }
 
+    @DocumentExample
+    @Test
+    void applyToLastStatementWithDeclaringVariableThreeLines() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  public void test() {
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
+                          foo();
+                          System.out.println("foo");
+                          foo();
+                      });
+                      assertEquals("Error message", exception.getMessage());
+                  }
+                  void foo() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  public void test() {
+                      foo();
+                      System.out.println("foo");
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                          foo());
+                      assertEquals("Error message", exception.getMessage());
+                  }
+                  void foo() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void kotlinExtractsArgumentAsInferredVal() {
         rewriteRun(
@@ -276,57 +327,6 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                   }
                   void doA() {}
                   void testThing(List<String> values) {}
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void applyToLastStatementWithDeclaringVariableThreeLines() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              class MyTest {
-
-                  @Test
-                  public void test() {
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () -> {
-                          foo();
-                          System.out.println("foo");
-                          foo();
-                      });
-                      assertEquals("Error message", exception.getMessage());
-                  }
-                  void foo() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              class MyTest {
-
-                  @Test
-                  public void test() {
-                      foo();
-                      System.out.println("foo");
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
-                          foo());
-                      assertEquals("Error message", exception.getMessage());
-                  }
-                  void foo() {
-                  }
               }
               """
           )
