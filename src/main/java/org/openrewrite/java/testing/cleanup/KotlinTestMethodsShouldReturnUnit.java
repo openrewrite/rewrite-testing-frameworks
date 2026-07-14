@@ -35,6 +35,11 @@ import static java.util.Collections.emptyList;
 public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
     private static final String TEST_ANNOTATION_PATTERN = "org..* *Test*";
+    // `TEST_ANNOTATION_PATTERN`'s `*Test*` segment matches any simple name containing "Test", which
+    // incidentally also matches `@TestFactory`. Unlike `@Test`/`@ParameterizedTest`/`@RepeatedTest`/
+    // `@TestTemplate`, `@TestFactory` methods are required by JUnit Jupiter to return a value (e.g.
+    // `Collection<DynamicTest>`), so they must be excluded here.
+    private static final String TEST_FACTORY_ANNOTATION_PATTERN = "org.junit.jupiter.api.TestFactory";
     // `UsesType` matches against fully qualified type names, so it needs a single-token glob rather
     // than the two-token (`<owner> <name>`) form `AnnotationMatcher` uses above.
     private static final String TEST_ANNOTATION_TYPE_PATTERN = "org.junit..*Test*";
@@ -61,8 +66,11 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
                     return m;
                 }
 
-                // Only consider test methods
-                if (!service(AnnotationService.class).matches(getCursor(), new AnnotationMatcher(TEST_ANNOTATION_PATTERN, true))) {
+                // Only consider test methods, excluding `@TestFactory` (see comment on
+                // TEST_FACTORY_ANNOTATION_PATTERN above).
+                AnnotationService annotationService = service(AnnotationService.class);
+                if (!annotationService.matches(getCursor(), new AnnotationMatcher(TEST_ANNOTATION_PATTERN, true)) ||
+                        annotationService.matches(getCursor(), new AnnotationMatcher(TEST_FACTORY_ANNOTATION_PATTERN, true))) {
                     return m;
                 }
 

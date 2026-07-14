@@ -309,6 +309,27 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
     }
 
     @Test
+    void doNotChangeTestFactoryMethods() {
+        // `@TestFactory` methods are required by JUnit Jupiter to return a value such as
+        // `Collection<DynamicTest>`, unlike `@Test`/`@ParameterizedTest`/`@RepeatedTest`/`@TestTemplate`,
+        // so they must not be forced to `Unit`.
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.DynamicTest
+              import org.junit.jupiter.api.TestFactory
+
+              class ATest {
+                  @TestFactory
+                  fun myTestFactory() = listOf(DynamicTest.dynamicTest("test") {})
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotChangeAlreadyUnitTestMethods() {
         //language=kotlin
         rewriteRun(
