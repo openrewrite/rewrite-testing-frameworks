@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AssertEqualsNullToAssertNullTest implements RewriteTest {
 
@@ -104,6 +105,39 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
               }
               """
             )
+        );
+    }
+
+    @Test
+    void simplifyToAssertNullKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertEquals
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertEquals(values[0], null)
+                      assertEquals(null, values[0])
+                      assertEquals(values[0], null, "message")
+                      assertEquals(null, values[0], "message")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertNull
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertNull(values[0])
+                      assertNull(values[0])
+                      assertNull(values[0], "message")
+                      assertNull(values[0], "message")
+                  }
+              }
+              """
+          )
         );
     }
 }
