@@ -163,7 +163,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
 
     @Test
     @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
-    void notFromCoreMatchersDoesNotHang() {
+    void notFromCoreMatchers() {
         //language=java
         rewriteRun(
           spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
@@ -180,6 +180,20 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                       String str1 = "Hello world!";
                       String str2 = "Hello world!";
                       assertThat(str1, not(equalTo(str2)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertNotEquals(str1, str2);
                   }
               }
               """

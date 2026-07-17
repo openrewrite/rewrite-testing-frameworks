@@ -86,7 +86,7 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
 
     @Test
     @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
-    void notFromCoreMatchersDoesNotHang() {
+    void notFromCoreMatchers() {
         //language=java
         rewriteRun(
           java(
@@ -95,7 +95,7 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
               import java.util.List;
 
               import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.CoreMatchers.instanceOf;
               import static org.hamcrest.CoreMatchers.not;
 
               class ATest {
@@ -103,6 +103,61 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
                   @Test
                   void testInstance() {
                       assertThat(list, not(instanceOf(Integer.class)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertFalse;
+
+              class ATest {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertFalse(Integer.class.isAssignableFrom(list.getClass()));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void instanceOfAndIsAFromCoreMatchers() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.CoreMatchers.instanceOf;
+              import static org.hamcrest.CoreMatchers.isA;
+
+              class ATest {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertThat(list, instanceOf(Iterable.class));
+                      assertThat(list, isA(Iterable.class));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class ATest {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertInstanceOf(Iterable.class, list);
+                      assertInstanceOf(Iterable.class, list);
                   }
               }
               """
