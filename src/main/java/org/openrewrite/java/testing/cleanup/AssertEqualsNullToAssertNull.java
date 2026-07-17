@@ -20,14 +20,16 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AssertEqualsNullToAssertNull extends Recipe {
     private static final MethodMatcher ASSERT_EQUALS = new MethodMatcher(
@@ -41,53 +43,55 @@ public class AssertEqualsNullToAssertNull extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(ASSERT_EQUALS), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_EQUALS), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (ASSERT_EQUALS.matches(method) && hasNullLiteralArg(mi)) {
-                    StringBuilder sb = new StringBuilder();
-                    Object[] args;
-                    if (mi.getSelect() != null) {
-                        sb.append("Assertions.");
-                    }
-                    sb.append("assertNull(#{any(java.lang.Object)}");
-                    if (mi.getArguments().size() == 3) {
-                        sb.append(", #{any()}");
-                        args = new Object[]{(isNullLiteral(mi.getArguments().get(0)) ? mi.getArguments().get(1) : mi.getArguments().get(0)), mi.getArguments().get(2)};
-                    } else {
-                        args = new Object[]{(isNullLiteral(mi.getArguments().get(0)) ? mi.getArguments().get(1) : mi.getArguments().get(0))};
-                    }
-                    sb.append(")");
-                    JavaTemplate t;
-                    if (method.getSelect() == null) {
-                        maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertNull");
-                        t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                .staticImports("org.junit.jupiter.api.Assertions.assertNull").build();
-                    } else {
-                        t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                .imports("org.junit.jupiter.api.Assertions.assertNull").build();
-                    }
-                    return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_EQUALS.matches(mi) || mi.getMethodType() == null || !hasNullLiteralArg(mi)) {
+                    return mi;
                 }
-                return mi;
+
+                Expression actual = isNullLiteral(mi.getArguments().get(0)) ? mi.getArguments().get(1) : mi.getArguments().get(0);
+                List<Expression> newArguments = new ArrayList<>();
+                newArguments.add(actual.withPrefix(Space.EMPTY));
+                if (mi.getArguments().size() == 3) {
+                    newArguments.add(mi.getArguments().get(2));
+                }
+
+                if (mi.getSelect() == null) {
+                    maybeRemoveImport("org.junit.jupiter.api.Assertions.assertEquals");
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertNull");
+                }
+
+                JavaType.Method newType = assertNullMethodType(mi.getMethodType(), newArguments.size());
+                return mi.withName(mi.getName().withSimpleName("assertNull").withType(newType))
+                        .withMethodType(newType)
+                        .withArguments(newArguments);
+            }
+
+            private JavaType.Method assertNullMethodType(JavaType.Method assertEquals, int parameterCount) {
+                JavaType messageType = parameterCount == 2 ?
+                        assertEquals.getParameterTypes().get(assertEquals.getParameterTypes().size() - 1) : null;
+                for (JavaType.Method method : assertEquals.getDeclaringType().getMethods()) {
+                    if ("assertNull".equals(method.getName()) &&
+                            method.getParameterTypes().size() == parameterCount &&
+                            (messageType == null || messageType.equals(method.getParameterTypes().get(1)))) {
+                        return method;
+                    }
+                }
+                // fallback when type attribution was stubbed
+                return assertEquals.withName("assertNull");
             }
 
             private boolean hasNullLiteralArg(J.MethodInvocation method) {
-                if (method.getArguments().size() > 1) {
-                    return isNullLiteral(method.getArguments().get(0)) || isNullLiteral(method.getArguments().get(1));
-                }
-                return false;
+                return method.getArguments().size() > 1 &&
+                        (isNullLiteral(method.getArguments().get(0)) || isNullLiteral(method.getArguments().get(1)));
             }
 
             private boolean isNullLiteral(Expression expr) {
-                return expr.getType() == JavaType.Primitive.Null;
+                return expr.getType() == JavaType.Primitive.Null ||
+                        (expr instanceof J.Literal && ((J.Literal) expr).getValue() == null);
             }
         });
     }
