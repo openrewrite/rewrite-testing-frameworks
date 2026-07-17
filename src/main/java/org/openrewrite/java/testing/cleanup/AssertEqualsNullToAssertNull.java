@@ -48,7 +48,7 @@ public class AssertEqualsNullToAssertNull extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!ASSERT_EQUALS.matches(mi) || mi.getMethodType() == null) {
+                if (!ASSERT_EQUALS.matches(mi)) {
                     return mi;
                 }
                 List<Expression> arguments = mi.getArguments();
