@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
@@ -28,7 +29,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class AssertEqualsNullToAssertNull extends Recipe {
@@ -48,16 +48,17 @@ public class AssertEqualsNullToAssertNull extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!ASSERT_EQUALS.matches(mi) || mi.getMethodType() == null || !hasNullLiteralArg(mi)) {
+                if (!ASSERT_EQUALS.matches(mi) || mi.getMethodType() == null) {
+                    return mi;
+                }
+                List<Expression> arguments = mi.getArguments();
+                if (!hasNullLiteralArg(arguments)) {
                     return mi;
                 }
 
-                Expression actual = isNullLiteral(mi.getArguments().get(0)) ? mi.getArguments().get(1) : mi.getArguments().get(0);
-                List<Expression> newArguments = new ArrayList<>();
-                newArguments.add(actual.withPrefix(Space.EMPTY));
-                if (mi.getArguments().size() == 3) {
-                    newArguments.add(mi.getArguments().get(2));
-                }
+                List<Expression> newArguments = ListUtils.mapFirst(
+                        ListUtils.filter(arguments, arg -> !isNullLiteral(arg)),
+                        arg -> arg.withPrefix(Space.EMPTY));
 
                 if (mi.getSelect() == null) {
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertEquals");
@@ -76,7 +77,7 @@ public class AssertEqualsNullToAssertNull extends Recipe {
                 for (JavaType.Method method : assertEquals.getDeclaringType().getMethods()) {
                     if ("assertNull".equals(method.getName()) &&
                             method.getParameterTypes().size() == parameterCount &&
-                            (messageType == null || messageType.equals(method.getParameterTypes().get(1)))) {
+                            (messageType == null || messageType.equals(method.getParameterTypes().get(parameterCount - 1)))) {
                         return method;
                     }
                 }
@@ -84,14 +85,13 @@ public class AssertEqualsNullToAssertNull extends Recipe {
                 return assertEquals.withName("assertNull");
             }
 
-            private boolean hasNullLiteralArg(J.MethodInvocation method) {
-                return method.getArguments().size() > 1 &&
-                        (isNullLiteral(method.getArguments().get(0)) || isNullLiteral(method.getArguments().get(1)));
+            private boolean hasNullLiteralArg(List<Expression> arguments) {
+                return arguments.size() > 1 &&
+                        (isNullLiteral(arguments.get(0)) || isNullLiteral(arguments.get(1)));
             }
 
             private boolean isNullLiteral(Expression expr) {
-                return expr.getType() == JavaType.Primitive.Null ||
-                        (expr instanceof J.Literal && ((J.Literal) expr).getValue() == null);
+                return expr.getType() == JavaType.Primitive.Null || J.Literal.isLiteralValue(expr, null);
             }
         });
     }
