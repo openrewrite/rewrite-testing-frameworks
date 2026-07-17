@@ -16,11 +16,14 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.test.TypeValidation.all;
@@ -74,6 +77,32 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
                       assertInstanceOf(Iterable.class, list);
                       assertFalse(Integer.class.isAssignableFrom(list.getClass()));
                       assertInstanceOf(Iterable.class, list);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void notFromCoreMatchersDoesNotHang() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import java.util.List;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.CoreMatchers.not;
+
+              class ATest {
+                  private static final List<Integer> list = List.of();
+                  @Test
+                  void testInstance() {
+                      assertThat(list, not(instanceOf(Integer.class)));
                   }
               }
               """
