@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -32,6 +33,40 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertEqualsNullToAssertNull());
+    }
+
+    @DocumentExample
+    @Test
+    void simplifyToAssertNullKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertEquals
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertEquals(values[0], null)
+                      assertEquals(null, values[0])
+                      assertEquals(values[0], null, "message")
+                      assertEquals(null, values[0], "message")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertNull
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertNull(values[0])
+                      assertNull(values[0])
+                      assertNull(values[0], "message")
+                      assertNull(values[0], "message")
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/200")
@@ -105,39 +140,6 @@ class AssertEqualsNullToAssertNullTest implements RewriteTest {
               }
               """
             )
-        );
-    }
-
-    @Test
-    void simplifyToAssertNullKotlin() {
-        rewriteRun(
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.Assertions.assertEquals
-
-              class FooTest {
-                  fun test(values: List<String?>) {
-                      assertEquals(values[0], null)
-                      assertEquals(null, values[0])
-                      assertEquals(values[0], null, "message")
-                      assertEquals(null, values[0], "message")
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Assertions.assertNull
-
-              class FooTest {
-                  fun test(values: List<String?>) {
-                      assertNull(values[0])
-                      assertNull(values[0])
-                      assertNull(values[0], "message")
-                      assertNull(values[0], "message")
-                  }
-              }
-              """
-          )
         );
     }
 }
