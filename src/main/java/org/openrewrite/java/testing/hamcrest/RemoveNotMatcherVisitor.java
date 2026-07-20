@@ -26,7 +26,7 @@ import java.security.InvalidParameterException;
 import java.util.Objects;
 
 class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
-    static final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.Matchers not(..)");
+    static final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers not(..)");
 
     public static boolean getLogicalContext(J.MethodInvocation mi, ExecutionContext ctx) throws InvalidParameterException {
         Object msg = ctx.getMessage(mi.toString());

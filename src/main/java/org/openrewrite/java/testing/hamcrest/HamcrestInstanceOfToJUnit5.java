@@ -38,8 +38,8 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
     @Getter
     final String description = "Migrate from Hamcrest `instanceOf` and `isA` matcher to JUnit5 `assertInstanceOf` assertion.";
 
-    private static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.Matchers instanceOf(..)");
-    private static final MethodMatcher IS_A_MATCHER = new MethodMatcher("org.hamcrest.Matchers isA(..)");
+    private static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.*Matchers instanceOf(..)");
+    private static final MethodMatcher IS_A_MATCHER = new MethodMatcher("org.hamcrest.*Matchers isA(..)");
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(.., org.hamcrest.Matcher)");
 
     @Override
@@ -70,7 +70,7 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                     }
 
                     J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
-                    while ("not".equals(matcherInvocation.getSimpleName())) {
+                    while (RemoveNotMatcherVisitor.NOT_MATCHER.matches(matcherInvocation)) {
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
                         matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx);

@@ -16,11 +16,14 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.test.TypeValidation.all;
@@ -130,6 +133,46 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
               import static org.hamcrest.MatcherAssert.assertThat;
               import static org.hamcrest.Matchers.equalTo;
               import static org.hamcrest.Matchers.not;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(equalTo(str2)));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertNotEquals(str1, str2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void notFromCoreMatchers() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.CoreMatchers.equalTo;
+              import static org.hamcrest.CoreMatchers.not;
 
               class ATest {
                   @Test
