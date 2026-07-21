@@ -18,11 +18,14 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class ReplaceInitMockToOpenMockTest implements RewriteTest {
 
@@ -532,6 +535,137 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
                   @AfterEach
                   void tearDown0() throws Exception {
                       mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/moderneinc/customer-requests/issues/2825")
+    @Test
+    void replaceInitMocksToOpenMocksKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mock
+              import org.mockito.MockitoAnnotations
+
+              class MyServiceTest {
+
+                  @Mock
+                  private lateinit var myService: String
+
+                  @BeforeEach
+                  internal fun setUp() {
+                      MockitoAnnotations.initMocks(this)
+                  }
+
+                  @Test
+                  internal fun someTest() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mock
+              import org.mockito.MockitoAnnotations
+
+              class MyServiceTest {
+
+                  private lateinit var mocks: AutoCloseable
+
+                  @Mock
+                  private lateinit var myService: String
+
+                  @BeforeEach
+                  internal fun setUp() {
+                      mocks = MockitoAnnotations.openMocks(this)
+                  }
+
+                  @Test
+                  internal fun someTest() {
+                  }
+
+                  @AfterEach
+                  fun tearDown() {
+                      mocks.close()
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/moderneinc/customer-requests/issues/2825")
+    @Test
+    void annotatedAfterEachMethodIsAlreadyPresentKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.AfterEach
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mock
+              import org.mockito.MockitoAnnotations
+
+              class MyServiceTest {
+
+                  @Mock
+                  private lateinit var myService: String
+
+                  @BeforeEach
+                  internal fun setUp() {
+                      MockitoAnnotations.initMocks(this)
+                  }
+
+                  @AfterEach
+                  internal fun tearDown() {
+                      println("cleanup")
+                  }
+
+                  @Test
+                  internal fun someTest() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mock
+              import org.mockito.MockitoAnnotations
+
+              class MyServiceTest {
+
+                  private lateinit var mocks: AutoCloseable
+
+                  @Mock
+                  private lateinit var myService: String
+
+                  @BeforeEach
+                  internal fun setUp() {
+                      mocks = MockitoAnnotations.openMocks(this)
+                  }
+
+                  @AfterEach
+                  internal fun tearDown() {
+                      println("cleanup")
+                      mocks.close()
+                  }
+
+                  @Test
+                  internal fun someTest() {
                   }
               }
               """

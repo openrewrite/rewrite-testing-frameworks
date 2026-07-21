@@ -26,7 +26,12 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
+
+import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -41,6 +46,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
     @Getter
     final String description = "Replace `MockitoAnnotations.initMocks(this)` to `MockitoAnnotations.openMocks(this)` and generate `AutoCloseable` mocks.";
 
+    private static final JavaType.FullyQualified AUTO_CLOSEABLE = JavaType.ShallowClass.build("java.lang.AutoCloseable");
     private static final String MOCKITO_EXTENSION = "org.mockito.junit.jupiter.MockitoExtension";
     private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";
     private static final String JUPITER_BEFORE_EACH = "org.junit.jupiter.api.BeforeEach";
@@ -64,6 +70,11 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                         if (getCursor().getMessage("initMocksFound", false)) {
                             variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
+                            if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
+                                // Do not autoformat the whole class, as the Kotlin formatter would reformat unrelated code
+                                return KotlinTemplate.apply("private lateinit var " + variableName + ": AutoCloseable",
+                                        getCursor(), cd.getBody().getCoordinates().firstStatement());
+                            }
                             J.ClassDeclaration after = JavaTemplate.apply("private AutoCloseable " + variableName + ";",
                                     getCursor(), cd.getBody().getCoordinates().firstStatement());
                             return maybeAutoFormat(cd, after, ctx);
@@ -104,14 +115,30 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
                             if (!isAnnotatedMethodPresent(cd, AFTER_EACH_MATCHER) && isAnnotatedMethodPresent(cd, BEFORE_EACH_MATCHER)) {
                                 maybeAddImport("org.junit.jupiter.api.AfterEach");
-                                cd = JavaTemplate.builder("@AfterEach\nvoid " + tearDownMethodName(cd) + "() throws Exception {\n}")
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                        .imports("org.junit.jupiter.api.AfterEach")
-                                        .build()
-                                        .apply(getCursor(), cd.getBody().getCoordinates().lastStatement());
+                                if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
+                                    cd = KotlinTemplate.builder("@AfterEach\nfun " + tearDownMethodName(cd) + "() {\n}")
+                                            .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                            .imports("org.junit.jupiter.api.AfterEach")
+                                            .build()
+                                            .apply(getCursor(), cd.getBody().getCoordinates().lastStatement());
+                                    // Blank line before the added method; the class is not autoformatted as a whole
+                                    cd = cd.withBody(cd.getBody().withStatements(ListUtils.mapLast(cd.getBody().getStatements(),
+                                            stmt -> stmt.getPrefix().getWhitespace().startsWith("\n\n") ? stmt :
+                                                    stmt.withPrefix(stmt.getPrefix().withWhitespace("\n" + stmt.getPrefix().getWhitespace())))));
+                                } else {
+                                    cd = JavaTemplate.builder("@AfterEach\nvoid " + tearDownMethodName(cd) + "() throws Exception {\n}")
+                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                            .imports("org.junit.jupiter.api.AfterEach")
+                                            .build()
+                                            .apply(getCursor(), cd.getBody().getCoordinates().lastStatement());
+                                }
                             }
 
                             cd = super.visitClassDeclaration(cd, ctx);
+                            if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
+                                // Do not autoformat the whole class, as the Kotlin formatter would reformat unrelated code
+                                return cd;
+                            }
                             return autoFormat(cd, ctx);
                         }
 
@@ -127,6 +154,14 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                                         J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                                         if (INIT_MOCKS_MATCHER.matches(mi)) {
+                                            if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
+                                                J.Assignment assignment = KotlinTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this)")
+                                                        .parser(KotlinParser.builder().classpathFromResources(ctx, "mockito-core"))
+                                                        .imports("org.mockito.MockitoAnnotations")
+                                                        .build()
+                                                        .apply(getCursor(), mi.getCoordinates().replace());
+                                                return assignment.withVariable(((J.Identifier) assignment.getVariable()).withType(AUTO_CLOSEABLE));
+                                            }
                                             return JavaTemplate.builder(variableName + " = MockitoAnnotations.openMocks(this);")
                                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
                                                     .imports("org.mockito.MockitoAnnotations")
@@ -147,11 +182,36 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                     }
                                 }
 
-                                md = JavaTemplate.builder(variableName + ".close();")
-                                        .contextSensitive()
-                                        .build()
-                                        .apply(getCursor(), md.getBody().getCoordinates().lastStatement());
-                                md = addThrowsIfAbsent(md);
+                                if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
+                                    md = KotlinTemplate.builder(variableName + ".close()")
+                                            .build()
+                                            .apply(getCursor(), md.getBody().getCoordinates().lastStatement());
+                                    JavaType.Method closeType = new JavaType.Method(
+                                            null,
+                                            Flag.Public.getBitMask() | Flag.Abstract.getBitMask(),
+                                            AUTO_CLOSEABLE,
+                                            "close",
+                                            JavaType.Primitive.Void,
+                                            (List<String>) null,
+                                            null,
+                                            null,
+                                            null,
+                                            null,
+                                            null
+                                    );
+                                    md = md.withBody(md.getBody().withStatements(ListUtils.mapLast(md.getBody().getStatements(), stmt -> {
+                                        J.MethodInvocation close = (J.MethodInvocation) stmt;
+                                        return close.withMethodType(closeType)
+                                                .withName(close.getName().withType(closeType))
+                                                .withSelect(((J.Identifier) close.getSelect()).withType(AUTO_CLOSEABLE));
+                                    })));
+                                } else {
+                                    md = JavaTemplate.builder(variableName + ".close();")
+                                            .contextSensitive()
+                                            .build()
+                                            .apply(getCursor(), md.getBody().getCoordinates().lastStatement());
+                                    md = addThrowsIfAbsent(md);
+                                }
 
                                 return maybeAutoFormat(method, md, ctx);
                             }
