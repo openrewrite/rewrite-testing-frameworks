@@ -1399,6 +1399,35 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertEqualsNullToAssertNull
+examples:
+- description: '`AssertEqualsNullToAssertNullTest#simplifyToAssertNullKotlin`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions.assertEquals
+
+      class FooTest {
+          fun test(values: List<String?>) {
+              assertEquals(values[0], null)
+              assertEquals(null, values[0])
+              assertEquals(values[0], null, "message")
+              assertEquals(null, values[0], "message")
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Assertions.assertNull
+
+      class FooTest {
+          fun test(values: List<String?>) {
+              assertNull(values[0])
+              assertNull(values[0])
+              assertNull(values[0], "message")
+              assertNull(values[0], "message")
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertLiteralBooleanRemovedRecipe
 examples:
 - description: '`AssertLiteralBooleanRemovedTest#assertWithStaticImports`'
