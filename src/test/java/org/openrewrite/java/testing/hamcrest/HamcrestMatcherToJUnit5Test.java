@@ -1100,9 +1100,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Test
     void containsStringKotlin() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(all().methodInvocations(false))
-            .parser(KotlinParser.builder()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1181,9 +1180,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Test
     void collectionsKotlin() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(all().methodInvocations(false))
-            .parser(KotlinParser.builder()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1222,9 +1220,8 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Test
     void assertionsWithReasonKotlin() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(all().methodInvocations(false))
-            .parser(KotlinParser.builder()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
