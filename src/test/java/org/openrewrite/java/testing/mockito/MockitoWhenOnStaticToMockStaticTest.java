@@ -210,6 +210,59 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
+    void shouldRenameMultipleUnnamedVariablesIndividually() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+              import org.example.B;
+              import org.mockito.Mockito;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test() {
+                      try (var _ = Mockito.mockStatic(A.class)) {
+                          try (var _ = Mockito.mockStatic(B.class)) {
+                              when(A.getNumber()).thenReturn(-1);
+                              when(B.getString()).thenReturn("hi there");
+                              assertEquals(A.getNumber(), -1);
+                              assertEquals(B.getString(), "hi there");
+                          }
+                      }
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.example.B;
+              import org.mockito.Mockito;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test() {
+                      try (var mockA1 = Mockito.mockStatic(A.class)) {
+                          try (var mockB2 = Mockito.mockStatic(B.class)) {
+                              mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                              mockB2.when(() -> B.getString()).thenReturn("hi there");
+                              assertEquals(A.getNumber(), -1);
+                              assertEquals(B.getString(), "hi there");
+                          }
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotConvertIfScopeOfChangeWouldHaveToBeBroadened() {
         rewriteRun(
           //language=java
