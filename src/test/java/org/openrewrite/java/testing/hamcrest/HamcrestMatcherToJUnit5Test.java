@@ -1024,6 +1024,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Test
     void notEqualToKotlin() {
         rewriteRun(
+          // Unwrapping not() stores logical context on the ExecutionContext (see RemoveNotMatcherVisitor)
           spec -> spec.typeValidationOptions(all().immutableExecutionContext(false))
             .parser(KotlinParser.builder()
               .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
