@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AssertTrueNegationToAssertFalseTest implements RewriteTest {
 
@@ -92,6 +93,35 @@ class AssertTrueNegationToAssertFalseTest implements RewriteTest {
                       boolean a = false;
                       Assertions.assertFalse(a);
                       Assertions.assertFalse(a, "message");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertTrueNegationToAssertFalseKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertTrue(!values[0].isNullOrEmpty())
+                      assertTrue(!values[0].isNullOrEmpty(), "message")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertFalse
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertFalse(values[0].isNullOrEmpty())
+                      assertFalse(values[0].isNullOrEmpty(), "message")
                   }
               }
               """
