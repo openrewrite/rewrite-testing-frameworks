@@ -95,7 +95,7 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
-    testImplementation("org.openrewrite:rewrite-java-25")
+    testImplementation("org.openrewrite:rewrite-java-21")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin")
@@ -112,14 +112,6 @@ dependencies {
     testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testRuntimeOnly("org.testng:testng:latest.release")
-}
-
-// Tests exercise Java 22+ language features (e.g. unnamed `_` variables), which require the
-// `rewrite-java-25` parser and a Java 25 runtime.
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(25))
-    }
 }
 
 tasks.test {
