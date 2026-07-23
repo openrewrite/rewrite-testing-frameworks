@@ -140,7 +140,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     while (RemoveNotMatcherVisitor.NOT_MATCHER.matches(matcherInvocation)) {
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
-                        matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx);
+                        matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx, getCursor());
                     }
 
                     //we do not handle nested matchers

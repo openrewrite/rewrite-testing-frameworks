@@ -162,6 +162,44 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     }
 
     @Test
+    void notWithBareValue() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertThat(str1, not(str2));
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class ATest {
+                  @Test
+                  void testEquals() {
+                      String str1 = "Hello world!";
+                      String str2 = "Hello world!";
+                      assertNotEquals(str1, str2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     void notFromCoreMatchers() {
         //language=java

@@ -73,7 +73,7 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                     while (RemoveNotMatcherVisitor.NOT_MATCHER.matches(matcherInvocation)) {
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
-                        matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx);
+                        matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx, getCursor());
                     }
 
                     if (INSTANCE_OF_MATCHER.matches(matcherInvocation) || IS_A_MATCHER.matches(matcherInvocation)) {
