@@ -159,6 +159,15 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             return e;
                         }
 
+                        // Unattributed (`None`/`Unknown`), `void` or `null` typed expressions can't be rendered as a
+                        // typed variable declaration; leave them inline rather than generating an invalid template
+                        // (`= expr` assignments or `void`/`<unknown>` declarations that fail to parse)
+                        JavaType type = e.getType();
+                        if (type instanceof JavaType.Unknown ||
+                                type == JavaType.Primitive.None || type == JavaType.Primitive.Void || type == JavaType.Primitive.Null) {
+                            return e;
+                        }
+
                         String variableName = getVariableName(e, generatedVariableSuffixes);
 
                         // Kotlin infers the type; add `val name = expr` as a statement on the method body, since replacing
@@ -177,11 +186,11 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                         Object variableTypeShort = "Object";
                         JavaType variableTypeFqn = null;
-                        if (e.getType() instanceof JavaType.Primitive) {
-                            variableTypeShort = e.getType().toString();
-                            variableTypeFqn = e.getType();
-                        } else if (e.getType() instanceof JavaType.Parameterized) {
-                            JavaType.Parameterized paramType = (JavaType.Parameterized) e.getType();
+                        if (type instanceof JavaType.Primitive) {
+                            variableTypeShort = type.toString();
+                            variableTypeFqn = type;
+                        } else if (type instanceof JavaType.Parameterized) {
+                            JavaType.Parameterized paramType = (JavaType.Parameterized) type;
                             // TODO look into possibly employing `TypeUtils.toString()` here, possibly with some changes upstream allowing for non-fully-qualified names
                             variableTypeShort = buildParameterizedTypeName(paramType);
                             variableTypeFqn = paramType;
@@ -191,8 +200,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
                                     maybeAddImport(((JavaType.FullyQualified) typeParam).getFullyQualifiedName(), false);
                                 }
                             }
-                        } else if (e.getType() instanceof JavaType.FullyQualified) {
-                            JavaType.FullyQualified aClass = (JavaType.FullyQualified) e.getType();
+                        } else if (type instanceof JavaType.FullyQualified) {
+                            JavaType.FullyQualified aClass = (JavaType.FullyQualified) type;
                             variableTypeShort = aClass.getClassName();
                             variableTypeFqn = aClass;
                             maybeAddImport(aClass.getFullyQualifiedName(), false);

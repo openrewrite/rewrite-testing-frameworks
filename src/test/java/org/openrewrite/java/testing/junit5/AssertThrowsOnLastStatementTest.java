@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -1189,6 +1190,51 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
 
                   void doA() {}
                   void doB(String arg) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lastStatementArgumentWithUnattributedTypeIsLeftInline() {
+        // A freshly-migrated `assertThrows` lambda (e.g. from `@Test(expected = ...)`) can carry arguments whose type
+        // is not attributed yet; those must be left inline rather than crashing while rendering a variable declaration
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {
+                          setup();
+                          consume(unknownA + unknownB);
+                      });
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      setup();
+                      assertThrows(RuntimeException.class, () ->
+                          consume(unknownA + unknownB));
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
               }
               """
           )
