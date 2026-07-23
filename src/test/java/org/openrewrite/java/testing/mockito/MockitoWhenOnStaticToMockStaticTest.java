@@ -167,6 +167,49 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
+    void shouldRenameUnnamedVariableWhenReusingWrappingMockedStatic() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+              import org.mockito.Mockito;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test() {
+                      try (var _ = Mockito.mockStatic(A.class)) {
+                          when(A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.Mockito;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test() {
+                      try (var mockA1 = Mockito.mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotConvertIfScopeOfChangeWouldHaveToBeBroadened() {
         rewriteRun(
           //language=java

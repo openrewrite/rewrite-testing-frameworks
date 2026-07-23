@@ -127,13 +127,15 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             if (pending != null) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, pending, whenArg, ctx);
                             }
-                            Optional<String> nameOfWrappingMockedStatic = tryGetMatchedWrappingResourceName(getCursor(), invokedType, generatedMocks);
-                            if (nameOfWrappingMockedStatic.isPresent()) {
-                                return reuseMockedStatic(block, (J.MethodInvocation) statement, nameOfWrappingMockedStatic.get(), whenArg, ctx);
+                            Optional<J.VariableDeclarations.NamedVariable> wrappingMockedStatic = tryGetMatchedWrappingResource(getCursor(), invokedType, generatedMocks);
+                            if (wrappingMockedStatic.isPresent()) {
+                                Object name = nameForReuse(block, invokedType.getClassName(), wrappingMockedStatic.get());
+                                return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
                             }
-                            J.Identifier staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
+                            J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable != null) {
-                                return reuseMockedStatic(block, (J.MethodInvocation) statement, staticMockedVariable, whenArg, ctx);
+                                Object name = nameForReuse(block, invokedType.getClassName(), staticMockedVariable);
+                                return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
                             }
                             restInTry.set(true);
                             return tryWithMockedStatic(block, statements, index, (J.MethodInvocation) statement, invokedType, whenArg, ctx, pendingResources);
@@ -171,6 +173,15 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                 return try_.withBody(try_.getBody().withStatements(newStatements))
                         .withPrefix(statement.getPrefix());
+            }
+
+            private Object nameForReuse(J.Block block, String className, J.VariableDeclarations.NamedVariable variable) {
+                if ("_".equals(variable.getSimpleName())) {
+                    String newName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                    doAfterVisit(new RenameVariable<>(variable, newName));
+                    return newName;
+                }
+                return variable.getName();
             }
 
             private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, Object variable, J.MethodInvocation whenArg, ExecutionContext ctx) {
@@ -288,7 +299,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
                 String paramName = findEnclosingMockStaticUseParam(getCursor(), invokedType);
                 if (paramName == null) {
-                    J.Identifier classProperty = findMockedStaticVariable(getCursor(), invokedType);
+                    J.VariableDeclarations.NamedVariable classProperty = findMockedStaticVariable(getCursor(), invokedType);
                     if (classProperty == null) {
                         return m;
                     }
@@ -411,7 +422,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return false;
     }
 
-    private static Optional<String> tryGetMatchedWrappingResourceName(Cursor cursor, JavaType className, Map<String, String> generatedMocks) {
+    private static Optional<J.VariableDeclarations.NamedVariable> tryGetMatchedWrappingResource(Cursor cursor, JavaType className, Map<String, String> generatedMocks) {
         try {
             Cursor foundParentCursor = cursor.dropParentUntil(val -> {
                 if (val instanceof J.Try) {
@@ -423,7 +434,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             return getMatchingFilteredResources(((J.Try) foundParentCursor.getValue()).getResources(), className, generatedMocks)
                     .stream()
                     .findFirst()
-                    .map(res -> ((J.VariableDeclarations) res.getVariableDeclarations()).getVariables().get(0).getSimpleName());
+                    .map(res -> ((J.VariableDeclarations) res.getVariableDeclarations()).getVariables().get(0));
         } catch (IllegalStateException e) {
             return Optional.empty();
         }
@@ -470,15 +481,15 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 .orElse(baseName);
     }
 
-    private static J.@Nullable Identifier findMockedStaticVariable(Cursor scope, JavaType className) {
+    private static J.VariableDeclarations.@Nullable NamedVariable findMockedStaticVariable(Cursor scope, JavaType className) {
         JavaSourceFile compilationUnit = scope.firstEnclosing(JavaSourceFile.class);
         if (compilationUnit == null) {
             return null;
         }
 
-        return new JavaIsoVisitor<AtomicReference<J.Identifier>>() {
+        return new JavaIsoVisitor<AtomicReference<J.VariableDeclarations.NamedVariable>>() {
             @Override
-            public J.Block visitBlock(J.Block block, AtomicReference<J.Identifier> mockedStaticVar) {
+            public J.Block visitBlock(J.Block block, AtomicReference<J.VariableDeclarations.NamedVariable> mockedStaticVar) {
                 if (scope.isScopeInPath(block)) {
                     return super.visitBlock(block, mockedStaticVar);
                 }
@@ -486,10 +497,9 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             }
 
             @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, AtomicReference<J.Identifier> mockedStaticVar) {
-                J.Identifier identifier = variable.getName();
-                if (isMockedStaticOfType(className, identifier.getType())) {
-                    mockedStaticVar.set(identifier);
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, AtomicReference<J.VariableDeclarations.NamedVariable> mockedStaticVar) {
+                if (isMockedStaticOfType(className, variable.getName().getType())) {
+                    mockedStaticVar.set(variable);
                 }
 
                 return super.visitVariable(variable, mockedStaticVar);
