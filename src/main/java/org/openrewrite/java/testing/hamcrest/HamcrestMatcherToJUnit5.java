@@ -15,9 +15,7 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -29,6 +27,9 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.kotlin.tree.K;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,15 +54,14 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                 new MigrationFromHamcrestVisitor());
     }
 
-    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
     enum Replacement {
         EQUALTO("equalTo", "assertEquals", "assertNotEquals", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
-        EMPTYARRAY("emptyArray", "assertEquals", "assertNotEquals", "0, #{anyArray(java.lang.Object)}.length", "examinedObjOnly"),
+        EMPTYARRAY("emptyArray", "assertEquals", "assertNotEquals", "0, #{anyArray(java.lang.Object)}.length", "0, #{anyArray(java.lang.Object)}.size", "examinedObjOnly"),
         HASENTRY("hasEntry", "assertEquals", "assertNotEquals", "#{any(java.lang.Object)}, #{any(java.util.Map)}.get(#{any(java.lang.Object)})", "matcher1ExaminedObjMatcher0"),
-        HASSIZE("hasSize", "assertEquals", "assertNotEquals", "#{any(java.util.Collection)}.size(), #{any(double)}", "examinedObjThenMatcherArgs"),
+        HASSIZE("hasSize", "assertEquals", "assertNotEquals", "#{any(java.util.Collection)}.size(), #{any(double)}", "#{any(java.util.Collection)}.size, #{any(double)}", "examinedObjThenMatcherArgs"),
         HASTOSTRING("hasToString", "assertEquals", "assertNotEquals", "#{any(java.lang.Object)}.toString(), #{any(java.lang.String)}", "examinedObjThenMatcherArgs"),
         CLOSETO("closeTo", "assertTrue", "assertFalse", "Math.abs(#{any(double)} - #{any(double)}) < #{any(double)}", "examinedObjThenMatcherArgs"),
-        CONTAINSSTRING("containsString", "assertTrue", "assertFalse", "#{any(java.lang.String)}.contains(#{any(java.lang.String)}", "examinedObjThenMatcherArgs"),
+        CONTAINSSTRING("containsString", "assertTrue", "assertFalse", "#{any(java.lang.String)}.contains(#{any(java.lang.String)})", "examinedObjThenMatcherArgs"),
         EMPTY("empty", "assertTrue", "assertFalse", "#{any(java.util.Collection)}.isEmpty()", "examinedObjOnly"),
         ENDSWITH("endsWith", "assertTrue", "assertFalse", "#{any(java.lang.String)}.endsWith(#{any(java.lang.String)})", "examinedObjThenMatcherArgs"),
         EQUALTOIGNORINGCASE("equalToIgnoringCase", "assertTrue", "assertFalse", "#{any(java.lang.String)}.equalsIgnoreCase(#{any(java.lang.String)})", "examinedObjThenMatcherArgs"),
@@ -79,8 +79,21 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
         THEINSTANCE("theInstance", "assertSame", "assertNotSame", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
         EMPTYITERABLE("emptyIterable", "assertFalse", "assertTrue", "#{any(java.lang.Iterable)}.iterator().hasNext()", "examinedObjOnly");
 
-        final String hamcrest, junitPositive, junitNegative, template;
+        final String hamcrest, junitPositive, junitNegative, template, kotlinTemplate;
         final String argumentsMethod;
+
+        Replacement(String hamcrest, String junitPositive, String junitNegative, String template, String argumentsMethod) {
+            this(hamcrest, junitPositive, junitNegative, template, template, argumentsMethod);
+        }
+
+        Replacement(String hamcrest, String junitPositive, String junitNegative, String template, String kotlinTemplate, String argumentsMethod) {
+            this.hamcrest = hamcrest;
+            this.junitPositive = junitPositive;
+            this.junitNegative = junitNegative;
+            this.template = template;
+            this.kotlinTemplate = kotlinTemplate;
+            this.argumentsMethod = argumentsMethod;
+        }
 
         private static final Map<String, BiFunction<Expression, J.MethodInvocation, List<Expression>>> methods = new HashMap<>();
 
@@ -158,16 +171,23 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     } catch (IllegalArgumentException e) {
                         return mi;
                     }
+                    boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
                     String assertion = logicalContext ? replacement.junitPositive : replacement.junitNegative;
-                    String templateString = assertion + "(" + replacement.template + (reason == null ? ")" : ", #{any(java.lang.String)})");
-                    JavaTemplate template = JavaTemplate.builder(templateString)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                            .staticImports("org.junit.jupiter.api.Assertions." + assertion)
-                            .build();
+                    String templateBody = kotlin ? replacement.kotlinTemplate : replacement.template;
+                    String templateString = assertion + "(" + templateBody + (reason == null ? ")" : ", #{any(java.lang.String)})");
+                    JavaTemplate template = kotlin ?
+                            KotlinTemplate.builder(templateString)
+                                    .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                    .staticImports("org.junit.jupiter.api.Assertions." + assertion)
+                                    .build() :
+                            JavaTemplate.builder(templateString)
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                    .staticImports("org.junit.jupiter.api.Assertions." + assertion)
+                                    .build();
 
                     maybeRemoveImport("org.hamcrest.Matchers." + replacement.hamcrest);
                     maybeRemoveImport("org.hamcrest.CoreMatchers." + replacement.hamcrest);
-                    maybeAddImport("org.junit.jupiter.api.Assertions", assertion);
+                    maybeAddImport("org.junit.jupiter.api.Assertions", assertion, !kotlin);
 
                     List<Expression> arguments = Replacement.methods.get(replacement.argumentsMethod).apply(examinedObject, matcherInvocation);
                     if (reason != null) {
