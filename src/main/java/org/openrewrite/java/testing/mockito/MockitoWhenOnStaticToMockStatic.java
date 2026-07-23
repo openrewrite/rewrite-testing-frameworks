@@ -261,7 +261,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
             private JavaTemplate javaTemplateMockStatic(String code, ExecutionContext ctx) {
                 maybeAddImport("org.mockito.MockedStatic", false);
-                maybeAddImport("org.mockito.Mockito", "mockStatic");
+                maybeAddImport("org.mockito.Mockito", "mockStatic", false);
                 return JavaTemplate.builder(code)
                         .contextSensitive()
                         .imports("org.mockito.MockedStatic")

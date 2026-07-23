@@ -19,8 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.SourceSpec;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.*;
@@ -111,41 +109,8 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpMultipleTest() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           java(
             """
-              package com.openrewrite;
-              public static class Foo {
-                  public String getMsg() {
-                      return "foo";
-                  }
-
-                  public String getMsg(String echo) {
-                      return "foo" + echo;
-                  }
-              }
-              """,
-            SourceSpec::skip
-          ),
-          java(
-            """
-              package com.openrewrite;
-              public static class Bar {
-                  public String getMsg() {
-                      return "bar";
-                  }
-
-                  public String getMsg(String echo) {
-                      return "bar" + echo;
-                  }
-              }
-              """,
-            SourceSpec::skip
-          ),
-          java(
-            """
-              import com.openrewrite.Foo;
-              import com.openrewrite.Bar;
               import org.junit.Test;
               import mockit.Mock;
               import mockit.MockUp;
@@ -179,11 +144,29 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       assertEquals("BAR", new Bar().getMsg());
                       assertEquals("BARecho", new Bar().getMsg("echo"));
                   }
+
+                  static class Foo {
+                      public String getMsg() {
+                          return "foo";
+                      }
+
+                      public String getMsg(String echo) {
+                          return "foo" + echo;
+                      }
+                  }
+
+                  static class Bar {
+                      public String getMsg() {
+                          return "bar";
+                      }
+
+                      public String getMsg(String echo) {
+                          return "bar" + echo;
+                      }
+                  }
               }
               """,
                 """
-              import com.openrewrite.Foo;
-              import com.openrewrite.Bar;
               import org.junit.Test;
               import org.mockito.MockedConstruction;
               import static org.junit.Assert.assertEquals;
@@ -212,6 +195,26 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                           assertEquals("FOOecho", new Foo().getMsg("echo"));
                           assertEquals("BAR", new Bar().getMsg());
                           assertEquals("BARecho", new Bar().getMsg("echo"));
+                      }
+                  }
+
+                  static class Foo {
+                      public String getMsg() {
+                          return "foo";
+                      }
+
+                      public String getMsg(String echo) {
+                          return "foo" + echo;
+                      }
+                  }
+
+                  static class Bar {
+                      public String getMsg() {
+                          return "bar";
+                      }
+
+                      public String getMsg(String echo) {
+                          return "bar" + echo;
                       }
                   }
               }
