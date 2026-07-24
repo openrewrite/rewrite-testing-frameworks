@@ -209,9 +209,15 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                         Cursor blockCursor = new Cursor(getCursor(), body);
                         Cursor c = new Cursor(blockCursor, lambdaStatement);
-                        J.VariableDeclarations varDecl = JavaTemplate.apply("#{} #{} = #{any()};", c, lambdaStatement.getCoordinates().replace(), variableTypeShort, variableName, e);
-                        precedingVars.add(varDecl.withPrefix(varPrefix).withType(variableTypeFqn));
-                        return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(variableTypeFqn);
+                        try {
+                            J.VariableDeclarations varDecl = JavaTemplate.apply("#{} #{} = #{any()};", c, lambdaStatement.getCoordinates().replace(), variableTypeShort, variableName, e);
+                            precedingVars.add(varDecl.withPrefix(varPrefix).withType(variableTypeFqn));
+                            return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(variableTypeFqn);
+                        } catch (Exception ex) {
+                            // Some types (e.g. anonymous or local classes) don't render as a valid variable
+                            // declaration; leave the argument inline rather than failing the whole recipe run
+                            return e;
+                        }
                     }));
                 }
                 return lambdaStatement;
