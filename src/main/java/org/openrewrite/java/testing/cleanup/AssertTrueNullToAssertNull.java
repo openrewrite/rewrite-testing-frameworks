@@ -16,17 +16,18 @@
 package org.openrewrite.java.testing.cleanup;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
 public class AssertTrueNullToAssertNull extends Recipe {
     private static final MethodMatcher ASSERT_TRUE = new MethodMatcher(
@@ -40,50 +41,44 @@ public class AssertTrueNullToAssertNull extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(ASSERT_TRUE), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_TRUE), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (ASSERT_TRUE.matches(mi) && isEqualBinaryWithNull(mi)) {
-                    J.Binary binary = (J.Binary) mi.getArguments().get(0);
-                    Expression nonNullExpression = getNonNullExpression(binary);
-
-                    StringBuilder sb = new StringBuilder();
-                    if (mi.getSelect() == null) {
-                        maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertNull");
-                    } else {
-                        sb.append("Assertions.");
-                    }
-                    sb.append("assertNull(#{any(java.lang.Object)}");
-
-                    Object[] args;
-                    if (mi.getArguments().size() == 2) {
-                        sb.append(", #{any()}");
-                        args = new J[]{nonNullExpression, mi.getArguments().get(1)};
-                    } else {
-                        args = new J[]{nonNullExpression};
-                    }
-                    sb.append(")");
-                    JavaTemplate t;
-                    if (mi.getSelect() == null) {
-                        t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .staticImports("org.junit.jupiter.api.Assertions.assertNull")
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                .build();
-                    } else {
-                        t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                .build();
-                    }
-                    return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_TRUE.matches(mi) || !isEqualBinaryWithNull(mi)) {
+                    return mi;
                 }
-                return mi;
+
+                J.Binary binary = (J.Binary) mi.getArguments().get(0);
+                Expression nonNullExpression = getNonNullExpression(binary);
+
+                if (mi.getSelect() == null) {
+                    maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertNull");
+                }
+
+                JavaType.Method newType = assertNullMethodType(mi.getMethodType(), mi.getArguments().size());
+                return mi.withName(mi.getName().withSimpleName("assertNull").withType(newType))
+                        .withMethodType(newType)
+                        .withArguments(ListUtils.mapFirst(mi.getArguments(),
+                                arg -> nonNullExpression.withPrefix(binary.getPrefix())));
+            }
+
+            private JavaType.@Nullable Method assertNullMethodType(JavaType.@Nullable Method assertTrue, int parameterCount) {
+                if (assertTrue == null) {
+                    return null;
+                }
+                JavaType messageType = parameterCount == 2 ?
+                        assertTrue.getParameterTypes().get(assertTrue.getParameterTypes().size() - 1) : null;
+                for (JavaType.Method method : assertTrue.getDeclaringType().getMethods()) {
+                    if ("assertNull".equals(method.getName()) &&
+                            method.getParameterTypes().size() == parameterCount &&
+                            (messageType == null || messageType.equals(method.getParameterTypes().get(parameterCount - 1)))) {
+                        return method;
+                    }
+                }
+                // fallback when type attribution was stubbed
+                return assertTrue.withName("assertNull");
             }
 
             private Expression getNonNullExpression(J.Binary binary) {
