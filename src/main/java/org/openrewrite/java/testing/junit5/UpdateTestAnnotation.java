@@ -26,6 +26,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markup;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
@@ -108,6 +109,14 @@ public class UpdateTestAnnotation extends Recipe {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
             if (m != method) {
+                // The `expected`/`timeout` rewrites below build the replacement body and annotation with
+                // `JavaTemplate`, which does not render against a Kotlin LST. Rather than dropping the arguments
+                // or crashing, leave the JUnit 4 `@Test(expected = ..., timeout = ...)` intact on Kotlin.
+                if ((cta.expectedException != null || cta.timeout != null) &&
+                        getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
+                    return super.visitMethodDeclaration(method, ctx);
+                }
+
                 JavaParser.Builder<?, ?> javaParser = JavaParser.fromJavaVersion()
                         .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
                 if (cta.expectedException != null) {

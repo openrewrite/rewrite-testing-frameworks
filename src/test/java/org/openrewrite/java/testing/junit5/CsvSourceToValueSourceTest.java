@@ -19,10 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class CsvSourceToValueSourceTest implements RewriteTest {
     @Override
@@ -30,7 +32,60 @@ class CsvSourceToValueSourceTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5"))
           .recipe(new CsvSourceToValueSource());
+    }
+
+    @Test
+    void replaceCsvSourceWithValueSourceForStringsKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.CsvSource
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(value = ["BERMUDA", "TUNM", "LOL"])
+                  fun testWithStrings(country: String) {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.ValueSource
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = ["BERMUDA", "TUNM", "LOL"])
+                  fun testWithStrings(country: String) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveKotlinNonStringCsvSourceUnchanged() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.CsvSource
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(value = ["1", "2", "3"])
+                  fun testWithInts(number: Int) {
+                  }
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample
