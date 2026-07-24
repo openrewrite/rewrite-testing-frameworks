@@ -134,8 +134,6 @@ public class TestNgSoftAssertToAssertJ extends Recipe {
             private J.MethodInvocation apply(J.MethodInvocation method, ExecutionContext ctx, String template,
                                              boolean usesWithin, Object... params) {
                 JavaTemplate.Builder builder = JavaTemplate.builder(template)
-                        .contextSensitive()
-                        .imports("java.util.function.Supplier")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"));
                 if (usesWithin) {
                     builder.staticImports("org.assertj.core.api.Assertions.within");
