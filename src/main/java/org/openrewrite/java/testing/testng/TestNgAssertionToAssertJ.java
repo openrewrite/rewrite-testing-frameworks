@@ -53,10 +53,26 @@ public class TestNgAssertionToAssertJ extends Recipe {
                 }
                 List<Expression> args = method.getArguments();
                 switch (method.getSimpleName()) {
+                    case "assertTrue":
+                        return unary(method, ctx, args, "isTrue()");
+                    case "assertFalse":
+                        return unary(method, ctx, args, "isFalse()");
+                    case "assertNull":
+                        return unary(method, ctx, args, "isNull()");
+                    case "assertNotNull":
+                        return unary(method, ctx, args, "isNotNull()");
+                    case "assertSame":
+                        return binary(method, ctx, args, "isSameAs(#{any()})");
+                    case "assertNotSame":
+                        return binary(method, ctx, args, "isNotSameAs(#{any()})");
+                    case "assertEqualsNoOrder":
+                        return binary(method, ctx, args, "containsExactlyInAnyOrder(#{any()})");
                     case "assertEquals":
                         return equals(method, ctx, args, "isEqualTo(#{any()})", "isCloseTo(#{any()}, within(#{any()}))");
                     case "assertNotEquals":
                         return equals(method, ctx, args, "isNotEqualTo(#{any()})", "isNotCloseTo(#{any()}, within(#{any()}))");
+                    case "fail":
+                        return fail(method, ctx, args);
                     default:
                         return method;
                 }
@@ -93,6 +109,47 @@ public class TestNgAssertionToAssertJ extends Recipe {
                     builder = builder.staticImports("org.assertj.core.api.Assertions.assertThat");
                 }
                 return builder.build().apply(getCursor(), method.getCoordinates().replace(), params);
+            }
+
+            private J.MethodInvocation unary(J.MethodInvocation method, ExecutionContext ctx, List<Expression> args, String terminal) {
+                if (args.size() == 1) {
+                    return apply(method, ctx, "assertThat(#{any()})." + terminal, false, args.get(0));
+                }
+                return apply(method, ctx, "assertThat(#{any()}).as(#{any(String)})." + terminal, false, args.get(0), args.get(1));
+            }
+
+            private J.MethodInvocation binary(J.MethodInvocation method, ExecutionContext ctx, List<Expression> args, String terminal) {
+                Expression actual = args.get(0);
+                Expression expected = args.get(1);
+                if (args.size() == 2) {
+                    return apply(method, ctx, "assertThat(#{any()})." + terminal, false, actual, expected);
+                }
+                return apply(method, ctx, "assertThat(#{any()}).as(#{any(String)})." + terminal, false, actual, args.get(2), expected);
+            }
+
+            private J.MethodInvocation fail(J.MethodInvocation method, ExecutionContext ctx, List<Expression> args) {
+                maybeAddImport("org.assertj.core.api.Assertions", "fail", false);
+                // A no-arg `fail()` call carries a single J.Empty argument (not an empty list). AssertJ's no-arg
+                // static fail() does not resolve through the template classpath, so emit an empty message, matching
+                // JUnitFailToAssertJFail's convention for the message-less case.
+                String template;
+                Object[] params;
+                if (args.get(0) instanceof J.Empty) {
+                    template = "fail(\"\")";
+                    params = new Object[0];
+                } else if (args.size() == 1) {
+                    template = "fail(#{any(String)})";
+                    params = args.toArray();
+                } else {
+                    template = "fail(#{any(String)}, #{any(java.lang.Throwable)})";
+                    params = args.toArray();
+                }
+                return JavaTemplate.builder(template)
+                        .contextSensitive()
+                        .staticImports("org.assertj.core.api.Assertions.fail")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .build()
+                        .apply(getCursor(), method.getCoordinates().replace(), params);
             }
         });
     }

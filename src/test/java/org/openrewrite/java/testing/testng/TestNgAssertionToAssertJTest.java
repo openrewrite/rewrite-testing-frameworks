@@ -71,4 +71,80 @@ class TestNgAssertionToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void booleanNullSameNoOrder() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testng.asserts.Assertion;
+
+              class Test {
+                  void test(Assertion assertion, boolean c, Object a, Object b, Object[] xs, Object[] ys) {
+                      assertion.assertTrue(c);
+                      assertion.assertFalse(c, "msg");
+                      assertion.assertNull(a);
+                      assertion.assertNotNull(b, "msg");
+                      assertion.assertSame(a, b);
+                      assertion.assertNotSame(a, b, "msg");
+                      assertion.assertEqualsNoOrder(xs, ys);
+                      assertion.assertEqualsNoOrder(xs, ys, "msg");
+                  }
+              }
+              """,
+            """
+              import org.testng.asserts.Assertion;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test(Assertion assertion, boolean c, Object a, Object b, Object[] xs, Object[] ys) {
+                      assertThat(c).isTrue();
+                      assertThat(c).as("msg").isFalse();
+                      assertThat(a).isNull();
+                      assertThat(b).as("msg").isNotNull();
+                      assertThat(a).isSameAs(b);
+                      assertThat(a).as("msg").isNotSameAs(b);
+                      assertThat(xs).containsExactlyInAnyOrder(ys);
+                      assertThat(xs).as("msg").containsExactlyInAnyOrder(ys);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void failVariants() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testng.asserts.Assertion;
+
+              class Test {
+                  void test(Assertion assertion) {
+                      assertion.fail();
+                      assertion.fail("msg");
+                      assertion.fail("msg", new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              import org.testng.asserts.Assertion;
+
+              import static org.assertj.core.api.Assertions.fail;
+
+              class Test {
+                  void test(Assertion assertion) {
+                      fail("");
+                      fail("msg");
+                      fail("msg", new IllegalStateException());
+                  }
+              }
+              """
+          )
+        );
+    }
 }
