@@ -144,8 +144,6 @@ public class TestNgAssertionToAssertJ extends Recipe {
                                              boolean usesWithin, Object... params) {
                 maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
                 JavaTemplate.Builder builder = JavaTemplate.builder(template)
-                        .contextSensitive()
-                        .imports("java.util.function.Supplier")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"));
                 if (usesWithin) {
                     maybeAddImport("org.assertj.core.api.Assertions", "within", false);
@@ -190,7 +188,6 @@ public class TestNgAssertionToAssertJ extends Recipe {
                     params = args.toArray();
                 }
                 return JavaTemplate.builder(template)
-                        .contextSensitive()
                         .staticImports("org.assertj.core.api.Assertions.fail")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
