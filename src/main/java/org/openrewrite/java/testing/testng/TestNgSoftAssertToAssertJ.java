@@ -26,7 +26,6 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
@@ -122,7 +121,7 @@ public class TestNgSoftAssertToAssertJ extends Recipe {
                 if (args.size() == 2) {
                     return apply(method, ctx, SELECT + "." + terminal, false, select, actual, expected);
                 }
-                if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
+                if (args.size() == 3 && !TestNgAsserts.isFloatingPointType(args.get(2))) {
                     return apply(method, ctx, SELECT + ".as(#{any(String)})." + terminal, false, select, actual, args.get(2), expected);
                 }
                 if (args.size() == 3) {
@@ -143,17 +142,6 @@ public class TestNgSoftAssertToAssertJ extends Recipe {
                     maybeAddImport("org.assertj.core.api.Assertions", "within", false);
                 }
                 return builder.build().apply(getCursor(), method.getCoordinates().replace(), params);
-            }
-
-            private boolean isFloatingPointType(Expression expression) {
-                JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
-                if (fullyQualified != null) {
-                    String typeName = fullyQualified.getFullyQualifiedName();
-                    return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
-                }
-
-                JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
-                return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
             }
         });
     }
