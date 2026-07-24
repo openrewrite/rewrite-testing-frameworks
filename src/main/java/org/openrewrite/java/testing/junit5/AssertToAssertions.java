@@ -81,6 +81,7 @@ public class AssertToAssertions extends Recipe {
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
             if (!isJunitAssertMethod(m)) {
+                maybeMigrateStaticImportWithMissingTypeInfo(m);
                 return m;
             }
             doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
@@ -147,6 +148,24 @@ public class AssertToAssertions extends Recipe {
                         .getVisitor());
             }
             return mr;
+        }
+
+        private void maybeMigrateStaticImportWithMissingTypeInfo(J.MethodInvocation m) {
+            if (m.getMethodType() != null || m.getSelect() != null || "assertThat".equals(m.getSimpleName())) {
+                return;
+            }
+            JavaSourceFile cu = getCursor().firstEnclosing(JavaSourceFile.class);
+            if (cu == null) {
+                return;
+            }
+            String staticImport = "org.junit.Assert." + m.getSimpleName();
+            for (J.Import imp : cu.getImports()) {
+                if (imp.isStatic() && staticImport.equals(imp.getQualid().toString())) {
+                    maybeRemoveImport(staticImport);
+                    maybeAddImport("org.junit.jupiter.api.Assertions", m.getSimpleName(), false);
+                    return;
+                }
+            }
         }
 
         private static boolean isJunitAssertMethod(MethodCall memberRef) {
