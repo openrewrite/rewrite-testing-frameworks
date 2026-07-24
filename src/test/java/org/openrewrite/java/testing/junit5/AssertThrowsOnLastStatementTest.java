@@ -1283,4 +1283,61 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/2861")
+    @Test
+    void argumentWithAnonymousClassTypeIsLeftInline() {
+        // An anonymous (or local) class type renders to an invalid variable declaration (e.g. `MyTest.1 x = ...`);
+        // the argument must be left inline rather than crashing while extracting preceding variables.
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.concurrent.Callable;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {
+                          setup();
+                          consume(new Callable<String>() {
+                              @Override
+                              public String call() {
+                                  return "x";
+                              }
+                          });
+                      });
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
+              }
+              """,
+            """
+              import java.util.concurrent.Callable;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      setup();
+                      assertThrows(RuntimeException.class, () ->
+                          consume(new Callable<String>() {
+                              @Override
+                              public String call() {
+                                  return "x";
+                              }
+                          }));
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
+              }
+              """
+          )
+        );
+    }
 }
