@@ -30,7 +30,7 @@ recipeList:
       groupId: org.assertj
       artifactId: assertj-core
       version: 3.x
-      onlyIfUsing: org.testng.*
+      onlyIfUsing: org.testng..*
       acceptTransitive: true
   # The Picnic Refaster rules cover assertTrue/assertFalse/assertNull/assertNotNull/fail and a handful of
   # exact-type assert(Not)Equals/assert(Not)Same variants. Because Refaster only fires on exact static type
@@ -48,6 +48,10 @@ recipeList:
   - org.openrewrite.java.testing.testng.TestNgAssertNotSameToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertThrowsToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertListToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgSoftAssertToAssertJ
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.testng.asserts.SoftAssert
+      newFullyQualifiedTypeName: org.assertj.core.api.SoftAssertions
   # Normalize the AssertJ entry points we introduce to a static import, regardless of how the original TestNG
   # assertion was qualified, so qualified `Assert.assertX(...)` calls don't become qualified
   # `Assertions.assertThat(...)`; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/1029
