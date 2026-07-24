@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -27,10 +26,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.tree.K;
@@ -198,97 +194,10 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                         arguments.add(reason);
                     }
 
-                    J.MethodInvocation result = template.apply(getCursor(), method.getCoordinates().replace(), arguments.toArray());
-                    return kotlin ? attributeTypes(result) : result;
+                    return template.apply(getCursor(), method.getCoordinates().replace(), arguments.toArray());
                 }
             }
             return mi;
         }
-    }
-
-    /**
-     * Unlike {@link JavaTemplate}, whose parser type-attributes the code it generates, {@link KotlinTemplate} leaves
-     * the method invocations and property accesses it synthesizes around the examined object (e.g.
-     * {@code collection.isEmpty()} or {@code collection.size}) without type attribution, which then cascades to the
-     * enclosing assertion. Resolve those from the already-typed examined object, then build the JUnit assertion's
-     * method type. This works around a rewrite-kotlin limitation and can be removed once it attributes these itself.
-     */
-    private static J.MethodInvocation attributeTypes(J.MethodInvocation assertion) {
-        return (J.MethodInvocation) new JavaIsoVisitor<Integer>() {
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
-                J.MethodInvocation mi = super.visitMethodInvocation(method, p);
-                if (mi.getMethodType() != null) {
-                    return mi;
-                }
-                JavaType.Method resolved = mi.getSelect() == null ?
-                        junitAssertionType(mi) :
-                        findMethod(TypeUtils.asFullyQualified(mi.getSelect().getType()), mi.getSimpleName(), arity(mi));
-                return resolved == null ? mi : mi.withMethodType(resolved).withName(mi.getName().withType(resolved));
-            }
-
-            @Override
-            public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
-                J.FieldAccess fa = super.visitFieldAccess(fieldAccess, p);
-                if (fa.getType() != null) {
-                    return fa;
-                }
-                JavaType resolved = memberType(fa.getTarget().getType(), fa.getName().getSimpleName());
-                return resolved == null ? fa : fa.withType(resolved);
-            }
-        }.visitNonNull(assertion, 0);
-    }
-
-    private static JavaType.Method junitAssertionType(J.MethodInvocation assertion) {
-        List<JavaType> parameterTypes = new ArrayList<>();
-        for (Expression argument : assertion.getArguments()) {
-            if (argument.getType() != null) {
-                parameterTypes.add(argument.getType());
-            }
-        }
-        return new JavaType.Method(null, Flag.Public.getBitMask() | Flag.Static.getBitMask(),
-                JavaType.ShallowClass.build("org.junit.jupiter.api.Assertions"), assertion.getSimpleName(),
-                JavaType.Primitive.Void, null, parameterTypes, null, null, null, null);
-    }
-
-    private static JavaType.@Nullable Method findMethod(JavaType.@Nullable FullyQualified type, String name, int arity) {
-        if (type == null) {
-            return null;
-        }
-        for (JavaType.Method method : type.getMethods()) {
-            if (name.equals(method.getName()) && method.getParameterTypes().size() == arity) {
-                return method;
-            }
-        }
-        JavaType.Method fromSupertype = findMethod(type.getSupertype(), name, arity);
-        if (fromSupertype != null) {
-            return fromSupertype;
-        }
-        for (JavaType.FullyQualified anInterface : type.getInterfaces()) {
-            JavaType.Method fromInterface = findMethod(anInterface, name, arity);
-            if (fromInterface != null) {
-                return fromInterface;
-            }
-        }
-        return null;
-    }
-
-    private static @Nullable JavaType memberType(@Nullable JavaType targetType, String name) {
-        JavaType.FullyQualified type = TypeUtils.asFullyQualified(targetType);
-        if (type == null) {
-            return null;
-        }
-        for (JavaType.Variable member : type.getMembers()) {
-            if (name.equals(member.getName())) {
-                return member.getType();
-            }
-        }
-        JavaType.Method getter = findMethod(type, name, 0);
-        return getter == null ? null : getter.getReturnType();
-    }
-
-    private static int arity(J.MethodInvocation mi) {
-        List<Expression> arguments = mi.getArguments();
-        return arguments.size() == 1 && arguments.get(0) instanceof J.Empty ? 0 : arguments.size();
     }
 }
