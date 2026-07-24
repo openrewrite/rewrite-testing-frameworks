@@ -48,6 +48,7 @@ recipeList:
   - org.openrewrite.java.testing.testng.TestNgAssertNotSameToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertThrowsToAssertThat
   - org.openrewrite.java.testing.testng.TestNgAssertListToAssertThat
+  - org.openrewrite.java.testing.testng.TestNgAssertionToAssertJ
   - org.openrewrite.java.testing.testng.TestNgSoftAssertToAssertJ
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testng.asserts.SoftAssert

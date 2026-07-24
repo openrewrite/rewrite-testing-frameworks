@@ -594,7 +594,7 @@ class TestNgToAssertJTest implements RewriteTest {
     }
 
     @Test
-    void hardAssertionIsNotChanged() {
+    void assertionInstanceMigratedViaAggregate() {
         rewriteRun(
           //language=java
           java(
@@ -605,6 +605,40 @@ class TestNgToAssertJTest implements RewriteTest {
                   void test() {
                       Assertion assertion = new Assertion();
                       assertion.assertEquals("actual", "expected");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat("actual").isEqualTo("expected");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void customAssertionSubclassIsNotChanged() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testng.asserts.Assertion;
+
+              class MyAssertion extends Assertion {
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test(MyAssertion assertion) {
+                      assertion.assertEquals("a", "b");
                   }
               }
               """
