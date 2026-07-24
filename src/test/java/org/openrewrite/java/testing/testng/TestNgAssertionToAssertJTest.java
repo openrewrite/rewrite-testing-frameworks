@@ -147,4 +147,100 @@ class TestNgAssertionToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void removesDeadLocalInstance() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testng.asserts.Assertion;
+
+              class Test {
+                  void test() {
+                      Assertion assertion = new Assertion();
+                      assertion.assertEquals("a", "b");
+                      assertion.assertTrue(true);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test() {
+                      assertThat("a").isEqualTo("b");
+                      assertThat(true).isTrue();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsLocalWhenReferencedElsewhere() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testng.asserts.Assertion;
+
+              class Test {
+                  Assertion sink;
+                  void test() {
+                      Assertion assertion = new Assertion();
+                      assertion.assertEquals("a", "b");
+                      sink = assertion;
+                  }
+              }
+              """,
+            """
+              import org.testng.asserts.Assertion;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  Assertion sink;
+                  void test() {
+                      Assertion assertion = new Assertion();
+                      assertThat("a").isEqualTo("b");
+                      sink = assertion;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotRemoveField() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.testng.asserts.Assertion;
+
+              class Test {
+                  private final Assertion assertion = new Assertion();
+                  void test() {
+                      assertion.assertEquals("a", "b");
+                  }
+              }
+              """,
+            """
+              import org.testng.asserts.Assertion;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  private final Assertion assertion = new Assertion();
+                  void test() {
+                      assertThat("a").isEqualTo("b");
+                  }
+              }
+              """
+          )
+        );
+    }
 }

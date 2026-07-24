@@ -20,15 +20,19 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestNgAssertionToAssertJ extends Recipe {
 
@@ -76,6 +80,47 @@ public class TestNgAssertionToAssertJ extends Recipe {
                     default:
                         return method;
                 }
+            }
+
+            @Override
+            public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+                J.Block b = super.visitBlock(block, ctx);
+                // Only method/initializer blocks, never a class body (fields are out of scope).
+                if (getCursor().getParentTreeCursor().getValue() instanceof J.ClassDeclaration) {
+                    return b;
+                }
+                return b.withStatements(ListUtils.map(b.getStatements(), statement -> {
+                    if (!(statement instanceof J.VariableDeclarations)) {
+                        return statement;
+                    }
+                    J.VariableDeclarations vd = (J.VariableDeclarations) statement;
+                    if (vd.getVariables().size() != 1 || !TypeUtils.isOfClassType(vd.getType(), ASSERTION)) {
+                        return statement;
+                    }
+                    J.VariableDeclarations.NamedVariable namedVariable = vd.getVariables().get(0);
+                    if (!(namedVariable.getInitializer() instanceof J.NewClass) || namedVariable.getVariableType() == null) {
+                        return statement;
+                    }
+                    if (hasReferencesOutsideDeclaration(b, namedVariable.getVariableType(), namedVariable.getName().getId())) {
+                        return statement;
+                    }
+                    maybeRemoveImport(ASSERTION);
+                    return null;
+                }));
+            }
+
+            private boolean hasReferencesOutsideDeclaration(J scope, JavaType.Variable target, UUID declarationNameId) {
+                AtomicInteger count = new AtomicInteger();
+                new JavaIsoVisitor<AtomicInteger>() {
+                    @Override
+                    public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
+                        if (!identifier.getId().equals(declarationNameId) && target.equals(identifier.getFieldType())) {
+                            acc.incrementAndGet();
+                        }
+                        return identifier;
+                    }
+                }.visit(scope, count);
+                return count.get() > 0;
             }
 
             private J.MethodInvocation equals(J.MethodInvocation method, ExecutionContext ctx, List<Expression> args,
