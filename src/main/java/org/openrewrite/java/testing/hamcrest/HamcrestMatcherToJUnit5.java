@@ -207,9 +207,11 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
     }
 
     /**
-     * {@link KotlinTemplate} is context-free, so any method invocation or property access it synthesizes around the
-     * examined object (e.g. {@code collection.isEmpty()} or {@code collection.size}) is left without type attribution.
-     * Resolve those from the already-typed examined object, then build the enclosing JUnit assertion's method type.
+     * Unlike {@link JavaTemplate}, whose parser type-attributes the code it generates, {@link KotlinTemplate} leaves
+     * the method invocations and property accesses it synthesizes around the examined object (e.g.
+     * {@code collection.isEmpty()} or {@code collection.size}) without type attribution, which then cascades to the
+     * enclosing assertion. Resolve those from the already-typed examined object, then build the JUnit assertion's
+     * method type. This works around a rewrite-kotlin limitation and can be removed once it attributes these itself.
      */
     private static J.MethodInvocation attributeTypes(J.MethodInvocation assertion) {
         return (J.MethodInvocation) new JavaIsoVisitor<Integer>() {
