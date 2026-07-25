@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -1195,6 +1196,51 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         );
     }
 
+    @Test
+    void lastStatementArgumentWithUnattributedTypeIsLeftInline() {
+        // A freshly-migrated `assertThrows` lambda (e.g. from `@Test(expected = ...)`) can carry arguments whose type
+        // is not attributed yet; those must be left inline rather than crashing while rendering a variable declaration
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {
+                          setup();
+                          consume(unknownA + unknownB);
+                      });
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      setup();
+                      assertThrows(RuntimeException.class, () ->
+                          consume(unknownA + unknownB));
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite/issues/7082")
     @Test
     void lastStatementWithTypeCastArgument() {
@@ -1232,6 +1278,63 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                       assertThrows(AssertionError.class, () ->
                           constructor.newInstance((Object[]) null));
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/2861")
+    @Test
+    void argumentWithAnonymousClassTypeIsLeftInline() {
+        // An anonymous (or local) class type renders to an invalid variable declaration (e.g. `MyTest.1 x = ...`);
+        // the argument must be left inline rather than crashing while extracting preceding variables.
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.concurrent.Callable;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {
+                          setup();
+                          consume(new Callable<String>() {
+                              @Override
+                              public String call() {
+                                  return "x";
+                              }
+                          });
+                      });
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
+              }
+              """,
+            """
+              import java.util.concurrent.Callable;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      setup();
+                      assertThrows(RuntimeException.class, () ->
+                          consume(new Callable<String>() {
+                              @Override
+                              public String call() {
+                                  return "x";
+                              }
+                          }));
+                  }
+                  void setup() {}
+                  void consume(Object o) {}
               }
               """
           )

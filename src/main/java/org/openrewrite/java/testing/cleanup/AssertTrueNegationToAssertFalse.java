@@ -17,13 +17,15 @@ package org.openrewrite.java.testing.cleanup;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 
 public class AssertTrueNegationToAssertFalse extends Recipe {
     private static final MethodMatcher ASSERT_TRUE = new MethodMatcher(
@@ -35,49 +37,38 @@ public class AssertTrueNegationToAssertFalse extends Recipe {
     @Getter
     final String description = "Using `assertFalse` is simpler and more clear.";
 
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_TRUE), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (ASSERT_TRUE.matches(mi) && isUnaryOperatorNot(mi)) {
-                    StringBuilder sb = new StringBuilder();
-                    J.Unary unary = (J.Unary) mi.getArguments().get(0);
-                    if (mi.getSelect() == null) {
-                        maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertFalse");
-                    } else {
-                        sb.append("Assertions.");
-                    }
-                    sb.append("assertFalse(#{any(java.lang.Boolean)}");
-                    Object[] args;
-                    if (mi.getArguments().size() == 2) {
-                        args = new Object[]{unary.getExpression(), mi.getArguments().get(1)};
-                        sb.append(", #{any()}");
-                    } else {
-                        args = new Object[]{unary.getExpression()};
-                    }
-                    sb.append(")");
-                    JavaTemplate t;
-                    if (mi.getSelect() == null) {
-                        t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .staticImports("org.junit.jupiter.api.Assertions.assertFalse")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                .build();
-                    } else {
-                        t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                                .build();
-                    }
-                    return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!ASSERT_TRUE.matches(mi) || !isUnaryOperatorNot(mi)) {
+                    return mi;
                 }
-                return mi;
+
+                if (mi.getSelect() == null) {
+                    maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertFalse");
+                }
+
+                JavaType.Method newType = assertFalseMethodType(mi.getMethodType());
+                return mi.withName(mi.getName().withSimpleName("assertFalse").withType(newType))
+                        .withMethodType(newType)
+                        .withArguments(ListUtils.mapFirst(mi.getArguments(),
+                                arg -> ((J.Unary) arg).getExpression().withPrefix(arg.getPrefix())));
+            }
+
+            private JavaType.Method assertFalseMethodType(JavaType.Method assertTrue) {
+                for (JavaType.Method method : assertTrue.getDeclaringType().getMethods()) {
+                    if ("assertFalse".equals(method.getName()) &&
+                            method.getParameterTypes().equals(assertTrue.getParameterTypes())) {
+                        return method;
+                    }
+                }
+                // fallback when type attribution was stubbed
+                return assertTrue.withName("assertFalse");
             }
 
             private boolean isUnaryOperatorNot(J.MethodInvocation method) {
@@ -85,9 +76,8 @@ public class AssertTrueNegationToAssertFalse extends Recipe {
                     J.Unary unary = (J.Unary) method.getArguments().get(0);
                     return unary.getOperator() == J.Unary.Type.Not;
                 }
-
                 return false;
             }
-        };
+        });
     }
 }

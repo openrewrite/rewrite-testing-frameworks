@@ -72,7 +72,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
-                } else if (args.size() == 3 && !isFloatingPointType(args.get(2))) {
+                } else if (args.size() == 3 && !TestNgAsserts.isFloatingPointType(args.get(2))) {
                     Expression message = args.get(2);
                     method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
@@ -113,17 +113,6 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                 }
 
                 return method;
-            }
-
-            private boolean isFloatingPointType(Expression expression) {
-                JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
-                if (fullyQualified != null) {
-                    String typeName = fullyQualified.getFullyQualifiedName();
-                    return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
-                }
-
-                JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
-                return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
             }
 
             private boolean isIntegralType(Expression expression) {

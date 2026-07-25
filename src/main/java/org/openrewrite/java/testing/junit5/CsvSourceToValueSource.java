@@ -34,6 +34,9 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.kotlin.tree.K;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +64,7 @@ public class CsvSourceToValueSource extends Recipe {
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+                        boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
 
                         // Check if method has exactly one parameter
                         if (m.getParameters().size() != 1 || m.getParameters().get(0) instanceof J.Empty) {
@@ -111,11 +115,9 @@ public class CsvSourceToValueSource extends Recipe {
                                     Expression templateArg = annotation.getArguments().get(0) instanceof J.Assignment ?
                                             ((J.Assignment) annotation.getArguments().get(0)).getAssignment() :
                                             annotation.getArguments().get(0);
-                                    J.MethodDeclaration updated = JavaTemplate.builder("@ValueSource(strings = {})")
-                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
-                                            .imports("org.junit.jupiter.params.provider.ValueSource")
-                                            .build()
-                                            .apply(getCursor(), annotation.getCoordinates().replace());
+                                    J.MethodDeclaration updated = applyValueSourceTemplate(
+                                            kotlin ? "@ValueSource(strings = [])" : "@ValueSource(strings = {})",
+                                            annotation, kotlin, ctx);
                                     return updated.withLeadingAnnotations(ListUtils.map(updated.getLeadingAnnotations(), ann ->
                                             VALUE_SOURCE_MATCHER.matches(ann) ?
                                                     ann.withArguments(ListUtils.map(ann.getArguments(),
@@ -133,7 +135,7 @@ public class CsvSourceToValueSource extends Recipe {
                                 }
 
                                 // Build a new ValueSource annotation
-                                String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values, fromTextBlock);
+                                String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values, fromTextBlock, kotlin);
                                 if (valueSourceAnnotationTemplate == null) {
                                     return m;
                                 }
@@ -141,11 +143,7 @@ public class CsvSourceToValueSource extends Recipe {
                                 // Replace the annotation
                                 maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
                                 maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
-                                J.MethodDeclaration replaced = JavaTemplate.builder(valueSourceAnnotationTemplate)
-                                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
-                                        .imports("org.junit.jupiter.params.provider.ValueSource")
-                                        .build()
-                                        .apply(getCursor(), annotation.getCoordinates().replace());
+                                J.MethodDeclaration replaced = applyValueSourceTemplate(valueSourceAnnotationTemplate, annotation, kotlin, ctx);
                                 if (fromTextBlock && values.size() > 1) {
                                     return autoFormat(replaced, ctx);
                                 }
@@ -156,7 +154,22 @@ public class CsvSourceToValueSource extends Recipe {
                         return m;
                     }
 
-                    private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values, boolean multiLine) {
+                    private J.MethodDeclaration applyValueSourceTemplate(String template, J.Annotation annotation, boolean kotlin, ExecutionContext ctx) {
+                        if (kotlin) {
+                            return KotlinTemplate.builder(template)
+                                    .imports("org.junit.jupiter.params.provider.ValueSource")
+                                    .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-params-5"))
+                                    .build()
+                                    .apply(getCursor(), annotation.getCoordinates().replace());
+                        }
+                        return JavaTemplate.builder(template)
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-params-5"))
+                                .imports("org.junit.jupiter.params.provider.ValueSource")
+                                .build()
+                                .apply(getCursor(), annotation.getCoordinates().replace());
+                    }
+
+                    private @Nullable String buildValueSourceAnnotation(String paramType, List<String> values, boolean multiLine, boolean kotlin) {
                         String attributeName;
                         String formattedValues;
 
@@ -218,10 +231,12 @@ public class CsvSourceToValueSource extends Recipe {
                         if (values.size() == 1) {
                             return "@ValueSource(" + attributeName + " = " + formattedValues + ")";
                         }
+                        String open = kotlin ? "[" : "{";
+                        String close = kotlin ? "]" : "}";
                         if (multiLine) {
-                            return "@ValueSource(" + attributeName + " = {\n" + formattedValues + "\n})";
+                            return "@ValueSource(" + attributeName + " = " + open + "\n" + formattedValues + "\n" + close + ")";
                         }
-                        return "@ValueSource(" + attributeName + " = {" + formattedValues + "})";
+                        return "@ValueSource(" + attributeName + " = " + open + formattedValues + close + ")";
                     }
 
                     private List<String> parseTextBlockLines(String textBlock) {

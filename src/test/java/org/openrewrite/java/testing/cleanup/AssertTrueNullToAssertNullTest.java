@@ -19,10 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AssertTrueNullToAssertNullTest implements RewriteTest {
 
@@ -30,6 +32,7 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
+          .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertTrueNullToAssertNull());
     }
 
@@ -108,6 +111,37 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
                       String b = null;
                       Assertions.assertNull(b);
                       Assertions.assertNull(b, "message");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void simplifyToAssertNullKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+
+              class FooTest {
+                  fun test(foundCreditLine: Any?) {
+                      assertTrue(foundCreditLine == null)
+                      assertTrue(foundCreditLine == null, "message")
+                      assertTrue(null == foundCreditLine)
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertNull
+
+              class FooTest {
+                  fun test(foundCreditLine: Any?) {
+                      assertNull(foundCreditLine)
+                      assertNull(foundCreditLine, "message")
+                      assertNull(foundCreditLine)
                   }
               }
               """

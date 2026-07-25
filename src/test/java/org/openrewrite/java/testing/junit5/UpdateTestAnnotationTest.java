@@ -20,10 +20,12 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class UpdateTestAnnotationTest implements RewriteTest {
 
@@ -32,7 +34,28 @@ class UpdateTestAnnotationTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new UpdateTestAnnotation());
+    }
+
+    @Test
+    void expectedExceptionLeftUnchangedOnKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test(expected = IllegalArgumentException::class)
+                  fun test() {
+                      throw IllegalArgumentException()
+                  }
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample
