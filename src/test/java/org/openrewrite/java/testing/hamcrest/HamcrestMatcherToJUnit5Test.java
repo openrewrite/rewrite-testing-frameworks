@@ -20,12 +20,14 @@ import org.junit.jupiter.api.Timeout;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.concurrent.TimeUnit;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.TypeValidation.all;
 
 class HamcrestMatcherToJUnit5Test implements RewriteTest {
@@ -1012,6 +1014,279 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                       String substring = "llo wor";
                       assertTrue(string.contains(substring));
                       assertThat("String does not contain the substring", string.contains(substring));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void equalToKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.hamcrest.MatcherAssert.assertThat
+              import org.hamcrest.Matchers.equalTo
+
+              class ATest {
+                  @Test
+                  fun testEquals() {
+                      val str1 = "Hello world!"
+                      val str2 = "Hello world!"
+                      assertThat(str1, equalTo(str2))
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertEquals
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testEquals() {
+                      val str1 = "Hello world!"
+                      val str2 = "Hello world!"
+                      assertEquals(str1, str2)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notEqualToKotlin() {
+        rewriteRun(
+          // Unwrapping not() stores logical context on the ExecutionContext (see RemoveNotMatcherVisitor)
+          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false))
+            .parser(KotlinParser.builder()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.hamcrest.MatcherAssert.assertThat
+              import org.hamcrest.Matchers.equalTo
+              import org.hamcrest.Matchers.not
+
+              class ATest {
+                  @Test
+                  fun testEquals() {
+                      val str1 = "Hello world!"
+                      val str2 = "Hello world!"
+                      assertThat(str1, not(equalTo(str2)))
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertNotEquals
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testEquals() {
+                      val str1 = "Hello world!"
+                      val str2 = "Hello world!"
+                      assertNotEquals(str1, str2)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void greaterThanKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.hamcrest.MatcherAssert.assertThat
+              import org.hamcrest.Matchers.greaterThan
+
+              class ATest {
+                  @Test
+                  fun testGreaterThan() {
+                      val intt = 7
+                      assertThat(10, greaterThan(intt))
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testGreaterThan() {
+                      val intt = 7
+                      assertTrue(10 > intt)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void containsStringKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.hamcrest.MatcherAssert.assertThat
+              import org.hamcrest.Matchers.containsString
+
+              class ATest {
+                  @Test
+                  fun testContainsString() {
+                      val string = "hello world"
+                      val substring = "llo wor"
+                      assertThat(string, containsString(substring))
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testContainsString() {
+                      val string = "hello world"
+                      val substring = "llo wor"
+                      assertTrue(string.contains(substring))
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void nullValueKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.hamcrest.MatcherAssert.assertThat
+              import org.hamcrest.Matchers.nullValue
+              import org.hamcrest.Matchers.notNullValue
+
+              class ATest {
+                  @Test
+                  fun testNullValue() {
+                      val integer: Int? = null
+                      val str = "hello world"
+                      assertThat(integer, nullValue())
+                      assertThat(str, notNullValue())
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertNotNull
+              import org.junit.jupiter.api.Assertions.assertNull
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testNullValue() {
+                      val integer: Int? = null
+                      val str = "hello world"
+                      assertNull(integer)
+                      assertNotNull(str)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void collectionsKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.hamcrest.MatcherAssert.assertThat
+              import org.hamcrest.Matchers.empty
+              import org.hamcrest.Matchers.hasSize
+
+              class ATest {
+                  @Test
+                  fun testEmpty() {
+                      val collection = ArrayList<String>()
+                      assertThat(collection, empty())
+                      assertThat(collection, hasSize(0))
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertEquals
+              import org.junit.jupiter.api.Assertions.assertTrue
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testEmpty() {
+                      val collection = ArrayList<String>()
+                      assertTrue(collection.isEmpty())
+                      assertEquals(collection.size, 0)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertionsWithReasonKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.hamcrest.MatcherAssert.assertThat
+              import org.hamcrest.Matchers.startsWith
+
+              class ATest {
+                  @Test
+                  fun testAssertionsWithReason() {
+                      val string = "hello world"
+                      val prefix = "hello"
+                      assertThat("String does not start with given prefix.", string, startsWith(prefix))
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testAssertionsWithReason() {
+                      val string = "hello world"
+                      val prefix = "hello"
+                      assertTrue(string.startsWith(prefix), "String does not start with given prefix.")
                   }
               }
               """
