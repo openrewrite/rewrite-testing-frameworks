@@ -26,7 +26,9 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.tree.K;
@@ -194,10 +196,31 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                         arguments.add(reason);
                     }
 
-                    return template.apply(getCursor(), method.getCoordinates().replace(), arguments.toArray());
+                    J.MethodInvocation result = template.apply(getCursor(), method.getCoordinates().replace(), arguments.toArray());
+                    if (kotlin && result.getMethodType() == null) {
+                        // KotlinTemplate cannot resolve the JUnit assertion when the reason is a substituted
+                        // placeholder, as the `(condition, String)` and `(condition, Supplier)` overloads are
+                        // ambiguous; attribute the call ourselves so the static import gets added.
+                        JavaType.Method assertionType = new JavaType.Method(null,
+                                Flag.Public.getBitMask() | Flag.Static.getBitMask(),
+                                JavaType.ShallowClass.build("org.junit.jupiter.api.Assertions"), assertion,
+                                JavaType.Primitive.Void, null, argumentTypes(result), null, null, null, null);
+                        result = result.withMethodType(assertionType).withName(result.getName().withType(assertionType));
+                    }
+                    return result;
                 }
             }
             return mi;
         }
+    }
+
+    private static List<JavaType> argumentTypes(J.MethodInvocation mi) {
+        List<JavaType> types = new ArrayList<>();
+        for (Expression argument : mi.getArguments()) {
+            if (argument.getType() != null) {
+                types.add(argument.getType());
+            }
+        }
+        return types;
     }
 }
