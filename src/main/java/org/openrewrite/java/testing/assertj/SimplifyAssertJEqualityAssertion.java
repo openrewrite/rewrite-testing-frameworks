@@ -82,8 +82,9 @@ public class SimplifyAssertJEqualityAssertion extends Recipe {
                 if (!ASSERT_THAT_MATCHER.matches(mi.getSelect())) {
                     return mi;
                 }
-                // Match isTrue()/isFalse() and isEqualTo(true|false), so we fire before the Refaster boolean rules
-                // in the same cycle, rather than after they have already produced an `isSameAs`.
+                // Also accept isEqualTo(true|false): AssertJBooleanRulesRecipes normalizes those to isTrue()/isFalse(),
+                // but only later in the same cycle, once we have already visited. Handling them here is what lets the
+                // enclosing Assertj recipe converge in a single run.
                 Boolean assertsTrue = booleanAssertion(mi);
                 if (assertsTrue == null) {
                     return mi;
