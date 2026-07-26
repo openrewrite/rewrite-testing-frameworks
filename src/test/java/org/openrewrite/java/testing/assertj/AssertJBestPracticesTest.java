@@ -505,6 +505,14 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments("Boolean", "assertThat(x).isEqualTo(false)", "assertThat(x).isFalse()"),
               arguments("Object", "assertThat(x.equals(y)).isTrue()", "assertThat(x).isEqualTo(y)"),
               arguments("Object", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
+              arguments("Object", "assertThat(x != y).isTrue()", "assertThat(x).isNotSameAs(y)"),
+              arguments("Object", "assertThat(x == y).isFalse()", "assertThat(x).isNotSameAs(y)"),
+              // Boxed types compare by reference, so `isSameAs` remains faithful
+              arguments("Long", "assertThat(x == y).isTrue()", "assertThat(x).isSameAs(y)"),
+              // Primitives compare by value, so `isEqualTo` is the faithful replacement
+              arguments("long", "assertThat(x == y).isTrue()", "assertThat(x).isEqualTo(y)"),
+              arguments("long", "assertThat(x != y).isTrue()", "assertThat(x).isNotEqualTo(y)"),
+              arguments("char", "assertThat(x != y).isFalse()", "assertThat(x).isEqualTo(y)"),
               arguments("Object", "assertThat(x == null).isTrue()", "assertThat(x).isNull()"),
               arguments("Object", "assertThat(null == x).isTrue()", "assertThat(x).isNull()"),
               arguments("Object", "assertThat(x != null).isTrue()", "assertThat(x).isNotNull()"),

@@ -55,9 +55,11 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
-  # Must run before AssertJObjectRulesRecipes, which would otherwise turn `assertThat(null == x).isTrue()`
-  # into the uncompilable `assertThat(null).isSameAs(x)`; see https://github.com/openrewrite/rewrite-testing-frameworks/issues/868
-  - org.openrewrite.java.testing.assertj.SimplifyAssertJNullRelatedAssertion
+  # Must run before AssertJObjectRulesRecipes, which would otherwise turn `assertThat(null == x).isTrue()` into the
+  # uncompilable `assertThat(null).isSameAs(x)`, and before AssertJPrimitiveRulesRecipes, which would leave a
+  # primitive `==` as a vacuous `isSameAs` on boxed values;
+  # see https://github.com/openrewrite/rewrite-testing-frameworks/issues/868
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJEqualityAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeFromIsEqualToAssertion
   # Must run before AssertJNumberRulesRecipes, which would otherwise rewrite the int `array.length`
@@ -86,11 +88,10 @@ recipeList:
   - tech.picnic.errorprone.refasterrules.AssertJObjectRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJOptionalRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPathRulesRecipes
-  # Our type-specific rules must run before AssertJPrimitiveRulesRecipes, which normalizes
-  # `isSameAs`/`isNotSameAs` to `isEqualTo`/`isNotEqualTo`. Running our rules first lets, for instance,
-  # `isNotSameAs(0)` collapse straight to `isNotZero()` within a single cycle, rather than only reaching
-  # `isNotEqualTo(0)` and needing another run to converge.
-  # See https://github.com/openrewrite/rewrite-testing-frameworks/issues/1032
+  # Our type-specific rules must run before AssertJPrimitiveRulesRecipes, which normalizes an `isSameAs`/`isNotSameAs`
+  # on primitives to `isEqualTo`/`isNotEqualTo`. Running our rules first lets a hand written `isNotSameAs(0)` collapse
+  # straight to `isNotZero()` within a single cycle, rather than only reaching `isNotEqualTo(0)` and needing another
+  # run to converge. See https://github.com/openrewrite/rewrite-testing-frameworks/issues/1032
   - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
@@ -612,3 +613,18 @@ recipeList:
         newGroupId: org.assertj
         newArtifactId: assertj-core
         newVersion: 3.x
+
+---
+# Retained so the recipe name published up to 3.42.x keeps resolving; SimplifyAssertJEqualityAssertion covers the
+# `null` comparisons this used to handle, plus the `isSameAs`/`isEqualTo` cases it left to the Picnic rules.
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.assertj.SimplifyAssertJNullRelatedAssertion
+displayName: Simplify AssertJ assertions on `null` reference comparisons
+description: >-
+  Replace `assertThat(x == null).isTrue()` and its variants with the dedicated `assertThat(x).isNull()` /
+  `assertThat(x).isNotNull()`. Now also simplifies `==` and `!=` comparisons between non-`null` operands.
+tags:
+  - testing
+  - assertj
+recipeList:
+  - org.openrewrite.java.testing.assertj.SimplifyAssertJEqualityAssertion

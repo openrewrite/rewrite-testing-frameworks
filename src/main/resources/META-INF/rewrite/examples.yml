@@ -1034,26 +1034,28 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJNullRelatedAssertion
+recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJEqualityAssertion
 examples:
-- description: '`SimplifyAssertJNullRelatedAssertionTest#nullOnEitherSide`'
+- description: '`SimplifyAssertJEqualityAssertionTest#dispatchesOnWhatTheComparisonActuallyCompares`'
   sources:
   - before: |
       import static org.assertj.core.api.Assertions.assertThat;
 
       class A {
-          void foo(Object a) {
-              assertThat(null == a).isTrue();
-              assertThat(a == null).isTrue();
+          void test(Object x, Object y, long a, long b) {
+              assertThat(x == null).isTrue();
+              assertThat(a == b).isTrue();
+              assertThat(x == y).isTrue();
           }
       }
     after: |
       import static org.assertj.core.api.Assertions.assertThat;
 
       class A {
-          void foo(Object a) {
-              assertThat(a).isNull();
-              assertThat(a).isNull();
+          void test(Object x, Object y, long a, long b) {
+              assertThat(x).isNull();
+              assertThat(a).isEqualTo(b);
+              assertThat(x).isSameAs(y);
           }
       }
     language: java
