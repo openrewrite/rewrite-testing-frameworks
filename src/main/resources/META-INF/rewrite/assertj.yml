@@ -16,17 +16,11 @@
 
 ---
 
-# We override the picnic recipes because they replace to less semantic methods (e.g. `isZero()` to `isEqualTo(0)`)
-# We prefer semantic methods (e.g. `isZero()`)
-# That is: AssertJBigIntegerRulesRecipes, AssertJByteRulesRecipes, AssertJDoubleRulesRecipes, AssertJFloatRulesRecipes, AssertJIntegerRulesRecipes, AssertJLongRulesRecipes, AssertJShortRulesRecipes
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.Assertj
 displayName: AssertJ best practices
 description: Migrates JUnit asserts to AssertJ and applies best practices to assertions.
 
-# We override the picnic recipes because they replace to less semantic methods (e.g. `isZero()` to `isEqualTo(0)`)
-# We prefer semantic methods (e.g. `isZero()`)
-# That is: AssertJBigIntegerRulesRecipes, AssertJByteRulesRecipes, AssertJDoubleRulesRecipes, AssertJFloatRulesRecipes, AssertJIntegerRulesRecipes, AssertJLongRulesRecipes, AssertJShortRulesRecipes
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -55,10 +49,9 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJAssertions
   - org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
-  # Must run before AssertJObjectRulesRecipes, which would otherwise turn `assertThat(null == x).isTrue()` into the
-  # uncompilable `assertThat(null).isSameAs(x)`, and before AssertJPrimitiveRulesRecipes, which would leave a
-  # primitive `==` as a vacuous `isSameAs` on boxed values;
-  # see https://github.com/openrewrite/rewrite-testing-frameworks/issues/868
+  # Must precede AssertJObjectRulesRecipes (else `assertThat(null == x).isTrue()` becomes the uncompilable
+  # `assertThat(null).isSameAs(x)`) and AssertJPrimitiveRulesRecipes (else a primitive `==` is left a vacuous
+  # `isSameAs`); see https://github.com/openrewrite/rewrite-testing-frameworks/issues/868
   - org.openrewrite.java.testing.assertj.SimplifyAssertJEqualityAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeAssertion
   - org.openrewrite.java.testing.assertj.SimplifyHasSizeFromIsEqualToAssertion
@@ -68,6 +61,8 @@ recipeList:
   - org.openrewrite.java.testing.assertj.SimplifySequencedCollectionAssertions
   - org.openrewrite.java.testing.assertj.SimplifyStreamMapToExtracting
 
+  # The org.openrewrite AssertJ*RulesRecipes here replace their Picnic equivalents, which prefer `isEqualTo(0)`
+  # over the more expressive `isZero()`
   - tech.picnic.errorprone.refasterrules.AssertJBigDecimalRulesRecipes
   - org.openrewrite.java.testing.assertj.AssertJBigIntegerRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJBooleanRulesRecipes
@@ -88,10 +83,8 @@ recipeList:
   - tech.picnic.errorprone.refasterrules.AssertJObjectRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJOptionalRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPathRulesRecipes
-  # Our type-specific rules must run before AssertJPrimitiveRulesRecipes, which normalizes an `isSameAs`/`isNotSameAs`
-  # on primitives to `isEqualTo`/`isNotEqualTo`. Running our rules first lets a hand written `isNotSameAs(0)` collapse
-  # straight to `isNotZero()` within a single cycle, rather than only reaching `isNotEqualTo(0)` and needing another
-  # run to converge. See https://github.com/openrewrite/rewrite-testing-frameworks/issues/1032
+  # Must precede AssertJPrimitiveRulesRecipes, which rewrites `isNotSameAs(0)` to `isNotEqualTo(0)`; going first lets
+  # it collapse to `isNotZero()` in one cycle. See https://github.com/openrewrite/rewrite-testing-frameworks/issues/1032
   - org.openrewrite.java.testing.assertj.AssertJShortRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJPrimitiveRulesRecipes
   - tech.picnic.errorprone.refasterrules.AssertJRulesRecipes
@@ -157,14 +150,11 @@ tags:
   - testing
   - assertj
 recipeList:
-  # Simplify Chained AssertJ Assertions
-  # Comparable Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: compareTo
       assertToReplace: isZero
       dedicatedAssertion: isEqualByComparingTo
       requiredType: java.math.BigDecimal
-  # String Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isEmpty
       assertToReplace: isTrue
@@ -245,7 +235,6 @@ recipeList:
       assertToReplace: hasSize
       dedicatedAssertion: hasSameSizeAs
       requiredType: java.lang.String
-  # File Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: getFile
       assertToReplace: hasSize
@@ -316,7 +305,6 @@ recipeList:
       assertToReplace: isEmpty
       dedicatedAssertion: isEmptyDirectory
       requiredType: java.io.File
-  # Path Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: startsWith
       assertToReplace: isTrue
@@ -347,7 +335,6 @@ recipeList:
       assertToReplace: isFalse
       dedicatedAssertion: isRelative
       requiredType: java.nio.file.Path
-  # Collection Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isEmpty
       assertToReplace: isTrue
@@ -383,7 +370,6 @@ recipeList:
       assertToReplace: isTrue
       dedicatedAssertion: containsAll
       requiredType: java.util.Collection
-  # Map Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: size
       assertToReplace: isEqualTo
@@ -429,7 +415,6 @@ recipeList:
       assertToReplace: isFalse
       dedicatedAssertion: isNotEmpty
       requiredType: java.util.Map
-  # Optional Assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: isPresent
       assertToReplace: isTrue
@@ -460,7 +445,6 @@ recipeList:
       assertToReplace: isSameAs
       dedicatedAssertion: containsSame
       requiredType: java.util.Optional
-    # Iterator assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: hasNext
       assertToReplace: isTrue
@@ -471,7 +455,6 @@ recipeList:
       assertToReplace: isFalse
       dedicatedAssertion: isExhausted
       requiredType: java.util.Iterator
-  # Object assertions
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: toString
       assertToReplace: isEqualTo
@@ -613,18 +596,3 @@ recipeList:
         newGroupId: org.assertj
         newArtifactId: assertj-core
         newVersion: 3.x
-
----
-# Retained so the recipe name published up to 3.42.x keeps resolving; SimplifyAssertJEqualityAssertion covers the
-# `null` comparisons this used to handle, plus the `isSameAs`/`isEqualTo` cases it left to the Picnic rules.
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.assertj.SimplifyAssertJNullRelatedAssertion
-displayName: Simplify AssertJ assertions on `null` reference comparisons
-description: >-
-  Replace `assertThat(x == null).isTrue()` and its variants with the dedicated `assertThat(x).isNull()` /
-  `assertThat(x).isNotNull()`. Now also simplifies `==` and `!=` comparisons between non-`null` operands.
-tags:
-  - testing
-  - assertj
-recipeList:
-  - org.openrewrite.java.testing.assertj.SimplifyAssertJEqualityAssertion
