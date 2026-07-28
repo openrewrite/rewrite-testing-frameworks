@@ -81,7 +81,11 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
         THEINSTANCE("theInstance", "assertSame", "assertNotSame", "#{any(java.lang.Object)}, #{any(java.lang.Object)}", "examinedObjThenMatcherArgs"),
         EMPTYITERABLE("emptyIterable", "assertFalse", "assertTrue", "#{any(java.lang.Iterable)}.iterator().hasNext()", "examinedObjOnly");
 
-        final String hamcrest, junitPositive, junitNegative, template, kotlinTemplate;
+        final String hamcrest;
+        final String junitPositive;
+        final String junitNegative;
+        final String template;
+        final String kotlinTemplate;
         final String argumentsMethod;
 
         Replacement(String hamcrest, String junitPositive, String junitNegative, String template, String argumentsMethod) {

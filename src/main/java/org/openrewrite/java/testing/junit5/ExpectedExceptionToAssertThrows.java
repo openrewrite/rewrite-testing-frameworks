@@ -199,7 +199,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     if (EXPECTED_EXCEPTION_ALL_MATCHER.matches((J.MethodInvocation) statement)) {
                         removeStatement.set(true);
                         return getExpectExceptionTemplate((J.MethodInvocation) statement, ctx)
-                                .<J.MethodInvocation>map(t -> t.apply(
+                                .map(t -> t.apply(
                                         new Cursor(updateCursor, statement),
                                         statement.getCoordinates().replace(),
                                         exceptionIdentifier,

@@ -61,20 +61,22 @@ public class AdoptAssertJDurationAssertions extends Recipe {
             new MethodMatcher(LONG_ASSERT_IS_LESS_THAN, true)
     );
 
-    private static final Map<String, String> METHOD_MAP = new HashMap<String, String>() {{
-        put("getSeconds", "hasSeconds");
-        put("getNano", "hasNanos");
+    private static final Map<String, String> METHOD_MAP;
+    static {
+        METHOD_MAP = new HashMap<String, String>();
+        METHOD_MAP.put("getSeconds", "hasSeconds");
+        METHOD_MAP.put("getNano", "hasNanos");
 
-        put("hasNanos", "hasMillis");
-        put("hasMillis", "hasSeconds");
-        put("hasSeconds", "hasMinutes");
-        put("hasMinutes", "hasHours");
-        put("hasHours", "hasDays");
+        METHOD_MAP.put("hasNanos", "hasMillis");
+        METHOD_MAP.put("hasMillis", "hasSeconds");
+        METHOD_MAP.put("hasSeconds", "hasMinutes");
+        METHOD_MAP.put("hasMinutes", "hasHours");
+        METHOD_MAP.put("hasHours", "hasDays");
 
-        put("isGreaterThan", "isPositive");
-        put("isLessThan", "isNegative");
-        put("isEqualTo", "isZero");
-    }};
+        METHOD_MAP.put("isGreaterThan", "isPositive");
+        METHOD_MAP.put("isLessThan", "isNegative");
+        METHOD_MAP.put("isEqualTo", "isZero");
+    }
 
     @Getter
     final String displayName = "Adopt AssertJ Duration assertions";

@@ -83,7 +83,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
             }
 
             private @Nullable Strictness getStrictness(J.ClassDeclaration cd, String signature) {
-                return new Annotated.Matcher(signature).<AtomicReference<@Nullable Strictness>>asVisitor(
+                return new Annotated.Matcher(signature).asVisitor(
                     (a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
                         @Override
                         public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
@@ -103,7 +103,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
             }
 
             private void registerAfterVisit(J.ClassDeclaration cd) {
-                boolean hasMockitoExtensions = new Annotated.Matcher(extendWithMockito).<AtomicBoolean>asVisitor(
+                boolean hasMockitoExtensions = new Annotated.Matcher(extendWithMockito).asVisitor(
                         (a, flag) -> {
                             flag.set(true);
                             return a.getTree();

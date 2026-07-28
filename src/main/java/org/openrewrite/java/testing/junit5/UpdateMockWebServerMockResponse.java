@@ -78,22 +78,24 @@ public class UpdateMockWebServerMockResponse extends Recipe {
         });
     }
 
-    private static final Map<String, String> REPLACEMENTS = new HashMap<String, String>() {{
-        put("setBody(*)", "body");
-        put("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay");
-        put("setChunkedBody(*, int)", "chunkedBody");
-        put("setErrorCode(int)", "code");
-        put("setHeaders(okhttp3.Headers)", "headers");
-        put("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay");
-        put("setHttp2ErrorCode(int)", "code");
-        put("setResponseCode(int)", "code");
-        put("setStatus(java.lang.String)", "status");
-        put("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody");
-        put("setTrailers(okhttp3.Headers)", "trailers");
-        put("withPush(okhttp3.mockwebserver.PushPromise)", "addPush");
-        put("withSettings(okhttp3.internal.http2.Settings)", "settings");
-        put("withWebSocketUpgrade(okhttp3.WebSocketListener)", "webSocketUpgrade");
-    }};
+    private static final Map<String, String> REPLACEMENTS;
+    static {
+        REPLACEMENTS = new HashMap<String, String>();
+        REPLACEMENTS.put("setBody(*)", "body");
+        REPLACEMENTS.put("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay");
+        REPLACEMENTS.put("setChunkedBody(*, int)", "chunkedBody");
+        REPLACEMENTS.put("setErrorCode(int)", "code");
+        REPLACEMENTS.put("setHeaders(okhttp3.Headers)", "headers");
+        REPLACEMENTS.put("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay");
+        REPLACEMENTS.put("setHttp2ErrorCode(int)", "code");
+        REPLACEMENTS.put("setResponseCode(int)", "code");
+        REPLACEMENTS.put("setStatus(java.lang.String)", "status");
+        REPLACEMENTS.put("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody");
+        REPLACEMENTS.put("setTrailers(okhttp3.Headers)", "trailers");
+        REPLACEMENTS.put("withPush(okhttp3.mockwebserver.PushPromise)", "addPush");
+        REPLACEMENTS.put("withSettings(okhttp3.internal.http2.Settings)", "settings");
+        REPLACEMENTS.put("withWebSocketUpgrade(okhttp3.WebSocketListener)", "webSocketUpgrade");
+    }
 
     @Override
     public List<Recipe> getRecipeList() {

@@ -37,12 +37,14 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
     @Getter
     final String description = "Replace JUnit 4's `@Before`, `@BeforeClass`, `@After`, and `@AfterClass` annotations with their JUnit Jupiter equivalents.";
 
-    private static final Map<String, String> JUNIT4_TO_JUPITER = new LinkedHashMap<String, String>() {{
-        put("org.junit.Before", "org.junit.jupiter.api.BeforeEach");
-        put("org.junit.After", "org.junit.jupiter.api.AfterEach");
-        put("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll");
-        put("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll");
-    }};
+    private static final Map<String, String> JUNIT4_TO_JUPITER;
+    static {
+        JUNIT4_TO_JUPITER = new LinkedHashMap<String, String>();
+        JUNIT4_TO_JUPITER.put("org.junit.Before", "org.junit.jupiter.api.BeforeEach");
+        JUNIT4_TO_JUPITER.put("org.junit.After", "org.junit.jupiter.api.AfterEach");
+        JUNIT4_TO_JUPITER.put("org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll");
+        JUNIT4_TO_JUPITER.put("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll");
+    }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -233,8 +233,8 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
 
     private static class MockitoListenerContext {
         private J.@Nullable Annotation testExecutionListenerAnnotation;
-        boolean extendWithMockitoFound = false;
-        boolean runWithFound = false;
+        boolean extendWithMockitoFound;
+        boolean runWithFound;
         private J.@Nullable NewArray listeners;
         private J.@Nullable FieldAccess listener;
         private @Nullable Expression inheritListeners;

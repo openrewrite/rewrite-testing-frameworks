@@ -289,7 +289,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
 
         private final boolean isStatic;
 
-        private boolean closed = false;
+        private boolean closed;
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -327,7 +327,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                 return md;
             }
             AnnotationMatcher annotationMatcher = isStatic ? AFTER_ALL_MATCHER : AFTER_EACH_MATCHER;
-            boolean matched = new Annotated.Matcher(annotationMatcher).<AtomicBoolean>asVisitor((a, found) -> {
+            boolean matched = new Annotated.Matcher(annotationMatcher).asVisitor((a, found) -> {
                 found.set(true);
                 return a.getTree();
             }).reduce(md, new AtomicBoolean()).get();

@@ -65,15 +65,15 @@ class JMockitBlockRewriter {
     private JavaCoordinates nextStatementCoordinates;
 
     @Getter(AccessLevel.PACKAGE)
-    private boolean rewriteFailed = false;
+    private boolean rewriteFailed;
 
     // keep track of the additional statements being added to the method body, which impacts the statement indices
     // used with bodyStatementIndex to obtain the coordinates of the next statement to be written
-    private int numStatementsAdded = 0;
+    private int numStatementsAdded;
 
     // Track setup statements that need to be preserved and wrapped in a block
     private final List<Statement> setupStatementsBeforeFirstMock = new ArrayList<>();
-    private boolean hasSetupStatements = false;
+    private boolean hasSetupStatements;
 
     JMockitBlockRewriter(JavaVisitor<ExecutionContext> visitor, ExecutionContext ctx, J.Block methodBody,
                          J.NewClass newExpectations, int bodyStatementIndex, JMockitBlockType blockType, int verificationsInOrderIdx) {

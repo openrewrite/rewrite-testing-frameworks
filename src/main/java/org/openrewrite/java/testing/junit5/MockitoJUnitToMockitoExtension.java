@@ -142,13 +142,10 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 if (key != null) {
                     getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, key, method);
                     String strictness = null;
-                    switch (method.getSimpleName()) {
-                        case "strictness":
-                            strictness = method.getArguments().get(0).toString();
-                            break;
-                        case "silent":
-                            strictness = "Strictness.LENIENT";
-                            break;
+                    if ("strictness".equals(method.getSimpleName())) {
+                        strictness = method.getArguments().get(0).toString();
+                    } else if ("silent".equals(method.getSimpleName())) {
+                        strictness = "Strictness.LENIENT";
                     }
                     if (strictness != null) {
                         strictness = strictness.startsWith("Strictness.") ? strictness : "Strictness." + strictness;

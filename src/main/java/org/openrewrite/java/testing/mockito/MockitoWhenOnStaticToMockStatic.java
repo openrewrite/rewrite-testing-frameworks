@@ -52,7 +52,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     private static final String DEFAULT_AFTER_METHOD = "tearDown";
 
-    private int varCounter = 0;
+    private int varCounter;
 
     @Getter
     final String displayName = "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic";
@@ -156,7 +156,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
                                 "    %2$s.when(() -> #{any()}).thenReturn(#{any()});\n" +
                                 "}", className, variableName), ctx)
-                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                        .apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
                         .getStatements().get(0);
 
                 List<Statement> precedingStatements = statements.subList(0, index);
@@ -188,7 +188,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 String mockedStaticVariableTemplate = variable instanceof J ? "#{any()}" : "#{}";
                 J.Block cursorBlock = (J.Block) getCursor().getValue();
                 Statement replacement = javaTemplateMockStatic(mockedStaticVariableTemplate + ".when(() -> #{any()}).thenReturn(#{any()});", ctx)
-                        .<J.Block>apply(getCursor(), cursorBlock.getCoordinates().firstStatement(), variable, whenArg, statement.getArguments().get(0))
+                        .apply(getCursor(), cursorBlock.getCoordinates().firstStatement(), variable, whenArg, statement.getArguments().get(0))
                         .getStatements().get(0);
                 return replacement.withPrefix(statement.getPrefix());
             }
@@ -205,7 +205,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 List<Statement> statements = javaTemplateMockStatic(String.format(
                         "%2$s = mockStatic(%1$s.class);\n" +
                                 "%2$s.when(() -> #{any()}).thenReturn(#{any()});", className, variableName), ctx)
-                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                        .apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
                         .getStatements().subList(0, 2);
 
                 doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {

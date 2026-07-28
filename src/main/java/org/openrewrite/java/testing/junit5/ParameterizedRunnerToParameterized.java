@@ -338,7 +338,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         .apply(updateCursor(m),
                                 m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 assert m.getBody() != null;
-                JavaCoordinates newStatementCoordinates = !m.getBody().getStatements().isEmpty() ? m.getBody().getStatements().get(0).getCoordinates().before() : m.getBody().getCoordinates().lastStatement();
+                JavaCoordinates newStatementCoordinates = m.getBody().getStatements().isEmpty() ? m.getBody().getCoordinates().lastStatement() : m.getBody().getStatements().get(0).getCoordinates().before();
                 m = JavaTemplate.builder(initMethodName + "(#{});")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion()

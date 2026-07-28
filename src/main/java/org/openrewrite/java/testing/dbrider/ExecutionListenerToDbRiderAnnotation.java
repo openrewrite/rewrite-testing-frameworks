@@ -89,7 +89,7 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
 
     private static class DbRiderExecutionListenerContext {
         private J.@Nullable Annotation testExecutionListenerAnnotation;
-        private boolean dbriderFound = false;
+        private boolean dbriderFound;
         private J.@Nullable NewArray listeners;
         private J.@Nullable FieldAccess listener;
         private @Nullable Expression inheritListeners;

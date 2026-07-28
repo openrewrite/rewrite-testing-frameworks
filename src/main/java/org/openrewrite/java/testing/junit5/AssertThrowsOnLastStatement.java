@@ -235,7 +235,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         name = name.replaceAll("^is", "");
                     }
                     name = StringUtils.uncapitalize(name);
-                    variableName = VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    variableName = VariableNameUtils.generateVariableName(name.isEmpty() ? "x" : name, getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 } else {
                     variableName = VariableNameUtils.generateVariableName("x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 }

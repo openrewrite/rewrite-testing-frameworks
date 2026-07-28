@@ -61,7 +61,7 @@ public class GradleUseJunitJupiter extends Recipe {
         return Preconditions.check(new IsBuildGradle<>(), new GroovyIsoVisitor<ExecutionContext>() {
             @Override
             public G.CompilationUnit visitCompilationUnit(G.CompilationUnit compilationUnit, ExecutionContext ctx) {
-                if (!IsBuildGradle(compilationUnit) || !hasJavaBasePlugin(compilationUnit) || containsJUnitPlatformInvocation(compilationUnit)) {
+                if (!isBuildGradle(compilationUnit) || !hasJavaBasePlugin(compilationUnit) || containsJUnitPlatformInvocation(compilationUnit)) {
                     return compilationUnit;
                 }
                 // If anywhere in the tree there is a useJunit() we can swap it out for useJUnitPlatform() and be done in one step
@@ -85,7 +85,7 @@ public class GradleUseJunitJupiter extends Recipe {
     }
 
     // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
-    private static boolean IsBuildGradle(G.CompilationUnit compilationUnit) {
+    private static boolean isBuildGradle(G.CompilationUnit compilationUnit) {
         return compilationUnit.getSourcePath().toString().endsWith("build.gradle");
     }
 
