@@ -74,6 +74,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final MethodMatcher EXPECTED_MESSAGE_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expectMessage(org.hamcrest.Matcher)");
         private static final MethodMatcher EXPECTED_EXCEPTION_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect(org.hamcrest.Matcher)");
         private static final MethodMatcher EXPECTED_EXCEPTION_CAUSE_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expectCause(org.hamcrest.Matcher)");
+        // *Matchers wildcard: isA/instanceOf/is are all reachable from both CoreMatchers and the consolidated Matchers.
+        private static final MethodMatcher IS_A_MATCHER = new MethodMatcher("org.hamcrest.*Matchers isA(java.lang.Class)");
+        private static final MethodMatcher INSTANCE_OF_MATCHER = new MethodMatcher("org.hamcrest.*Matchers instanceOf(java.lang.Class)");
+        private static final MethodMatcher IS_MATCHER_CORE_MATCHERS = new MethodMatcher("org.hamcrest.*Matchers is(..)");
+        private static final MethodMatcher IS_MATCHER_CORE_IS = new MethodMatcher("org.hamcrest.core.Is is(..)");
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -196,14 +201,20 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     null);
             b = b.withStatements(ListUtils.map(b.getStatements(), statement -> {
                 if (statement instanceof J.MethodInvocation) {
-                    if (EXPECTED_EXCEPTION_ALL_MATCHER.matches((J.MethodInvocation) statement)) {
+                    J.MethodInvocation invocation = (J.MethodInvocation) statement;
+                    if (EXPECTED_EXCEPTION_ALL_MATCHER.matches(invocation)) {
                         removeStatement.set(true);
-                        return getExpectExceptionTemplate((J.MethodInvocation) statement, ctx)
+                        Optional<Statement> instanceOfAssertion = maybeAssertInstanceOfForCause(
+                                invocation, ctx, new Cursor(updateCursor, statement), exceptionIdentifier);
+                        if (instanceOfAssertion.isPresent()) {
+                            return instanceOfAssertion.get();
+                        }
+                        return getExpectExceptionTemplate(invocation, ctx)
                                 .<J.MethodInvocation>map(t -> t.apply(
                                         new Cursor(updateCursor, statement),
                                         statement.getCoordinates().replace(),
                                         exceptionIdentifier,
-                                        ((J.MethodInvocation) statement).getArguments().get(0)))
+                                        invocation.getArguments().get(0)))
                                 .orElse(null);
                     }
                 }
@@ -307,6 +318,54 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.hamcrest.MatcherAssert.assertThat", "org.hamcrest.CoreMatchers.containsString")
                     .build());
+        }
+
+        // expectCause(isA/instanceOf/is(X.class)) becomes the type-safe assertInstanceOf(X.class, exception.getCause()).
+        private Optional<Statement> maybeAssertInstanceOfForCause(
+                J.MethodInvocation invocation, ExecutionContext ctx, Cursor cursor, J.Identifier exceptionIdentifier) {
+            if (!EXPECTED_EXCEPTION_CAUSE_MATCHER.matches(invocation)) {
+                return Optional.empty();
+            }
+            Expression matcherArg = invocation.getArguments().get(0);
+            if (!(matcherArg instanceof J.MethodInvocation)) {
+                return Optional.empty();
+            }
+            Expression classArg = extractClassLiteralFromInstanceOfMatcher((J.MethodInvocation) matcherArg);
+            if (classArg == null) {
+                return Optional.empty();
+            }
+            maybeRemoveImport("org.hamcrest.Matchers.isA");
+            maybeRemoveImport("org.hamcrest.CoreMatchers.isA");
+            maybeRemoveImport("org.hamcrest.Matchers.instanceOf");
+            maybeRemoveImport("org.hamcrest.CoreMatchers.instanceOf");
+            maybeRemoveImport("org.hamcrest.Matchers.is");
+            maybeRemoveImport("org.hamcrest.CoreMatchers.is");
+            maybeRemoveImport("org.hamcrest.core.Is.is");
+            maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
+            return Optional.of(JavaTemplate.builder("assertInstanceOf(#{any()}, #{any(java.lang.Throwable)}.getCause())")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
+                    .build()
+                    .apply(cursor, invocation.getCoordinates().replace(), classArg, exceptionIdentifier));
+        }
+
+        // Only is(X.class) is treated as an instanceof check, to avoid false positives on is("string") or is(someVariable).
+        private Expression extractClassLiteralFromInstanceOfMatcher(J.MethodInvocation matcherCall) {
+            if (matcherCall.getArguments().isEmpty()) {
+                return null;
+            }
+            Expression arg = matcherCall.getArguments().get(0);
+            if (IS_A_MATCHER.matches(matcherCall) || INSTANCE_OF_MATCHER.matches(matcherCall)) {
+                return arg;
+            }
+            if (isHamcrestIs(matcherCall) && arg instanceof J.FieldAccess && "class".equals(((J.FieldAccess) arg).getName().getSimpleName())) {
+                return arg;
+            }
+            return null;
+        }
+
+        private boolean isHamcrestIs(J.MethodInvocation method) {
+            return IS_MATCHER_CORE_MATCHERS.matches(method) || IS_MATCHER_CORE_IS.matches(method);
         }
     }
 }
