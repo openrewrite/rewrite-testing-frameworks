@@ -375,6 +375,181 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         );
     }
 
+    @Test
+    void refactorExpectCauseWithIsAMatcherToAssertInstanceOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.Rule;
+              import org.junit.rules.ExpectedException;
+
+              import static org.hamcrest.Matchers.isA;
+
+              public class ExampleTests {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  public void expectCause() {
+                      this.thrown.expectCause(isA(IllegalStateException.class));
+                      throw new RuntimeException(new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class ExampleTests {
+
+                  public void expectCause() {
+                      Throwable exception = assertThrows(Exception.class, () -> {
+                          throw new RuntimeException(new IllegalStateException());
+                      });
+                      assertInstanceOf(IllegalStateException.class, exception.getCause());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void refactorExpectCauseWithInstanceOfMatcherToAssertInstanceOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.Rule;
+              import org.junit.rules.ExpectedException;
+
+              import static org.hamcrest.Matchers.instanceOf;
+
+              public class ExampleTests {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  public void expectCause() {
+                      this.thrown.expectCause(instanceOf(IllegalStateException.class));
+                      throw new RuntimeException(new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class ExampleTests {
+
+                  public void expectCause() {
+                      Throwable exception = assertThrows(Exception.class, () -> {
+                          throw new RuntimeException(new IllegalStateException());
+                      });
+                      assertInstanceOf(IllegalStateException.class, exception.getCause());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void refactorExpectCauseWithIsClassMatcherToAssertInstanceOf() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.Rule;
+              import org.junit.rules.ExpectedException;
+
+              import static org.hamcrest.CoreMatchers.is;
+
+              public class ExampleTests {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  public void expectCause() {
+                      this.thrown.expectCause(is(IllegalStateException.class));
+                      throw new RuntimeException(new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class ExampleTests {
+
+                  public void expectCause() {
+                      Throwable exception = assertThrows(Exception.class, () -> {
+                          throw new RuntimeException(new IllegalStateException());
+                      });
+                      assertInstanceOf(IllegalStateException.class, exception.getCause());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void expectCauseWithIsMatcherDecoratorIsNotTreatedAsInstanceOfCheck() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import org.junit.Rule;
+              import org.junit.rules.ExpectedException;
+
+              import static org.hamcrest.CoreMatchers.is;
+              import static org.hamcrest.Matchers.nullValue;
+
+              public class ExampleTests {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  public void expectCause() {
+                      this.thrown.expectCause(is(nullValue()));
+                      throw new RuntimeException();
+                  }
+              }
+              """,
+            """
+              package org.openrewrite.java.testing.junit5;
+
+              import static org.hamcrest.CoreMatchers.is;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.nullValue;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class ExampleTests {
+
+                  public void expectCause() {
+                      Throwable exception = assertThrows(Exception.class, () -> {
+                          throw new RuntimeException();
+                      });
+                      assertThat(exception.getCause(), is(nullValue()));
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/72")
     @Test
     void refactorExpectException() {
