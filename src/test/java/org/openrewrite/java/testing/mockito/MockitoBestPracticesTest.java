@@ -34,7 +34,10 @@ class MockitoBestPracticesTest implements RewriteTest {
             spec
               .beforeRecipe(withToolingApi())
               .parser(JavaParser.fromJavaVersion()
-                .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-core", "mockito-junit-jupiter"))
+                .classpathFromResources(new InMemoryExecutionContext(),
+                  "junit-jupiter-api",
+                  "mockito-core",
+                  "mockito-junit-jupiter"))
               .recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to5Migration");
         }
 

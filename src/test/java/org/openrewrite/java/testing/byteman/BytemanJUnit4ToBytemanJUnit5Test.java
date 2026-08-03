@@ -30,8 +30,10 @@ class BytemanJUnit4ToBytemanJUnit5Test implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-4", "junit-jupiter-api-5",
-            "byteman-bmunit-4", "byteman-bmunit5-4"))
+            "junit-4",
+            "junit-jupiter-api-5",
+            "byteman-bmunit-4",
+            "byteman-bmunit5-4"))
           .recipeFromResource(
             "/META-INF/rewrite/byteman.yml",
             "org.openrewrite.java.testing.byteman.BytemanJUnit4ToBytemanJUnit5");

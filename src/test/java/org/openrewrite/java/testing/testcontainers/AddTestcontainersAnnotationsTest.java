@@ -30,7 +30,9 @@ class AddTestcontainersAnnotationsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddTestcontainersAnnotations())
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-4", "testcontainers-1", "junit-jupiter-1"));
+            "junit-4",
+            "testcontainers-1",
+            "junit-jupiter-1"));
     }
 
     @DocumentExample

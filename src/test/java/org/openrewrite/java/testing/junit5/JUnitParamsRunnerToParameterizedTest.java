@@ -31,7 +31,10 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "JUnitParams-1.1", "hamcrest-3"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "JUnitParams-1.1",
+              "hamcrest-3"))
           .recipe(new JUnitParamsRunnerToParameterized());
     }
 

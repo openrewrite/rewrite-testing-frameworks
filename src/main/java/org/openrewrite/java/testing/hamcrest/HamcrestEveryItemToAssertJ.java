@@ -101,7 +101,9 @@ public class HamcrestEveryItemToAssertJ extends Recipe {
                                 "assertThat(#{any()})" + reasonTemplate + ".allSatisfy(arg -> assertThat(arg, #{any()}))")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx,
-                                "assertj-core-3", "hamcrest-3", "junit-jupiter-api-5"))
+                                "assertj-core-3",
+                                "hamcrest-3",
+                                "junit-jupiter-api-5"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build();
 

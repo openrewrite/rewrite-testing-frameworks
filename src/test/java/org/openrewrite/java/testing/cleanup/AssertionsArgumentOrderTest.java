@@ -30,7 +30,10 @@ class AssertionsArgumentOrderTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AssertionsArgumentOrder())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "testng-7", "junit-4"));
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api-5",
+              "testng-7",
+              "junit-4"));
     }
 
     @DocumentExample

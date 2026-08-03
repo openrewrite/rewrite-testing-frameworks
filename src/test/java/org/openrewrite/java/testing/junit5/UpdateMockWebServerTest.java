@@ -32,7 +32,10 @@ class UpdateMockWebServerTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5", "mockwebserver-3.14"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "junit-jupiter-api-5",
+              "mockwebserver-3.14"))
           .recipe(new UpdateMockWebServer());
     }
 

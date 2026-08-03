@@ -78,7 +78,10 @@ public class UpdateMockWebServer extends Recipe {
                                         .contextSensitive()
                                         .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                         .javaParser(JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
+                                                .classpathFromResources(ctx,
+                                                        "junit-4",
+                                                        "junit-jupiter-api-5",
+                                                        "apiguardian-api-1.1",
                                                         "mockwebserver-3.14"))
                                         .build()
                                         .apply(
@@ -95,7 +98,10 @@ public class UpdateMockWebServer extends Recipe {
                                                 .contextSensitive()
                                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                                 .javaParser(JavaParser.fromJavaVersion()
-                                                        .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1",
+                                                        .classpathFromResources(ctx,
+                                                                "junit-4",
+                                                                "junit-jupiter-api-5",
+                                                                "apiguardian-api-1.1",
                                                                 "mockwebserver-3.14"))
                                                 .build()
                                                 .apply(

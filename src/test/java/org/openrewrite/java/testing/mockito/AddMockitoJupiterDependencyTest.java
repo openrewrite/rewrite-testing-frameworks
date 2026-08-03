@@ -35,7 +35,10 @@ class AddMockitoJupiterDependencyTest implements RewriteTest {
           .beforeRecipe(withToolingApi())
           .recipe(new AddMockitoJupiterDependency())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-core", "mockito-junit-jupiter"));
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api",
+              "mockito-core",
+              "mockito-junit-jupiter"));
     }
 
     @DocumentExample

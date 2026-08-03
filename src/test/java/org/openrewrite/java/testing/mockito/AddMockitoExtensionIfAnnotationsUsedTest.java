@@ -33,7 +33,11 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddMockitoExtensionIfAnnotationsUsed())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "junit-jupiter-api",
+              "mockito-junit-jupiter",
+              "mockito-core")
             .dependsOn("public class Service {}"))
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
@@ -254,7 +258,11 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     void doNotAddWhenSpringExtensionPresent() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core", "spring-test-6.1")
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api",
+              "mockito-junit-jupiter",
+              "mockito-core",
+              "spring-test-6.1")
             .dependsOn("public class Service {}")),
           //language=java
           java(

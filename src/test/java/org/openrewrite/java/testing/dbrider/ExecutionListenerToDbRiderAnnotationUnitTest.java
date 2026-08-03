@@ -27,7 +27,10 @@ import static org.openrewrite.java.Assertions.java;
 class ExecutionListenerToDbRiderAnnotationUnitTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "spring-test-6.1", "rider-spring-1.18", "rider-junit5-1.44"))
+        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+                "spring-test-6.1",
+                "rider-spring-1.18",
+                "rider-junit5-1.44"))
           .recipe(new ExecutionListenerToDbRiderAnnotation());
     }
 
