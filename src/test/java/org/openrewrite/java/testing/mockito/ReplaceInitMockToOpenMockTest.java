@@ -677,6 +677,78 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/moderneinc/customer-requests/issues/2831")
+    @Test
+    void kotlinNestedInnerClassBacktickNamesAndExtensionFunctions() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Nested
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mock
+              import org.mockito.MockitoAnnotations
+
+              class MyServiceTest {
+                  @Mock
+                  private lateinit var myService: String
+
+                  @BeforeEach
+                  fun setUp() {
+                      MockitoAnnotations.initMocks(this)
+                  }
+
+                  @Nested
+                  inner class WhenServiceIsCalled {
+                      @Test
+                      fun `returns a value`() {
+                      }
+                  }
+
+                  private fun String.twice() = this + this
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach
+              import org.junit.jupiter.api.BeforeEach
+              import org.junit.jupiter.api.Nested
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mock
+              import org.mockito.MockitoAnnotations
+
+              class MyServiceTest {
+                  private lateinit var mocks: AutoCloseable
+
+                  @Mock
+                  private lateinit var myService: String
+
+                  @BeforeEach
+                  fun setUp() {
+                      mocks = MockitoAnnotations.openMocks(this)
+                  }
+
+                  @Nested
+                  inner class WhenServiceIsCalled {
+                      @Test
+                      fun `returns a value`() {
+                      }
+                  }
+
+                  private fun String.twice() = this + this
+
+                  @AfterEach
+                  fun tearDown() {
+                      mocks.close()
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void noChangesWithJunit4() {
         rewriteRun(
