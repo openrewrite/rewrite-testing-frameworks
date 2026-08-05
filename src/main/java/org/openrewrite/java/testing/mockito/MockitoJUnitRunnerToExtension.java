@@ -15,9 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -88,7 +86,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                         @Override
                         public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
                             for (Strictness strict : Strictness.values()) {
-                                if (TypeUtils.isOfClassType(fieldAccess.getTarget().getType(), strict.runner)) {
+                                if (strict.runners.stream().anyMatch(runner -> TypeUtils.isOfClassType(fieldAccess.getTarget().getType(), runner))) {
                                     strictness.set(strict);
                                     break;
                                 }
@@ -111,6 +109,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 List<String> obsoleteRunners = Arrays.asList(
                         "org.mockito.junit.MockitoJUnitRunner.Silent",
                         "org.mockito.junit.MockitoJUnitRunner.Strict",
+                        "org.mockito.junit.MockitoJUnitRunner.StrictStubs",
                         "org.mockito.junit.MockitoJUnitRunner");
                 if (hasMockitoExtensions) {
                     doAfterVisit(new RemoveObsoleteRunners(obsoleteRunners).getVisitor());
@@ -118,7 +117,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                     doAfterVisit(new RunnerToExtension(obsoleteRunners, "org.mockito.junit.jupiter.MockitoExtension").getVisitor());
                 }
                 for (Strictness strictness : Strictness.values()) {
-                    maybeRemoveImport(strictness.runner);
+                    strictness.runners.forEach(this::maybeRemoveImport);
                 }
                 maybeAddImport("org.mockito.quality.Strictness");
                 maybeAddImport("org.mockito.junit.jupiter.MockitoSettings");
@@ -138,13 +137,16 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
         });
     }
 
-    @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
     private enum Strictness {
         LENIENT("org.mockito.junit.MockitoJUnitRunner.Silent"),
         WARN("org.mockito.junit.MockitoJUnitRunner"),
-        STRICT_STUBS("org.mockito.junit.MockitoJUnitRunner.Strict");
+        STRICT_STUBS("org.mockito.junit.MockitoJUnitRunner.Strict", "org.mockito.junit.MockitoJUnitRunner.StrictStubs");
 
-        final String runner;
+        final List<String> runners;
+
+        Strictness(String... runners) {
+            this.runners = Arrays.asList(runners);
+        }
 
         // Return true, if current strictness is greater than given strictness.
         boolean isGreaterThan(Strictness strictness) {
