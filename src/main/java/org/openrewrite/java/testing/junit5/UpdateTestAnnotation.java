@@ -157,7 +157,9 @@ public class UpdateTestAnnotation extends Recipe {
                     }
                 }
                 if (cta.timeout != null) {
-                    m = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS)")
+                    // JUnit 4 ran `@Test(timeout = N)` bodies in a separate daemon thread, so a hanging test never
+                    // blocked the runner; `@Timeout` defaults to the same thread, where a non-interruptible body hangs.
+                    m = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)")
                             .javaParser(javaParser)
                             .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                             .build()

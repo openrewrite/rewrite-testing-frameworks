@@ -359,7 +359,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
 
                   @Test
-                  @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
+                  @Timeout(value = 500, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
                   public void test() {
                   }
               }
@@ -442,7 +442,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
               public class MyTest {
 
                   @Test
-                  @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
+                  @Timeout(value = 500, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
                   public void test() {
                       assertThrows(IllegalArgumentException.class, () -> {
                           throw new IllegalArgumentException("boom");

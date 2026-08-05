@@ -163,7 +163,7 @@ class EnclosedToNestedTest implements RewriteTest {
                   @Nested
                   public class InnerTest {
                       @Test
-                      @Timeout(value = 10, unit = TimeUnit.MILLISECONDS)
+                      @Timeout(value = 10, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
                       public void test() {
                       }
                   }
@@ -211,7 +211,7 @@ class EnclosedToNestedTest implements RewriteTest {
                   public class InnerTest {
 
                       @Test
-                      @Timeout(value = 10, unit = TimeUnit.MILLISECONDS)
+                      @Timeout(value = 10, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
                       public void test() {
                       }
                   }
