@@ -99,7 +99,7 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
                 while (unwrapped instanceof J.TypeCast) {
                     unwrapped = ((J.TypeCast) unwrapped).getExpression().unwrap();
                 }
-                return unwrapped instanceof J.Literal && ((J.Literal) unwrapped).getValue() == null;
+                return J.Literal.isLiteralValue(unwrapped, null);
             }
         });
     }

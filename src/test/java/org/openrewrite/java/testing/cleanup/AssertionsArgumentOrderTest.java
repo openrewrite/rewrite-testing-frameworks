@@ -504,4 +504,87 @@ class AssertionsArgumentOrderTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1071")
+    @Test
+    void retainNullLiteralArgumentOfEqualityAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class MyTest {
+                  void someTest() {
+                      assertEquals(someString(), null);
+                      assertNotEquals(someString(), null);
+                      assertNotEquals(someString(), null, "message");
+                      assertNotEquals(someString(), (Object) null);
+                  }
+                  String someString() {
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1071")
+    @Test
+    void retainNullLiteralArgumentOfJunit4AndTestNgEqualityAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              class MyTest {
+                  void someTest() {
+                      org.junit.Assert.assertEquals(someString(), null);
+                      org.junit.Assert.assertEquals("message", someString(), null);
+                      org.testng.Assert.assertEquals(null, someString());
+                      org.testng.Assert.assertNotEquals(null, someString());
+                  }
+                  String someString() {
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1071")
+    @Test
+    void stillReorderNullLiteralArgumentOfReferenceAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertSame;
+
+              class MyTest {
+                  void someTest() {
+                      assertSame(someString(), null);
+                  }
+                  String someString() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertSame;
+
+              class MyTest {
+                  void someTest() {
+                      assertSame(null, someString());
+                  }
+                  String someString() {
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
 }

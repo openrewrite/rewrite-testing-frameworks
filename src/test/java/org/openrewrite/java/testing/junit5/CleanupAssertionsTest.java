@@ -129,8 +129,9 @@ class CleanupAssertionsTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1071")
     @Test
-    void assertNotEqualsInverted() {
+    void assertNotEqualsNullRetained() {
         //language=java
         rewriteRun(
           java(
@@ -146,21 +147,6 @@ class CleanupAssertionsTest implements RewriteTest {
                             B myVariable = new B();
 
                             Assertions.assertNotEquals(myVariable, null);
-                        }
-                    }
-                    """,
-            """
-                    import org.junit.jupiter.api.Assertions;
-                    import org.junit.jupiter.api.Test;
-
-                    class A {
-                        class B {}
-
-                        @Test
-                        public void FlippedParams(){
-                            B myVariable = new B();
-
-                            Assertions.assertNotEquals(null, myVariable);
                         }
                     }
                     """

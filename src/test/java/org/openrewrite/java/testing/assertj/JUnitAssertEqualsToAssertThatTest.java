@@ -518,4 +518,46 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/492")
+    @Test
+    void nullArgumentAssertedOnNonNullArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertEquals(notification(), null);
+                      assertEquals(notification(), null, "These should be equal");
+                  }
+                  private String notification() {
+                      return "joe";
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification()).isEqualTo(null);
+                      assertThat(notification()).as("These should be equal").isEqualTo(null);
+                  }
+                  private String notification() {
+                      return "joe";
+                  }
+              }
+              """
+          )
+        );
+    }
 }
