@@ -21,6 +21,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -162,7 +164,9 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
         @Override
         public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
-            J.Block b = super.visitBlock(block, ctx);
+            J.Block simplified = inlineSingleUseReassignedLocals(block);
+            updateCursor(simplified);
+            J.Block b = super.visitBlock(simplified, ctx);
             List<Statement> statementsAfterExpectException = getCursor().pollMessage(STATEMENTS_AFTER_EXPECT_EXCEPTION);
             if (statementsAfterExpectException == null) {
                 return b;
@@ -297,6 +301,142 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 cursor = cursor.getParentTreeCursor();
             }
             return successorStatements;
+        }
+
+        /**
+         * Narrow case: a local reassigned exactly once before expect*() (RHS not self-referencing),
+         * not read again before expect*(), and read exactly once among the statements moving into
+         * the assertThrows(...) lambda -- inline the RHS at that use site instead of leaving a
+         * non-effectively-final capture. Chains and multi-use reads are left untouched.
+         */
+        private J.Block inlineSingleUseReassignedLocals(J.Block block) {
+            for (boolean changed = true; changed; ) {
+                changed = false;
+                List<Statement> statements = block.getStatements();
+                int expectIndex = findExpectIndex(statements);
+                if (expectIndex <= 0) {
+                    return block;
+                }
+                for (int i = 0; i < expectIndex && !changed; i++) {
+                    if (!(statements.get(i) instanceof J.Assignment)) {
+                        continue;
+                    }
+                    J.Assignment assignment = (J.Assignment) statements.get(i);
+                    if (!(assignment.getVariable() instanceof J.Identifier)) {
+                        continue;
+                    }
+                    String name = ((J.Identifier) assignment.getVariable()).getSimpleName();
+                    Expression rhs = assignment.getAssignment();
+                    boolean selfReferencing = countIdentifier(rhs, name) > 0;
+                    boolean reassignedOnce = countAssignmentsTo(statements.subList(0, expectIndex), name) == 1;
+                    boolean readBetween = countIdentifier(statements.subList(i + 1, expectIndex), name) > 0;
+                    if (selfReferencing || !reassignedOnce || readBetween) {
+                        continue;
+                    }
+                    J.Block updated = inlineAtSingleUse(block, statements, i, expectIndex, name, rhs);
+                    if (updated != null) {
+                        block = updated;
+                        changed = true;
+                    }
+                }
+            }
+            return block;
+        }
+
+        private static int findExpectIndex(List<Statement> statements) {
+            for (int i = 0; i < statements.size(); i++) {
+                if (statements.get(i) instanceof J.MethodInvocation &&
+                        EXPECTED_EXCEPTION_ALL_MATCHER.matches((J.MethodInvocation) statements.get(i))) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private static int countAssignmentsTo(List<Statement> statements, String name) {
+            int count = 0;
+            for (Statement s : statements) {
+                if (s instanceof J.Assignment) {
+                    Expression target = ((J.Assignment) s).getVariable();
+                    if (target instanceof J.Identifier && name.equals(((J.Identifier) target).getSimpleName())) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        private static int countIdentifier(J tree, String name) {
+            AtomicInteger count = new AtomicInteger();
+            new JavaIsoVisitor<AtomicInteger>() {
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
+                    if (name.equals(identifier.getSimpleName())) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitIdentifier(identifier, acc);
+                }
+            }.visit(tree, count);
+            return count.get();
+        }
+
+        private static int countIdentifier(List<? extends J> trees, String name) {
+            int total = 0;
+            for (J tree : trees) {
+                total += countIdentifier(tree, name);
+            }
+            return total;
+        }
+
+        // Deletes the reassignment at statements[assignmentIndex] and splices its RHS in place of
+        // the single successor statement referencing `name`; null if there isn't exactly one use.
+        private J.Block inlineAtSingleUse(J.Block block, List<Statement> statements, int assignmentIndex,
+                int expectIndex, String name, Expression rhs) {
+            int afterIndex = -1;
+            int uses = 0;
+            for (int j = expectIndex + 1; j < statements.size(); j++) {
+                int hits = countIdentifier(statements.get(j), name);
+                uses += hits;
+                if (hits > 0) {
+                    afterIndex = j;
+                }
+            }
+            if (uses != 1) {
+                return null;
+            }
+            Statement rewritten = inlineIdentifierInStatement(getCursor(), statements.get(afterIndex), name, rhs);
+            if (rewritten == null) {
+                return null;
+            }
+            int finalAfterIndex = afterIndex;
+            return block.withStatements(ListUtils.map(statements, (i, s) -> {
+                if (i == assignmentIndex) {
+                    return null;
+                }
+                return i == finalAfterIndex ? rewritten : s;
+            }));
+        }
+
+        // Replaces the sole occurrence of identifier `name` in `statement` with `replacement`.
+        private Statement inlineIdentifierInStatement(Cursor parentCursor, Statement statement, String name,
+                Expression replacement) {
+            AtomicBoolean done = new AtomicBoolean(false);
+            JavaVisitor<Integer> inliner = new JavaVisitor<Integer>() {
+                @Override
+                public J visitIdentifier(J.Identifier identifier, Integer p) {
+                    if (done.get() || !name.equals(identifier.getSimpleName())) {
+                        return identifier;
+                    }
+                    done.set(true);
+                    String text = replacement.printTrimmed(getCursor());
+                    return JavaTemplate.builder(text)
+                            .javaParser(JavaParser.fromJavaVersion())
+                            .build()
+                            .apply(getCursor(), identifier.getCoordinates().replace());
+                }
+            };
+            J result = inliner.visit(statement, 0, parentCursor);
+            return done.get() ? (Statement) result : null;
         }
 
         private Optional<JavaTemplate> getExpectExceptionTemplate(J.MethodInvocation method, ExecutionContext ctx) {
