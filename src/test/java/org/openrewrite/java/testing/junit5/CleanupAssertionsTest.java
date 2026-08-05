@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -96,8 +97,9 @@ class CleanupAssertionsTest implements RewriteTest {
           ));
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1071")
     @Test
-    void assertFalseNegatedEqualsNullToAssertNull() {
+    void assertFalseNegatedEqualsNullToAssertTrue() {
         //language=java
         rewriteRun(
           java(
@@ -119,7 +121,7 @@ class CleanupAssertionsTest implements RewriteTest {
               class ExampleTest {
                   @Test
                   void test() {
-                      Assertions.assertNull("");
+                      Assertions.assertTrue("".equals(null));
                   }
               }
               """
