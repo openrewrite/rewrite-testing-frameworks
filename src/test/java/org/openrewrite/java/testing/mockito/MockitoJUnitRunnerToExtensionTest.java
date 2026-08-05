@@ -66,6 +66,31 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
         );
     }
 
+    @Test
+    void strictStubsMockitoRunnerToExtension() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.runner.RunWith;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.StrictStubs.class)
+              public class ExternalAPIServiceTest {
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              public class ExternalAPIServiceTest {
+              }
+              """
+          )
+        );
+    }
+
     @CsvSource({
       "MockitoJUnitRunner.Silent.class,Strictness.LENIENT",
       "MockitoJUnitRunner.class,Strictness.WARN"
