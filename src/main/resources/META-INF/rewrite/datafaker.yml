@@ -34,6 +34,7 @@ recipeList:
   - org.openrewrite.java.ChangePackage:
       oldPackageName: com.github.javafaker
       newPackageName: net.datafaker
+      recursive: true
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: com.github.javafaker
       oldArtifactId: javafaker
