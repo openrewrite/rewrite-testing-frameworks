@@ -66,4 +66,25 @@ class JavaFakerToDataFakerTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void typeInSubpackage() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.javafaker.service.RandomService;
+              class A {
+                  RandomService random = new RandomService();
+              }
+              """,
+            """
+              import net.datafaker.service.RandomService;
+              class A {
+                  RandomService random = new RandomService();
+              }
+              """
+          )
+        );
+    }
 }

@@ -211,4 +211,25 @@ class FestToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void typeInSubpackage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.fest.assertions.api.filter.Filters;
+              class A {
+                  Class<?> type = Filters.class;
+              }
+              """,
+            """
+              import org.assertj.core.api.filter.Filters;
+              class A {
+                  Class<?> type = Filters.class;
+              }
+              """
+          )
+        );
+    }
 }
