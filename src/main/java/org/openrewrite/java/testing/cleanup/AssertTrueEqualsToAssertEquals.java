@@ -90,7 +90,16 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
                 J.MethodInvocation methodInvocation = (J.MethodInvocation) expr;
 
                 return "equals".equals(methodInvocation.getName().getSimpleName()) &&
-                        methodInvocation.getArguments().size() == 1;
+                        methodInvocation.getArguments().size() == 1 &&
+                        !isNullLiteral(methodInvocation.getArguments().get(0));
+            }
+
+            private boolean isNullLiteral(Expression expr) {
+                Expression unwrapped = expr.unwrap();
+                while (unwrapped instanceof J.TypeCast) {
+                    unwrapped = ((J.TypeCast) unwrapped).getExpression().unwrap();
+                }
+                return unwrapped instanceof J.Literal && ((J.Literal) unwrapped).getValue() == null;
             }
         });
     }

@@ -147,4 +147,29 @@ class AssertTrueEqualsToAssertEqualsTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1071")
+    @SuppressWarnings({"ConstantConditions", "SimplifiableAssertion"})
+    @Test
+    void retainEqualsNull() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              public class Test {
+                  void test() {
+                      String a = "a";
+                      assertTrue(a.equals(null));
+                      assertTrue(a.equals(null), "message");
+                      Assertions.assertTrue(a.equals((Object) null));
+                  }
+              }
+              """
+          )
+        );
+    }
 }
