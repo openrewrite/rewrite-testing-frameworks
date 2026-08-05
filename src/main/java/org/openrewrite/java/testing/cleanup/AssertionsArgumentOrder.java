@@ -64,6 +64,16 @@ public class AssertionsArgumentOrder extends Recipe {
     // `assertNull("message", result())` should be `assertNull(result(), "message")`
     private static final MethodMatcher jupiterAssertNullMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assert*Null(Object, String)");
 
+    // Moving a null literal into the expected position short circuits the equality check, rather than calling equals
+    private static final MethodMatcher[] equalityMatchers = new MethodMatcher[]{
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)"),
+            new MethodMatcher("org.junit.jupiter.api.Assertions assertNotEquals(..)"),
+            new MethodMatcher("org.junit.Assert assertEquals(..)"),
+            new MethodMatcher("org.junit.Assert assertNotEquals(..)"),
+            new MethodMatcher("org.testng.Assert assertEquals(..)"),
+            new MethodMatcher("org.testng.Assert assertNotEquals(..)")
+    };
+
     private static final MethodMatcher[] testNgMatcher = new MethodMatcher[]{
             new MethodMatcher("org.testng.Assert assertSame(..)"),
             new MethodMatcher("org.testng.Assert assertNotSame(..)"),
@@ -125,6 +135,10 @@ public class AssertionsArgumentOrder extends Recipe {
                 return mi;
             }
 
+            if (isEqualityAssertion(mi) && (isNullLiteral(expected) || isNullLiteral(actual))) {
+                return mi;
+            }
+
             if (!isCorrectOrder(expected, actual, mi)) {
                 mi = maybeAutoFormat(mi, mi.withArguments(ListUtils.map(mi.getArguments(), arg -> {
                     if (arg.equals(actual)) {
@@ -137,6 +151,23 @@ public class AssertionsArgumentOrder extends Recipe {
                 })), ctx, getCursor().getParentOrThrow());
             }
             return mi;
+        }
+
+        private boolean isEqualityAssertion(J.MethodInvocation mi) {
+            for (MethodMatcher equalityMatcher : equalityMatchers) {
+                if (equalityMatcher.matches(mi)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isNullLiteral(Expression expression) {
+            Expression unwrapped = expression.unwrap();
+            while (unwrapped instanceof J.TypeCast) {
+                unwrapped = ((J.TypeCast) unwrapped).getExpression().unwrap();
+            }
+            return J.Literal.isLiteralValue(unwrapped, null);
         }
 
         private boolean isCorrectOrder(Expression expected, Expression actual, J.MethodInvocation mi) {

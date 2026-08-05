@@ -60,6 +60,11 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 List<Expression> args = mi.getArguments();
                 Expression expected = args.get(0);
                 Expression actual = args.get(1);
+                if (isNullLiteral(actual) && !isNullLiteral(expected)) {
+                    // `assertThat(null)` is an ambiguous method call; asserting on the other argument calls the same `equals`
+                    expected = actual;
+                    actual = args.get(0);
+                }
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
@@ -127,6 +132,10 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                     return "within(#{any()})";
                 }
                 return "within((" + paramType.getKeyword() + ") #{any()})";
+            }
+
+            private boolean isNullLiteral(Expression expression) {
+                return J.Literal.isLiteralValue(expression.unwrap(), null);
             }
 
             private JavaType.Primitive floatingPointDeltaType(J.MethodInvocation mi) {

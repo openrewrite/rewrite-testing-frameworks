@@ -60,6 +60,11 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 List<Expression> args = mi.getArguments();
                 Expression expected = args.get(0);
                 Expression actual = args.get(1);
+                if (isNullLiteral(actual) && !isNullLiteral(expected)) {
+                    // `assertThat(null)` is an ambiguous method call; asserting on the other argument calls the same `equals`
+                    expected = actual;
+                    actual = args.get(0);
+                }
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
@@ -92,6 +97,10 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected, args.get(2));
+            }
+
+            private boolean isNullLiteral(Expression expression) {
+                return J.Literal.isLiteralValue(expression.unwrap(), null);
             }
 
             private boolean isFloatingPointType(Expression expression) {

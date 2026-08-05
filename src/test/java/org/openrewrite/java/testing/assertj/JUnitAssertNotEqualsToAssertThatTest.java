@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.assertj;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -352,6 +353,48 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
                   }
                   private File notification() {
                       return new File("someFile");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/492")
+    @Test
+    void nullArgumentAssertedOnNonNullArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertNotEquals(notification(), null);
+                      assertNotEquals(notification(), null, "These should not be equal");
+                  }
+                  private String notification() {
+                      return "joe";
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertThat(notification()).isNotEqualTo(null);
+                      assertThat(notification()).as("These should not be equal").isNotEqualTo(null);
+                  }
+                  private String notification() {
+                      return "joe";
                   }
               }
               """
