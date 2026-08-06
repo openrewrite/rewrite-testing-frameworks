@@ -72,8 +72,10 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             variableName = generateVariableName("mocks", getCursor(), INCREMENT_NUMBER);
                             if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
                                 // Do not autoformat the whole class, as the Kotlin formatter would reformat unrelated code
-                                return KotlinTemplate.apply("private lateinit var " + variableName + ": AutoCloseable",
+                                J.ClassDeclaration after = KotlinTemplate.apply("private lateinit var " + variableName + ": AutoCloseable",
                                         getCursor(), cd.getBody().getCoordinates().firstStatement());
+                                return after.withBody(after.getBody().withStatements(ListUtils.map(after.getBody().getStatements(),
+                                        (i, stmt) -> i == 1 ? withBlankLineBefore(stmt) : stmt)));
                             }
                             J.ClassDeclaration after = JavaTemplate.apply("private AutoCloseable " + variableName + ";",
                                     getCursor(), cd.getBody().getCoordinates().firstStatement());
@@ -122,9 +124,8 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                             .build()
                                             .apply(getCursor(), cd.getBody().getCoordinates().lastStatement());
                                     // Blank line before the added method; the class is not autoformatted as a whole
-                                    cd = cd.withBody(cd.getBody().withStatements(ListUtils.mapLast(cd.getBody().getStatements(),
-                                            stmt -> stmt.getPrefix().getWhitespace().startsWith("\n\n") ? stmt :
-                                                    stmt.withPrefix(stmt.getPrefix().withWhitespace("\n" + stmt.getPrefix().getWhitespace())))));
+                                    cd = cd.withBody(cd.getBody().withStatements(
+                                            ListUtils.mapLast(cd.getBody().getStatements(), stm -> withBlankLineBefore(stm))));
                                 } else {
                                     cd = JavaTemplate.builder("@AfterEach\nvoid " + tearDownMethodName(cd) + "() throws Exception {\n}")
                                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
@@ -239,6 +240,12 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             return updatedMethodName;
                         }
                     };
+
+            private Statement withBlankLineBefore(Statement stmt) {
+                Space prefix = stmt.getPrefix();
+                return prefix.getWhitespace().startsWith("\n\n") ? stmt :
+                        stmt.withPrefix(prefix.withWhitespace("\n" + prefix.getWhitespace()));
+            }
                 }
         );
     }
