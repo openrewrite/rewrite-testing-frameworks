@@ -1009,31 +1009,6 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
-recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
-examples:
-- description: '`SimplifyAssertJInstanceOfAssertionTest#isTrueToIsInstanceOf`'
-  sources:
-  - before: |
-      import static org.assertj.core.api.Assertions.assertThat;
-
-      class A {
-          void foo(Object error) {
-              assertThat(error instanceof RuntimeException).isTrue();
-              assertThat(error instanceof RuntimeException).isFalse();
-          }
-      }
-    after: |
-      import static org.assertj.core.api.Assertions.assertThat;
-
-      class A {
-          void foo(Object error) {
-              assertThat(error).isInstanceOf(RuntimeException.class);
-              assertThat(error).isNotInstanceOf(RuntimeException.class);
-          }
-      }
-    language: java
----
-type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJEqualityAssertion
 examples:
 - description: '`SimplifyAssertJEqualityAssertionTest#dispatchesOnWhatTheComparisonActuallyCompares`'
@@ -1056,6 +1031,31 @@ examples:
               assertThat(x).isNull();
               assertThat(a).isEqualTo(b);
               assertThat(x).isSameAs(y);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.SimplifyAssertJInstanceOfAssertion
+examples:
+- description: '`SimplifyAssertJInstanceOfAssertionTest#isTrueToIsInstanceOf`'
+  sources:
+  - before: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(Object error) {
+              assertThat(error instanceof RuntimeException).isTrue();
+              assertThat(error instanceof RuntimeException).isFalse();
+          }
+      }
+    after: |
+      import static org.assertj.core.api.Assertions.assertThat;
+
+      class A {
+          void foo(Object error) {
+              assertThat(error).isInstanceOf(RuntimeException.class);
+              assertThat(error).isNotInstanceOf(RuntimeException.class);
           }
       }
     language: java
@@ -6405,6 +6405,42 @@ examples:
               assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> {
                   throw new RuntimeException();
               });
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.testng.TestNgAssertionToAssertJ
+examples:
+- description: '`TestNgAssertionToAssertJTest#assertEqualsAllOverloads`'
+  sources:
+  - before: |
+      import org.testng.asserts.Assertion;
+
+      class Test {
+          void test(Assertion assertion) {
+              assertion.assertEquals("a", "b");
+              assertion.assertEquals("a", "b", "msg");
+              assertion.assertEquals(1.0, 2.0, 0.1);
+              assertion.assertEquals(1.0, 2.0, 0.1, "msg");
+              assertion.assertNotEquals(3, 4);
+              assertion.assertNotEquals(1.0, 2.0, 0.1);
+          }
+      }
+    after: |
+      import org.testng.asserts.Assertion;
+
+      import static org.assertj.core.api.Assertions.assertThat;
+      import static org.assertj.core.api.Assertions.within;
+
+      class Test {
+          void test(Assertion assertion) {
+              assertThat("a").isEqualTo("b");
+              assertThat("a").as("msg").isEqualTo("b");
+              assertThat(1.0).isCloseTo(2.0, within(0.1));
+              assertThat(1.0).as("msg").isCloseTo(2.0, within(0.1));
+              assertThat(3).isNotEqualTo(4);
+              assertThat(1.0).isNotCloseTo(2.0, within(0.1));
           }
       }
     language: java

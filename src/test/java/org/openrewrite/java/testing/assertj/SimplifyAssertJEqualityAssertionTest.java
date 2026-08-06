@@ -197,8 +197,8 @@ class SimplifyAssertJEqualityAssertionTest implements RewriteTest {
         }
     }
 
-    @Nested
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/868")
+    @Nested
     class NullComparisons {
 
         @Test
@@ -266,8 +266,8 @@ class SimplifyAssertJEqualityAssertionTest implements RewriteTest {
 
     /// The linked TestNG pull request is the motivating case: `assertThat(a != b).isTrue()` on two `long`s had
     /// become `isNotSameAs`, which held vacuously and left the assertion verifying nothing.
-    @Nested
     @Issue("https://github.com/testng-team/testng/pull/3278")
+    @Nested
     class ValueComparisons {
 
         @Test

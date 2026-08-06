@@ -39,25 +39,6 @@ class UpdateTestAnnotationTest implements RewriteTest {
           .recipe(new UpdateTestAnnotation());
     }
 
-    @Test
-    void expectedExceptionLeftUnchangedOnKotlin() {
-        rewriteRun(
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.Test
-
-              class MyTest {
-                  @Test(expected = IllegalArgumentException::class)
-                  fun test() {
-                      throw IllegalArgumentException()
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     void expectedNoneToAssertDoesNotThrow() {
@@ -87,6 +68,25 @@ class UpdateTestAnnotationTest implements RewriteTest {
                       assertDoesNotThrow(() -> {
                           int arr = new int[]{0}[0];
                       });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void expectedExceptionLeftUnchangedOnKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test(expected = IllegalArgumentException::class)
+                  fun test() {
+                      throw IllegalArgumentException()
                   }
               }
               """

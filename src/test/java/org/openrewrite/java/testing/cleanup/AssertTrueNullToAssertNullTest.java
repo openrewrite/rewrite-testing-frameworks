@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -34,6 +35,38 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertTrueNullToAssertNull());
+    }
+
+    @DocumentExample
+    @Test
+    void simplifyToAssertNullKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+
+              class FooTest {
+                  fun test(foundCreditLine: Any?) {
+                      assertTrue(foundCreditLine == null)
+                      assertTrue(foundCreditLine == null, "message")
+                      assertTrue(null == foundCreditLine)
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertNull
+
+              class FooTest {
+                  fun test(foundCreditLine: Any?) {
+                      assertNull(foundCreditLine)
+                      assertNull(foundCreditLine, "message")
+                      assertNull(foundCreditLine)
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/202")
@@ -111,37 +144,6 @@ class AssertTrueNullToAssertNullTest implements RewriteTest {
                       String b = null;
                       Assertions.assertNull(b);
                       Assertions.assertNull(b, "message");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void simplifyToAssertNullKotlin() {
-        rewriteRun(
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.Assertions.assertTrue
-
-              class FooTest {
-                  fun test(foundCreditLine: Any?) {
-                      assertTrue(foundCreditLine == null)
-                      assertTrue(foundCreditLine == null, "message")
-                      assertTrue(null == foundCreditLine)
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Assertions.assertNull
-
-              class FooTest {
-                  fun test(foundCreditLine: Any?) {
-                      assertNull(foundCreditLine)
-                      assertNull(foundCreditLine, "message")
-                      assertNull(foundCreditLine)
                   }
               }
               """

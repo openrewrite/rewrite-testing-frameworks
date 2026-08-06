@@ -37,6 +37,40 @@ class CsvSourceToValueSourceTest implements RewriteTest {
           .recipe(new CsvSourceToValueSource());
     }
 
+    @DocumentExample
+    @Test
+    void replaceCsvSourceWithValueSourceForStrings() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource({"apple", "banana", "cherry"})
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = {"apple", "banana", "cherry"})
+                  void testWithStrings(String fruit) {
+                      System.out.println(fruit);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void replaceCsvSourceWithValueSourceForStringsKotlin() {
         rewriteRun(
@@ -81,40 +115,6 @@ class CsvSourceToValueSourceTest implements RewriteTest {
                   @ParameterizedTest
                   @CsvSource(value = ["1", "2", "3"])
                   fun testWithInts(number: Int) {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void replaceCsvSourceWithValueSourceForStrings() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.params.ParameterizedTest;
-              import org.junit.jupiter.params.provider.CsvSource;
-
-              class TestClass {
-                  @ParameterizedTest
-                  @CsvSource({"apple", "banana", "cherry"})
-                  void testWithStrings(String fruit) {
-                      System.out.println(fruit);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest;
-              import org.junit.jupiter.params.provider.ValueSource;
-
-              class TestClass {
-                  @ParameterizedTest
-                  @ValueSource(strings = {"apple", "banana", "cherry"})
-                  void testWithStrings(String fruit) {
-                      System.out.println(fruit);
                   }
               }
               """

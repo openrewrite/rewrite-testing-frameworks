@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.cleanup;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -32,6 +33,36 @@ class AssertTrueNegationToAssertFalseTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new AssertTrueNegationToAssertFalse());
+    }
+
+    @DocumentExample
+    @Test
+    void assertTrueNegationToAssertFalseKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertTrue(!values[0].isNullOrEmpty())
+                      assertTrue(!values[0].isNullOrEmpty(), "message")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertFalse
+
+              class FooTest {
+                  fun test(values: List<String?>) {
+                      assertFalse(values[0].isNullOrEmpty())
+                      assertFalse(values[0].isNullOrEmpty(), "message")
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/205")
@@ -93,35 +124,6 @@ class AssertTrueNegationToAssertFalseTest implements RewriteTest {
                       boolean a = false;
                       Assertions.assertFalse(a);
                       Assertions.assertFalse(a, "message");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void assertTrueNegationToAssertFalseKotlin() {
-        rewriteRun(
-          //language=kotlin
-          kotlin(
-            """
-              import org.junit.jupiter.api.Assertions.assertTrue
-
-              class FooTest {
-                  fun test(values: List<String?>) {
-                      assertTrue(!values[0].isNullOrEmpty())
-                      assertTrue(!values[0].isNullOrEmpty(), "message")
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Assertions.assertFalse
-
-              class FooTest {
-                  fun test(values: List<String?>) {
-                      assertFalse(values[0].isNullOrEmpty())
-                      assertFalse(values[0].isNullOrEmpty(), "message")
                   }
               }
               """
