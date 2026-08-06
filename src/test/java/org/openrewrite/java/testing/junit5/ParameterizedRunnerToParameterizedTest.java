@@ -674,4 +674,109 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1080")
+    @Test
+    void constructorsOfNestedTypesAreNotConverted() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+              import org.junit.runners.Parameterized.Parameters;
+
+              import java.util.Arrays;
+              import java.util.List;
+
+              @RunWith(Parameterized.class)
+              public class MyTest {
+
+                  private String input;
+
+                  public MyTest(String input) {
+                      this.input = input;
+                  }
+
+                  @Parameters
+                  public static List<Object[]> data() {
+                      return Arrays.asList(new Object[][]{{"a"}, {"b"}});
+                  }
+
+                  enum Status {
+                      OK("ok"),
+                      BAD("bad");
+
+                      private final String label;
+
+                      Status(String label) {
+                          this.label = label;
+                      }
+                  }
+
+                  static class Helper {
+                      private final String name;
+
+                      Helper(String name) {
+                          this.name = name;
+                      }
+                  }
+
+                  @Test
+                  public void test() {
+                      assert input != null;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import java.util.Arrays;
+              import java.util.List;
+
+              public class MyTest {
+
+                  private String input;
+
+                  public void initMyTest(String input) {
+                      this.input = input;
+                  }
+
+                  public static List<Object[]> data() {
+                      return Arrays.asList(new Object[][]{{"a"}, {"b"}});
+                  }
+
+                  enum Status {
+                      OK("ok"),
+                      BAD("bad");
+
+                      private final String label;
+
+                      Status(String label) {
+                          this.label = label;
+                      }
+                  }
+
+                  static class Helper {
+                      private final String name;
+
+                      Helper(String name) {
+                          this.name = name;
+                      }
+                  }
+
+                  @MethodSource("data")
+                  @ParameterizedTest
+                  public void test(String input) {
+                      initMyTest(input);
+                      assert input != null;
+                  }
+              }
+              """
+          )
+        );
+    }
 }
