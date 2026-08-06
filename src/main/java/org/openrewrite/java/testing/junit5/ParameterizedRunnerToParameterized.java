@@ -271,8 +271,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
 
         /**
-         * Members of a type nested inside the parameterized test class have that class as an ancestor, but must not be
-         * rewritten; only members declared directly in the parameterized test class itself are in scope.
+         * Identity, not ancestry: members of a type nested inside the parameterized test class have that class as an
+         * ancestor, but are not themselves members of it, and must be left alone.
          */
         private boolean isDeclaredInScope() {
             return scope.isScope(getCursor().firstEnclosing(J.ClassDeclaration.class));

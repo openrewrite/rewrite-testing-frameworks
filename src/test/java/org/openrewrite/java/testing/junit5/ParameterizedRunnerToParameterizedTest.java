@@ -722,6 +722,11 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       Helper(String name) {
                           this.name = name;
                       }
+
+                      @Test
+                      public void helperTest() {
+                          assert name != null;
+                      }
                   }
 
                   @Test
@@ -731,6 +736,7 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               }
               """,
             """
+              import org.junit.Test;
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
 
@@ -765,6 +771,11 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
 
                       Helper(String name) {
                           this.name = name;
+                      }
+
+                      @Test
+                      public void helperTest() {
+                          assert name != null;
                       }
                   }
 
