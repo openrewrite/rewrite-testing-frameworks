@@ -270,10 +270,18 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             return cd;
         }
 
+        /**
+         * Identity, not ancestry: members of a type nested inside the parameterized test class have that class as an
+         * ancestor, but are not themselves members of it, and must be left alone.
+         */
+        private boolean isDeclaredInScope() {
+            return scope.isScope(getCursor().firstEnclosing(J.ClassDeclaration.class));
+        }
+
         @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations vdecls = super.visitVariableDeclarations(multiVariable, ctx);
-            if (!getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).isScopeInPath(scope)) {
+            if (!isDeclaredInScope()) {
                 return vdecls;
             }
 
@@ -294,7 +302,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-            if (!getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).isScopeInPath(scope)) {
+            if (!isDeclaredInScope()) {
                 return m;
             }
             // Replace @Test with @ParameterizedTest
