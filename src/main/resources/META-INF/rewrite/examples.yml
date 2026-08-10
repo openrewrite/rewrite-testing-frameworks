@@ -1540,6 +1540,58 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertTrueNegationToAssertFalse
+examples:
+- description: '`AssertTrueNegationToAssertFalseTest#assertTrueNegationToAssertFalseKotlin`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions.assertTrue
+
+      class FooTest {
+          fun test(values: List<String?>) {
+              assertTrue(!values[0].isNullOrEmpty())
+              assertTrue(!values[0].isNullOrEmpty(), "message")
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Assertions.assertFalse
+
+      class FooTest {
+          fun test(values: List<String?>) {
+              assertFalse(values[0].isNullOrEmpty())
+              assertFalse(values[0].isNullOrEmpty(), "message")
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull
+examples:
+- description: '`AssertTrueNullToAssertNullTest#simplifyToAssertNullKotlin`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.Assertions.assertTrue
+
+      class FooTest {
+          fun test(foundCreditLine: Any?) {
+              assertTrue(foundCreditLine == null)
+              assertTrue(foundCreditLine == null, "message")
+              assertTrue(null == foundCreditLine)
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Assertions.assertNull
+
+      class FooTest {
+          fun test(foundCreditLine: Any?) {
+              assertNull(foundCreditLine)
+              assertNull(foundCreditLine, "message")
+              assertNull(foundCreditLine)
+          }
+      }
+    language: kotlin
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
 examples:
 - description: '`AssertionsArgumentOrderTest#junitAssertEqualsHavingPrimitiveArg`'
