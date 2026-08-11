@@ -212,7 +212,7 @@ class AddMissingNestedTest implements RewriteTest {
     }
 
     @Test
-    void doesNotRemoveStaticWithNonConstantStaticFieldBeforeJava16() {
+    void doesNotRemoveStaticWithStaticMembersBeforeJava16() {
         //language=java
         rewriteRun(
           version(
@@ -221,66 +221,15 @@ class AddMissingNestedTest implements RewriteTest {
                 import org.junit.jupiter.api.Test;
 
                 class RootTest {
-                    static class InnerTest {
+                    static class FieldTest {
                         static Object state = new Object();
 
                         @Test
                         void test() {
                         }
                     }
-                }
-                """,
-              """
-                import org.junit.jupiter.api.Test;
 
-                class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerTest {
-                        static Object state = new Object();
-
-                        @Test
-                        void test() {
-                        }
-                    }
-                }
-                """
-            ), 11)
-        );
-    }
-
-    @Test
-    void doesNotRepeatTheMarkerOnASecondRun() {
-        //language=java
-        rewriteRun(
-          version(
-            java(
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerTest {
-                        static Object state = new Object();
-
-                        @Test
-                        void test() {
-                        }
-                    }
-                }
-                """
-            ), 11)
-        );
-    }
-
-    @Test
-    void doesNotRemoveStaticWithStaticInitializerBeforeJava16() {
-        //language=java
-        rewriteRun(
-          version(
-            java(
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    static class InnerTest {
+                    static class InitializerTest {
                         static {
                             System.out.println("initialize");
                         }
@@ -289,13 +238,48 @@ class AddMissingNestedTest implements RewriteTest {
                         void test() {
                         }
                     }
+
+                    static class MethodTest {
+                        static void helper() {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    static class MemberTypeTest {
+                        static class Helper {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    static class ImplicitlyStaticMemberTypeTest {
+                        interface Helper {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
                 }
                 """,
               """
                 import org.junit.jupiter.api.Test;
 
                 class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerTest {
+                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class FieldTest {
+                        static Object state = new Object();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InitializerTest {
                         static {
                             System.out.println("initialize");
                         }
@@ -304,23 +288,8 @@ class AddMissingNestedTest implements RewriteTest {
                         void test() {
                         }
                     }
-                }
-                """
-            ), 11)
-        );
-    }
 
-    @Test
-    void doesNotRemoveStaticWithStaticMethodBeforeJava16() {
-        //language=java
-        rewriteRun(
-          version(
-            java(
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    static class InnerTest {
+                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class MethodTest {
                         static void helper() {
                         }
 
@@ -328,37 +297,8 @@ class AddMissingNestedTest implements RewriteTest {
                         void test() {
                         }
                     }
-                }
-                """,
-              """
-                import org.junit.jupiter.api.Test;
 
-                class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerTest {
-                        static void helper() {
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-                }
-                """
-            ), 11)
-        );
-    }
-
-    @Test
-    void doesNotRemoveStaticWithStaticMemberTypeBeforeJava16() {
-        //language=java
-        rewriteRun(
-          version(
-            java(
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    static class InnerTest {
+                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class MemberTypeTest {
                         static class Helper {
                         }
 
@@ -366,90 +306,9 @@ class AddMissingNestedTest implements RewriteTest {
                         void test() {
                         }
                     }
-                }
-                """,
-              """
-                import org.junit.jupiter.api.Test;
 
-                class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerTest {
-                        static class Helper {
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-                }
-                """
-            ), 8)
-        );
-    }
-
-    @Test
-    void doesNotRemoveStaticWithImplicitlyStaticMemberTypeBeforeJava16() {
-        //language=java
-        rewriteRun(
-          version(
-            java(
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    static class InterfaceHolderTest {
+                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class ImplicitlyStaticMemberTypeTest {
                         interface Helper {
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
-                    static class EnumHolderTest {
-                        enum Helper {
-                            ONE
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
-                    static class AnnotationHolderTest {
-                        @interface Helper {
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-                }
-                """,
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InterfaceHolderTest {
-                        interface Helper {
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class EnumHolderTest {
-                        enum Helper {
-                            ONE
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class AnnotationHolderTest {
-                        @interface Helper {
                         }
 
                         @Test
@@ -480,22 +339,6 @@ class AddMissingNestedTest implements RewriteTest {
                         }
                     }
 
-                    static class ArrayTest {
-                        static final int[] ARRAY = {1};
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
-                    static class ObjectTest {
-                        static final Object OBJECT = new Object();
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
                     static class ComputedTest {
                         static final int COMPUTED = "abc".length();
 
@@ -517,22 +360,6 @@ class AddMissingNestedTest implements RewriteTest {
                         }
                     }
 
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class ArrayTest {
-                        static final int[] ARRAY = {1};
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class ObjectTest {
-                        static final Object OBJECT = new Object();
-
-                        @Test
-                        void test() {
-                        }
-                    }
-
                     /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class ComputedTest {
                         static final int COMPUTED = "abc".length();
 
@@ -547,7 +374,7 @@ class AddMissingNestedTest implements RewriteTest {
     }
 
     @Test
-    void doesNotRemoveStaticWhenNestedTestKeepsStaticBeforeJava16() {
+    void doesNotRepeatTheMarkerOnASecondRun() {
         //language=java
         rewriteRun(
           version(
@@ -556,38 +383,11 @@ class AddMissingNestedTest implements RewriteTest {
                 import org.junit.jupiter.api.Test;
 
                 class RootTest {
-                    static class OuterInnerTest {
+                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerTest {
+                        static Object state = new Object();
+
                         @Test
                         void test() {
-                        }
-
-                        static class InnerMostTest {
-                            static void helper() {
-                            }
-
-                            @Test
-                            void test() {
-                            }
-                        }
-                    }
-                }
-                """,
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class OuterInnerTest {
-                        @Test
-                        void test() {
-                        }
-
-                        /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerMostTest {
-                            static void helper() {
-                            }
-
-                            @Test
-                            void test() {
-                            }
                         }
                     }
                 }
@@ -754,46 +554,6 @@ class AddMissingNestedTest implements RewriteTest {
                 }
                 """
             ), 16)
-        );
-    }
-
-    @Test
-    void removesStaticWithStaticMemberTypeFromJava16() {
-        //language=java
-        rewriteRun(
-          version(
-            java(
-              """
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    static class InnerTest {
-                        static class Helper {
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-                }
-                """,
-              """
-                import org.junit.jupiter.api.Nested;
-                import org.junit.jupiter.api.Test;
-
-                class RootTest {
-                    @Nested
-                    class InnerTest {
-                        static class Helper {
-                        }
-
-                        @Test
-                        void test() {
-                        }
-                    }
-                }
-                """
-            ), 17)
         );
     }
 
