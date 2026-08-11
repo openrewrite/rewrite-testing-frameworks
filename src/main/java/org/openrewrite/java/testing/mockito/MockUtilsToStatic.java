@@ -113,7 +113,7 @@ public class MockUtilsToStatic extends Recipe {
                 return false;
             }
             JavaType.Variable variableType = variable.getVariableType();
-            // Without symbol attribution the uses of the variable can not be proven obsolete
+            // Without symbol attribution the uses cannot be proven obsolete
             return variableType != null &&
                     !new FindUnmigratedUses(variableType, variable.getSimpleName()).reduce(scope, new AtomicBoolean()).get();
         }
@@ -153,9 +153,8 @@ public class MockUtilsToStatic extends Recipe {
             }
 
             /**
-             * @return whether the identifier declares a variable or names a method, type, label, enum constant or
-             * annotation element, or is a package or type segment of a qualified name, so that it can never be a
-             * reference to the variable under analysis.
+             * @return whether the identifier declares a variable or names something in another namespace, so that
+             * it can never reference the variable under analysis.
              */
             private static boolean isNeverVariableReference(J.Identifier identifier, Cursor parentCursor) {
                 if (identifier.getFieldType() == null &&
@@ -199,17 +198,15 @@ public class MockUtilsToStatic extends Recipe {
                             parentCursor.getParentTreeCursor().getValue() instanceof J.Annotation;
                 }
                 if (parent instanceof J.FieldAccess) {
-                    // Package and type segments of a qualified name carry no field type, unlike an attributed variable
+                    // Package and type segments carry no field type, unlike an attributed variable
                     return identifier.getFieldType() == null;
                 }
                 return false;
             }
 
             /**
-             * @return whether the identifier is the receiver of a call that {@link ChangeMethodTargetToStatic}
-             * rewrites to its static form, either bare (`util.isMock(..)`, `util::isMock`) or as the final name of
-             * a field access receiver (`this.util.isMock(..)`); the rewrite replaces the whole receiver with the
-             * class name, so such a use no longer needs the instance.
+             * @return whether the identifier is the receiver of a call {@link ChangeMethodTargetToStatic} makes
+             * static, bare or through a field access, in which case the rewrite drops it and the instance with it.
              */
             private static boolean isMigratedUse(J.Identifier identifier, Cursor parent) {
                 Object parentValue = parent.getValue();
