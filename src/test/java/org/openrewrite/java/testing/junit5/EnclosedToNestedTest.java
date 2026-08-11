@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.version;
 
 class EnclosedToNestedTest implements RewriteTest {
 
@@ -218,6 +219,52 @@ class EnclosedToNestedTest implements RewriteTest {
               }
               """
           )
+        );
+    }
+
+    @Test
+    void marksInnerClassWithStaticMembersBeforeJava16() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.BeforeClass;
+                import org.junit.Test;
+                import org.junit.experimental.runners.Enclosed;
+                import org.junit.runner.RunWith;
+
+                @RunWith(Enclosed.class)
+                public class RootTest {
+                    public static class InnerTest {
+                        @BeforeClass
+                        public static void beforeAll() {
+                        }
+
+                        @Test
+                        public void test() {
+                        }
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.BeforeAll;
+                import org.junit.jupiter.api.Test;
+
+                public class RootTest {
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+                    public static class InnerTest {
+                        @BeforeAll
+                        public static void beforeAll() {
+                        }
+
+                        @Test
+                        public void test() {
+                        }
+                    }
+                }
+                """
+            ), 11)
         );
     }
 

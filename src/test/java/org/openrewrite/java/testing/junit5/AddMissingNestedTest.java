@@ -26,6 +26,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.version;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("JUnit3StyleTestMethodInJUnit4Class")
@@ -207,6 +208,367 @@ class AddMissingNestedTest implements RewriteTest {
               }
               """
           )
+        );
+    }
+
+    @Test
+    void doesNotRemoveStaticWithStaticMembersBeforeJava16() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    static class FieldTest {
+                        static Object state = new Object();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    static class InitializerTest {
+                        static {
+                            System.out.println("initialize");
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    static class MethodTest {
+                        static void helper() {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    static class MemberTypeTest {
+                        static class Helper {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    static class ImplicitlyStaticMemberTypeTest {
+                        interface Helper {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+                    static class FieldTest {
+                        static Object state = new Object();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
+                    static class InitializerTest {
+                        static {
+                            System.out.println("initialize");
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
+                    static class MethodTest {
+                        static void helper() {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
+                    static class MemberTypeTest {
+                        static class Helper {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
+                    static class ImplicitlyStaticMemberTypeTest {
+                        interface Helper {
+                        }
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """
+            ), 15)
+        );
+    }
+
+    @Test
+    void doesNotRemoveStaticWithNonConstantFinalFieldBeforeJava16() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    static class BoxedTest {
+                        static final Integer BOXED = 1;
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    static class ComputedTest {
+                        static final int COMPUTED = "abc".length();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+                    static class BoxedTest {
+                        static final Integer BOXED = 1;
+
+                        @Test
+                        void test() {
+                        }
+                    }
+
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
+                    static class ComputedTest {
+                        static final int COMPUTED = "abc".length();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """
+            ), 11)
+        );
+    }
+
+    @Test
+    void doesNotRepeatTheMarkerOnASecondRun() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+                    static class InnerTest {
+                        static Object state = new Object();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """
+            ), 11)
+        );
+    }
+
+    @Test
+    void removesStaticWithStaticMethodWithoutJavaVersion() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class RootTest {
+                  static class InnerTest {
+                      static void helper() {
+                      }
+
+                      @Test
+                      void test() {
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+
+              class RootTest {
+                  @Nested
+                  class InnerTest {
+                      static void helper() {
+                      }
+
+                      @Test
+                      void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesStaticWithConstantVariablesBeforeJava16() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    static class InnerTest {
+                        static final int MAX = 1 + 1;
+                        static final int MIN = -(1 + 1);
+                        static final String NAME = "root";
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Nested;
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    @Nested
+                    class InnerTest {
+                        static final int MAX = 1 + 1;
+                        static final int MIN = -(1 + 1);
+                        static final String NAME = "root";
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """
+            ), 11)
+        );
+    }
+
+    @Test
+    void removesStaticWithInheritedStaticMembersBeforeJava16() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    static class Base {
+                        static void helper() {
+                        }
+                    }
+
+                    static class InnerTest extends Base {
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Nested;
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    static class Base {
+                        static void helper() {
+                        }
+                    }
+
+                    @Nested
+                    class InnerTest extends Base {
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """
+            ), 11)
+        );
+    }
+
+    @Test
+    void removesStaticWithStaticMemberFromJava16() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    static class InnerTest {
+                        static Object state = new Object();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Nested;
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    @Nested
+                    class InnerTest {
+                        static Object state = new Object();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """
+            ), 16)
         );
     }
 
