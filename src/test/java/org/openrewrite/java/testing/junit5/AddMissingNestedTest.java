@@ -460,6 +460,7 @@ class AddMissingNestedTest implements RewriteTest {
                 class RootTest {
                     static class InnerTest {
                         static final int MAX = 1 + 1;
+                        static final int MIN = -(1 + 1);
                         static final String NAME = "root";
 
                         @Test
@@ -476,6 +477,7 @@ class AddMissingNestedTest implements RewriteTest {
                     @Nested
                     class InnerTest {
                         static final int MAX = 1 + 1;
+                        static final int MIN = -(1 + 1);
                         static final String NAME = "root";
 
                         @Test

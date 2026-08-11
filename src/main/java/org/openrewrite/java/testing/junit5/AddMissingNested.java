@@ -101,7 +101,7 @@ public class AddMissingNested extends Recipe {
                     !hasTestMethods(cd)) {
                 return cd;
             }
-            if (cd.hasModifier(J.Modifier.Type.Static) && !canBeInnerClass(cd)) {
+            if (cd.hasModifier(J.Modifier.Type.Static) && requiresManualMigration(cd)) {
                 // Skipping silently can end test discovery unnoticed, as `EnclosedToNested` already removed the runner
                 return Comments.of(updateCursor(cd)).multilineComment(REQUIRES_MANUAL_MIGRATION);
             }
@@ -119,8 +119,8 @@ public class AddMissingNested extends Recipe {
             return TEST_ANNOTATIONS.stream().anyMatch(ann -> !FindAnnotations.find(cd, "@" + ann).isEmpty());
         }
 
-        private boolean canBeInnerClass(J.ClassDeclaration cd) {
-            return !declaresStaticMember(cd) || supportsStaticMembersInInnerClasses();
+        private boolean requiresManualMigration(J.ClassDeclaration cd) {
+            return declaresStaticMember(cd) && !supportsStaticMembersInInnerClasses();
         }
 
         /**
@@ -172,7 +172,8 @@ public class AddMissingNested extends Recipe {
 
         /**
          * @return whether these are constant variables per JLS 4.12.4. Deliberately conservative: only
-         * literal-based initializers are recognised, so anything else counts as nonconstant.
+         * initializers built up from literals are recognised, so a reference to another constant variable
+         * counts as nonconstant.
          */
         private static boolean isConstantVariable(J.VariableDeclarations variables) {
             if (!variables.hasModifier(J.Modifier.Type.Final)) {
@@ -208,8 +209,7 @@ public class AddMissingNested extends Recipe {
             return TypeUtils.isString(type) ||
                     type instanceof JavaType.Primitive &&
                             type != JavaType.Primitive.None &&
-                            type != JavaType.Primitive.Null &&
-                            type != JavaType.Primitive.Void;
+                            type != JavaType.Primitive.Null;
         }
     }
 }
