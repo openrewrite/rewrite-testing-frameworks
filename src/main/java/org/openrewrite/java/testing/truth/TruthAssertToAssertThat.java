@@ -24,11 +24,12 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.marker.SearchResult;
+import org.openrewrite.trait.Comments;
 
 public class TruthAssertToAssertThat extends Recipe {
 
     private static final MethodMatcher ASSERT_MATCHER = new MethodMatcher("com.google.common.truth.Truth assert_()");
+    private static final String MANUAL_REVIEW = " Truth's assert_() requires manual review for migration to AssertJ ";
 
     @Getter
     final String displayName = "Convert Truth `assert_()` to AssertJ";
@@ -44,9 +45,7 @@ public class TruthAssertToAssertThat extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
                 if (ASSERT_MATCHER.matches(mi)) {
-                    // Truth's assert_() returns a StandardSubjectBuilder which is used differently
-                    // For now, we'll mark this as needing manual review
-                    return SearchResult.found(mi, "Truth's assert_() requires manual review for migration to AssertJ");
+                    return Comments.of(updateCursor(mi)).multilineComment(MANUAL_REVIEW);
                 }
 
                 return mi;
