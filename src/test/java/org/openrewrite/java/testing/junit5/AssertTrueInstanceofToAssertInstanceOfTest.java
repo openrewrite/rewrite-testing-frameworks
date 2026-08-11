@@ -409,11 +409,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-
               class ATest {
                   void test(Object value) {
-                      assertInstanceOf(String.class, value);
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
                   }
               }
               """
@@ -442,11 +440,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-
               class ATest {
                   void test(Object value) {
-                      assertInstanceOf(String.class, value, "not a String");
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value, "not a String");
                   }
               }
               """
@@ -475,11 +471,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               }
               """,
             """
-              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-
               class ATest {
                   void test(BaseAssert base, Object value) {
-                      assertInstanceOf(String.class, value);
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
                   }
               }
               """
@@ -513,11 +507,9 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
             """
               package com.sample.test;
 
-              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-
               class ATest {
                   void test(Object value) {
-                      assertInstanceOf(String.class, value);
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
                   }
               }
               """
@@ -580,6 +572,42 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
 
                   void test(Object value) {
                       org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value, "not a String");
+                  }
+              }
+              """
+          ));
+    }
+
+    @Test
+    void qualifiedJUnit4SubtypeSelector() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.sample;
+
+              public class MyAssert extends org.junit.Assert {
+              }
+              """
+          ),
+          java(
+            """
+              package com.sample.test;
+
+              import com.sample.MyAssert;
+
+              class ATest {
+                  void test(Object value) {
+                      MyAssert.assertTrue(value instanceof String);
+                  }
+              }
+              """,
+            """
+              package com.sample.test;
+
+              class ATest {
+                  void test(Object value) {
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
                   }
               }
               """
