@@ -252,7 +252,8 @@ class EnclosedToNestedTest implements RewriteTest {
                 import org.junit.jupiter.api.Test;
 
                 public class RootTest {
-                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/public static class InnerTest {
+                    /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+                    public static class InnerTest {
                         @BeforeAll
                         public static void beforeAll() {
                         }

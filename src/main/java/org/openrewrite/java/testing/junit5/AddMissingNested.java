@@ -33,10 +33,10 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
-import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.marker.SearchResult;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
+import org.openrewrite.trait.Comments;
+import org.openrewrite.trait.Comments.Placement;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -88,9 +88,9 @@ public class AddMissingNested extends Recipe {
     public static class AddNestedAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final int STATIC_MEMBERS_IN_INNER_CLASSES = 16;
 
-        private static final String REQUIRES_MANUAL_MIGRATION = "Not converted to `@Nested`: this class declares " +
+        private static final String REQUIRES_MANUAL_MIGRATION = " Not converted to `@Nested`: this class declares " +
                 "static members that may not be legal in an inner class before Java 16; tests in this class may not " +
-                "run and require manual migration";
+                "run and require manual migration ";
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -104,7 +104,8 @@ public class AddMissingNested extends Recipe {
             }
             if (cd.hasModifier(J.Modifier.Type.Static) && !canBeInnerClass(cd)) {
                 // Skipping silently can end test discovery unnoticed, as `EnclosedToNested` already removed the runner
-                return alreadyMarked(cd) ? cd : SearchResult.found(cd, REQUIRES_MANUAL_MIGRATION);
+                return Comments.of(updateCursor(cd))
+                        .multilineComment(REQUIRES_MANUAL_MIGRATION, Placement.BEFORE, lineAbove(cd));
             }
             cd = JavaTemplate.builder("@Nested")
                     .javaParser(JavaParser.fromJavaVersion()
@@ -116,14 +117,17 @@ public class AddMissingNested extends Recipe {
             return maybeAutoFormat(classDecl, cd, ctx);
         }
 
-        private static boolean hasTestMethods(final J.ClassDeclaration cd) {
-            return TEST_ANNOTATIONS.stream().anyMatch(ann -> !FindAnnotations.find(cd, "@" + ann).isEmpty());
+        /**
+         * @return the whitespace to print between the comment and the class, keeping the two on
+         * adjacent lines even where a blank line precedes the class.
+         */
+        private static String lineAbove(J.ClassDeclaration cd) {
+            String whitespace = cd.getPrefix().getWhitespace();
+            return "\n" + whitespace.substring(whitespace.lastIndexOf('\n') + 1);
         }
 
-        private static boolean alreadyMarked(J.ClassDeclaration cd) {
-            return cd.getPrefix().getComments().stream()
-                    .anyMatch(comment -> comment instanceof TextComment &&
-                            ((TextComment) comment).getText().contains(REQUIRES_MANUAL_MIGRATION));
+        private static boolean hasTestMethods(final J.ClassDeclaration cd) {
+            return TEST_ANNOTATIONS.stream().anyMatch(ann -> !FindAnnotations.find(cd, "@" + ann).isEmpty());
         }
 
         private boolean canBeInnerClass(J.ClassDeclaration cd) {
