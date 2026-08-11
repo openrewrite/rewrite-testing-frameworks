@@ -281,6 +281,7 @@ class AddMissingNestedTest implements RewriteTest {
                     }
 
                     /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
                     static class InitializerTest {
                         static {
                             System.out.println("initialize");
@@ -292,6 +293,7 @@ class AddMissingNestedTest implements RewriteTest {
                     }
 
                     /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
                     static class MethodTest {
                         static void helper() {
                         }
@@ -302,6 +304,7 @@ class AddMissingNestedTest implements RewriteTest {
                     }
 
                     /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
                     static class MemberTypeTest {
                         static class Helper {
                         }
@@ -312,6 +315,7 @@ class AddMissingNestedTest implements RewriteTest {
                     }
 
                     /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
                     static class ImplicitlyStaticMemberTypeTest {
                         interface Helper {
                         }
@@ -367,6 +371,7 @@ class AddMissingNestedTest implements RewriteTest {
                     }
 
                     /* Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration */
+
                     static class ComputedTest {
                         static final int COMPUTED = "abc".length();
 

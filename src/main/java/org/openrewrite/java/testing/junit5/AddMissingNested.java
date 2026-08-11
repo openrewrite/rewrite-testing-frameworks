@@ -36,7 +36,6 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 import org.openrewrite.trait.Comments;
-import org.openrewrite.trait.Comments.Placement;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -104,8 +103,7 @@ public class AddMissingNested extends Recipe {
             }
             if (cd.hasModifier(J.Modifier.Type.Static) && !canBeInnerClass(cd)) {
                 // Skipping silently can end test discovery unnoticed, as `EnclosedToNested` already removed the runner
-                return Comments.of(updateCursor(cd))
-                        .multilineComment(REQUIRES_MANUAL_MIGRATION, Placement.BEFORE, lineAbove(cd));
+                return Comments.of(updateCursor(cd)).multilineComment(REQUIRES_MANUAL_MIGRATION);
             }
             cd = JavaTemplate.builder("@Nested")
                     .javaParser(JavaParser.fromJavaVersion()
@@ -115,15 +113,6 @@ public class AddMissingNested extends Recipe {
                     .apply(getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
             cd.getModifiers().removeIf(modifier -> modifier.getType() == J.Modifier.Type.Static);
             return maybeAutoFormat(classDecl, cd, ctx);
-        }
-
-        /**
-         * @return the whitespace to print between the comment and the class, keeping the two on
-         * adjacent lines even where a blank line precedes the class.
-         */
-        private static String lineAbove(J.ClassDeclaration cd) {
-            String whitespace = cd.getPrefix().getWhitespace();
-            return "\n" + whitespace.substring(whitespace.lastIndexOf('\n') + 1);
         }
 
         private static boolean hasTestMethods(final J.ClassDeclaration cd) {
