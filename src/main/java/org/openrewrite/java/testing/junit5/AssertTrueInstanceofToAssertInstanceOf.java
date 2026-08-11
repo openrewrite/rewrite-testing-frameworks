@@ -58,12 +58,9 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 Expression expression;
                 Expression reason;
                 Expression select = mi.getSelect();
-                // A qualified call keeps an explicit owner, so that the emitted `assertInstanceOf` resolves to
-                // JUnit's declaration rather than to one the calling class declares or inherits. The selector is
-                // reused only when it names `Assertions` itself; any other selector is replaced by the fully
-                // qualified name, as a subtype can hide `assertInstanceOf` with a declaration of its own, and a
-                // bare `Assertions` could be shadowed by a member type, an inherited member type, a field, or a
-                // same-package type.
+                // Keep an explicit owner so the emitted call resolves to JUnit's declaration rather than one the
+                // calling class declares or inherits. Only a selector naming `Assertions` itself is reused; a
+                // subtype can hide `assertInstanceOf`, and a bare `Assertions` can be shadowed several ways
                 Expression retainedSelect = isAssertionsClassReference(select) ? select : null;
                 String owner = retainedSelect != null ? "Assertions." :
                         select == null ? "" : "org.junit.jupiter.api.Assertions.";
@@ -145,8 +142,8 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
             }
 
             /**
-             * @return whether the selector references {@code org.junit.jupiter.api.Assertions} itself, spelled as
-             * a simple or fully qualified type name; a subtype or a variable is rejected.
+             * @return whether the selector names {@code org.junit.jupiter.api.Assertions} itself, simple or fully
+             * qualified; a subtype or a variable is rejected.
              */
             private boolean isAssertionsClassReference(@Nullable Expression select) {
                 if (select instanceof J.Identifier) {
