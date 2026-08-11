@@ -58,23 +58,20 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 Expression expression;
                 Expression reason;
                 Expression select = mi.getSelect();
-                Expression retainedSelect;
-                String owner;
+                // A qualified call keeps an explicit owner, so that the emitted `assertInstanceOf` resolves to
+                // JUnit's declaration rather than to one the calling class declares or inherits. The selector is
+                // reused only when it names `Assertions` itself; any other selector is replaced by the fully
+                // qualified name, as a subtype can hide `assertInstanceOf` with a declaration of its own, and a
+                // bare `Assertions` could be shadowed by a member type, an inherited member type, a field, or a
+                // same-package type.
+                Expression retainedSelect = isAssertionsClassReference(select) ? select : null;
+                String owner = retainedSelect != null ? "Assertions." :
+                        select == null ? "" : "org.junit.jupiter.api.Assertions.";
 
                 if (junit5Matcher.matches(mi)) {
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
-                    // Reuse the selector only when it names the `Assertions` class itself; there
-                    // `assertInstanceOf` necessarily resolves to JUnit's declaration. A subtype can
-                    // hide `assertInstanceOf` with a declaration of its own, and an instance-typed
-                    // selector resolves against the variable's static type, so both fall back to
-                    // the unqualified call with a static import, as for an unqualified input.
-                    retainedSelect = isAssertionsClassReference(select) ? select : null;
-                    owner = retainedSelect == null ? "" : "Assertions.";
-                    if (retainedSelect == null && select != null) {
-                        JavaType.FullyQualified selectType = TypeUtils.asFullyQualified(select.getType());
-                        if (selectType != null) {
-                            maybeRemoveImport(selectType.getFullyQualifiedName());
-                        }
+                    if (retainedSelect == null) {
+                        maybeRemoveSelectTypeImport(select);
                     }
                     Expression argument = mi.getArguments().get(0);
                     if (mi.getArguments().size() == 1) {
@@ -94,16 +91,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     }
                 } else if (junit4Matcher.matches(mi)) {
                     maybeRemoveImport("org.junit.Assert.assertTrue");
-                    // The selector denotes `Assert`, which does not declare `assertInstanceOf`. A
-                    // qualified call keeps an explicit owner as the fully qualified
-                    // `org.junit.jupiter.api.Assertions.assertInstanceOf`, because a bare
-                    // `Assertions` simple name could itself be shadowed by a member type, an
-                    // inherited member type, a field, or a same-package type.
-                    retainedSelect = null;
-                    owner = select == null ? "" : "org.junit.jupiter.api.Assertions.";
-                    if (select != null) {
-                        maybeRemoveImport("org.junit.Assert");
-                    }
+                    maybeRemoveSelectTypeImport(select);
                     Expression argument;
                     if (mi.getArguments().size() == 1) {
                         reason = null;
@@ -127,8 +115,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 }
 
 
-                // An unqualified call is left unqualified; a same-named local declaration can still capture
-                // it, which this change does not address (see the PR description).
+                // An unqualified call is left unqualified; a same-named declaration in scope can still capture it
                 JavaTemplate.Builder templateBuilder = JavaTemplate
                     .builder(owner + "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"));
@@ -148,11 +135,18 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 return retainedSelect == null ? replacement : replacement.withSelect(retainedSelect.withPrefix(Space.EMPTY));
             }
 
+            private void maybeRemoveSelectTypeImport(@Nullable Expression select) {
+                if (select != null) {
+                    JavaType.FullyQualified selectType = TypeUtils.asFullyQualified(select.getType());
+                    if (selectType != null) {
+                        maybeRemoveImport(selectType.getFullyQualifiedName());
+                    }
+                }
+            }
+
             /**
-             * True only when the selector is a reference to the {@code org.junit.jupiter.api.Assertions}
-             * class itself, spelled as a simple or fully qualified type name. A reference to a subtype or
-             * to a variable is rejected, because the emitted {@code assertInstanceOf} would resolve
-             * against that type, which may hide JUnit's method with a declaration of its own.
+             * @return whether the selector references {@code org.junit.jupiter.api.Assertions} itself, spelled as
+             * a simple or fully qualified type name; a subtype or a variable is rejected.
              */
             private boolean isAssertionsClassReference(@Nullable Expression select) {
                 if (select instanceof J.Identifier) {
