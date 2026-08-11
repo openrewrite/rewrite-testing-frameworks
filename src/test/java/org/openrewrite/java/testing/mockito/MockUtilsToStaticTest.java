@@ -367,6 +367,97 @@ class MockUtilsToStaticTest implements RewriteTest {
     }
 
     @Test
+    void removeFirstDeclaratorSpanningMultipleLines() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.internal.util.MockUtil;
+
+              class Test {
+                  boolean test(Object value) {
+                      MockUtil util = new MockUtil(),
+                              observed = createObserved();
+                      observe(observed);
+                      return util.isMock(value);
+                  }
+
+                  MockUtil createObserved() {
+                      return new MockUtil();
+                  }
+
+                  void observe(Object value) {
+                  }
+              }
+              """,
+            """
+              import org.mockito.internal.util.MockUtil;
+
+              class Test {
+                  boolean test(Object value) {
+                      MockUtil observed = createObserved();
+                      observe(observed);
+                      return MockUtil.isMock(value);
+                  }
+
+                  MockUtil createObserved() {
+                      return new MockUtil();
+                  }
+
+                  void observe(Object value) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeLastDeclaratorWithSpaceBeforeComma() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.internal.util.MockUtil;
+
+              class Test {
+                  boolean test(Object value) {
+                      MockUtil observed = createObserved() , util = new MockUtil();
+                      observe(observed);
+                      return util.isMock(value);
+                  }
+
+                  MockUtil createObserved() {
+                      return new MockUtil();
+                  }
+
+                  void observe(Object value) {
+                  }
+              }
+              """,
+            """
+              import org.mockito.internal.util.MockUtil;
+
+              class Test {
+                  boolean test(Object value) {
+                      MockUtil observed = createObserved();
+                      observe(observed);
+                      return MockUtil.isMock(value);
+                  }
+
+                  MockUtil createObserved() {
+                      return new MockUtil();
+                  }
+
+                  void observe(Object value) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void removeFirstDeclaratorWithoutSpaceAfterComma() {
         //language=java
         rewriteRun(

@@ -75,17 +75,16 @@ public class MockUtilsToStatic extends Recipe {
         @Override
         public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations vd = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
-            // Declarations of `new MockUtil()` are only obsolete once every use of the declared variable in this
-            // compilation unit is the receiver of a call that is migrated to its static form; every other use would
-            // be left undefined. Uses of a visible field from another source file are not analysed.
+            // Uses of a visible field from another source file are not analysed
             J.CompilationUnit scope = getCursor().firstEnclosing(J.CompilationUnit.class);
             if (scope == null) {
                 return vd;
             }
 
+            List<JRightPadded<J.VariableDeclarations.NamedVariable>> original = vd.getPadding().getVariables();
             List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables =
-                    ListUtils.map(vd.getPadding().getVariables(), v -> isObsoleteMockUtilInstance(v.getElement(), scope) ? null : v);
-            if (variables.size() == vd.getVariables().size()) {
+                    ListUtils.map(original, v -> isObsoleteMockUtilInstance(v.getElement(), scope) ? null : v);
+            if (variables.size() == original.size()) {
                 return vd;
             }
             if (variables.isEmpty()) {
@@ -96,10 +95,15 @@ public class MockUtilsToStatic extends Recipe {
                 }
                 return vd;
             }
-            if (vd.getVariables().get(0) != variables.get(0).getElement()) {
-                // Removing the first declarator leaves the next one to carry the separation from the type expression
-                variables = ListUtils.mapFirst(variables, v -> v.getElement().getPrefix().isEmpty() ?
+            if (original.get(0) != variables.get(0)) {
+                // The next declarator now carries the separation from the type expression
+                variables = ListUtils.mapFirst(variables, v -> v.getElement().getPrefix().getComments().isEmpty() ?
                         v.withElement(v.getElement().withPrefix(Space.SINGLE_SPACE)) : v);
+            }
+            JRightPadded<J.VariableDeclarations.NamedVariable> last = original.get(original.size() - 1);
+            if (variables.get(variables.size() - 1) != last) {
+                // The previous declarator now carries the separation from the semicolon
+                variables = ListUtils.mapLast(variables, v -> v.withAfter(last.getAfter()));
             }
             return vd.getPadding().withVariables(variables);
         }
@@ -149,14 +153,13 @@ public class MockUtilsToStatic extends Recipe {
             }
 
             /**
-             * An identifier in these positions declares a variable or names a method, constructor, type,
-             * label, enum constant, or annotation element, or resolved to a type or a package or type
-             * segment of a qualified name, so it is never a reference to the variable under analysis.
+             * @return whether the identifier declares a variable or names a method, type, label, enum constant or
+             * annotation element, or is a package or type segment of a qualified name, so that it can never be a
+             * reference to the variable under analysis.
              */
             private static boolean isNeverVariableReference(J.Identifier identifier, Cursor parentCursor) {
                 if (identifier.getFieldType() == null &&
                         (identifier.getType() instanceof JavaType.Class || identifier.getType() instanceof JavaType.GenericTypeVariable)) {
-                    // Resolved to a type: a same-named class or type variable used as a static receiver or in a type position
                     return true;
                 }
                 Object parent = parentCursor.getValue();
@@ -196,18 +199,17 @@ public class MockUtilsToStatic extends Recipe {
                             parentCursor.getParentTreeCursor().getValue() instanceof J.Annotation;
                 }
                 if (parent instanceof J.FieldAccess) {
-                    // Package and type segments of a qualified name carry no field type; a reference to
-                    // the analysed variable always does, because its declaration is attributed
+                    // Package and type segments of a qualified name carry no field type, unlike an attributed variable
                     return identifier.getFieldType() == null;
                 }
                 return false;
             }
 
             /**
-             * True when the identifier is the receiver of a call that `ChangeMethodTargetToStatic` rewrites
-             * to its static form, either bare (`util.isMock(..)`, `util::isMock`) or as the final name of a
-             * field access receiver (`this.util.isMock(..)`, `this.util::isMock`). The rewrite replaces the
-             * whole receiver with the class name, so such a use no longer needs the instance.
+             * @return whether the identifier is the receiver of a call that {@link ChangeMethodTargetToStatic}
+             * rewrites to its static form, either bare (`util.isMock(..)`, `util::isMock`) or as the final name of
+             * a field access receiver (`this.util.isMock(..)`); the rewrite replaces the whole receiver with the
+             * class name, so such a use no longer needs the instance.
              */
             private static boolean isMigratedUse(J.Identifier identifier, Cursor parent) {
                 Object parentValue = parent.getValue();
