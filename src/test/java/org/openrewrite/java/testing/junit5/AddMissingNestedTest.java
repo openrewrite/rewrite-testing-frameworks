@@ -248,6 +248,29 @@ class AddMissingNestedTest implements RewriteTest {
     }
 
     @Test
+    void doesNotRepeatTheMarkerOnASecondRun() {
+        //language=java
+        rewriteRun(
+          version(
+            java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class RootTest {
+                    /*~~(Not converted to `@Nested`: this class declares static members that may not be legal in an inner class before Java 16; tests in this class may not run and require manual migration)~~>*/static class InnerTest {
+                        static Object state = new Object();
+
+                        @Test
+                        void test() {
+                        }
+                    }
+                }
+                """
+            ), 11)
+        );
+    }
+
+    @Test
     void doesNotRemoveStaticWithStaticInitializerBeforeJava16() {
         //language=java
         rewriteRun(

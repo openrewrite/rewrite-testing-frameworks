@@ -33,6 +33,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
@@ -85,10 +86,6 @@ public class AddMissingNested extends Recipe {
     }
 
     public static class AddNestedAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
-        /**
-         * Java 16 first allowed an inner class to declare static members; up to Java 15 only constant
-         * variables are permitted there.
-         */
         private static final int STATIC_MEMBERS_IN_INNER_CLASSES = 16;
 
         private static final String REQUIRES_MANUAL_MIGRATION = "Not converted to `@Nested`: this class declares " +
@@ -106,10 +103,8 @@ public class AddMissingNested extends Recipe {
                 return cd;
             }
             if (cd.hasModifier(J.Modifier.Type.Static) && !canBeInnerClass(cd)) {
-                // Dropping `static` could leave a static member in an inner class, which would not compile before Java 16.
-                // Silently skipping the class can end its test discovery unnoticed, for example when
-                // `EnclosedToNested` has already removed the JUnit 4 runner, so leave a marker instead.
-                return SearchResult.found(cd, REQUIRES_MANUAL_MIGRATION);
+                // Skipping silently can end test discovery unnoticed, as `EnclosedToNested` already removed the runner
+                return alreadyMarked(cd) ? cd : SearchResult.found(cd, REQUIRES_MANUAL_MIGRATION);
             }
             cd = JavaTemplate.builder("@Nested")
                     .javaParser(JavaParser.fromJavaVersion()
@@ -125,16 +120,20 @@ public class AddMissingNested extends Recipe {
             return TEST_ANNOTATIONS.stream().anyMatch(ann -> !FindAnnotations.find(cd, "@" + ann).isEmpty());
         }
 
+        private static boolean alreadyMarked(J.ClassDeclaration cd) {
+            return cd.getPrefix().getComments().stream()
+                    .anyMatch(comment -> comment instanceof TextComment &&
+                            ((TextComment) comment).getText().contains(REQUIRES_MANUAL_MIGRATION));
+        }
+
         private boolean canBeInnerClass(J.ClassDeclaration cd) {
             return !declaresStaticMember(cd) || supportsStaticMembersInInnerClasses();
         }
 
         /**
-         * @return whether static members other than constant variables are allowed in inner classes. Only a
-         * {@link JavaVersion} marker stating a major version below 16 disallows them; a source without such a
-         * marker, as produced by a plain {@link JavaParser}, or with an undeterminable version is assumed to
-         * support them, since guessing wrong there fails loudly at compile time, whereas withholding the
-         * conversion can silently end test discovery.
+         * @return whether static members other than constant variables are allowed in inner classes. An unknown
+         * version is assumed to support them, as guessing wrong there fails at compile time, whereas withholding
+         * the conversion can silently end test discovery.
          */
         private boolean supportsStaticMembersInInnerClasses() {
             JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
@@ -149,8 +148,8 @@ public class AddMissingNested extends Recipe {
         }
 
         /**
-         * @return whether the class declares a member that this analysis cannot show to be legal in an inner
-         * class before Java 16; member interfaces, enums, annotation types and records are implicitly static.
+         * @return whether the class declares a member that is not legal in an inner class before Java 16; member
+         * interfaces, enums, annotation types and records are implicitly static.
          */
         private static boolean declaresStaticMember(J.ClassDeclaration cd) {
             for (Statement statement : cd.getBody().getStatements()) {
@@ -179,11 +178,8 @@ public class AddMissingNested extends Recipe {
         }
 
         /**
-         * @return whether these are certainly constant variables as defined by the Java Language Specification:
-         * final variables of primitive type or type String, initialized with a constant expression. The
-         * classification is deliberately conservative: only literal-based expressions are recognised, so a
-         * reference to another constant variable, a cast, a conditional expression, or a field without type
-         * attribution is treated as nonconstant.
+         * @return whether these are constant variables per JLS 4.12.4. Deliberately conservative: only
+         * literal-based initializers are recognised, so anything else counts as nonconstant.
          */
         private static boolean isConstantVariable(J.VariableDeclarations variables) {
             if (!variables.hasModifier(J.Modifier.Type.Final)) {

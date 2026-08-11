@@ -224,9 +224,6 @@ class EnclosedToNestedTest implements RewriteTest {
 
     @Test
     void marksInnerClassWithStaticMembersBeforeJava16() {
-        // `EnclosedToNested` removes the runner and delegates to `AddMissingNested`, which cannot
-        // make this class an inner class before Java 16; the marker keeps the migration from
-        // silently ending discovery of the tests.
         //language=java
         rewriteRun(
           version(
