@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.Getter;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -27,6 +28,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypeUtils;
 
 public class SimplifySequencedCollectionAssertions extends Recipe {
 
@@ -63,14 +65,49 @@ public class SimplifySequencedCollectionAssertions extends Recipe {
                         if (arg instanceof J.MethodInvocation) {
                             // Check if the method is getFirst() or getLast() on a SequencedCollection
                             if (GET_FIRST_MATCHER.matches(arg)) {
+                                if (usesCharSequenceSpecificAssertion((J.MethodInvocation) arg)) {
+                                    return mi;
+                                }
                                 return assertThat(mi, (J.MethodInvocation) arg, "first", ctx);
                             }
                             if (GET_LAST_MATCHER.matches(arg)) {
+                                if (usesCharSequenceSpecificAssertion((J.MethodInvocation) arg)) {
+                                    return mi;
+                                }
                                 return assertThat(mi, (J.MethodInvocation) arg, "last", ctx);
                             }
                         }
 
                         return mi;
+                    }
+
+                    private boolean usesCharSequenceSpecificAssertion(J.MethodInvocation elementAccess) {
+                        if (!TypeUtils.isAssignableTo("java.lang.CharSequence", elementAccess.getType())) {
+                            return false;
+                        }
+                        J.MethodInvocation selected = getCursor().getValue();
+                        Cursor assertionCursor = getCursor().getParentTreeCursor();
+                        while (assertionCursor != null && assertionCursor.getValue() instanceof J.MethodInvocation) {
+                            J.MethodInvocation assertion = assertionCursor.getValue();
+                            if (!(assertion.getSelect() instanceof J.MethodInvocation) ||
+                                    !selected.getId().equals(((J.MethodInvocation) assertion.getSelect()).getId())) {
+                                break;
+                            }
+                            if (isCharSequenceSpecificAssertion(assertion)) {
+                                return true;
+                            }
+                            selected = assertion;
+                            assertionCursor = assertionCursor.getParentTreeCursor();
+                        }
+                        return false;
+                    }
+
+                    private boolean isCharSequenceSpecificAssertion(J.MethodInvocation assertion) {
+                        if ("isEqualTo".equals(assertion.getSimpleName()) || "isNotEqualTo".equals(assertion.getSimpleName())) {
+                            return false;
+                        }
+                        return assertion.getMethodType() != null && TypeUtils.isAssignableTo(
+                                "org.assertj.core.api.AbstractCharSequenceAssert", assertion.getMethodType().getDeclaringType());
                     }
 
                     private J.MethodInvocation assertThat(J.MethodInvocation mi, J.MethodInvocation argMethod, String dedicatedAssertion, ExecutionContext ctx) {
