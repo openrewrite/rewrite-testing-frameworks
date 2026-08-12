@@ -514,4 +514,29 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doNotWrapClassLevelField() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class TestClass {
+                  private static final MockedStatic<A> MOCKED_STATIC = Mockito.mockStatic(A.class);
+
+                  @Test
+                  void test() {
+                      assertEquals(A.getNumber(), 42);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
