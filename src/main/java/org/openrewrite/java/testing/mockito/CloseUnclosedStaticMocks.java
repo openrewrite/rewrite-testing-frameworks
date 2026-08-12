@@ -175,11 +175,11 @@ public class CloseUnclosedStaticMocks extends Recipe {
         @Override
         public J visitBlock(J.Block block, ExecutionContext ctx) {
             J.Block b = (J.Block) super.visitBlock(block, ctx);
-            if (insideLifecycleMethod()) {
+            if (insideLifecycleMethod() || isClassBody()) {
                 return b;
             }
             AtomicBoolean removeStatement = new AtomicBoolean(false);
-            J.Block b1 = block.withStatements(ListUtils.map(b.getStatements(), statement -> {
+            J.Block b1 = b.withStatements(ListUtils.map(b.getStatements(), statement -> {
                 if (!removeStatement.get() && shouldUseTryWithResources(statement)) {
                     J.Try tryWithResource = toTryWithResource(b, statement, ctx);
                     if (tryWithResource != null) {
@@ -206,11 +206,15 @@ public class CloseUnclosedStaticMocks extends Recipe {
             if (code == null) {
                 return null;
             }
-            J.Try tryWithResources = JavaTemplate.builder(code)
+            J applied = JavaTemplate.builder(code)
                     .contextSensitive()
                     .imports("org.mockito.MockedStatic")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                     .build().apply(new Cursor(getCursor(), statement), statement.getCoordinates().replace(), statement);
+            if (!(applied instanceof J.Try)) {
+                return null;
+            }
+            J.Try tryWithResources = (J.Try) applied;
             return maybeAutoFormat(tryWithResources, tryWithResources.withBody(findSuccessorStatements(statement, block)), ctx);
         }
 
@@ -252,6 +256,11 @@ public class CloseUnclosedStaticMocks extends Recipe {
 
         private String generateMockedVarName(String mockedClassName) {
             return generateVariableName("mockedStatic" + mockedClassName.replace(".", "_"), getCursor(), INCREMENT_NUMBER);
+        }
+
+        private boolean isClassBody() {
+            Object parent = getCursor().getParentTreeCursor().getValue();
+            return parent instanceof J.ClassDeclaration || parent instanceof J.NewClass;
         }
 
         private boolean insideLifecycleMethod() {
