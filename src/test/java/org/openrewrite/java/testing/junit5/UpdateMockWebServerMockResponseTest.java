@@ -255,7 +255,6 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
             """
               import okio.Buffer;
               import mockwebserver3.MockResponse;
-              import mockwebserver3.MockResponse.Builder;
               import okhttp3.Headers;
               import okhttp3.WebSocketListener;
               import okhttp3.internal.http2.Settings;
@@ -273,22 +272,22 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                       MockResponse.Builder mrB = mockResponse.addHeader("accept", "application/json");
                       MockResponse.Builder mrC = mockResponse.addHeaderLenient("accept", "application/json");
                       MockResponse.Builder mrD = mockResponse.removeHeader("accept");
-                      Builder mrE = mockResponse.body("Lorem ipsum");
-                      Builder mrF = mockResponse.body(new Buffer());
-                      Builder mrG = mockResponse.bodyDelay(30L, TimeUnit.SECONDS);
-                      Builder mrH = mockResponse.chunkedBody("Lorem ipsum", 2048);
-                      Builder mrI = mockResponse.chunkedBody(new Buffer(), 2048);
+                      MockResponse.Builder mrE = mockResponse.body("Lorem ipsum");
+                      MockResponse.Builder mrF = mockResponse.body(new Buffer());
+                      MockResponse.Builder mrG = mockResponse.bodyDelay(30L, TimeUnit.SECONDS);
+                      MockResponse.Builder mrH = mockResponse.chunkedBody("Lorem ipsum", 2048);
+                      MockResponse.Builder mrI = mockResponse.chunkedBody(new Buffer(), 2048);
                       MockResponse.Builder mrJ = mockResponse.setHeader("accept","application/json");
-                      Builder mrK = mockResponse.headers(new Headers.Builder().add("accept:application/json").build());
-                      Builder mrL = mockResponse.headersDelay(30L, TimeUnit.SECONDS);
-                      Builder mrM = mockResponse.code(500);
-                      Builder mrN = mockResponse.code(200);
-                      Builder mrO = mockResponse.status("OK");
-                      Builder mrP = mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
+                      MockResponse.Builder mrK = mockResponse.headers(new Headers.Builder().add("accept:application/json").build());
+                      MockResponse.Builder mrL = mockResponse.headersDelay(30L, TimeUnit.SECONDS);
+                      MockResponse.Builder mrM = mockResponse.code(500);
+                      MockResponse.Builder mrN = mockResponse.code(200);
+                      MockResponse.Builder mrO = mockResponse.status("OK");
+                      MockResponse.Builder mrP = mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
                       MockResponse.Builder mrQ = mockResponse.throttleBody(1024, 1, TimeUnit.SECONDS);
-                      Builder mrR = mockResponse.addPush(pushPromise);
-                      Builder mrS = mockResponse.settings(settings);
-                      Builder mrT = mockResponse.webSocketUpgrade(webSocketListener);
+                      MockResponse.Builder mrR = mockResponse.addPush(pushPromise);
+                      MockResponse.Builder mrS = mockResponse.settings(settings);
+                      MockResponse.Builder mrT = mockResponse.webSocketUpgrade(webSocketListener);
                   }
               }
               """
