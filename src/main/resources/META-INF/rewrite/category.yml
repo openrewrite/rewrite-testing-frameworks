@@ -116,3 +116,43 @@ tags:
   - testing
   - datafaker
 ---
+type: specs.openrewrite.org/v1beta/category
+name: JUnit
+packageName: org.openrewrite.java.testing.junit
+description: Best practices that apply across [JUnit](https://junit.org/) versions.
+tags:
+  - testing
+  - junit
+---
+type: specs.openrewrite.org/v1beta/category
+name: JUnit 6
+packageName: org.openrewrite.java.testing.junit6
+description: Recipes for migrating to [JUnit 6](https://junit.org/).
+tags:
+  - testing
+  - junit
+---
+type: specs.openrewrite.org/v1beta/category
+name: Test cleanup
+packageName: org.openrewrite.java.testing.cleanup
+description: Recipes to simplify assertions and clean up test code.
+tags:
+  - testing
+  - cleanup
+---
+type: specs.openrewrite.org/v1beta/category
+name: WireMock
+packageName: org.openrewrite.java.testing.wiremock
+description: Recipes for [WireMock](https://wiremock.org/) HTTP service mocking.
+tags:
+  - testing
+  - wiremock
+---
+type: specs.openrewrite.org/v1beta/category
+name: Byteman
+packageName: org.openrewrite.java.testing.byteman
+description: Recipes for [Byteman](https://byteman.jboss.org/) bytecode injection in tests.
+tags:
+  - testing
+  - byteman
+---
