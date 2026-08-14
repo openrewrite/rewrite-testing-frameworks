@@ -1283,7 +1283,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
     class NoChanges {
 
         @Test
-        void doesNotMigrateSelfReferencingReassignment() {
+        void selfReferencingReassignment() {
             //language=java
             rewriteRun(
               java(
@@ -1315,7 +1315,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         }
 
         @Test
-        void doesNotMigrateWhenReadAgainBeforeExpect() {
+        void whenReassignedLocalReadAgainBeforeExpect() {
             //language=java
             rewriteRun(
               java(
@@ -1348,7 +1348,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         }
 
         @Test
-        void doesNotMigrateWhenUsedMultipleTimesAfterExpect() {
+        void whenUsedMultipleTimesAfterExpect() {
             //language=java
             rewriteRun(
               java(
@@ -1381,7 +1381,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         }
 
         @Test
-        void doesNotMigrateChainedReassignment() {
+        void chainedReassignment() {
             //language=java
             rewriteRun(
               java(
@@ -1418,7 +1418,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         }
 
         @Test
-        void doesNotMigrateWhenAssignedAgainAfterExpect() {
+        void whenAssignedAgainAfterExpect() {
             //language=java
             rewriteRun(
               java(
@@ -1449,7 +1449,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
         }
 
         @Test
-        void doesNotMigrateValueThatCouldChangeBeforeExpect() {
+        void valueThatCouldChangeBeforeExpect() {
             //language=java
             rewriteRun(
               java(
@@ -1474,6 +1474,112 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                           input = list.get(0);
                           list.clear();
                           thrown.expect(NullPointerException.class);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void valueThatCouldChangeAfterExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import java.util.ArrayList;
+                  import java.util.List;
+
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          List<String> list = new ArrayList<>();
+                          list.add("a");
+                          int size = 0;
+                          size = list.size();
+                          thrown.expect(NullPointerException.class);
+                          list.add("b");
+                          map(size);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void fieldReadThatCouldChangeAfterExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      private int counter = 1;
+
+                      @Test
+                      public void testMapping() {
+                          int size = 0;
+                          size = counter;
+                          thrown.expect(NullPointerException.class);
+                          counter = 5;
+                          map(size);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void unrelatedLambdaLeftAloneWhenNothingMigrates() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          Runnable r = () -> {
+                              System.out.println("hi");
+                          };
+                          String input = "valid";
+                          input = "invalid";
+                          thrown.expect(NullPointerException.class);
+                          map(input);
                           map(input);
                       }
 

@@ -88,25 +88,26 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            doAfterVisit(new LambdaBlockToExpression().getVisitor());
 
             // A method that could not be migrated still needs the rule, so leave the field and its imports in place.
-            if (getCursor().getMessage(CANNOT_MIGRATE) != null) {
-                return cd;
+            if (getCursor().getMessage(CANNOT_MIGRATE) == null) {
+                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                    if (statement instanceof J.VariableDeclarations) {
+                        //noinspection ConstantConditions
+                        if (TypeUtils.isOfClassType(((J.VariableDeclarations) statement).getTypeExpression().getType(),
+                                "org.junit.rules.ExpectedException")) {
+                            maybeRemoveImport("org.junit.Rule");
+                            maybeRemoveImport("org.junit.rules.ExpectedException");
+                            return null;
+                        }
+                    }
+                    return statement;
+                })));
             }
 
-            cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
-                if (statement instanceof J.VariableDeclarations) {
-                    //noinspection ConstantConditions
-                    if (TypeUtils.isOfClassType(((J.VariableDeclarations) statement).getTypeExpression().getType(),
-                            "org.junit.rules.ExpectedException")) {
-                        maybeRemoveImport("org.junit.Rule");
-                        maybeRemoveImport("org.junit.rules.ExpectedException");
-                        return null;
-                    }
-                }
-                return statement;
-            })));
+            if (cd != classDecl) {
+                doAfterVisit(new LambdaBlockToExpression().getVisitor());
+            }
             return cd;
         }
 
@@ -391,7 +392,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     boolean selfReferencing = countReferences(rhs, local) > 0;
                     boolean reassignedOnce = countAssignments(statements.subList(0, expectIndex), local) == 1;
                     boolean touchedBetween = countReferences(between, local) > 0;
-                    if (selfReferencing || !reassignedOnce || touchedBetween || !safeToDefer(rhs, between)) {
+                    if (selfReferencing || !reassignedOnce || touchedBetween) {
                         continue;
                     }
                     J.Block updated = inlineAtSingleUse(block, statements, i, expectIndex, local, rhs);
@@ -488,12 +489,14 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         /**
-         * Inlining moves the right hand side past the statements between the assignment and expect*(),
-         * so only defer values those statements can not change: literals and local variables that are
-         * not themselves reassigned in between, without any side effects of their own.
+         * Inlining moves the right hand side past every statement between the assignment and the use
+         * site it is spliced into -- both those before expect*() and those that end up ahead of it in
+         * the assertThrows(...) lambda -- so only defer values those statements can not change:
+         * literals and local variables that are not themselves reassigned, without side effects of
+         * their own.
          */
-        private static boolean safeToDefer(Expression rhs, List<Statement> between) {
-            if (between.isEmpty()) {
+        private static boolean safeToDefer(Expression rhs, List<Statement> deferredOver) {
+            if (deferredOver.isEmpty()) {
                 return true;
             }
             return new JavaIsoVisitor<AtomicBoolean>() {
@@ -540,7 +543,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean acc) {
                     JavaType.Variable fieldType = identifier.getFieldType();
                     if (fieldType != null &&
-                            (!(fieldType.getOwner() instanceof JavaType.Method) || countAssignments(between, fieldType) > 0)) {
+                            (!(fieldType.getOwner() instanceof JavaType.Method) || countAssignments(deferredOver, fieldType) > 0)) {
                         acc.set(false);
                     }
                     return identifier;
@@ -566,6 +569,12 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
             }
             if (uses != 1) {
+                return null;
+            }
+            // expect*() itself is replaced by assertThrows(...) at the same point, so it is not deferred over.
+            if (!safeToDefer(rhs, ListUtils.concatAll(
+                    statements.subList(assignmentIndex + 1, expectIndex),
+                    statements.subList(expectIndex + 1, afterIndex)))) {
                 return null;
             }
             Statement rewritten = inlineReferenceInStatement(statements.get(afterIndex), variable, rhs);
@@ -644,7 +653,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         // Only is(X.class) is treated as an instanceof check, to avoid false positives on is("string") or is(someVariable).
-        private Expression extractClassLiteralFromInstanceOfMatcher(J.MethodInvocation matcherCall) {
+        private @Nullable Expression extractClassLiteralFromInstanceOfMatcher(J.MethodInvocation matcherCall) {
             if (matcherCall.getArguments().isEmpty()) {
                 return null;
             }
