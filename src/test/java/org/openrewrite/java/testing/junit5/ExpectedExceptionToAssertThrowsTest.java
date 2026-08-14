@@ -978,7 +978,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
     }
 
     @Test
-    void doesNotInlineSelfReferencingReassignment() {
+    void doesNotMigrateSelfReferencingReassignment() {
         //language=java
         rewriteRun(
           java(
@@ -1004,34 +1004,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       throw new NullPointerException();
                   }
               }
-              """,
-            """
-              import org.junit.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              public class MyTest {
-
-                  @Test
-                  public void testMapping() {
-                      int counter = 0;
-                      counter = counter + 1;
-
-                      assertThrows(NullPointerException.class, () ->
-                          map(counter));
-                  }
-
-                  void map(int i) {
-                      throw new NullPointerException();
-                  }
-              }
               """
           )
         );
     }
 
     @Test
-    void doesNotInlineWhenReadAgainBeforeExpect() {
+    void doesNotMigrateWhenReadAgainBeforeExpect() {
         //language=java
         rewriteRun(
           java(
@@ -1058,35 +1037,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       throw new NullPointerException();
                   }
               }
-              """,
-            """
-              import org.junit.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              public class MyTest {
-
-                  @Test
-                  public void testMapping() {
-                      String input = "valid";
-                      input = "invalid";
-                      System.out.println(input);
-
-                      assertThrows(NullPointerException.class, () ->
-                          map(input));
-                  }
-
-                  void map(String s) {
-                      throw new NullPointerException();
-                  }
-              }
               """
           )
         );
     }
 
     @Test
-    void doesNotInlineWhenUsedMultipleTimesAfterExpect() {
+    void doesNotMigrateWhenUsedMultipleTimesAfterExpect() {
         //language=java
         rewriteRun(
           java(
@@ -1113,36 +1070,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       throw new NullPointerException();
                   }
               }
-              """,
-            """
-              import org.junit.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              public class MyTest {
-
-                  @Test
-                  public void testMapping() {
-                      String input = "valid";
-                      input = "invalid";
-
-                      assertThrows(NullPointerException.class, () -> {
-                          map(input);
-                          map(input);
-                      });
-                  }
-
-                  void map(String s) {
-                      throw new NullPointerException();
-                  }
-              }
               """
           )
         );
     }
 
     @Test
-    void doesNotInlineChainedReassignment() {
+    void doesNotMigrateChainedReassignment() {
         //language=java
         rewriteRun(
           java(
@@ -1163,32 +1097,6 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
 
                       thrown.expect(NullPointerException.class);
                       map(input);
-                  }
-
-                  String update(String s) {
-                      return s;
-                  }
-
-                  void map(String s) {
-                      throw new NullPointerException();
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              public class MyTest {
-
-                  @Test
-                  public void testMapping() {
-                      String input = "valid";
-                      input = update(input);
-                      input = update(input);
-
-                      assertThrows(NullPointerException.class, () ->
-                          map(input));
                   }
 
                   String update(String s) {
@@ -1435,7 +1343,7 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
     }
 
     @Test
-    void doesNotInlineWhenAssignedAgainAfterExpect() {
+    void doesNotMigrateWhenAssignedAgainAfterExpect() {
         //language=java
         rewriteRun(
           java(
@@ -1460,34 +1368,13 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                   void map(String s) {
                   }
               }
-              """,
-            """
-              import org.junit.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              public class MyTest {
-
-                  @Test
-                  public void testMapping() {
-                      String input = "valid";
-                      map(input);
-                      input = "invalid";
-                      assertThrows(NullPointerException.class, () -> {
-                          input = "other";
-                      });
-                  }
-
-                  void map(String s) {
-                  }
-              }
               """
           )
         );
     }
 
     @Test
-    void doesNotInlineValueThatCouldChangeBeforeExpect() {
+    void doesNotMigrateValueThatCouldChangeBeforeExpect() {
         //language=java
         rewriteRun(
           java(
@@ -1519,26 +1406,71 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       throw new NullPointerException();
                   }
               }
-              """,
-            """
-              import java.util.ArrayList;
-              import java.util.List;
+              """
+          )
+        );
+    }
 
-              import static org.junit.jupiter.api.Assertions.assertThrows;
+    @Test
+    void keepsRuleWhenOnlySomeMethodsMigrate() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
               import org.junit.Test;
+              import org.junit.rules.ExpectedException;
 
               public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
 
                   @Test
-                  public void testMapping() {
-                      List<String> list = new ArrayList<>();
-                      list.add("invalid");
+                  public void capturesReassignedLocal() throws Exception {
                       String input = "valid";
                       map(input);
-                      input = list.get(0);
-                      list.clear();
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                      map(input);
+                  }
+
+                  @Test
+                  public void migrates() throws Exception {
+                      thrown.expect(NullPointerException.class);
+                      map("valid");
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void capturesReassignedLocal() throws Exception {
+                      String input = "valid";
+                      map(input);
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                      map(input);
+                  }
+
+                  @Test
+                  public void migrates() {
                       assertThrows(NullPointerException.class, () ->
-                          map(input));
+                          map("valid"));
                   }
 
                   void map(String s) {

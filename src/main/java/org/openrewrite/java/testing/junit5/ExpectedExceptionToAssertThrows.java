@@ -71,6 +71,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String STATEMENTS_AFTER_EXPECT_EXCEPTION = "statementsAfterExpectException";
         private static final String HAS_MATCHER = "hasMatcher";
         private static final String EXCEPTION_CLASS = "exceptionClass";
+        private static final String CANNOT_MIGRATE = "cannotMigrate";
 
         private static final MethodMatcher EXPECTED_EXCEPTION_ALL_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect*(..)");
         private static final MethodMatcher EXPECTED_EXCEPTION_CLASS_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect(java.lang.Class)");
@@ -87,6 +88,12 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+            doAfterVisit(new LambdaBlockToExpression().getVisitor());
+
+            // A method that could not be migrated still needs the rule, so leave the field and its imports in place.
+            if (getCursor().getMessage(CANNOT_MIGRATE) != null) {
+                return cd;
+            }
 
             cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                 if (statement instanceof J.VariableDeclarations) {
@@ -100,13 +107,15 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
                 return statement;
             })));
-            doAfterVisit(new LambdaBlockToExpression().getVisitor());
             return cd;
         }
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+            if (getCursor().getMessage(CANNOT_MIGRATE) != null) {
+                return m;
+            }
             if (getCursor().pollMessage("hasExpectException") != null) {
                 List<NameTree> thrown = m.getThrows();
                 if (thrown != null && !thrown.isEmpty()) {
@@ -172,6 +181,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             List<Statement> statementsAfterExpectException = getCursor().pollMessage(STATEMENTS_AFTER_EXPECT_EXCEPTION);
             if (statementsAfterExpectException == null) {
                 return b;
+            }
+            if (capturesNonEffectivelyFinalLocal(statementsAfterExpectException, getCursor())) {
+                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, CANNOT_MIGRATE, true);
+                getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, CANNOT_MIGRATE, true);
+                return block;
             }
             J.Block statementsAfterExpectExceptionBlock = new J.Block(randomId(), Space.EMPTY,
                     Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
@@ -303,6 +317,50 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 cursor = cursor.getParentTreeCursor();
             }
             return successorStatements;
+        }
+
+        /**
+         * The statements moving into the assertThrows(...) lambda may only capture effectively final
+         * locals, so a local they read that is assigned anywhere in the method -- before expect*(), or
+         * by the moved statements themselves -- means the migration would not compile. Inlining removes
+         * the read for the shapes it handles; anything left is reported here so the method is left alone
+         * rather than rewritten into a lambda javac rejects.
+         */
+        private static boolean capturesNonEffectivelyFinalLocal(List<Statement> moved, Cursor cursor) {
+            J.MethodDeclaration method = cursor.firstEnclosing(J.MethodDeclaration.class);
+            if (method == null) {
+                return false;
+            }
+            List<JavaType.Variable> declaredInMoved = new ArrayList<>();
+            List<JavaType.Variable> capturedLocals = new ArrayList<>();
+            JavaIsoVisitor<Integer> collector = new JavaIsoVisitor<Integer>() {
+                @Override
+                public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Integer p) {
+                    if (variable.getVariableType() != null) {
+                        declaredInMoved.add(variable.getVariableType());
+                    }
+                    return super.visitVariable(variable, p);
+                }
+
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                    JavaType.Variable fieldType = identifier.getFieldType();
+                    if (fieldType != null && fieldType.getOwner() instanceof JavaType.Method) {
+                        capturedLocals.add(fieldType);
+                    }
+                    return super.visitIdentifier(identifier, p);
+                }
+            };
+            for (Statement statement : moved) {
+                collector.visit(statement, 0);
+            }
+            for (JavaType.Variable local : capturedLocals) {
+                boolean declaredInLambda = declaredInMoved.stream().anyMatch(declared -> TypeUtils.isOfType(declared, local));
+                if (!declaredInLambda && countAssignments(method, local) > 0) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /**
