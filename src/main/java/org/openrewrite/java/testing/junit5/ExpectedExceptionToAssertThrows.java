@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.ParenthesizeVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
@@ -373,8 +374,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         private static int countAssignments(J tree, JavaType.Variable variable) {
-            AtomicInteger count = new AtomicInteger();
-            new JavaIsoVisitor<AtomicInteger>() {
+            return new JavaIsoVisitor<AtomicInteger>() {
                 @Override
                 public J.Assignment visitAssignment(J.Assignment assignment, AtomicInteger acc) {
                     if (isReferenceTo(assignment.getVariable(), variable)) {
@@ -398,8 +398,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     }
                     return super.visitUnary(unary, acc);
                 }
-            }.visit(tree, count);
-            return count.get();
+            }.reduce(tree, new AtomicInteger()).get();
         }
 
         private static int countAssignments(List<? extends J> trees, JavaType.Variable variable) {
@@ -411,8 +410,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         private static int countReferences(J tree, JavaType.Variable variable) {
-            AtomicInteger count = new AtomicInteger();
-            new JavaIsoVisitor<AtomicInteger>() {
+            return new JavaIsoVisitor<AtomicInteger>() {
                 @Override
                 public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
                     if (isReferenceTo(identifier, variable)) {
@@ -420,8 +418,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     }
                     return super.visitIdentifier(identifier, acc);
                 }
-            }.visit(tree, count);
-            return count.get();
+            }.reduce(tree, new AtomicInteger()).get();
         }
 
         private static int countReferences(List<? extends J> trees, JavaType.Variable variable) {
@@ -441,8 +438,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (between.isEmpty()) {
                 return true;
             }
-            AtomicBoolean safe = new AtomicBoolean(true);
-            new JavaIsoVisitor<AtomicBoolean>() {
+            return new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean acc) {
                     acc.set(false);
@@ -491,8 +487,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     }
                     return identifier;
                 }
-            }.visit(rhs, safe);
-            return safe.get();
+            }.reduce(rhs, new AtomicBoolean(true)).get();
         }
 
         // Deletes the reassignment at statements[assignmentIndex] and splices its RHS in place of
@@ -516,9 +511,6 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 return null;
             }
             Statement rewritten = inlineReferenceInStatement(statements.get(afterIndex), variable, rhs);
-            if (rewritten == null) {
-                return null;
-            }
             int finalAfterIndex = afterIndex;
             return block.withStatements(ListUtils.map(statements, (i, s) -> {
                 if (i == assignmentIndex) {
@@ -529,50 +521,18 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         // Replaces the sole reference to `variable` in `statement` with `replacement`.
-        private static @Nullable Statement inlineReferenceInStatement(Statement statement, JavaType.Variable variable,
+        private static Statement inlineReferenceInStatement(Statement statement, JavaType.Variable variable,
                 Expression replacement) {
-            AtomicBoolean done = new AtomicBoolean(false);
-            J result = new JavaVisitor<AtomicBoolean>() {
+            return (Statement) new JavaVisitor<Integer>() {
                 @Override
-                public J visitIdentifier(J.Identifier identifier, AtomicBoolean acc) {
-                    if (acc.get() || !isReferenceTo(identifier, variable)) {
+                public J visitIdentifier(J.Identifier identifier, Integer p) {
+                    if (!isReferenceTo(identifier, variable)) {
                         return identifier;
                     }
-                    acc.set(true);
-                    Expression inlined = replacement.withPrefix(Space.EMPTY);
-                    if (needsParentheses(identifier, replacement, getCursor())) {
-                        inlined = new J.Parentheses<>(randomId(), Space.EMPTY, Markers.EMPTY,
-                                new JRightPadded<>(inlined, Space.EMPTY, Markers.EMPTY));
-                    }
-                    return inlined.withPrefix(identifier.getPrefix());
+                    return ParenthesizeVisitor.maybeParenthesize(replacement.withPrefix(Space.EMPTY), getCursor())
+                            .withPrefix(identifier.getPrefix());
                 }
-            }.visit(statement, done);
-            return done.get() ? (Statement) result : null;
-        }
-
-        private static boolean needsParentheses(J.Identifier identifier, Expression replacement, Cursor cursor) {
-            if (!(replacement instanceof J.Binary || replacement instanceof J.Ternary ||
-                    replacement instanceof J.InstanceOf || replacement instanceof J.TypeCast ||
-                    replacement instanceof J.Lambda || replacement instanceof J.Assignment ||
-                    replacement instanceof J.AssignmentOperation)) {
-                return false;
-            }
-            Object parent = cursor.getParentTreeCursor().getValue();
-            if (parent instanceof J.MethodInvocation) {
-                return isSameElement(((J.MethodInvocation) parent).getSelect(), identifier);
-            }
-            if (parent instanceof J.FieldAccess) {
-                return isSameElement(((J.FieldAccess) parent).getTarget(), identifier);
-            }
-            if (parent instanceof J.ArrayAccess) {
-                return isSameElement(((J.ArrayAccess) parent).getIndexed(), identifier);
-            }
-            return parent instanceof J.Binary || parent instanceof J.Unary || parent instanceof J.TypeCast ||
-                    parent instanceof J.InstanceOf || parent instanceof J.Ternary || parent instanceof J.MemberReference;
-        }
-
-        private static boolean isSameElement(@Nullable J maybeElement, J element) {
-            return maybeElement != null && maybeElement.getId().equals(element.getId());
+            }.visit(statement, 0);
         }
 
         private Optional<JavaTemplate> getExpectExceptionTemplate(J.MethodInvocation method, ExecutionContext ctx) {
