@@ -29,6 +29,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
+import org.openrewrite.trait.Comments;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,6 +73,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String HAS_MATCHER = "hasMatcher";
         private static final String EXCEPTION_CLASS = "exceptionClass";
         private static final String CANNOT_MIGRATE = "cannotMigrate";
+        private static final String CANNOT_MIGRATE_COMMENT = " TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.";
 
         private static final MethodMatcher EXPECTED_EXCEPTION_ALL_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect*(..)");
         private static final MethodMatcher EXPECTED_EXCEPTION_CLASS_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect(java.lang.Class)");
@@ -88,27 +90,34 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-
-            // A method that could not be migrated still needs the rule, so leave the field and its imports in place.
-            if (getCursor().getMessage(CANNOT_MIGRATE) == null) {
-                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
-                    if (statement instanceof J.VariableDeclarations) {
-                        //noinspection ConstantConditions
-                        if (TypeUtils.isOfClassType(((J.VariableDeclarations) statement).getTypeExpression().getType(),
-                                "org.junit.rules.ExpectedException")) {
-                            maybeRemoveImport("org.junit.Rule");
-                            maybeRemoveImport("org.junit.rules.ExpectedException");
-                            return null;
-                        }
-                    }
-                    return statement;
-                })));
-            }
-
+            // Only a migrated method can have produced the lambda that needs collapsing.
             if (cd != classDecl) {
                 doAfterVisit(new LambdaBlockToExpression().getVisitor());
             }
-            return cd;
+
+            // A method that could not be migrated still needs the rule, so leave the field and its imports in place.
+            boolean cannotMigrate = getCursor().getMessage(CANNOT_MIGRATE) != null;
+            Cursor bodyCursor = new Cursor(getCursor(), cd.getBody());
+            return cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                if (!isExpectedExceptionField(statement)) {
+                    return statement;
+                }
+                if (cannotMigrate) {
+                    return Comments.of(new Cursor(bodyCursor, statement)).comment(CANNOT_MIGRATE_COMMENT);
+                }
+                maybeRemoveImport("org.junit.Rule");
+                maybeRemoveImport("org.junit.rules.ExpectedException");
+                return null;
+            })));
+        }
+
+        private static boolean isExpectedExceptionField(Statement statement) {
+            if (!(statement instanceof J.VariableDeclarations)) {
+                return false;
+            }
+            TypeTree typeExpression = ((J.VariableDeclarations) statement).getTypeExpression();
+            return typeExpression != null &&
+                    TypeUtils.isOfClassType(typeExpression.getType(), "org.junit.rules.ExpectedException");
         }
 
         @Override
