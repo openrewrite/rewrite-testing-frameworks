@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -918,5 +919,916 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Test
+    void inlinesSingleUseReassignedLocalBeforeExpect() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMapping() throws Exception {
+                      String input = "valid";
+                      map(input);
+
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                  }
+
+                  void map(String s) {
+                      if (s.equals("invalid")) {
+                          throw new NullPointerException();
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testMapping() {
+                      String input = "valid";
+                      map(input);
+                      assertThrows(NullPointerException.class, () ->
+                          map("invalid"));
+                  }
+
+                  void map(String s) {
+                      if (s.equals("invalid")) {
+                          throw new NullPointerException();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void inlinedValueRetainsTypeAttribution() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.CoreMatchers;
+              import org.hamcrest.Matcher;
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMapping() {
+                      Matcher<String> matcher = null;
+                      map(matcher);
+                      matcher = CoreMatchers.is("invalid");
+                      thrown.expect(NullPointerException.class);
+                      map(matcher);
+                  }
+
+                  void map(Matcher<String> m) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.hamcrest.CoreMatchers;
+              import org.hamcrest.Matcher;
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testMapping() {
+                      Matcher<String> matcher = null;
+                      map(matcher);
+                      assertThrows(NullPointerException.class, () ->
+                          map(CoreMatchers.is("invalid")));
+                  }
+
+                  void map(Matcher<String> m) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void parenthesizesInlinedValueWhenNeeded() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMapping() {
+                      String input = "valid";
+                      map(input);
+                      input = "a" + "b";
+                      thrown.expect(NullPointerException.class);
+                      map(input.trim());
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testMapping() {
+                      String input = "valid";
+                      map(input);
+                      assertThrows(NullPointerException.class, () ->
+                          map(("a" + "b").trim()));
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotInlineFieldAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  private String input;
+
+                  @Test
+                  public void testMapping() {
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  private String input;
+
+                  @Test
+                  public void testMapping() {
+                      input = "invalid";
+                      assertThrows(NullPointerException.class, () ->
+                          map(input));
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotInlineIntoSameNamedMethodOrField() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  static class Holder {
+                      String value = "x";
+                  }
+
+                  @Test
+                  public void testMapping() {
+                      Holder holder = new Holder();
+                      String value = "valid";
+                      map(value);
+                      value = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      value(holder.value);
+                  }
+
+                  void value(String s) {
+                      throw new NullPointerException();
+                  }
+
+                  void map(String s) {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  static class Holder {
+                      String value = "x";
+                  }
+
+                  @Test
+                  public void testMapping() {
+                      Holder holder = new Holder();
+                      String value = "valid";
+                      map(value);
+                      value = "invalid";
+                      assertThrows(NullPointerException.class, () ->
+                          value(holder.value));
+                  }
+
+                  void value(String s) {
+                      throw new NullPointerException();
+                  }
+
+                  void map(String s) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsRuleWhenOnlySomeMethodsMigrate() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void capturesReassignedLocal() throws Exception {
+                      String input = "valid";
+                      map(input);
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                      map(input);
+                  }
+
+                  @Test
+                  public void migrates() throws Exception {
+                      thrown.expect(NullPointerException.class);
+                      map("valid");
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+                  // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void capturesReassignedLocal() throws Exception {
+                      String input = "valid";
+                      map(input);
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                      map(input);
+                  }
+
+                  @Test
+                  public void migrates() {
+                      assertThrows(NullPointerException.class, () ->
+                          map("valid"));
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Nested
+    class CannotMigrate {
+
+        @Test
+        void selfReferencingReassignment() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          int counter = 0;
+                          counter = counter + 1;
+
+                          thrown.expect(NullPointerException.class);
+                          map(counter);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          int counter = 0;
+                          counter = counter + 1;
+
+                          thrown.expect(NullPointerException.class);
+                          map(counter);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenReassignedLocalReadAgainBeforeExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          String input = "valid";
+                          input = "invalid";
+                          System.out.println(input);
+
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          String input = "valid";
+                          input = "invalid";
+                          System.out.println(input);
+
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenUsedMultipleTimesAfterExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          String input = "valid";
+                          input = "invalid";
+
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          String input = "valid";
+                          input = "invalid";
+
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void chainedReassignment() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          String input = "valid";
+                          input = update(input);
+                          input = update(input);
+
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                      }
+
+                      String update(String s) {
+                          return s;
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          String input = "valid";
+                          input = update(input);
+                          input = update(input);
+
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                      }
+
+                      String update(String s) {
+                          return s;
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenAssignedAgainAfterExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          String input = "valid";
+                          map(input);
+                          input = "invalid";
+                          thrown.expect(NullPointerException.class);
+                          input = "other";
+                      }
+
+                      void map(String s) {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          String input = "valid";
+                          map(input);
+                          input = "invalid";
+                          thrown.expect(NullPointerException.class);
+                          input = "other";
+                      }
+
+                      void map(String s) {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void valueThatCouldChangeBeforeExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import java.util.ArrayList;
+                  import java.util.List;
+
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          List<String> list = new ArrayList<>();
+                          list.add("invalid");
+                          String input = "valid";
+                          map(input);
+                          input = list.get(0);
+                          list.clear();
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import java.util.ArrayList;
+                  import java.util.List;
+
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          List<String> list = new ArrayList<>();
+                          list.add("invalid");
+                          String input = "valid";
+                          map(input);
+                          input = list.get(0);
+                          list.clear();
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void valueThatCouldChangeAfterExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import java.util.ArrayList;
+                  import java.util.List;
+
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          List<String> list = new ArrayList<>();
+                          list.add("a");
+                          int size = 0;
+                          size = list.size();
+                          thrown.expect(NullPointerException.class);
+                          list.add("b");
+                          map(size);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import java.util.ArrayList;
+                  import java.util.List;
+
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          List<String> list = new ArrayList<>();
+                          list.add("a");
+                          int size = 0;
+                          size = list.size();
+                          thrown.expect(NullPointerException.class);
+                          list.add("b");
+                          map(size);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void fieldReadThatCouldChangeAfterExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      private int counter = 1;
+
+                      @Test
+                      public void testMapping() {
+                          int size = 0;
+                          size = counter;
+                          thrown.expect(NullPointerException.class);
+                          counter = 5;
+                          map(size);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      private int counter = 1;
+
+                      @Test
+                      public void testMapping() {
+                          int size = 0;
+                          size = counter;
+                          thrown.expect(NullPointerException.class);
+                          counter = 5;
+                          map(size);
+                      }
+
+                      void map(int i) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void unrelatedLambdaLeftAloneWhenNothingMigrates() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          Runnable r = () -> {
+                              System.out.println("hi");
+                          };
+                          String input = "valid";
+                          input = "invalid";
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() throws Exception {
+                          Runnable r = () -> {
+                              System.out.println("hi");
+                          };
+                          String input = "valid";
+                          input = "invalid";
+                          thrown.expect(NullPointerException.class);
+                          map(input);
+                          map(input);
+                      }
+
+                      void map(String s) {
+                          throw new NullPointerException();
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

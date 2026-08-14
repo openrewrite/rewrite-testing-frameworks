@@ -16,21 +16,26 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.ParenthesizeVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
+import org.openrewrite.trait.Comments;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -67,6 +72,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String STATEMENTS_AFTER_EXPECT_EXCEPTION = "statementsAfterExpectException";
         private static final String HAS_MATCHER = "hasMatcher";
         private static final String EXCEPTION_CLASS = "exceptionClass";
+        private static final String CANNOT_MIGRATE = "cannotMigrate";
+        private static final String CANNOT_MIGRATE_COMMENT = " TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.";
 
         private static final MethodMatcher EXPECTED_EXCEPTION_ALL_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect*(..)");
         private static final MethodMatcher EXPECTED_EXCEPTION_CLASS_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect(java.lang.Class)");
@@ -83,26 +90,42 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+            // Only a migrated method can have produced the lambda that needs collapsing.
+            if (cd != classDecl) {
+                doAfterVisit(new LambdaBlockToExpression().getVisitor());
+            }
 
-            cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
-                if (statement instanceof J.VariableDeclarations) {
-                    //noinspection ConstantConditions
-                    if (TypeUtils.isOfClassType(((J.VariableDeclarations) statement).getTypeExpression().getType(),
-                            "org.junit.rules.ExpectedException")) {
-                        maybeRemoveImport("org.junit.Rule");
-                        maybeRemoveImport("org.junit.rules.ExpectedException");
-                        return null;
-                    }
+            // A method that could not be migrated still needs the rule, so leave the field and its imports in place.
+            boolean cannotMigrate = getCursor().getMessage(CANNOT_MIGRATE) != null;
+            Cursor bodyCursor = new Cursor(getCursor(), cd.getBody());
+            return cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                if (!isExpectedExceptionField(statement)) {
+                    return statement;
                 }
-                return statement;
+                if (cannotMigrate) {
+                    return Comments.of(new Cursor(bodyCursor, statement)).comment(CANNOT_MIGRATE_COMMENT);
+                }
+                maybeRemoveImport("org.junit.Rule");
+                maybeRemoveImport("org.junit.rules.ExpectedException");
+                return null;
             })));
-            doAfterVisit(new LambdaBlockToExpression().getVisitor());
-            return cd;
+        }
+
+        private static boolean isExpectedExceptionField(Statement statement) {
+            if (!(statement instanceof J.VariableDeclarations)) {
+                return false;
+            }
+            TypeTree typeExpression = ((J.VariableDeclarations) statement).getTypeExpression();
+            return typeExpression != null &&
+                    TypeUtils.isOfClassType(typeExpression.getType(), "org.junit.rules.ExpectedException");
         }
 
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+            if (getCursor().getMessage(CANNOT_MIGRATE) != null) {
+                return m;
+            }
             if (getCursor().pollMessage("hasExpectException") != null) {
                 List<NameTree> thrown = m.getThrows();
                 if (thrown != null && !thrown.isEmpty()) {
@@ -162,10 +185,17 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
         @Override
         public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
-            J.Block b = super.visitBlock(block, ctx);
+            J.Block simplified = inlineSingleUseReassignedLocals(block);
+            updateCursor(simplified);
+            J.Block b = super.visitBlock(simplified, ctx);
             List<Statement> statementsAfterExpectException = getCursor().pollMessage(STATEMENTS_AFTER_EXPECT_EXCEPTION);
             if (statementsAfterExpectException == null) {
                 return b;
+            }
+            if (capturesNonEffectivelyFinalLocal(statementsAfterExpectException, getCursor())) {
+                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, CANNOT_MIGRATE, true);
+                getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, CANNOT_MIGRATE, true);
+                return block;
             }
             J.Block statementsAfterExpectExceptionBlock = new J.Block(randomId(), Space.EMPTY,
                     Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
@@ -299,6 +329,288 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             return successorStatements;
         }
 
+        /**
+         * The statements moving into the assertThrows(...) lambda may only capture effectively final
+         * locals, so a local they read that is assigned anywhere in the method -- before expect*(), or
+         * by the moved statements themselves -- means the migration would not compile. Inlining removes
+         * the read for the shapes it handles; anything left is reported here so the method is left alone
+         * rather than rewritten into a lambda javac rejects.
+         */
+        private static boolean capturesNonEffectivelyFinalLocal(List<Statement> moved, Cursor cursor) {
+            J.MethodDeclaration method = cursor.firstEnclosing(J.MethodDeclaration.class);
+            if (method == null) {
+                return false;
+            }
+            List<JavaType.Variable> declaredInMoved = new ArrayList<>();
+            List<JavaType.Variable> capturedLocals = new ArrayList<>();
+            JavaIsoVisitor<Integer> collector = new JavaIsoVisitor<Integer>() {
+                @Override
+                public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Integer p) {
+                    if (variable.getVariableType() != null) {
+                        declaredInMoved.add(variable.getVariableType());
+                    }
+                    return super.visitVariable(variable, p);
+                }
+
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                    JavaType.Variable fieldType = identifier.getFieldType();
+                    if (fieldType != null && fieldType.getOwner() instanceof JavaType.Method) {
+                        capturedLocals.add(fieldType);
+                    }
+                    return super.visitIdentifier(identifier, p);
+                }
+            };
+            for (Statement statement : moved) {
+                collector.visit(statement, 0);
+            }
+            for (JavaType.Variable local : capturedLocals) {
+                boolean declaredInLambda = declaredInMoved.stream().anyMatch(declared -> TypeUtils.isOfType(declared, local));
+                if (!declaredInLambda && countAssignments(method, local) > 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Narrow case: a local reassigned exactly once before expect*() (RHS not self-referencing),
+         * not read again before expect*(), and read exactly once among the statements moving into
+         * the assertThrows(...) lambda -- inline the RHS at that use site instead of leaving a
+         * non-effectively-final capture. Chains and multi-use reads are left untouched.
+         */
+        private static J.Block inlineSingleUseReassignedLocals(J.Block block) {
+            for (boolean changed = true; changed; ) {
+                changed = false;
+                List<Statement> statements = block.getStatements();
+                int expectIndex = findExpectIndex(statements);
+                if (expectIndex <= 0) {
+                    return block;
+                }
+                for (int i = 0; i < expectIndex && !changed; i++) {
+                    if (!(statements.get(i) instanceof J.Assignment)) {
+                        continue;
+                    }
+                    J.Assignment assignment = (J.Assignment) statements.get(i);
+                    JavaType.Variable local = localVariable(assignment.getVariable());
+                    if (local == null) {
+                        continue;
+                    }
+                    Expression rhs = assignment.getAssignment();
+                    List<Statement> between = statements.subList(i + 1, expectIndex);
+                    boolean selfReferencing = countReferences(rhs, local) > 0;
+                    boolean reassignedOnce = countAssignments(statements.subList(0, expectIndex), local) == 1;
+                    boolean touchedBetween = countReferences(between, local) > 0;
+                    if (selfReferencing || !reassignedOnce || touchedBetween) {
+                        continue;
+                    }
+                    J.Block updated = inlineAtSingleUse(block, statements, i, expectIndex, local, rhs);
+                    if (updated != null) {
+                        block = updated;
+                        changed = true;
+                    }
+                }
+            }
+            return block;
+        }
+
+        private static int findExpectIndex(List<Statement> statements) {
+            for (int i = 0; i < statements.size(); i++) {
+                if (statements.get(i) instanceof J.MethodInvocation &&
+                        EXPECTED_EXCEPTION_ALL_MATCHER.matches((J.MethodInvocation) statements.get(i))) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        // Only local variables are inlined; a field assignment can be observed outside this method.
+        private static JavaType.@Nullable Variable localVariable(Expression target) {
+            if (target instanceof J.Identifier) {
+                JavaType.Variable fieldType = ((J.Identifier) target).getFieldType();
+                if (fieldType != null && fieldType.getOwner() instanceof JavaType.Method) {
+                    return fieldType;
+                }
+            }
+            return null;
+        }
+
+        private static boolean isReferenceTo(@Nullable Expression expression, JavaType.Variable variable) {
+            return expression instanceof J.Identifier &&
+                    ((J.Identifier) expression).getFieldType() != null &&
+                    TypeUtils.isOfType(((J.Identifier) expression).getFieldType(), variable);
+        }
+
+        private static int countAssignments(J tree, JavaType.Variable variable) {
+            return new JavaIsoVisitor<AtomicInteger>() {
+                @Override
+                public J.Assignment visitAssignment(J.Assignment assignment, AtomicInteger acc) {
+                    if (isReferenceTo(assignment.getVariable(), variable)) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitAssignment(assignment, acc);
+                }
+
+                @Override
+                public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicInteger acc) {
+                    if (isReferenceTo(assignOp.getVariable(), variable)) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitAssignmentOperation(assignOp, acc);
+                }
+
+                @Override
+                public J.Unary visitUnary(J.Unary unary, AtomicInteger acc) {
+                    if (unary.getOperator().isModifying() && isReferenceTo(unary.getExpression(), variable)) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitUnary(unary, acc);
+                }
+            }.reduce(tree, new AtomicInteger()).get();
+        }
+
+        private static int countAssignments(List<? extends J> trees, JavaType.Variable variable) {
+            int total = 0;
+            for (J tree : trees) {
+                total += countAssignments(tree, variable);
+            }
+            return total;
+        }
+
+        private static int countReferences(J tree, JavaType.Variable variable) {
+            return new JavaIsoVisitor<AtomicInteger>() {
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
+                    if (isReferenceTo(identifier, variable)) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitIdentifier(identifier, acc);
+                }
+            }.reduce(tree, new AtomicInteger()).get();
+        }
+
+        private static int countReferences(List<? extends J> trees, JavaType.Variable variable) {
+            int total = 0;
+            for (J tree : trees) {
+                total += countReferences(tree, variable);
+            }
+            return total;
+        }
+
+        /**
+         * Inlining moves the right hand side past every statement between the assignment and the use
+         * site it is spliced into -- both those before expect*() and those that end up ahead of it in
+         * the assertThrows(...) lambda -- so only defer values those statements can not change:
+         * literals and local variables that are not themselves reassigned, without side effects of
+         * their own.
+         */
+        private static boolean safeToDefer(Expression rhs, List<Statement> deferredOver) {
+            if (deferredOver.isEmpty()) {
+                return true;
+            }
+            return new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean acc) {
+                    acc.set(false);
+                    return method;
+                }
+
+                @Override
+                public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean acc) {
+                    acc.set(false);
+                    return newClass;
+                }
+
+                @Override
+                public J.ArrayAccess visitArrayAccess(J.ArrayAccess arrayAccess, AtomicBoolean acc) {
+                    acc.set(false);
+                    return arrayAccess;
+                }
+
+                @Override
+                public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean acc) {
+                    acc.set(false);
+                    return assignment;
+                }
+
+                @Override
+                public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean acc) {
+                    acc.set(false);
+                    return assignOp;
+                }
+
+                @Override
+                public J.Unary visitUnary(J.Unary unary, AtomicBoolean acc) {
+                    if (unary.getOperator().isModifying()) {
+                        acc.set(false);
+                        return unary;
+                    }
+                    return super.visitUnary(unary, acc);
+                }
+
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean acc) {
+                    JavaType.Variable fieldType = identifier.getFieldType();
+                    if (fieldType != null &&
+                            (!(fieldType.getOwner() instanceof JavaType.Method) || countAssignments(deferredOver, fieldType) > 0)) {
+                        acc.set(false);
+                    }
+                    return identifier;
+                }
+            }.reduce(rhs, new AtomicBoolean(true)).get();
+        }
+
+        // Deletes the reassignment at statements[assignmentIndex] and splices its RHS in place of
+        // the single successor statement reading the variable; null if there isn't exactly one read.
+        private static J.@Nullable Block inlineAtSingleUse(J.Block block, List<Statement> statements, int assignmentIndex,
+                int expectIndex, JavaType.Variable variable, Expression rhs) {
+            int afterIndex = -1;
+            int uses = 0;
+            for (int j = expectIndex + 1; j < statements.size(); j++) {
+                Statement statement = statements.get(j);
+                if (countAssignments(statement, variable) > 0) {
+                    return null;
+                }
+                int hits = countReferences(statement, variable);
+                uses += hits;
+                if (hits > 0) {
+                    afterIndex = j;
+                }
+            }
+            if (uses != 1) {
+                return null;
+            }
+            // expect*() itself is replaced by assertThrows(...) at the same point, so it is not deferred over.
+            if (!safeToDefer(rhs, ListUtils.concatAll(
+                    statements.subList(assignmentIndex + 1, expectIndex),
+                    statements.subList(expectIndex + 1, afterIndex)))) {
+                return null;
+            }
+            Statement rewritten = inlineReferenceInStatement(statements.get(afterIndex), variable, rhs);
+            int finalAfterIndex = afterIndex;
+            return block.withStatements(ListUtils.map(statements, (i, s) -> {
+                if (i == assignmentIndex) {
+                    return null;
+                }
+                return i == finalAfterIndex ? rewritten : s;
+            }));
+        }
+
+        // Replaces the sole reference to `variable` in `statement` with `replacement`.
+        private static Statement inlineReferenceInStatement(Statement statement, JavaType.Variable variable,
+                Expression replacement) {
+            return (Statement) new JavaVisitor<Integer>() {
+                @Override
+                public J visitIdentifier(J.Identifier identifier, Integer p) {
+                    if (!isReferenceTo(identifier, variable)) {
+                        return identifier;
+                    }
+                    return ParenthesizeVisitor.maybeParenthesize(replacement.withPrefix(Space.EMPTY), getCursor())
+                            .withPrefix(identifier.getPrefix());
+                }
+            }.visit(statement, 0);
+        }
+
         private Optional<JavaTemplate> getExpectExceptionTemplate(J.MethodInvocation method, ExecutionContext ctx) {
             String template;
             if (EXPECTED_MESSAGE_STRING_MATCHER.matches(method)) {
@@ -350,7 +662,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         }
 
         // Only is(X.class) is treated as an instanceof check, to avoid false positives on is("string") or is(someVariable).
-        private Expression extractClassLiteralFromInstanceOfMatcher(J.MethodInvocation matcherCall) {
+        private @Nullable Expression extractClassLiteralFromInstanceOfMatcher(J.MethodInvocation matcherCall) {
             if (matcherCall.getArguments().isEmpty()) {
                 return null;
             }
