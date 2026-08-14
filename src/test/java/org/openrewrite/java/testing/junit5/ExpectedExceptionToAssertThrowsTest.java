@@ -1203,4 +1203,350 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void inlinedValueRetainsTypeAttribution() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.CoreMatchers;
+              import org.hamcrest.Matcher;
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMapping() {
+                      Matcher<String> matcher = null;
+                      map(matcher);
+                      matcher = CoreMatchers.is("invalid");
+                      thrown.expect(NullPointerException.class);
+                      map(matcher);
+                  }
+
+                  void map(Matcher<String> m) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.hamcrest.CoreMatchers;
+              import org.hamcrest.Matcher;
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testMapping() {
+                      Matcher<String> matcher = null;
+                      map(matcher);
+                      assertThrows(NullPointerException.class, () ->
+                          map(CoreMatchers.is("invalid")));
+                  }
+
+                  void map(Matcher<String> m) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void parenthesizesInlinedValueWhenNeeded() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMapping() {
+                      String input = "valid";
+                      map(input);
+                      input = "a" + "b";
+                      thrown.expect(NullPointerException.class);
+                      map(input.trim());
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testMapping() {
+                      String input = "valid";
+                      map(input);
+                      assertThrows(NullPointerException.class, () ->
+                          map(("a" + "b").trim()));
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotInlineFieldAssignment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  private String input;
+
+                  @Test
+                  public void testMapping() {
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  private String input;
+
+                  @Test
+                  public void testMapping() {
+                      input = "invalid";
+                      assertThrows(NullPointerException.class, () ->
+                          map(input));
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotInlineIntoSameNamedMethodOrField() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  static class Holder {
+                      String value = "x";
+                  }
+
+                  @Test
+                  public void testMapping() {
+                      Holder holder = new Holder();
+                      String value = "valid";
+                      map(value);
+                      value = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      value(holder.value);
+                  }
+
+                  void value(String s) {
+                      throw new NullPointerException();
+                  }
+
+                  void map(String s) {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  static class Holder {
+                      String value = "x";
+                  }
+
+                  @Test
+                  public void testMapping() {
+                      Holder holder = new Holder();
+                      String value = "valid";
+                      map(value);
+                      value = "invalid";
+                      assertThrows(NullPointerException.class, () ->
+                          value(holder.value));
+                  }
+
+                  void value(String s) {
+                      throw new NullPointerException();
+                  }
+
+                  void map(String s) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotInlineWhenAssignedAgainAfterExpect() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMapping() {
+                      String input = "valid";
+                      map(input);
+                      input = "invalid";
+                      thrown.expect(NullPointerException.class);
+                      input = "other";
+                  }
+
+                  void map(String s) {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void testMapping() {
+                      String input = "valid";
+                      map(input);
+                      input = "invalid";
+                      assertThrows(NullPointerException.class, () -> {
+                          input = "other";
+                      });
+                  }
+
+                  void map(String s) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotInlineValueThatCouldChangeBeforeExpect() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testMapping() {
+                      List<String> list = new ArrayList<>();
+                      list.add("invalid");
+                      String input = "valid";
+                      map(input);
+                      input = list.get(0);
+                      list.clear();
+                      thrown.expect(NullPointerException.class);
+                      map(input);
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """,
+            """
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+              import org.junit.Test;
+
+              public class MyTest {
+
+                  @Test
+                  public void testMapping() {
+                      List<String> list = new ArrayList<>();
+                      list.add("invalid");
+                      String input = "valid";
+                      map(input);
+                      input = list.get(0);
+                      list.clear();
+                      assertThrows(NullPointerException.class, () ->
+                          map(input));
+                  }
+
+                  void map(String s) {
+                      throw new NullPointerException();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

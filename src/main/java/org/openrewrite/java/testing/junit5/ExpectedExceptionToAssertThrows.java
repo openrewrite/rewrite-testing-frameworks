@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -309,7 +310,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
          * the assertThrows(...) lambda -- inline the RHS at that use site instead of leaving a
          * non-effectively-final capture. Chains and multi-use reads are left untouched.
          */
-        private J.Block inlineSingleUseReassignedLocals(J.Block block) {
+        private static J.Block inlineSingleUseReassignedLocals(J.Block block) {
             for (boolean changed = true; changed; ) {
                 changed = false;
                 List<Statement> statements = block.getStatements();
@@ -322,18 +323,19 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                         continue;
                     }
                     J.Assignment assignment = (J.Assignment) statements.get(i);
-                    if (!(assignment.getVariable() instanceof J.Identifier)) {
+                    JavaType.Variable local = localVariable(assignment.getVariable());
+                    if (local == null) {
                         continue;
                     }
-                    String name = ((J.Identifier) assignment.getVariable()).getSimpleName();
                     Expression rhs = assignment.getAssignment();
-                    boolean selfReferencing = countIdentifier(rhs, name) > 0;
-                    boolean reassignedOnce = countAssignmentsTo(statements.subList(0, expectIndex), name) == 1;
-                    boolean readBetween = countIdentifier(statements.subList(i + 1, expectIndex), name) > 0;
-                    if (selfReferencing || !reassignedOnce || readBetween) {
+                    List<Statement> between = statements.subList(i + 1, expectIndex);
+                    boolean selfReferencing = countReferences(rhs, local) > 0;
+                    boolean reassignedOnce = countAssignments(statements.subList(0, expectIndex), local) == 1;
+                    boolean touchedBetween = countReferences(between, local) > 0;
+                    if (selfReferencing || !reassignedOnce || touchedBetween || !safeToDefer(rhs, between)) {
                         continue;
                     }
-                    J.Block updated = inlineAtSingleUse(block, statements, i, expectIndex, name, rhs);
+                    J.Block updated = inlineAtSingleUse(block, statements, i, expectIndex, local, rhs);
                     if (updated != null) {
                         block = updated;
                         changed = true;
@@ -353,25 +355,67 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             return -1;
         }
 
-        private static int countAssignmentsTo(List<Statement> statements, String name) {
-            int count = 0;
-            for (Statement s : statements) {
-                if (s instanceof J.Assignment) {
-                    Expression target = ((J.Assignment) s).getVariable();
-                    if (target instanceof J.Identifier && name.equals(((J.Identifier) target).getSimpleName())) {
-                        count++;
-                    }
+        // Only local variables are inlined; a field assignment can be observed outside this method.
+        private static JavaType.@Nullable Variable localVariable(Expression target) {
+            if (target instanceof J.Identifier) {
+                JavaType.Variable fieldType = ((J.Identifier) target).getFieldType();
+                if (fieldType != null && fieldType.getOwner() instanceof JavaType.Method) {
+                    return fieldType;
                 }
             }
-            return count;
+            return null;
         }
 
-        private static int countIdentifier(J tree, String name) {
+        private static boolean isReferenceTo(@Nullable Expression expression, JavaType.Variable variable) {
+            return expression instanceof J.Identifier &&
+                    ((J.Identifier) expression).getFieldType() != null &&
+                    TypeUtils.isOfType(((J.Identifier) expression).getFieldType(), variable);
+        }
+
+        private static int countAssignments(J tree, JavaType.Variable variable) {
+            AtomicInteger count = new AtomicInteger();
+            new JavaIsoVisitor<AtomicInteger>() {
+                @Override
+                public J.Assignment visitAssignment(J.Assignment assignment, AtomicInteger acc) {
+                    if (isReferenceTo(assignment.getVariable(), variable)) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitAssignment(assignment, acc);
+                }
+
+                @Override
+                public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicInteger acc) {
+                    if (isReferenceTo(assignOp.getVariable(), variable)) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitAssignmentOperation(assignOp, acc);
+                }
+
+                @Override
+                public J.Unary visitUnary(J.Unary unary, AtomicInteger acc) {
+                    if (unary.getOperator().isModifying() && isReferenceTo(unary.getExpression(), variable)) {
+                        acc.incrementAndGet();
+                    }
+                    return super.visitUnary(unary, acc);
+                }
+            }.visit(tree, count);
+            return count.get();
+        }
+
+        private static int countAssignments(List<? extends J> trees, JavaType.Variable variable) {
+            int total = 0;
+            for (J tree : trees) {
+                total += countAssignments(tree, variable);
+            }
+            return total;
+        }
+
+        private static int countReferences(J tree, JavaType.Variable variable) {
             AtomicInteger count = new AtomicInteger();
             new JavaIsoVisitor<AtomicInteger>() {
                 @Override
                 public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
-                    if (name.equals(identifier.getSimpleName())) {
+                    if (isReferenceTo(identifier, variable)) {
                         acc.incrementAndGet();
                     }
                     return super.visitIdentifier(identifier, acc);
@@ -380,22 +424,89 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             return count.get();
         }
 
-        private static int countIdentifier(List<? extends J> trees, String name) {
+        private static int countReferences(List<? extends J> trees, JavaType.Variable variable) {
             int total = 0;
             for (J tree : trees) {
-                total += countIdentifier(tree, name);
+                total += countReferences(tree, variable);
             }
             return total;
         }
 
+        /**
+         * Inlining moves the right hand side past the statements between the assignment and expect*(),
+         * so only defer values those statements can not change: literals and local variables that are
+         * not themselves reassigned in between, without any side effects of their own.
+         */
+        private static boolean safeToDefer(Expression rhs, List<Statement> between) {
+            if (between.isEmpty()) {
+                return true;
+            }
+            AtomicBoolean safe = new AtomicBoolean(true);
+            new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean acc) {
+                    acc.set(false);
+                    return method;
+                }
+
+                @Override
+                public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean acc) {
+                    acc.set(false);
+                    return newClass;
+                }
+
+                @Override
+                public J.ArrayAccess visitArrayAccess(J.ArrayAccess arrayAccess, AtomicBoolean acc) {
+                    acc.set(false);
+                    return arrayAccess;
+                }
+
+                @Override
+                public J.Assignment visitAssignment(J.Assignment assignment, AtomicBoolean acc) {
+                    acc.set(false);
+                    return assignment;
+                }
+
+                @Override
+                public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean acc) {
+                    acc.set(false);
+                    return assignOp;
+                }
+
+                @Override
+                public J.Unary visitUnary(J.Unary unary, AtomicBoolean acc) {
+                    if (unary.getOperator().isModifying()) {
+                        acc.set(false);
+                        return unary;
+                    }
+                    return super.visitUnary(unary, acc);
+                }
+
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean acc) {
+                    JavaType.Variable fieldType = identifier.getFieldType();
+                    if (fieldType != null &&
+                            (!(fieldType.getOwner() instanceof JavaType.Method) || countAssignments(between, fieldType) > 0)) {
+                        acc.set(false);
+                    }
+                    return identifier;
+                }
+            }.visit(rhs, safe);
+            return safe.get();
+        }
+
         // Deletes the reassignment at statements[assignmentIndex] and splices its RHS in place of
-        // the single successor statement referencing `name`; null if there isn't exactly one use.
-        private J.Block inlineAtSingleUse(J.Block block, List<Statement> statements, int assignmentIndex,
-                int expectIndex, String name, Expression rhs) {
+        // the single successor statement reading the variable; null if there isn't exactly one read.
+        private static J.@Nullable Block inlineAtSingleUse(J.Block block, List<Statement> statements, int assignmentIndex,
+                int expectIndex, JavaType.Variable variable, Expression rhs) {
             int afterIndex = -1;
             int uses = 0;
             for (int j = expectIndex + 1; j < statements.size(); j++) {
-                int hits = countIdentifier(statements.get(j), name);
+                Statement statement = statements.get(j);
+                if (countAssignments(statement, variable) > 0) {
+                    return null;
+                }
+                int hits = countReferences(statement, variable);
                 uses += hits;
                 if (hits > 0) {
                     afterIndex = j;
@@ -404,7 +515,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (uses != 1) {
                 return null;
             }
-            Statement rewritten = inlineIdentifierInStatement(getCursor(), statements.get(afterIndex), name, rhs);
+            Statement rewritten = inlineReferenceInStatement(statements.get(afterIndex), variable, rhs);
             if (rewritten == null) {
                 return null;
             }
@@ -417,26 +528,51 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }));
         }
 
-        // Replaces the sole occurrence of identifier `name` in `statement` with `replacement`.
-        private Statement inlineIdentifierInStatement(Cursor parentCursor, Statement statement, String name,
+        // Replaces the sole reference to `variable` in `statement` with `replacement`.
+        private static @Nullable Statement inlineReferenceInStatement(Statement statement, JavaType.Variable variable,
                 Expression replacement) {
             AtomicBoolean done = new AtomicBoolean(false);
-            JavaVisitor<Integer> inliner = new JavaVisitor<Integer>() {
+            J result = new JavaVisitor<AtomicBoolean>() {
                 @Override
-                public J visitIdentifier(J.Identifier identifier, Integer p) {
-                    if (done.get() || !name.equals(identifier.getSimpleName())) {
+                public J visitIdentifier(J.Identifier identifier, AtomicBoolean acc) {
+                    if (acc.get() || !isReferenceTo(identifier, variable)) {
                         return identifier;
                     }
-                    done.set(true);
-                    String text = replacement.printTrimmed(getCursor());
-                    return JavaTemplate.builder(text)
-                            .javaParser(JavaParser.fromJavaVersion())
-                            .build()
-                            .apply(getCursor(), identifier.getCoordinates().replace());
+                    acc.set(true);
+                    Expression inlined = replacement.withPrefix(Space.EMPTY);
+                    if (needsParentheses(identifier, replacement, getCursor())) {
+                        inlined = new J.Parentheses<>(randomId(), Space.EMPTY, Markers.EMPTY,
+                                new JRightPadded<>(inlined, Space.EMPTY, Markers.EMPTY));
+                    }
+                    return inlined.withPrefix(identifier.getPrefix());
                 }
-            };
-            J result = inliner.visit(statement, 0, parentCursor);
+            }.visit(statement, done);
             return done.get() ? (Statement) result : null;
+        }
+
+        private static boolean needsParentheses(J.Identifier identifier, Expression replacement, Cursor cursor) {
+            if (!(replacement instanceof J.Binary || replacement instanceof J.Ternary ||
+                    replacement instanceof J.InstanceOf || replacement instanceof J.TypeCast ||
+                    replacement instanceof J.Lambda || replacement instanceof J.Assignment ||
+                    replacement instanceof J.AssignmentOperation)) {
+                return false;
+            }
+            Object parent = cursor.getParentTreeCursor().getValue();
+            if (parent instanceof J.MethodInvocation) {
+                return isSameElement(((J.MethodInvocation) parent).getSelect(), identifier);
+            }
+            if (parent instanceof J.FieldAccess) {
+                return isSameElement(((J.FieldAccess) parent).getTarget(), identifier);
+            }
+            if (parent instanceof J.ArrayAccess) {
+                return isSameElement(((J.ArrayAccess) parent).getIndexed(), identifier);
+            }
+            return parent instanceof J.Binary || parent instanceof J.Unary || parent instanceof J.TypeCast ||
+                    parent instanceof J.InstanceOf || parent instanceof J.Ternary || parent instanceof J.MemberReference;
+        }
+
+        private static boolean isSameElement(@Nullable J maybeElement, J element) {
+            return maybeElement != null && maybeElement.getId().equals(element.getId());
         }
 
         private Optional<JavaTemplate> getExpectExceptionTemplate(J.MethodInvocation method, ExecutionContext ctx) {
