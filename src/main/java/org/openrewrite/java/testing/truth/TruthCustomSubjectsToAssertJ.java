@@ -29,7 +29,7 @@ import org.openrewrite.trait.Comments;
 public class TruthCustomSubjectsToAssertJ extends Recipe {
 
     private static final MethodMatcher ASSERT_ABOUT = new MethodMatcher("com.google.common.truth.Truth assertAbout(..)");
-    private static final String MANUAL_REVIEW = " Truth's assertAbout() with custom subjects requires manual migration to AssertJ custom assertions ";
+    private static final String MANUAL_REVIEW = asCommentText("Truth's assertAbout() with custom subjects requires manual migration to AssertJ custom assertions");
 
     @Getter
     final String displayName = "Migrate Truth custom subjects to AssertJ";
@@ -51,5 +51,10 @@ public class TruthCustomSubjectsToAssertJ extends Recipe {
                 return mi;
             }
         });
+    }
+
+    // Pad the text so the comment renders as `/* text */` rather than `/*text*/`
+    private static String asCommentText(String message) {
+        return " " + message + " ";
     }
 }
