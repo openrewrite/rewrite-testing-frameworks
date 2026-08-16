@@ -30,7 +30,14 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 public class SimplifySequencedCollectionAssertions extends Recipe {
+
+    // Object-equality assertions come from AbstractAssert, so they do not depend on CharSequence behavior
+    private static final Set<String> OBJECT_EQUALITY_ASSERTIONS = new HashSet<>(Arrays.asList("isEqualTo", "isNotEqualTo"));
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
     private static final MethodMatcher GET_FIRST_MATCHER = new MethodMatcher("java.util.* getFirst()");
@@ -103,7 +110,7 @@ public class SimplifySequencedCollectionAssertions extends Recipe {
                     }
 
                     private boolean isCharSequenceSpecificAssertion(J.MethodInvocation assertion) {
-                        if ("isEqualTo".equals(assertion.getSimpleName()) || "isNotEqualTo".equals(assertion.getSimpleName())) {
+                        if (OBJECT_EQUALITY_ASSERTIONS.contains(assertion.getSimpleName())) {
                             return false;
                         }
                         return assertion.getMethodType() != null && TypeUtils.isAssignableTo(
