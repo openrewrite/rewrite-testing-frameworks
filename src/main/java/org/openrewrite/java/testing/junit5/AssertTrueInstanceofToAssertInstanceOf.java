@@ -39,9 +39,11 @@ import static java.util.Collections.singletonList;
 
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
 
-    // Template prefixes for the emitted call's qualifier, including the trailing dot
-    private static final String SIMPLE_ASSERTIONS_QUALIFIER = "Assertions.";
-    private static final String FULLY_QUALIFIED_ASSERTIONS_QUALIFIER = "org.junit.jupiter.api.Assertions.";
+    private static final String SIMPLE_ASSERTIONS_QUALIFIER = "Assertions";
+    private static final String FULLY_QUALIFIED_ASSERTIONS_QUALIFIER = "org.junit.jupiter.api.Assertions";
+
+    private static final String ASSERT_INSTANCE_OF_TEMPLATE = "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)})";
+    private static final String ASSERT_INSTANCE_OF_WITH_REASON_TEMPLATE = "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}, #{any(java.lang.String)})";
 
     @Getter
     final String displayName = "`assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`";
@@ -68,8 +70,6 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 // subtype can hide `assertInstanceOf`, and a bare `Assertions` can be shadowed several ways
                 Expression retainedSelect = isAssertionsClassReference(select) ? select : null;
                 boolean unqualifiedCall = retainedSelect == null && select == null;
-                String owner = retainedSelect != null ? SIMPLE_ASSERTIONS_QUALIFIER :
-                        unqualifiedCall ? "" : FULLY_QUALIFIED_ASSERTIONS_QUALIFIER;
 
                 if (junit5Matcher.matches(mi)) {
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
@@ -119,8 +119,13 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
 
 
                 // An unqualified call is left unqualified; a same-named declaration in scope can still capture it
+                String templateCode = reason != null ? ASSERT_INSTANCE_OF_WITH_REASON_TEMPLATE : ASSERT_INSTANCE_OF_TEMPLATE;
+                if (!unqualifiedCall) {
+                    String qualifier = retainedSelect != null ? SIMPLE_ASSERTIONS_QUALIFIER : FULLY_QUALIFIED_ASSERTIONS_QUALIFIER;
+                    templateCode = qualifier + "." + templateCode;
+                }
                 JavaTemplate.Builder templateBuilder = JavaTemplate
-                    .builder(owner + "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
+                    .builder(templateCode)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"));
                 if (unqualifiedCall) {
                     templateBuilder.staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf");
