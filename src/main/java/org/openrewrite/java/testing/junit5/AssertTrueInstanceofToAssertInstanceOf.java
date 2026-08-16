@@ -38,6 +38,11 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
+
+    // Template prefixes for the emitted call's qualifier, including the trailing dot
+    private static final String SIMPLE_ASSERTIONS_QUALIFIER = "Assertions.";
+    private static final String FULLY_QUALIFIED_ASSERTIONS_QUALIFIER = "org.junit.jupiter.api.Assertions.";
+
     @Getter
     final String displayName = "`assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`";
 
@@ -62,8 +67,9 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 // calling class declares or inherits. Only a selector naming `Assertions` itself is reused; a
                 // subtype can hide `assertInstanceOf`, and a bare `Assertions` can be shadowed several ways
                 Expression retainedSelect = isAssertionsClassReference(select) ? select : null;
-                String owner = retainedSelect != null ? "Assertions." :
-                        select == null ? "" : "org.junit.jupiter.api.Assertions.";
+                boolean unqualifiedCall = retainedSelect == null && select == null;
+                String owner = retainedSelect != null ? SIMPLE_ASSERTIONS_QUALIFIER :
+                        unqualifiedCall ? "" : FULLY_QUALIFIED_ASSERTIONS_QUALIFIER;
 
                 if (junit5Matcher.matches(mi)) {
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
@@ -116,7 +122,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 JavaTemplate.Builder templateBuilder = JavaTemplate
                     .builder(owner + "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"));
-                if (owner.isEmpty()) {
+                if (unqualifiedCall) {
                     templateBuilder.staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf");
                     maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
                 } else if (retainedSelect != null) {
