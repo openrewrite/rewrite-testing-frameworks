@@ -16,6 +16,8 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -276,228 +278,40 @@ class MockUtilsToStaticTest implements RewriteTest {
         );
     }
 
-    @Test
-    void removeFirstDeclaratorOnlyPreservingSiblingEvaluation() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "MockUtil util = new MockUtil(), observed = createObserved();",
+      "MockUtil observed = createObserved(), util = new MockUtil();",
+      """
+        MockUtil util = new MockUtil(),
+                observed = createObserved();""",
+      "MockUtil observed = createObserved() , util = new MockUtil();",
+      "MockUtil util = new MockUtil(),observed = createObserved();"
+    })
+    void removeOnlyTheMigratedDeclarator(String declaration) {
         //language=java
+        var source = """
+          import org.mockito.internal.util.MockUtil;
+
+          class Test {
+              boolean test(Object value) {
+                  %s
+                  observe(observed);
+                  return %s;
+              }
+
+              MockUtil createObserved() {
+                  return new MockUtil();
+              }
+
+              void observe(Object value) {
+              }
+          }
+          """;
         rewriteRun(
           java(
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil util = new MockUtil(), observed = createObserved();
-                      observe(observed);
-                      return util.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """,
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil observed = createObserved();
-                      observe(observed);
-                      return MockUtil.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeLastDeclaratorOnlyPreservingSiblingEvaluation() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil observed = createObserved(), util = new MockUtil();
-                      observe(observed);
-                      return util.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """,
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil observed = createObserved();
-                      observe(observed);
-                      return MockUtil.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeFirstDeclaratorSpanningMultipleLines() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil util = new MockUtil(),
-                              observed = createObserved();
-                      observe(observed);
-                      return util.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """,
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil observed = createObserved();
-                      observe(observed);
-                      return MockUtil.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeLastDeclaratorWithSpaceBeforeComma() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil observed = createObserved() , util = new MockUtil();
-                      observe(observed);
-                      return util.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """,
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil observed = createObserved();
-                      observe(observed);
-                      return MockUtil.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void removeFirstDeclaratorWithoutSpaceAfterComma() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil util = new MockUtil(),observed = createObserved();
-                      observe(observed);
-                      return util.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """,
-            """
-              import org.mockito.internal.util.MockUtil;
-
-              class Test {
-                  boolean test(Object value) {
-                      MockUtil observed = createObserved();
-                      observe(observed);
-                      return MockUtil.isMock(value);
-                  }
-
-                  MockUtil createObserved() {
-                      return new MockUtil();
-                  }
-
-                  void observe(Object value) {
-                  }
-              }
-              """
+            source.formatted(declaration, "util.isMock(value)"),
+            source.formatted("MockUtil observed = createObserved();", "MockUtil.isMock(value)")
           )
         );
     }
