@@ -265,29 +265,81 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void qualifiedJUnit5NotCapturedBySameClassMethod() {
+    void qualifiedCallsUseJupiterOwner() {
         //language=java
         rewriteRun(
           java(
             """
-              class Test {
+              import java.util.function.Supplier;
+
+              class ATest {
                   static void assertInstanceOf(Class<?> type, Object value) {
                       throw new AssertionError("wrong owner");
+                  }
+
+                  static void assertInstanceOf(String message) {
+                  }
+
+                  static void assertInstanceOf(Class<?> type, Object value, String message) {
+                      throw new AssertionError("wrong owner");
+                  }
+
+                  static void assertInstanceOf(Class<?> type, Object value, Supplier<String> message) {
+                      throw new AssertionError("wrong owner");
+                  }
+
+                  static class Assertions {
+                      static void assertInstanceOf(Class<?> type, Object value) {
+                          throw new AssertionError("wrong owner");
+                      }
                   }
 
                   void test(Object value) {
                       org.junit.jupiter.api.Assertions.assertTrue(value instanceof String);
+                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof String, "not a String");
+                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof String, () -> "not a String");
+                      org.junit.Assert.assertTrue(value instanceof String);
+                      org.junit.Assert.assertTrue("not a String", value instanceof String);
+                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof java.util.List<?>);
+                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof java.util.Map.Entry);
+                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof String[]);
                   }
               }
               """,
             """
-              class Test {
+              import java.util.function.Supplier;
+
+              class ATest {
                   static void assertInstanceOf(Class<?> type, Object value) {
                       throw new AssertionError("wrong owner");
                   }
 
+                  static void assertInstanceOf(String message) {
+                  }
+
+                  static void assertInstanceOf(Class<?> type, Object value, String message) {
+                      throw new AssertionError("wrong owner");
+                  }
+
+                  static void assertInstanceOf(Class<?> type, Object value, Supplier<String> message) {
+                      throw new AssertionError("wrong owner");
+                  }
+
+                  static class Assertions {
+                      static void assertInstanceOf(Class<?> type, Object value) {
+                          throw new AssertionError("wrong owner");
+                      }
+                  }
+
                   void test(Object value) {
                       org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value, "not a String");
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value, () -> "not a String");
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value, "not a String");
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(java.util.List.class, value);
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(java.util.Map.Entry.class, value);
+                      org.junit.jupiter.api.Assertions.assertInstanceOf(String[].class, value);
                   }
               }
               """
@@ -319,68 +371,6 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               class ATest extends BaseAssert {
                   void test(Object value) {
                       org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
-                  }
-              }
-              """
-          ));
-    }
-
-    @Test
-    void qualifiedJUnit5WithReasonNotCapturedByIncompatibleSameNameMethod() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              class ATest {
-                  static void assertInstanceOf(String message) {
-                  }
-
-                  void test(Object value) {
-                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof String, "not a String");
-                  }
-              }
-              """,
-            """
-              class ATest {
-                  static void assertInstanceOf(String message) {
-                  }
-
-                  void test(Object value) {
-                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value, "not a String");
-                  }
-              }
-              """
-          ));
-    }
-
-    @Test
-    void qualifiedJUnit5WithSupplierReason() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.jupiter.api.Assertions;
-
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value, java.util.function.Supplier<String> message) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      Assertions.assertTrue(value instanceof String, () -> "not a String");
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Assertions;
-
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value, java.util.function.Supplier<String> message) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      Assertions.assertInstanceOf(String.class, value, () -> "not a String");
                   }
               }
               """
@@ -517,68 +507,6 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
     }
 
     @Test
-    void qualifiedJUnit4() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Assert;
-
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      Assert.assertTrue(value instanceof String);
-                  }
-              }
-              """,
-            """
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
-                  }
-              }
-              """
-          ));
-    }
-
-    @Test
-    void qualifiedJUnit4WithReason() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value, String message) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      org.junit.Assert.assertTrue("not a String", value instanceof String);
-                  }
-              }
-              """,
-            """
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value, String message) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value, "not a String");
-                  }
-              }
-              """
-          ));
-    }
-
-    @Test
     void qualifiedJUnit4SubtypeSelector() {
         //language=java
         rewriteRun(
@@ -606,40 +534,6 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
               package com.sample.test;
 
               class ATest {
-                  void test(Object value) {
-                      org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
-                  }
-              }
-              """
-          ));
-    }
-
-    @Test
-    void qualifiedJUnit4NotCapturedByNestedAssertionsClass() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              class ATest {
-                  static class Assertions {
-                      static void assertInstanceOf(Class<?> type, Object value) {
-                          throw new AssertionError("wrong owner");
-                      }
-                  }
-
-                  void test(Object value) {
-                      org.junit.Assert.assertTrue(value instanceof String);
-                  }
-              }
-              """,
-            """
-              class ATest {
-                  static class Assertions {
-                      static void assertInstanceOf(Class<?> type, Object value) {
-                          throw new AssertionError("wrong owner");
-                      }
-                  }
-
                   void test(Object value) {
                       org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
                   }
@@ -680,46 +574,6 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
                   void test(Object value) {
                       Assertions.assertThat(value);
                       org.junit.jupiter.api.Assertions.assertInstanceOf(String.class, value);
-                  }
-              }
-              """
-          ));
-    }
-
-    @Test
-    void qualifiedOwnerWithGenericNestedAndArrayTargets() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.util.List;
-              import java.util.Map;
-
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof List<?>);
-                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof Map.Entry);
-                      org.junit.jupiter.api.Assertions.assertTrue(value instanceof String[]);
-                  }
-              }
-              """,
-            """
-              import java.util.List;
-              import java.util.Map;
-
-              class ATest {
-                  static void assertInstanceOf(Class<?> type, Object value) {
-                      throw new AssertionError("wrong owner");
-                  }
-
-                  void test(Object value) {
-                      org.junit.jupiter.api.Assertions.assertInstanceOf(List.class, value);
-                      org.junit.jupiter.api.Assertions.assertInstanceOf(Map.Entry.class, value);
-                      org.junit.jupiter.api.Assertions.assertInstanceOf(String[].class, value);
                   }
               }
               """
