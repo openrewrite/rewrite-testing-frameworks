@@ -163,6 +163,150 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
     }
 
     @Test
+    void retainsDoNothingOnMockCallingRealMethods() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Answers;
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock(answer = Answers.CALLS_REAL_METHODS)
+                  private ArrayList<String> partialMock;
+
+                  void test() {
+                      doNothing().when(partialMock).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnMockCallingRealMethodsWithStaticImport() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock(answer = CALLS_REAL_METHODS)
+                  private ArrayList<String> partialMock;
+
+                  void test() {
+                      doNothing().when(partialMock).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesDoNothingOnMockWithDeepStubs() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Answers;
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+                  private ArrayList<String> list;
+
+                  void test() {
+                      doNothing().when(list).clear();
+                  }
+              }
+              """,
+            """
+              import org.mockito.Answers;
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              class MyTest {
+                  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+                  private ArrayList<String> list;
+
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnMockFieldReassignedToSpy() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.spy;
+
+              class MyTest {
+                  @Mock
+                  private ArrayList<String> list;
+
+                  void setUp() {
+                      list = spy(new ArrayList<>());
+                  }
+
+                  void test() {
+                      doNothing().when(list).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnLocalSpyShadowingMockField() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.spy;
+
+              class MyTest {
+                  @Mock
+                  private List<String> list;
+
+                  void test() {
+                      List<String> list = spy(new ArrayList<>());
+                      doNothing().when(list).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainsChainedDoNothing() {
         rewriteRun(
           //language=Java

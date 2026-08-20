@@ -27,9 +27,11 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -46,7 +48,9 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
     private static final MethodMatcher DO_NOTHING_MATCHER = new MethodMatcher("org.mockito.Mockito doNothing()");
     private static final MethodMatcher STUBBER_WHEN_MATCHER = new MethodMatcher("org.mockito.stubbing.Stubber when(..)");
     private static final MethodMatcher CAPTURE_MATCHER = new MethodMatcher("org.mockito.ArgumentCaptor capture()");
+    private static final MethodMatcher SPY_MATCHER = new MethodMatcher("org.mockito.Mockito spy(..)");
     private static final AnnotationMatcher MOCK_ANNOTATION_MATCHER = new AnnotationMatcher("@org.mockito.Mock");
+    private static final String CALLS_REAL_METHODS = "CALLS_REAL_METHODS";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -59,15 +63,72 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         for (Statement stmt : classDecl.getBody().getStatements()) {
                             if (stmt instanceof J.VariableDeclarations) {
                                 J.VariableDeclarations vd = (J.VariableDeclarations) stmt;
-                                if (vd.getLeadingAnnotations().stream().anyMatch(MOCK_ANNOTATION_MATCHER::matches)) {
+                                if (vd.getLeadingAnnotations().stream().anyMatch(this::isDefaultAnswerMock)) {
                                     for (J.VariableDeclarations.NamedVariable var : vd.getVariables()) {
                                         mockFieldNames.add(var.getSimpleName());
                                     }
                                 }
                             }
                         }
+                        mockFieldNames.removeAll(namesAssignedFromSpy(classDecl));
                         getCursor().putMessage("mockFieldNames", mockFieldNames);
                         return super.visitClassDeclaration(classDecl, ctx);
+                    }
+
+                    /**
+                     * A `@Mock(answer = Answers.CALLS_REAL_METHODS)` field is a partial mock that runs real code for
+                     * void methods, so `doNothing()` on it changes behavior just like it does for a spy.
+                     */
+                    private boolean isDefaultAnswerMock(J.Annotation annotation) {
+                        if (!MOCK_ANNOTATION_MATCHER.matches(annotation)) {
+                            return false;
+                        }
+                        List<Expression> arguments = annotation.getArguments();
+                        if (arguments != null) {
+                            for (Expression argument : arguments) {
+                                if (argument instanceof J.Assignment &&
+                                        CALLS_REAL_METHODS.equals(simpleName(((J.Assignment) argument).getAssignment()))) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    }
+
+                    private @Nullable String simpleName(Expression expression) {
+                        if (expression instanceof J.FieldAccess) {
+                            return ((J.FieldAccess) expression).getSimpleName();
+                        }
+                        if (expression instanceof J.Identifier) {
+                            return ((J.Identifier) expression).getSimpleName();
+                        }
+                        return null;
+                    }
+
+                    /**
+                     * Fields declared `@Mock` can still be replaced by a spy before the stubbing runs.
+                     */
+                    private Set<String> namesAssignedFromSpy(J.ClassDeclaration classDecl) {
+                        Set<String> spyNames = new HashSet<>();
+                        new JavaIsoVisitor<Set<String>>() {
+                            @Override
+                            public J.Assignment visitAssignment(J.Assignment assignment, Set<String> acc) {
+                                if (SPY_MATCHER.matches(assignment.getAssignment()) &&
+                                        assignment.getVariable() instanceof J.Identifier) {
+                                    acc.add(((J.Identifier) assignment.getVariable()).getSimpleName());
+                                }
+                                return super.visitAssignment(assignment, acc);
+                            }
+
+                            @Override
+                            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> acc) {
+                                if (SPY_MATCHER.matches(variable.getInitializer())) {
+                                    acc.add(variable.getSimpleName());
+                                }
+                                return super.visitVariable(variable, acc);
+                            }
+                        }.visit(classDecl.getBody(), spyNames);
+                        return spyNames;
                     }
 
                     @Override
@@ -106,9 +167,13 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         if (whenCall.getArguments().isEmpty() || !(whenCall.getArguments().get(0) instanceof J.Identifier)) {
                             return false;
                         }
-                        String mockName = ((J.Identifier) whenCall.getArguments().get(0)).getSimpleName();
+                        J.Identifier mock = (J.Identifier) whenCall.getArguments().get(0);
+                        // A local variable or parameter shadowing a `@Mock` field may well hold a spy instead
+                        if (mock.getFieldType() != null && !(mock.getFieldType().getOwner() instanceof JavaType.FullyQualified)) {
+                            return false;
+                        }
                         Set<String> mockFieldNames = getCursor().getNearestMessage("mockFieldNames");
-                        if (mockFieldNames == null || !mockFieldNames.contains(mockName)) {
+                        if (mockFieldNames == null || !mockFieldNames.contains(mock.getSimpleName())) {
                             return false;
                         }
                         // Preserve stubbings whose arguments include ArgumentCaptor.capture(),
@@ -116,7 +181,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         return !containsCapture(mi.getArguments());
                     }
 
-                    private boolean containsCapture(java.util.List<Expression> arguments) {
+                    private boolean containsCapture(List<Expression> arguments) {
                         AtomicBoolean found = new AtomicBoolean();
                         JavaIsoVisitor<AtomicBoolean> visitor = new JavaIsoVisitor<AtomicBoolean>() {
                             @Override
