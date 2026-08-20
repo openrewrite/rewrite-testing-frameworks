@@ -109,8 +109,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                      * Fields declared `@Mock` can still be replaced by a spy before the stubbing runs.
                      */
                     private Set<String> namesAssignedFromSpy(J.ClassDeclaration classDecl) {
-                        Set<String> spyNames = new HashSet<>();
-                        new JavaIsoVisitor<Set<String>>() {
+                        return new JavaIsoVisitor<Set<String>>() {
                             @Override
                             public J.Assignment visitAssignment(J.Assignment assignment, Set<String> acc) {
                                 if (SPY_MATCHER.matches(assignment.getAssignment()) &&
@@ -127,8 +126,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                                 }
                                 return super.visitVariable(variable, acc);
                             }
-                        }.visit(classDecl.getBody(), spyNames);
-                        return spyNames;
+                        }.reduce(classDecl.getBody(), new HashSet<>());
                     }
 
                     @Override
