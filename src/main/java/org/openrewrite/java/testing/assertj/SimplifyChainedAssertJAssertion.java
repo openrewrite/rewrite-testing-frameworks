@@ -123,6 +123,10 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 if (!chainedAssertMatcher.matches(assertThatArg)) {
                     return mi;
                 }
+                // Parameterized toString overloads have no equivalent hasToString assertion.
+                if ("toString".equals(chainedAssertion) && !(assertThatArg.getArguments().get(0) instanceof J.Empty)) {
+                    return mi;
+                }
 
                 // Extract the actual argument for the new assertThat call
                 Expression actual = assertThatArg.getSelect() != null ? assertThatArg.getSelect() : assertThatArg;
