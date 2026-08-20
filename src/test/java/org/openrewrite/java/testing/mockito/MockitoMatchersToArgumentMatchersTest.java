@@ -94,4 +94,134 @@ class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void qualifiedMockitoAnyOfMatchers() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12"))
+            .recipe(Environment.builder()
+              .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
+              .build()
+              .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to3Migration")),
+          //language=java
+          java(
+            """
+              package mockito.example;
+
+              import org.mockito.Mockito;
+
+              import java.util.Collection;
+              import java.util.List;
+              import java.util.Map;
+              import java.util.Set;
+
+              public class MockitoVarargMatcherTest {
+                  public static class Foo {
+                      public boolean addList(List<String> strings) { return true; }
+                      public boolean addSet(Set<String> strings) { return true; }
+                      public boolean addMap(Map<String, String> stringStringMap) { return true; }
+                      public boolean addCollection(Collection<String> strings) { return true; }
+                      public boolean addIterable(Iterable<String> strings) { return true; }
+                  }
+                  public void usesVarargMatcher() {
+                      Foo mockFoo = Mockito.mock(Foo.class);
+                      Mockito.when(mockFoo.addList(Mockito.anyListOf(String.class))).thenReturn(true);
+                      Mockito.when(mockFoo.addSet(Mockito.anySetOf(String.class))).thenReturn(true);
+                      Mockito.when(mockFoo.addMap(Mockito.anyMapOf(String.class, String.class))).thenReturn(true);
+                      Mockito.when(mockFoo.addCollection(Mockito.anyCollectionOf(String.class))).thenReturn(true);
+                      Mockito.when(mockFoo.addIterable(Mockito.anyIterableOf(String.class))).thenReturn(true);
+                  }
+              }
+              """,
+            """
+              package mockito.example;
+
+              import org.mockito.Mockito;
+
+              import java.util.Collection;
+              import java.util.List;
+              import java.util.Map;
+              import java.util.Set;
+
+              public class MockitoVarargMatcherTest {
+                  public static class Foo {
+                      public boolean addList(List<String> strings) { return true; }
+                      public boolean addSet(Set<String> strings) { return true; }
+                      public boolean addMap(Map<String, String> stringStringMap) { return true; }
+                      public boolean addCollection(Collection<String> strings) { return true; }
+                      public boolean addIterable(Iterable<String> strings) { return true; }
+                  }
+                  public void usesVarargMatcher() {
+                      Foo mockFoo = Mockito.mock(Foo.class);
+                      Mockito.when(mockFoo.addList(Mockito.anyList())).thenReturn(true);
+                      Mockito.when(mockFoo.addSet(Mockito.anySet())).thenReturn(true);
+                      Mockito.when(mockFoo.addMap(Mockito.anyMap())).thenReturn(true);
+                      Mockito.when(mockFoo.addCollection(Mockito.anyCollection())).thenReturn(true);
+                      Mockito.when(mockFoo.addIterable(Mockito.anyIterable())).thenReturn(true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockitoOneAnyOfMatchers() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "mockito-all"))
+            .recipe(Environment.builder()
+              .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
+              .build()
+              .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to3Migration")),
+          //language=java
+          java(
+            """
+              package mockito.example;
+
+              import org.mockito.Mockito;
+
+              import java.util.Collection;
+              import java.util.List;
+
+              import static org.mockito.Matchers.anyListOf;
+
+              public class MockitoVarargMatcherTest {
+                  public static class Foo {
+                      public boolean addList(List<String> strings) { return true; }
+                      public boolean addCollection(Collection<String> strings) { return true; }
+                  }
+                  public void usesVarargMatcher() {
+                      Foo mockFoo = Mockito.mock(Foo.class);
+                      Mockito.when(mockFoo.addList(anyListOf(String.class))).thenReturn(true);
+                      Mockito.when(mockFoo.addCollection(Mockito.anyCollectionOf(String.class))).thenReturn(true);
+                  }
+              }
+              """,
+            """
+              package mockito.example;
+
+              import org.mockito.Mockito;
+
+              import java.util.Collection;
+              import java.util.List;
+
+              import static org.mockito.ArgumentMatchers.anyList;
+
+              public class MockitoVarargMatcherTest {
+                  public static class Foo {
+                      public boolean addList(List<String> strings) { return true; }
+                      public boolean addCollection(Collection<String> strings) { return true; }
+                  }
+                  public void usesVarargMatcher() {
+                      Foo mockFoo = Mockito.mock(Foo.class);
+                      Mockito.when(mockFoo.addList(anyList())).thenReturn(true);
+                      Mockito.when(mockFoo.addCollection(Mockito.anyCollection())).thenReturn(true);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
