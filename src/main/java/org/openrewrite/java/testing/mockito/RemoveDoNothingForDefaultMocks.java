@@ -70,7 +70,9 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                                 }
                             }
                         }
-                        mockFieldNames.removeAll(namesAssignedFromSpy(classDecl));
+                        if (!mockFieldNames.isEmpty()) {
+                            mockFieldNames.removeAll(namesAssignedFromSpy(classDecl));
+                        }
                         getCursor().putMessage("mockFieldNames", mockFieldNames);
                         return super.visitClassDeclaration(classDecl, ctx);
                     }
@@ -112,9 +114,11 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         return new JavaIsoVisitor<Set<String>>() {
                             @Override
                             public J.Assignment visitAssignment(J.Assignment assignment, Set<String> acc) {
-                                if (SPY_MATCHER.matches(assignment.getAssignment()) &&
-                                        assignment.getVariable() instanceof J.Identifier) {
-                                    acc.add(((J.Identifier) assignment.getVariable()).getSimpleName());
+                                if (SPY_MATCHER.matches(assignment.getAssignment())) {
+                                    String name = simpleName(assignment.getVariable());
+                                    if (name != null) {
+                                        acc.add(name);
+                                    }
                                 }
                                 return super.visitAssignment(assignment, acc);
                             }
