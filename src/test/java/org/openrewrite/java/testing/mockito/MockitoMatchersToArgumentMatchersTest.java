@@ -18,23 +18,24 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
 class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec.recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to3Migration");
+    }
+
     @DocumentExample
     @Test
     void mockitoAnyListOfToListOf() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12"))
-            .recipe(Environment.builder()
-              .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
-              .build()
-              .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to3Migration")),
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12")),
           //language=java
           java(
                 """
@@ -99,11 +100,7 @@ class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
     void qualifiedMockitoAnyOfMatchers() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12"))
-            .recipe(Environment.builder()
-              .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
-              .build()
-              .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to3Migration")),
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12")),
           //language=java
           java(
             """
@@ -170,11 +167,7 @@ class MockitoMatchersToArgumentMatchersTest implements RewriteTest {
     void mockitoOneAnyOfMatchers() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "mockito-all"))
-            .recipe(Environment.builder()
-              .scanRuntimeClasspath("org.openrewrite.java.testing.mockito")
-              .build()
-              .activateRecipes("org.openrewrite.java.testing.mockito.Mockito1to3Migration")),
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-all")),
           //language=java
           java(
             """
