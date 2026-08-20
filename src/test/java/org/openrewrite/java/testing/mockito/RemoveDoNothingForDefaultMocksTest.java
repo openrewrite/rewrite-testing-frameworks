@@ -280,6 +280,42 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
     }
 
     @Test
+    void removesDoNothingOnMockFieldAccessedThroughThis() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock
+                  private ArrayList<String> list;
+
+                  void test() {
+                      doNothing().when(this.list).clear();
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              class MyTest {
+                  @Mock
+                  private ArrayList<String> list;
+
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainsDoNothingOnMockFieldReassignedToSpyThroughThis() {
         rewriteRun(
           //language=Java

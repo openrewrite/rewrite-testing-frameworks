@@ -59,21 +59,23 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                        Set<String> mockFieldNames = new HashSet<>();
+                        Set<JavaType.Variable> mockFields = new HashSet<>();
                         for (Statement stmt : classDecl.getBody().getStatements()) {
                             if (stmt instanceof J.VariableDeclarations) {
                                 J.VariableDeclarations vd = (J.VariableDeclarations) stmt;
                                 if (vd.getLeadingAnnotations().stream().anyMatch(this::isDefaultAnswerMock)) {
                                     for (J.VariableDeclarations.NamedVariable var : vd.getVariables()) {
-                                        mockFieldNames.add(var.getSimpleName());
+                                        if (var.getVariableType() != null) {
+                                            mockFields.add(var.getVariableType());
+                                        }
                                     }
                                 }
                             }
                         }
-                        if (!mockFieldNames.isEmpty()) {
-                            mockFieldNames.removeAll(namesAssignedFromSpy(classDecl));
+                        if (!mockFields.isEmpty()) {
+                            mockFields.removeAll(variablesAssignedFromSpy(classDecl));
                         }
-                        getCursor().putMessage("mockFieldNames", mockFieldNames);
+                        getCursor().putMessage("mockFields", mockFields);
                         return super.visitClassDeclaration(classDecl, ctx);
                     }
 
@@ -110,27 +112,41 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                     /**
                      * Fields declared `@Mock` can still be replaced by a spy before the stubbing runs.
                      */
-                    private Set<String> namesAssignedFromSpy(J.ClassDeclaration classDecl) {
-                        return new JavaIsoVisitor<Set<String>>() {
+                    private Set<JavaType.Variable> variablesAssignedFromSpy(J.ClassDeclaration classDecl) {
+                        return new JavaIsoVisitor<Set<JavaType.Variable>>() {
                             @Override
-                            public J.Assignment visitAssignment(J.Assignment assignment, Set<String> acc) {
+                            public J.Assignment visitAssignment(J.Assignment assignment, Set<JavaType.Variable> acc) {
                                 if (SPY_MATCHER.matches(assignment.getAssignment())) {
-                                    String name = simpleName(assignment.getVariable());
-                                    if (name != null) {
-                                        acc.add(name);
+                                    JavaType.Variable target = variableType(assignment.getVariable());
+                                    if (target != null) {
+                                        acc.add(target);
                                     }
                                 }
                                 return super.visitAssignment(assignment, acc);
                             }
 
                             @Override
-                            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> acc) {
-                                if (SPY_MATCHER.matches(variable.getInitializer())) {
-                                    acc.add(variable.getSimpleName());
+                            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<JavaType.Variable> acc) {
+                                if (SPY_MATCHER.matches(variable.getInitializer()) && variable.getVariableType() != null) {
+                                    acc.add(variable.getVariableType());
                                 }
                                 return super.visitVariable(variable, acc);
                             }
                         }.reduce(classDecl.getBody(), new HashSet<>());
+                    }
+
+                    /**
+                     * Resolve `mock` or `this.mock` to the variable it declares or references, such that a field and a
+                     * local shadowing it are told apart by {@link JavaType.Variable} owner rather than by name.
+                     */
+                    private JavaType.@Nullable Variable variableType(Expression expression) {
+                        if (expression instanceof J.FieldAccess) {
+                            return ((J.FieldAccess) expression).getName().getFieldType();
+                        }
+                        if (expression instanceof J.Identifier) {
+                            return ((J.Identifier) expression).getFieldType();
+                        }
+                        return null;
                     }
 
                     @Override
@@ -166,16 +182,12 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                             return false;
                         }
                         // Check that the when() argument references a @Mock field
-                        if (whenCall.getArguments().isEmpty() || !(whenCall.getArguments().get(0) instanceof J.Identifier)) {
+                        if (whenCall.getArguments().isEmpty()) {
                             return false;
                         }
-                        J.Identifier mock = (J.Identifier) whenCall.getArguments().get(0);
-                        // A local variable or parameter shadowing a `@Mock` field may well hold a spy instead
-                        if (mock.getFieldType() != null && !(mock.getFieldType().getOwner() instanceof JavaType.FullyQualified)) {
-                            return false;
-                        }
-                        Set<String> mockFieldNames = getCursor().getNearestMessage("mockFieldNames");
-                        if (mockFieldNames == null || !mockFieldNames.contains(mock.getSimpleName())) {
+                        JavaType.Variable mock = variableType(whenCall.getArguments().get(0));
+                        Set<JavaType.Variable> mockFields = getCursor().getNearestMessage("mockFields");
+                        if (mock == null || mockFields == null || !mockFields.contains(mock)) {
                             return false;
                         }
                         // Preserve stubbings whose arguments include ArgumentCaptor.capture(),
