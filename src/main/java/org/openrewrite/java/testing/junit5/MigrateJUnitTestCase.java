@@ -25,7 +25,6 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TextComment;
@@ -35,6 +34,7 @@ import org.openrewrite.marker.Markers;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
@@ -197,7 +197,7 @@ public class MigrateJUnitTestCase extends Recipe {
             JavaType.Method methodType = md.getMethodType();
             if (methodType == null ||
                 md.getLeadingAnnotations().stream().noneMatch(OVERRIDE_ANNOTATION_MATCHER::matches) ||
-                anySupertypeDeclares(methodType.getDeclaringType(), methodType)) {
+                stillOverridesAfterMigration(methodType)) {
                 return md;
             }
             J.MethodDeclaration withoutBody = (J.MethodDeclaration) new RemoveAnnotationVisitor(OVERRIDE_ANNOTATION_MATCHER)
@@ -205,40 +205,15 @@ public class MigrateJUnitTestCase extends Recipe {
             return withoutBody.withBody(md.getBody());
         }
 
-        private static boolean anySupertypeDeclares(JavaType.FullyQualified type, JavaType.Method method) {
-            return declaresOverridableMethod(type.getSupertype(), method) ||
-                   type.getInterfaces().stream().anyMatch(i -> declaresOverridableMethod(i, method));
-        }
-
-        private static boolean declaresOverridableMethod(JavaType.@Nullable FullyQualified type, JavaType.Method method) {
-            if (type == null) {
-                return false;
-            }
-            if (!SUPERTYPES_REMOVED_BY_MIGRATION.contains(type.getFullyQualifiedName())) {
-                for (JavaType.Method candidate : type.getMethods()) {
-                    if (candidate.getName().equals(method.getName()) &&
-                        !candidate.hasFlags(Flag.Private) &&
-                        !candidate.hasFlags(Flag.Static) &&
-                        parameterTypesMatch(candidate, method)) {
-                        return true;
-                    }
+        private static boolean stillOverridesAfterMigration(JavaType.Method method) {
+            Optional<JavaType.Method> overridden = TypeUtils.findOverriddenMethod(method);
+            while (overridden.isPresent()) {
+                if (!SUPERTYPES_REMOVED_BY_MIGRATION.contains(overridden.get().getDeclaringType().getFullyQualifiedName())) {
+                    return true;
                 }
+                overridden = TypeUtils.findOverriddenMethod(overridden.get());
             }
-            return anySupertypeDeclares(type, method);
-        }
-
-        private static boolean parameterTypesMatch(JavaType.Method a, JavaType.Method b) {
-            List<JavaType> aParameterTypes = a.getParameterTypes();
-            List<JavaType> bParameterTypes = b.getParameterTypes();
-            if (aParameterTypes.size() != bParameterTypes.size()) {
-                return false;
-            }
-            for (int i = 0; i < aParameterTypes.size(); i++) {
-                if (!TypeUtils.isOfType(aParameterTypes.get(i), bParameterTypes.get(i))) {
-                    return false;
-                }
-            }
-            return true;
+            return false;
         }
     }
 }
