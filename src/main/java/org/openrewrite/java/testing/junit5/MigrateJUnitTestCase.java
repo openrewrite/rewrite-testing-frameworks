@@ -25,6 +25,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TextComment;
@@ -148,7 +149,7 @@ public class MigrateJUnitTestCase extends Recipe {
             } else if ("tearDown".equals(md.getSimpleName()) && md.getLeadingAnnotations().stream().noneMatch(JUNIT_AFTER_ANNOTATION_MATCHER::matches)) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach", ctx);
             }
-            return md;
+            return maybeRemoveOverrideAnnotation(md, ctx);
         }
 
         @Override
@@ -171,7 +172,6 @@ public class MigrateJUnitTestCase extends Recipe {
                         .imports(fullyQualifiedAnnotation).build()
                         .apply(getCursor(), methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 md = maybeAddPublicModifier(md);
-                md = maybeRemoveOverrideAnnotation(md);
                 maybeAddImport(fullyQualifiedAnnotation);
             }
             return md;
@@ -187,14 +187,60 @@ public class MigrateJUnitTestCase extends Recipe {
             return md.withModifiers(modifiers);
         }
 
-        private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md) {
-            return md.withLeadingAnnotations(ListUtils.map(md.getLeadingAnnotations(), annotation -> {
-                if (OVERRIDE_ANNOTATION_MATCHER.matches(annotation)) {
-                    //noinspection DataFlowIssue
-                    return null;
+        private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md, ExecutionContext ctx) {
+            if (md.getLeadingAnnotations().stream().noneMatch(OVERRIDE_ANNOTATION_MATCHER::matches) ||
+                stillOverridesAfterMigration(md.getMethodType())) {
+                return md;
+            }
+            // Strip the body first, such that any `@Override` on methods of anonymous classes within is retained
+            J.MethodDeclaration withoutBody = (J.MethodDeclaration) new RemoveAnnotationVisitor(OVERRIDE_ANNOTATION_MATCHER)
+                    .visitNonNull(md.withBody(null), ctx, getCursor().getParentOrThrow());
+            return withoutBody.withBody(md.getBody());
+        }
+
+        /**
+         * Once the {@code junit.framework} supertypes are dropped, an {@code @Override} is only still valid if some
+         * other supertype declares a matching method; {@code toString()} keeps it, {@code setUp()} does not.
+         */
+        private boolean stillOverridesAfterMigration(JavaType.@Nullable Method methodType) {
+            if (methodType == null) {
+                return true;
+            }
+            JavaType.FullyQualified declaringType = methodType.getDeclaringType();
+            return declaresOverridableMethod(declaringType.getSupertype(), methodType) ||
+                   declaringType.getInterfaces().stream().anyMatch(i -> declaresOverridableMethod(i, methodType));
+        }
+
+        private boolean declaresOverridableMethod(JavaType.@Nullable FullyQualified type, JavaType.Method method) {
+            if (type == null) {
+                return false;
+            }
+            if (!"junit.framework".equals(type.getPackageName())) {
+                for (JavaType.Method candidate : type.getMethods()) {
+                    if (!candidate.getFlags().contains(Flag.Private) &&
+                        !candidate.getFlags().contains(Flag.Static) &&
+                        candidate.getName().equals(method.getName()) &&
+                        parameterTypesMatch(candidate, method)) {
+                        return true;
+                    }
                 }
-                return annotation;
-            }));
+            }
+            return declaresOverridableMethod(type.getSupertype(), method) ||
+                   type.getInterfaces().stream().anyMatch(i -> declaresOverridableMethod(i, method));
+        }
+
+        private boolean parameterTypesMatch(JavaType.Method a, JavaType.Method b) {
+            List<JavaType> aParameterTypes = a.getParameterTypes();
+            List<JavaType> bParameterTypes = b.getParameterTypes();
+            if (aParameterTypes.size() != bParameterTypes.size()) {
+                return false;
+            }
+            for (int i = 0; i < aParameterTypes.size(); i++) {
+                if (!TypeUtils.isOfType(aParameterTypes.get(i), bParameterTypes.get(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }
