@@ -33,7 +33,11 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static java.util.Arrays.asList;
 
 public class MigrateJUnitTestCase extends Recipe {
 
@@ -102,6 +106,8 @@ public class MigrateJUnitTestCase extends Recipe {
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
         private static final MethodMatcher TEST_CASE_SUPER_MATCHER = new MethodMatcher("junit.framework.TestCase <constructor>(..)");
+        private static final Set<String> SUPERTYPES_REMOVED_BY_MIGRATION = new HashSet<>(asList(
+                "junit.framework.TestCase", "junit.framework.Assert", "junit.framework.Test"));
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -188,48 +194,43 @@ public class MigrateJUnitTestCase extends Recipe {
         }
 
         private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md, ExecutionContext ctx) {
-            if (md.getLeadingAnnotations().stream().noneMatch(OVERRIDE_ANNOTATION_MATCHER::matches) ||
+            if (md.getMethodType() == null ||
+                md.getLeadingAnnotations().stream().noneMatch(OVERRIDE_ANNOTATION_MATCHER::matches) ||
                 stillOverridesAfterMigration(md.getMethodType())) {
                 return md;
             }
-            // Strip the body first, such that any `@Override` on methods of anonymous classes within is retained
             J.MethodDeclaration withoutBody = (J.MethodDeclaration) new RemoveAnnotationVisitor(OVERRIDE_ANNOTATION_MATCHER)
                     .visitNonNull(md.withBody(null), ctx, getCursor().getParentOrThrow());
             return withoutBody.withBody(md.getBody());
         }
 
-        /**
-         * Once the {@code junit.framework} supertypes are dropped, an {@code @Override} is only still valid if some
-         * other supertype declares a matching method; {@code toString()} keeps it, {@code setUp()} does not.
-         */
-        private boolean stillOverridesAfterMigration(JavaType.@Nullable Method methodType) {
-            if (methodType == null) {
-                return true;
-            }
-            JavaType.FullyQualified declaringType = methodType.getDeclaringType();
-            return declaresOverridableMethod(declaringType.getSupertype(), methodType) ||
-                   declaringType.getInterfaces().stream().anyMatch(i -> declaresOverridableMethod(i, methodType));
+        private static boolean stillOverridesAfterMigration(JavaType.Method methodType) {
+            return anySupertypeDeclares(methodType.getDeclaringType(), methodType);
         }
 
-        private boolean declaresOverridableMethod(JavaType.@Nullable FullyQualified type, JavaType.Method method) {
+        private static boolean anySupertypeDeclares(JavaType.FullyQualified type, JavaType.Method method) {
+            return declaresOverridableMethod(type.getSupertype(), method) ||
+                   type.getInterfaces().stream().anyMatch(i -> declaresOverridableMethod(i, method));
+        }
+
+        private static boolean declaresOverridableMethod(JavaType.@Nullable FullyQualified type, JavaType.Method method) {
             if (type == null) {
                 return false;
             }
-            if (!"junit.framework".equals(type.getPackageName())) {
+            if (!SUPERTYPES_REMOVED_BY_MIGRATION.contains(type.getFullyQualifiedName())) {
                 for (JavaType.Method candidate : type.getMethods()) {
-                    if (!candidate.getFlags().contains(Flag.Private) &&
-                        !candidate.getFlags().contains(Flag.Static) &&
-                        candidate.getName().equals(method.getName()) &&
+                    if (candidate.getName().equals(method.getName()) &&
+                        !candidate.hasFlags(Flag.Private) &&
+                        !candidate.hasFlags(Flag.Static) &&
                         parameterTypesMatch(candidate, method)) {
                         return true;
                     }
                 }
             }
-            return declaresOverridableMethod(type.getSupertype(), method) ||
-                   type.getInterfaces().stream().anyMatch(i -> declaresOverridableMethod(i, method));
+            return anySupertypeDeclares(type, method);
         }
 
-        private boolean parameterTypesMatch(JavaType.Method a, JavaType.Method b) {
+        private static boolean parameterTypesMatch(JavaType.Method a, JavaType.Method b) {
             List<JavaType> aParameterTypes = a.getParameterTypes();
             List<JavaType> bParameterTypes = b.getParameterTypes();
             if (aParameterTypes.size() != bParameterTypes.size()) {

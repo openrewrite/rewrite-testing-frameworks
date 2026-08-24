@@ -431,12 +431,8 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
 
     @Test
     void removeOverrideWhenAlreadyAnnotatedWithBefore() {
+        //language=java
         rewriteRun(
-          spec -> spec.recipes(
-            new MigrateJUnitTestCase(),
-            new UpdateBeforeAfterAnnotations()
-          ),
-          //language=java
           java(
             """
               import junit.framework.TestCase;
@@ -458,7 +454,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.Before;
               import org.junit.jupiter.api.Test;
 
               import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -466,7 +462,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               public class MathTest {
                   protected long value1;
 
-                  @BeforeEach
+                  @Before
                   public void setUp() {
                       value1 = 2;
                   }
