@@ -1025,4 +1025,65 @@ class JUnit5MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1103")
+    @Test
+    void removeOverrideOnMigratedTestCaseMethods() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              import org.junit.Before;
+              import org.junit.Test;
+
+              public class MathTest extends TestCase {
+                  protected long value1;
+
+                  @Override
+                  @Before
+                  public void setUp() {
+                      value1 = 2;
+                  }
+
+                  @Override
+                  public String toString() {
+                      return "math";
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, value1);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MathTest {
+                  protected long value1;
+
+                  @BeforeEach
+                  public void setUp() {
+                      value1 = 2;
+                  }
+
+                  @Override
+                  public String toString() {
+                      return "math";
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, value1);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
