@@ -194,18 +194,15 @@ public class MigrateJUnitTestCase extends Recipe {
         }
 
         private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md, ExecutionContext ctx) {
-            if (md.getMethodType() == null ||
+            JavaType.Method methodType = md.getMethodType();
+            if (methodType == null ||
                 md.getLeadingAnnotations().stream().noneMatch(OVERRIDE_ANNOTATION_MATCHER::matches) ||
-                stillOverridesAfterMigration(md.getMethodType())) {
+                anySupertypeDeclares(methodType.getDeclaringType(), methodType)) {
                 return md;
             }
             J.MethodDeclaration withoutBody = (J.MethodDeclaration) new RemoveAnnotationVisitor(OVERRIDE_ANNOTATION_MATCHER)
                     .visitNonNull(md.withBody(null), ctx, getCursor().getParentOrThrow());
             return withoutBody.withBody(md.getBody());
-        }
-
-        private static boolean stillOverridesAfterMigration(JavaType.Method methodType) {
-            return anySupertypeDeclares(methodType.getDeclaringType(), methodType);
         }
 
         private static boolean anySupertypeDeclares(JavaType.FullyQualified type, JavaType.Method method) {
