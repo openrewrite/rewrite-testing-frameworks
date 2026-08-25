@@ -1086,4 +1086,50 @@ class JUnit5MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1097")
+    @Test
+    void junitSoftAssertionsRuleToSoftAssertionsExtension() {
+        rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "assertj-core-3")),
+          //language=java
+          java(
+            """
+              import org.assertj.core.api.JUnitSoftAssertions;
+              import org.junit.Rule;
+              import org.junit.Test;
+
+              public class SoftlyTest {
+                  @Rule
+                  public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
+                  @Test
+                  public void multipleAssertions() {
+                      softly.assertThat("foo").isEqualTo("bar");
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.SoftAssertions;
+              import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
+              import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(SoftAssertionsExtension.class)
+              public class SoftlyTest {
+                  @InjectSoftAssertions
+                  public SoftAssertions softly;
+
+                  @Test
+                  public void multipleAssertions() {
+                      softly.assertThat("foo").isEqualTo("bar");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
