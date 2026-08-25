@@ -457,6 +457,178 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @Test
+    void retainsThenAnswer() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenAnswer(invocation -> -1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenAnswer(invocation -> -1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsThenThrow() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenThrow(new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsAllConsecutiveReturnValues() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1, -2, -3);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1, -2, -3);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsThenCallRealMethodWithoutArguments() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenCallRealMethod();
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenCallRealMethod();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsStubbingMethodWhenReusingMockedStatic() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                      when(A.getNumber()).thenThrow(new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          mockA1.when(() -> A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class UsingJunit4 {
         @Test
@@ -955,6 +1127,51 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
                       void test1() {
                           assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void retainsThenThrow_inBeforeEach() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.example.A;
+                  import org.junit.jupiter.api.BeforeEach;
+
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      @BeforeEach
+                      public void setUp() {
+                          when(A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+                  }
+                  """,
+                """
+                  import org.example.A;
+                  import org.junit.jupiter.api.AfterEach;
+                  import org.junit.jupiter.api.BeforeEach;
+                  import org.mockito.MockedStatic;
+
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      private MockedStatic<A> mockA1;
+
+                      @BeforeEach
+                      public void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+
+                      @AfterEach
+                      public void tearDown() {
+                          mockA1.close();
                       }
                   }
                   """
@@ -2159,6 +2376,45 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   fun testStaticMethod() {
                       val calendarMock: Calendar = mock(Calendar::class.java)
                       mockCal.`when`<Calendar> { Calendar.getInstance() }.thenReturn(calendarMock)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldRetainKotlinStubbingMethodOtherThanThenReturn() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      mockStatic(Calendar::class.java).use {
+                          `when`(Calendar.getInstance()).thenThrow(IllegalStateException())
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      mockStatic(Calendar::class.java).use {
+                          it.`when`<Calendar> { Calendar.getInstance() }.thenThrow(IllegalStateException())
+                      }
                   }
               }
               """
