@@ -288,4 +288,90 @@ class JUnitSoftAssertionsToSoftAssertionsExtensionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noChangeForClassRuleAlongsideRule() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import org.assertj.core.api.JUnitSoftAssertions;
+              import org.junit.ClassRule;
+              import org.junit.Rule;
+
+              class SoftlyTest {
+                  @ClassRule
+                  public static final JUnitSoftAssertions classSoftly = new JUnitSoftAssertions();
+
+                  @Rule
+                  public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeForRuleChainMember() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import org.assertj.core.api.JUnitSoftAssertions;
+              import org.junit.Rule;
+              import org.junit.rules.RuleChain;
+
+              class SoftlyTest {
+                  private final JUnitSoftAssertions chained = new JUnitSoftAssertions();
+
+                  @Rule
+                  public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
+                  @Rule
+                  public final RuleChain chain = RuleChain.outerRule(chained);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertOnlyTheRuleTypeWithoutRemainingRuleFields() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import org.assertj.core.api.JUnitBDDSoftAssertions;
+              import org.assertj.core.api.JUnitSoftAssertions;
+              import org.junit.ClassRule;
+              import org.junit.Rule;
+
+              class SoftlyTest {
+                  @ClassRule
+                  public static final JUnitSoftAssertions classSoftly = new JUnitSoftAssertions();
+
+                  @Rule
+                  public final JUnitBDDSoftAssertions softly = new JUnitBDDSoftAssertions();
+              }
+              """,
+            """
+              import org.assertj.core.api.BDDSoftAssertions;
+              import org.assertj.core.api.JUnitSoftAssertions;
+              import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
+              import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+              import org.junit.ClassRule;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(SoftAssertionsExtension.class)
+              class SoftlyTest {
+                  @ClassRule
+                  public static final JUnitSoftAssertions classSoftly = new JUnitSoftAssertions();
+
+                  @InjectSoftAssertions
+                  public BDDSoftAssertions softly;
+              }
+              """
+          )
+        );
+    }
 }

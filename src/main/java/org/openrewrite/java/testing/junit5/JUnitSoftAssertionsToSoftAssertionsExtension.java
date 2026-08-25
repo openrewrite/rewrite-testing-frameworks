@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,16 +34,14 @@ import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptySet;
 import static java.util.Comparator.comparing;
-import static java.util.Objects.requireNonNull;
 
 public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
 
@@ -64,6 +63,7 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
             new AnnotationMatcher(format("@%s(%s.class)", EXTEND_WITH, SOFT_ASSERTIONS_EXTENSION), true);
 
     private static final String CONVERTED_TYPES = "convertedSoftAssertionsRuleTypes";
+    private static final String UNCONVERTIBLE_TYPES = "unconvertibleSoftAssertionsRuleTypes";
 
     @Getter
     final String displayName = "AssertJ `@Rule` soft assertions to `SoftAssertionsExtension`";
@@ -86,6 +86,7 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
 
                     @Override
                     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                        getCursor().putMessage(UNCONVERTIBLE_TYPES, unconvertibleRuleTypes(cu));
                         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
                         Set<String> convertedTypes = getCursor().pollMessage(CONVERTED_TYPES);
                         if (convertedTypes == null) {
@@ -119,12 +120,16 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                     @Override
                     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                         J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
-                        String ruleType = softAssertionsRuleType(mv);
-                        if (ruleType == null || !service(AnnotationService.class).matches(getCursor(), RULE_MATCHER)) {
+                        String ruleType = softAssertionsType(mv);
+                        if (ruleType == null ||
+                                J.Modifier.hasModifier(mv.getModifiers(), J.Modifier.Type.Static) ||
+                                getCursor().<Set<String>>getNearestMessage(UNCONVERTIBLE_TYPES, emptySet()).contains(ruleType) ||
+                                !service(AnnotationService.class).matches(getCursor(), RULE_MATCHER)) {
                             return mv;
                         }
 
-                        mv = removeFinalModifier(mv);
+                        mv = maybeAutoFormat(mv, mv.withModifiers(ListUtils.map(mv.getModifiers(),
+                                m -> m.getType() == J.Modifier.Type.Final ? null : m)), ctx, getCursor().getParentOrThrow());
                         mv = mv.withVariables(ListUtils.map(mv.getVariables(), v -> v.withInitializer(null)));
                         mv = (J.VariableDeclarations) new Annotated.Matcher('@' + RULE)
                                 .asVisitor(a -> JavaTemplate.builder("@InjectSoftAssertions")
@@ -142,36 +147,37 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                                 .add(ruleType);
                         return mv;
                     }
-
-                    private @Nullable String softAssertionsRuleType(J.VariableDeclarations mv) {
-                        if (J.Modifier.hasModifier(mv.getModifiers(), J.Modifier.Type.Static)) {
-                            return null;
-                        }
-                        for (String ruleType : RULE_TO_PROVIDER.keySet()) {
-                            if (TypeUtils.isOfClassType(mv.getType(), ruleType)) {
-                                return ruleType;
-                            }
-                        }
-                        return null;
-                    }
                 });
     }
 
-    private static J.VariableDeclarations removeFinalModifier(J.VariableDeclarations mv) {
-        List<J.Modifier> modifiers = new ArrayList<>(mv.getModifiers());
-        for (int i = 0; i < modifiers.size(); i++) {
-            if (modifiers.get(i).getType() == J.Modifier.Type.Final) {
-                J.Modifier removed = modifiers.remove(i);
-                if (i == 0) {
-                    if (modifiers.isEmpty()) {
-                        mv = mv.withTypeExpression(requireNonNull(mv.getTypeExpression()).withPrefix(removed.getPrefix()));
-                    } else {
-                        modifiers.set(0, modifiers.get(0).withPrefix(removed.getPrefix()));
-                    }
-                }
-                return mv.withModifiers(modifiers);
+    private static @Nullable String softAssertionsType(J.VariableDeclarations mv) {
+        for (String ruleType : RULE_TO_PROVIDER.keySet()) {
+            if (TypeUtils.isOfClassType(mv.getType(), ruleType)) {
+                return ruleType;
             }
         }
-        return mv;
+        return null;
+    }
+
+    // Types also declared as a field this recipe leaves alone, such as a `@ClassRule` or a field only referenced from a
+    // `RuleChain`; those fields still have to implement `TestRule`, so the compilation unit wide `ChangeType` that
+    // follows the conversion must not run for their type.
+    private static Set<String> unconvertibleRuleTypes(J.CompilationUnit cu) {
+        return new JavaIsoVisitor<Set<String>>() {
+            @Override
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations mv, Set<String> types) {
+                String ruleType = softAssertionsType(mv);
+                if (ruleType != null && isField(getCursor()) &&
+                        (J.Modifier.hasModifier(mv.getModifiers(), J.Modifier.Type.Static) ||
+                                mv.getLeadingAnnotations().stream().noneMatch(RULE_MATCHER::matches))) {
+                    types.add(ruleType);
+                }
+                return super.visitVariableDeclarations(mv, types);
+            }
+
+            private boolean isField(Cursor cursor) {
+                return cursor.getParentTreeCursor().getParentTreeCursor().getValue() instanceof J.ClassDeclaration;
+            }
+        }.reduce(cu, new LinkedHashSet<>());
     }
 }
