@@ -19,10 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class JUnitSoftAssertionsToSoftAssertionsExtensionTest implements RewriteTest {
 
@@ -369,6 +371,26 @@ class JUnitSoftAssertionsToSoftAssertionsExtensionTest implements RewriteTest {
 
                   @InjectSoftAssertions
                   public BDDSoftAssertions softly;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeOnKotlin() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "assertj-core-3")),
+          // language=kotlin
+          kotlin(
+            """
+              import org.assertj.core.api.JUnitSoftAssertions
+              import org.junit.Rule
+
+              class SoftlyTest {
+                  @get:Rule
+                  val softly: JUnitSoftAssertions = JUnitSoftAssertions()
               }
               """
           )
