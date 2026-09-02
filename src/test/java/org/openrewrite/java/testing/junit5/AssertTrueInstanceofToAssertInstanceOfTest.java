@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -257,6 +258,74 @@ class AssertTrueInstanceofToAssertInstanceOfTest implements RewriteTest {
                   void test() {
                       Object obj = new Foo();
                       assertInstanceOf(Foo.class, obj);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Disabled("The migrated unqualified call binds to an assertInstanceOf declared in the class instead of JUnit's, per JLS 6.5.7.1")
+    @Test
+    void qualifyWhenAssertInstanceOfDeclaredInClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              class ATest {
+                  static void assertInstanceOf(Class<?> type, Object value) {
+                      throw new AssertionError("wrong owner");
+                  }
+
+                  @Test
+                  void test() {
+                      Object obj = "example";
+                      assertTrue(obj instanceof String);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  static void assertInstanceOf(Class<?> type, Object value) {
+                      throw new AssertionError("wrong owner");
+                  }
+
+                  @Test
+                  void test() {
+                      Object obj = "example";
+                      Assertions.assertInstanceOf(String.class, obj);
+                  }
+              }
+              """
+          ));
+    }
+
+    @Disabled("The recipe drops the getAssertions() receiver expression, so its side effects are lost from the migrated code")
+    @Test
+    void noChangeWhenInstanceReceiverHasSideEffect() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Assertions;
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  Assertions getAssertions() {
+                      System.out.println("side effect");
+                      return null;
+                  }
+
+                  @Test
+                  void test() {
+                      Object obj = "example";
+                      getAssertions().assertTrue(obj instanceof String);
                   }
               }
               """
