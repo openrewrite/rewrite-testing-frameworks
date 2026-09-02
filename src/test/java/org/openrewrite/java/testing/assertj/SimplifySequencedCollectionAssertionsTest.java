@@ -127,8 +127,70 @@ class SimplifySequencedCollectionAssertionsTest implements RewriteTest {
                   void testMethod() {
                       List<String> list = List.of("a", "b", "c");
                       assertThat(list).last().isNotNull();
-                      assertThat(list).first().isNotEmpty();
-                      assertThat(list).last().contains("c");
+                      assertThat(list.getFirst()).isNotEmpty();
+                      assertThat(list.getLast()).contains("c");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsCharSequenceSpecificAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class FirstElementTest {
+                  void verify(List<String> command) {
+                      assertThat(command.getFirst()).endsWith("setsid");
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class NullableElementTest {
+                  void verify(List<String> values) {
+                      assertThat(values.getFirst()).usingComparator(String.CASE_INSENSITIVE_ORDER).isNull();
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class ConfiguredAssertionTest {
+                  void verify(List<String> values) {
+                      assertThat(values.getFirst()).as("value").startsWith("a");
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class CharSequenceElementTest {
+                  void verify(List<StringBuilder> values) {
+                      assertThat(values.getFirst()).startsWith("a");
                   }
               }
               """
