@@ -47,7 +47,18 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(AddDependency.Accumulator acc) {
-        return addJupiterDependency().getScanner(acc);
+        // The scanner sees the sources before `MigrateJUnitTestCase` rewrites them, so a
+        // codebase of `junit.framework.TestCase` subclasses uses no `org.junit` type yet.
+        TreeVisitor<?, ExecutionContext> usesJUnit4 = addJupiterDependency("org.junit..*").getScanner(acc);
+        TreeVisitor<?, ExecutionContext> usesJUnit3 = addJupiterDependency("junit.framework..*").getScanner(acc);
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                usesJUnit4.visit(tree, ctx);
+                usesJUnit3.visit(tree, ctx);
+                return tree;
+            }
+        };
     }
 
     @Override
@@ -73,8 +84,12 @@ public class AddJupiterDependencies extends ScanningRecipe<AddDependency.Accumul
     }
 
     private static AddDependency addJupiterDependency() {
+        return addJupiterDependency("org.junit..*");
+    }
+
+    private static AddDependency addJupiterDependency(String onlyIfUsing) {
         return new AddDependency("org.junit.jupiter", "junit-jupiter", "5.x", null,
-                "org.junit..*", null, null, null, null, null,
+                onlyIfUsing, null, null, null, null, null,
                 null, null, null, null);
     }
 
