@@ -228,6 +228,58 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1113")
+    @Test
+    void addJupiterWhenOnlyTestCaseIsUsed() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class LegacyTest extends TestCase {
+                      public void testAddition() {
+                          assertEquals(4, 2 + 2);
+                      }
+                  }
+                  """,
+                spec -> spec.after(src -> {
+                    return assertThat(src)
+                            .contains("import org.junit.jupiter.api.Test;")
+                            .doesNotContain("junit.framework").actual();
+                })
+              )
+            ),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  return assertThat(pom)
+                          .contains("<artifactId>junit-jupiter</artifactId>")
+                          .doesNotContain("<artifactId>junit</artifactId>").actual();
+              })
+            )
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/850")
     @Test
