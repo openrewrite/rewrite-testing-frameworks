@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
@@ -29,6 +30,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JLeftPadded;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.java.tree.TypedTree;
 import org.openrewrite.marker.Markers;
 
@@ -36,6 +38,13 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
+
+    private static final String SIMPLE_ASSERTIONS_QUALIFIER = "Assertions";
+    private static final String FULLY_QUALIFIED_ASSERTIONS_QUALIFIER = "org.junit.jupiter.api.Assertions";
+
+    private static final String ASSERT_INSTANCE_OF_TEMPLATE = "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)})";
+    private static final String ASSERT_INSTANCE_OF_WITH_REASON_TEMPLATE = "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}, #{any(java.lang.String)})";
+
     @Getter
     final String displayName = "`assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`";
 
@@ -55,9 +64,18 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 TypedTree clazz;
                 Expression expression;
                 Expression reason;
+                Expression select = mi.getSelect();
+                // Keep an explicit owner so the emitted call resolves to JUnit's declaration rather than one the
+                // calling class declares or inherits. Only a selector naming `Assertions` itself is reused; a
+                // subtype can hide `assertInstanceOf`, and a bare `Assertions` can be shadowed several ways
+                Expression retainedSelect = isAssertionsClassReference(select) ? select : null;
+                boolean unqualifiedCall = retainedSelect == null && select == null;
 
                 if (junit5Matcher.matches(mi)) {
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
+                    if (retainedSelect == null) {
+                        maybeRemoveSelectTypeImport(select);
+                    }
                     Expression argument = mi.getArguments().get(0);
                     if (mi.getArguments().size() == 1) {
                         reason = null;
@@ -76,6 +94,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     }
                 } else if (junit4Matcher.matches(mi)) {
                     maybeRemoveImport("org.junit.Assert.assertTrue");
+                    maybeRemoveSelectTypeImport(select);
                     Expression argument;
                     if (mi.getArguments().size() == 1) {
                         reason = null;
@@ -99,18 +118,54 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 }
 
 
-                JavaTemplate template = JavaTemplate
-                    .builder("assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" + (reason != null ? ", #{any(java.lang.String)})" : ")"))
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"))
-                    .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
-                    .build();
+                // An unqualified call is left unqualified; a same-named declaration in scope can still capture it
+                String templateCode = reason != null ? ASSERT_INSTANCE_OF_WITH_REASON_TEMPLATE : ASSERT_INSTANCE_OF_TEMPLATE;
+                if (!unqualifiedCall) {
+                    String qualifier = retainedSelect != null ? SIMPLE_ASSERTIONS_QUALIFIER : FULLY_QUALIFIED_ASSERTIONS_QUALIFIER;
+                    templateCode = qualifier + "." + templateCode;
+                }
+                JavaTemplate.Builder templateBuilder = JavaTemplate
+                    .builder(templateCode)
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-4"));
+                if (unqualifiedCall) {
+                    templateBuilder.staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf");
+                    maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
+                } else if (retainedSelect != null) {
+                    templateBuilder.imports("org.junit.jupiter.api.Assertions");
+                }
 
-                maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
                 TypedTree rawClazz = clazz instanceof J.ParameterizedType ? ((J.ParameterizedType) clazz).getClazz() : clazz;
                 Expression classLiteral = toClassLiteral(rawClazz);
-                return reason != null ?
+                JavaTemplate template = templateBuilder.build();
+                J.MethodInvocation replacement = reason != null ?
                     template.apply(getCursor(), mi.getCoordinates().replace(), classLiteral, expression, reason) :
                     template.apply(getCursor(), mi.getCoordinates().replace(), classLiteral, expression);
+                return retainedSelect == null ? replacement : replacement.withSelect(retainedSelect.withPrefix(Space.EMPTY));
+            }
+
+            private void maybeRemoveSelectTypeImport(@Nullable Expression select) {
+                if (select != null) {
+                    JavaType.FullyQualified selectType = TypeUtils.asFullyQualified(select.getType());
+                    if (selectType != null) {
+                        maybeRemoveImport(selectType.getFullyQualifiedName());
+                    }
+                }
+            }
+
+            /**
+             * @return whether the selector names {@code org.junit.jupiter.api.Assertions} itself, simple or fully
+             * qualified; a subtype or a variable is rejected.
+             */
+            private boolean isAssertionsClassReference(@Nullable Expression select) {
+                if (select instanceof J.Identifier) {
+                    return ((J.Identifier) select).getFieldType() == null &&
+                        TypeUtils.isOfClassType(select.getType(), "org.junit.jupiter.api.Assertions");
+                }
+                if (select instanceof J.FieldAccess) {
+                    return ((J.FieldAccess) select).getName().getFieldType() == null &&
+                        TypeUtils.isOfClassType(select.getType(), "org.junit.jupiter.api.Assertions");
+                }
+                return false;
             }
 
             private Expression toClassLiteral(TypedTree clazz) {
