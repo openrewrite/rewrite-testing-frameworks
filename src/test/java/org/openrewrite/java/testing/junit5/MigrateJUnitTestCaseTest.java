@@ -19,11 +19,16 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.SourceFile;
+import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MigrateJUnitTestCaseTest implements RewriteTest {
 
@@ -382,11 +387,534 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
             """
               public class AppTest {
                   private final String name;
-                  public AppTest(String testName) {
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public AppTest(String testName) {
                       this.name = testName;
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void migratesRetainedConstructorsWithoutChangingInitializationOrCallers() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4")
+            .dependsOn("class KotlinCalledTest(name: String) : junit.framework.TestCase(name)")),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class InitializedTest extends TestCase {
+                  private boolean initialized;
+
+                  public InitializedTest(String testName) {
+                      super(testName);
+                      initialized = true;
+                  }
+
+                  public void testAdd() {
+                      assertTrue(initialized);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              public class InitializedTest {
+                  private boolean initialized;
+
+                  public InitializedTest() {
+                      initialized = true;
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertTrue(initialized);
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FinalFieldTest extends TestCase {
+                  private final StringBuilder log;
+
+                  public FinalFieldTest(String testName) {
+                      super(testName);
+                      log = new StringBuilder("constructed");
+                      log.append(":initialized");
+                  }
+
+                  @Override
+                  protected void setUp() {
+                      log.append(":setUp");
+                  }
+
+                  public void testLog() {
+                      assertEquals("constructed:initialized:setUp", log.toString());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class FinalFieldTest {
+                  private final StringBuilder log;
+
+                  public FinalFieldTest() {
+                      log = new StringBuilder("constructed");
+                      log.append(":initialized");
+                  }
+
+                  @BeforeEach
+                  public void setUp() {
+                      log.append(":setUp");
+                  }
+
+                  @Test
+                  public void testLog() {
+                      assertEquals("constructed:initialized:setUp", log.toString());
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class NamedFinalFieldTest extends TestCase {
+                  private final StringBuilder log;
+
+                  public NamedFinalFieldTest(String name) {
+                      super(name);
+                      log = new StringBuilder("constructed:" + name);
+                  }
+
+                  public void testLog() {
+                      assertTrue(log.length() > 0);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              public class NamedFinalFieldTest {
+                  private final StringBuilder log;
+
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public NamedFinalFieldTest(String name) {
+                      log = new StringBuilder("constructed:" + name);
+                  }
+
+                  @Test
+                  public void testLog() {
+                      assertTrue(log.length() > 0);
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class CalledTest extends TestCase {
+                  private final boolean initialized;
+
+                  public CalledTest(String name) {
+                      super(name);
+                      initialized = true;
+                  }
+              }
+              """,
+            """
+              public class CalledTest {
+                  private final boolean initialized;
+
+                  public CalledTest() {
+                      initialized = true;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class TestFactory {
+                  CalledTest create() {
+                      return new CalledTest("testAdd");
+                  }
+                  CalledTest create(String name) {
+                      return new CalledTest(name);
+                  }
+              }
+              """,
+            """
+              class TestFactory {
+                  CalledTest create() {
+                      return new CalledTest();
+                  }
+                  CalledTest create(String name) {
+                      return new CalledTest();
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import java.util.function.Function;
+
+              public class ReferencedTest extends TestCase {
+                  private final boolean initialized;
+                  static final Function<String, ReferencedTest> FACTORY = ReferencedTest::new;
+
+                  public ReferencedTest(String name) {
+                      super(name);
+                      initialized = true;
+                  }
+              }
+              """,
+            """
+              import java.util.function.Function;
+
+              public class ReferencedTest {
+                  private final boolean initialized;
+                  static final Function<String, ReferencedTest> FACTORY = ReferencedTest::new;
+
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public ReferencedTest(String name) {
+                      initialized = true;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class OverloadedTest extends TestCase {
+                  private final boolean initialized;
+
+                  public OverloadedTest() {
+                      initialized = false;
+                  }
+
+                  public OverloadedTest(String name) {
+                      super(name);
+                      initialized = true;
+                  }
+              }
+              """,
+            """
+              public class OverloadedTest {
+                  private final boolean initialized;
+
+                  public OverloadedTest() {
+                      initialized = false;
+                  }
+
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public OverloadedTest(String name) {
+                      initialized = true;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class UnrelatedTest {
+                  private final boolean initialized;
+
+                  public UnrelatedTest(String name) {
+                      initialized = true;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class ShadowedNameTest extends TestCase {
+                  private final String name;
+
+                  public ShadowedNameTest(String name) {
+                      super(name);
+                      this.name = "initialized";
+                  }
+              }
+              """,
+            """
+              public class ShadowedNameTest {
+                  private final String name;
+
+                  public ShadowedNameTest() {
+                      this.name = "initialized";
+                  }
+              }
+              """
+          ),
+          mavenProject("standalone",
+            //language=java
+            java(
+              """
+                package example;
+
+                import junit.framework.TestCase;
+
+                public class SharedTest extends TestCase {
+                    private final boolean initialized;
+
+                    public SharedTest(String name) {
+                        super(name);
+                        initialized = true;
+                    }
+                }
+                """,
+              """
+                package example;
+
+                public class SharedTest {
+                    private final boolean initialized;
+
+                    public SharedTest() {
+                        initialized = true;
+                    }
+                }
+                """
+            )
+          ),
+          mavenProject("unrelated",
+            spec -> spec.mapBeforeRecipe(source -> (SourceFile) new ChangeType(
+              "example.UnrelatedSharedTest", "example.SharedTest", false).getVisitor()
+              .visitNonNull(source, new InMemoryExecutionContext())),
+            //language=java
+            java(
+              """
+                package example;
+
+                public class UnrelatedSharedTest {
+                    public UnrelatedSharedTest(String name) {
+                    }
+                }
+                """
+            ),
+            //language=java
+            java(
+              """
+                package example;
+
+                class UnrelatedSharedTestFactory {
+                    UnrelatedSharedTest create() {
+                        return new UnrelatedSharedTest("testAdd");
+                    }
+                }
+                """
+            )
+          ),
+          mavenProject("base",
+            //language=java
+            java(
+              """
+                import junit.framework.TestCase;
+
+                public class BaseTest extends TestCase {
+                    private final boolean initialized;
+
+                    public BaseTest(String name) {
+                        super(name);
+                        initialized = true;
+                    }
+                }
+                """,
+              """
+                public class BaseTest {
+                    private final boolean initialized;
+
+                    public BaseTest() {
+                        initialized = true;
+                    }
+                }
+                """
+            )
+          ),
+          mavenProject("dependent",
+            //language=java
+            java(
+              """
+                class DependentFactory {
+                    BaseTest create() {
+                        return new BaseTest("testAdd");
+                    }
+                }
+                """,
+              """
+                class DependentFactory {
+                    BaseTest create() {
+                        return new BaseTest();
+                    }
+                }
+                """
+            )
+          ),
+          //language=kotlin
+          kotlin(
+            """
+              import junit.framework.TestCase
+
+              class KotlinTest(name: String) : TestCase(name) {
+                  fun create() = KotlinCalledTest("testAdd")
+
+                  fun testExample() {
+                      assertTrue(true)
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class DerivedTest extends CalledTest {
+                  DerivedTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              class DerivedTest extends CalledTest {
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/DerivedTest(String name) {
+                      super();
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class EffectTest extends TestCase {
+                  private final boolean initialized;
+
+                  EffectTest(String name) {
+                      super(name);
+                      initialized = true;
+                  }
+              }
+              """,
+            """
+              class EffectTest {
+                  private final boolean initialized;
+
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/EffectTest(String name) {
+                      initialized = true;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class EffectFactory {
+                  private int counter;
+
+                  EffectTest create() {
+                      return new EffectTest(nextName());
+                  }
+
+                  String nextName() {
+                      return "test" + counter++;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class KotlinCalledTest extends TestCase {
+                  private final boolean initialized;
+
+                  public KotlinCalledTest(String name) {
+                      super(name);
+                      initialized = true;
+                  }
+              }
+              """,
+            """
+              public class KotlinCalledTest {
+                  private final boolean initialized;
+
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public KotlinCalledTest(String name) {
+                      initialized = true;
+                  }
+              }
+              """
+          ),
+          mavenProject("ambiguous-first",
+            //language=java
+            java(
+              """
+                import junit.framework.TestCase;
+
+                public class AmbiguousTest extends TestCase {
+                    public AmbiguousTest(String name) {
+                        super(name);
+                        System.out.println("initialized");
+                    }
+                }
+                """,
+              """
+                public class AmbiguousTest {
+                    /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public AmbiguousTest(String name) {
+                        System.out.println("initialized");
+                    }
+                }
+                """
+            )
+          ),
+          mavenProject("ambiguous-second",
+            spec -> spec.mapBeforeRecipe(source -> (SourceFile) new ChangeType(
+              "AlternativeAmbiguousTest", "AmbiguousTest", false).getVisitor()
+              .visitNonNull(source, new InMemoryExecutionContext())),
+            //language=java
+            java(
+              """
+                public class AlternativeAmbiguousTest {
+                    public AlternativeAmbiguousTest(String name) {
+                    }
+                }
+                """
+            )
+          ),
+          mavenProject("ambiguous-caller",
+            //language=java
+            java(
+              """
+                class AmbiguousFactory {
+                    AmbiguousTest create() {
+                        return new AmbiguousTest("testAdd");
+                    }
+                }
+                """
+            )
           )
         );
     }
@@ -675,6 +1203,53 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1114")
     @Test
+    void retainConstructorCalledFromTestCaseOverridingRun() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class InitializedTest extends TestCase {
+                  private final boolean initialized;
+
+                  public InitializedTest(String name) {
+                      super(name);
+                      initialized = true;
+                  }
+              }
+              """,
+            """
+              public class InitializedTest {
+                  private final boolean initialized;
+
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public InitializedTest(String name) {
+                      initialized = true;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import junit.framework.TestResult;
+
+              public class CustomRunnerTest extends TestCase {
+                  private final InitializedTest child = new InitializedTest("testExample");
+
+                  @Override
+                  public void run(TestResult result) {
+                      super.run(result);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1114")
+    @Test
     void skipTestCaseOverridingRun() {
         //language=java
         rewriteRun(
@@ -687,6 +1262,11 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               public class MultiThreadedTest extends TestCase {
 
                   private TestResult testResult = null;
+
+                  public MultiThreadedTest(String name) {
+                      super(name);
+                      testResult = new TestResult();
+                  }
 
                   @Override
                   public void run(TestResult result) {
@@ -705,6 +1285,29 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   public void testSomething() {
                       assertEquals(2, 1 + 1);
                   }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              class Caller {
+                  MultiThreadedTest create() {
+                      return new MultiThreadedTest("testSomething");
+                  }
+              }
+
+              class RegularTest extends junit.framework.TestCase {
+              }
+              """,
+            """
+              class Caller {
+                  MultiThreadedTest create() {
+                      return new MultiThreadedTest("testSomething");
+                  }
+              }
+
+              class RegularTest {
               }
               """
           )
