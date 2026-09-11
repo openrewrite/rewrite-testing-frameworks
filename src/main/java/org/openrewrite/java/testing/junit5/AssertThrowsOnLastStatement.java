@@ -49,6 +49,9 @@ public class AssertThrowsOnLastStatement extends Recipe {
             "In rare cases may cause compilation errors if the lambda uses effectively non final variables. " +
             "In some cases, tests might fail if earlier statements in the lambda block throw exceptions.";
 
+    @Getter
+    final Set<String> tags = Collections.singleton("RSPEC-S5783");
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher assertThrowsMatcher = new MethodMatcher(
