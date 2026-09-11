@@ -1905,7 +1905,6 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                           when(config.getValue()).thenReturn(res);
 
                           String name = "mockedName";
-
                           when(config.getName()).thenReturn(name);
                       }
 

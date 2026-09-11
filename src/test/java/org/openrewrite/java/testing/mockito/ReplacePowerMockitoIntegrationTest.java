@@ -113,9 +113,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Currency> mockedCurrency;
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -260,9 +258,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Currency> mockedCurrency;
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock = mock(Calendar.class);
@@ -343,7 +339,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -421,7 +416,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -590,7 +584,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class MyTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @BeforeMethod
@@ -1047,7 +1040,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -1284,7 +1276,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @BeforeMethod
