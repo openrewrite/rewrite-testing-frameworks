@@ -49,6 +49,49 @@ class JUnit5MigrationTest implements RewriteTest {
             .activateRecipes("org.openrewrite.java.testing.junit5.JUnit4to5Migration"));
     }
 
+    @Test
+    void reportsConstructorThatStillRequiresJUnit3TestName() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class MathTest extends TestCase {
+                  private final String name;
+
+                  public MathTest(String name) {
+                      super(name);
+                      this.name = name;
+                  }
+
+                  public void testName() {
+                      assertNotNull(name);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              public class MathTest {
+                  private final String name;
+
+                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public MathTest(String name) {
+                      this.name = name;
+                  }
+
+                  @Test
+                  public void testName() {
+                      assertNotNull(name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @DocumentExample
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/145")
     @Test

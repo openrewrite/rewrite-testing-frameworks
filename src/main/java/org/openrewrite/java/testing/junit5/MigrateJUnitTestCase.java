@@ -17,29 +17,39 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
-public class MigrateJUnitTestCase extends Recipe {
+public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Accumulator> {
 
     private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
     private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*After*");
@@ -64,7 +74,146 @@ public class MigrateJUnitTestCase extends Recipe {
     final String description = "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public Accumulator getInitialValue(ExecutionContext ctx) {
+        return new Accumulator();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                acc.projects.computeIfAbsent(cu.getMarkers().findFirst(JavaProject.class).orElse(null), key -> new ProjectState());
+                return super.visitCompilationUnit(cu, ctx);
+            }
+
+            private ProjectState project() {
+                @Nullable JavaProject marker = getCursor().firstEnclosingOrThrow(JavaSourceFile.class)
+                        .getMarkers().findFirst(JavaProject.class).orElse(null);
+                return acc.projects.computeIfAbsent(marker, key -> new ProjectState());
+            }
+
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
+                if (classDeclaration.getType() != null) {
+                    project().declaredClasses.add(classDeclaration.getType().getFullyQualifiedName());
+                }
+                return super.visitClassDeclaration(classDeclaration, ctx);
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                JavaType.Method type = method.getMethodType();
+                if (method.isConstructor() && type != null &&
+                    getCursor().firstEnclosingOrThrow(JavaSourceFile.class) instanceof J.CompilationUnit &&
+                    getCursor().getPathAsStream().filter(J.ClassDeclaration.class::isInstance)
+                            .map(J.ClassDeclaration.class::cast).allMatch(owner -> isSupertypeTestCase(owner.getType())) &&
+                    canRemoveName(method, getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class), getCursor())) {
+                    project().candidates.put(type.getDeclaringType().getFullyQualifiedName(), MethodMatcher.methodPattern(type));
+                }
+                return super.visitMethodDeclaration(method, ctx);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                recordConstructor(newClass.getConstructorType(), newClass.getArguments(), true);
+                return super.visitNewClass(newClass, ctx);
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                recordConstructor(method.getMethodType(), method.getArguments(), true);
+                return super.visitMethodInvocation(method, ctx);
+            }
+
+            @Override
+            public J.MemberReference visitMemberReference(J.MemberReference memberReference, ExecutionContext ctx) {
+                recordConstructor(memberReference.getMethodType(), emptyList(), false);
+                return super.visitMemberReference(memberReference, ctx);
+            }
+
+            private void recordConstructor(JavaType.@Nullable Method method, List<Expression> arguments, boolean ordinaryCall) {
+                if (method == null || !method.isConstructor()) {
+                    return;
+                }
+                boolean unsafe = !ordinaryCall ||
+                        !(getCursor().firstEnclosingOrThrow(JavaSourceFile.class) instanceof J.CompilationUnit) ||
+                        arguments.stream().anyMatch(argument -> !(argument instanceof J.Empty || argument instanceof J.Literal ||
+                                argument instanceof J.Identifier && ((J.Identifier) argument).getFieldType() != null &&
+                                ((J.Identifier) argument).getFieldType().getOwner() instanceof JavaType.Method));
+                project().references.merge(method.getDeclaringType().getFullyQualifiedName(), unsafe, Boolean::logicalOr);
+            }
+        };
+    }
+
+    private static boolean canRemoveName(J.MethodDeclaration method, J.ClassDeclaration owner, Cursor cursor) {
+        if (method.getBody() == null || method.getParameters().size() != 1 ||
+            !(method.getParameters().get(0) instanceof J.VariableDeclarations) ||
+            !TypeUtils.isString(((J.VariableDeclarations) method.getParameters().get(0)).getType()) ||
+            ((J.VariableDeclarations) method.getParameters().get(0)).getVarargs() != null ||
+            owner.getExtends() == null || !TypeUtils.isOfClassType(owner.getExtends().getType(), "junit.framework.TestCase") ||
+            owner.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance)
+                    .map(J.MethodDeclaration.class::cast).filter(J.MethodDeclaration::isConstructor).count() != 1 ||
+            method.getBody().getStatements().stream().allMatch(statement -> statement instanceof J.MethodInvocation &&
+                    TestCaseVisitor.TEST_CASE_SUPER_MATCHER.matches((J.MethodInvocation) statement))) {
+            return false;
+        }
+        J.VariableDeclarations.NamedVariable nameParameter =
+                ((J.VariableDeclarations) method.getParameters().get(0)).getVariables().get(0);
+        JavaType.@Nullable Variable nameVariable = nameParameter.getVariableType();
+        AtomicBoolean nameUsed = new AtomicBoolean(nameVariable == null);
+        new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation invocation, AtomicBoolean used) {
+                if (TestCaseVisitor.TEST_CASE_SUPER_MATCHER.matches(invocation)) {
+                    return invocation;
+                }
+                return super.visitMethodInvocation(invocation, used);
+            }
+
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean used) {
+                if (identifier.getFieldType() == null ?
+                        nameParameter.getSimpleName().equals(identifier.getSimpleName()) :
+                        identifier.getFieldType().equals(nameVariable)) {
+                    used.set(true);
+                }
+                return identifier;
+            }
+        }.visitNonNull(method.getBody(), nameUsed, cursor);
+        return !nameUsed.get();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+                return sourceFile instanceof J.CompilationUnit;
+            }
+
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                ProjectState project = acc.projects.get(cu.getMarkers().findFirst(JavaProject.class).orElse(null));
+                if (project == null) {
+                    return cu;
+                }
+                J.CompilationUnit c = cu;
+                for (String className : project.references.keySet()) {
+                    ProjectState owner = acc.constructorOwner(project, className);
+                    if (owner == null || !acc.canConvert(owner, className)) {
+                        continue;
+                    }
+                    c = (J.CompilationUnit) new DeleteMethodArgument(owner.candidates.get(className), 0).getVisitor()
+                            .visitNonNull(c, ctx, getCursor().getParentTreeCursor());
+                }
+                return (J.CompilationUnit) migrationVisitor(acc, project)
+                        .visitNonNull(c, ctx, getCursor().getParentTreeCursor());
+            }
+        };
+    }
+
+    private TreeVisitor<?, ExecutionContext> migrationVisitor(Accumulator acc, ProjectState project) {
         return Preconditions.check(Preconditions.or(
                         new UsesType<>("junit.framework.TestCase", false),
                         new UsesType<>("junit.framework.Assert", false)
@@ -73,7 +222,7 @@ public class MigrateJUnitTestCase extends Recipe {
                     @Override
                     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-                        doAfterVisit(new TestCaseVisitor());
+                        doAfterVisit(new TestCaseVisitor(acc, project));
                         // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
                         doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true).getVisitor());
                         doAfterVisit(new ChangeType("junit.framework.Assert", "org.junit.Assert", true).getVisitor());
@@ -103,11 +252,63 @@ public class MigrateJUnitTestCase extends Recipe {
                 });
     }
 
+    public static class Accumulator {
+        private final Map<@Nullable JavaProject, ProjectState> projects = new HashMap<>();
+
+        private @Nullable ProjectState constructorOwner(ProjectState project, String className) {
+            if (project.declaredClasses.contains(className)) {
+                return project;
+            }
+            ProjectState owner = null;
+            for (ProjectState candidate : projects.values()) {
+                if (!candidate.declaredClasses.contains(className)) {
+                    continue;
+                }
+                if (owner != null) {
+                    return null;
+                }
+                owner = candidate;
+            }
+            return owner;
+        }
+
+        private boolean canConvert(ProjectState project, String className) {
+            if (!project.candidates.containsKey(className)) {
+                return false;
+            }
+            for (ProjectState caller : projects.values()) {
+                Boolean unsafe = caller.references.get(className);
+                if (unsafe == null) {
+                    continue;
+                }
+                ProjectState owner = constructorOwner(caller, className);
+                if (owner == null || owner == project && unsafe) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    private static class ProjectState {
+        private final Set<String> declaredClasses = new HashSet<>();
+        private final Map<String, String> candidates = new HashMap<>();
+        private final Map<String, Boolean> references = new HashMap<>();
+    }
+
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
         private static final MethodMatcher TEST_CASE_SUPER_MATCHER = new MethodMatcher("junit.framework.TestCase <constructor>(..)");
         private static final Set<String> SUPERTYPES_REMOVED_BY_MIGRATION = new HashSet<>(asList(
                 "junit.framework.TestCase", "junit.framework.Assert", "junit.framework.Test"));
+
+        private final Accumulator acc;
+        private final ProjectState project;
+
+        private TestCaseVisitor(Accumulator acc, ProjectState project) {
+            this.acc = acc;
+            this.project = project;
+        }
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -135,6 +336,18 @@ public class MigrateJUnitTestCase extends Recipe {
             if (md.isConstructor() &&
                 (md.getBody() == null || md.getBody().getStatements().isEmpty())) {
                 return null;
+            }
+
+            if (md.isConstructor() && md.getParameters().size() == 1 &&
+                md.getParameters().get(0) instanceof J.VariableDeclarations &&
+                TypeUtils.isString(((J.VariableDeclarations) md.getParameters().get(0)).getType())) {
+                if (md.getMethodType() != null &&
+                    acc.canConvert(project, md.getMethodType().getDeclaringType().getFullyQualifiedName())) {
+                    md = md.withParameters(emptyList())
+                            .withMethodType(md.getMethodType().withParameterNames(emptyList()).withParameterTypes(emptyList()));
+                } else {
+                    md = SearchResult.found(md, "JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually");
+                }
             }
 
             // Remove suite() methods that return junit.framework.Test or TestSuite
