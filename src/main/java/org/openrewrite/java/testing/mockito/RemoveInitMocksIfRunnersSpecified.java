@@ -21,20 +21,25 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.format.ShiftFormat;
 import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.Statement;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RemoveInitMocksIfRunnersSpecified extends Recipe {
 
@@ -110,6 +115,118 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             }
 
                             @Override
+                            public J.Try visitTry(J.Try tryable, ExecutionContext ctx) {
+                                J.Try t = tryable;
+                                List<J.Try.Resource> resources = t.getResources();
+                                if (resources != null) {
+                                    // Drop `try (AutoCloseable mocks = MockitoAnnotations.openMocks(this))` resources
+                                    List<J.Try.Resource> kept = ListUtils.map(resources, r -> isRemovableMockInitResource(r, tryable.getBody()) ? null : r);
+                                    if (kept != resources) {
+                                        boolean nothingLeft = kept.isEmpty() && t.getCatches().isEmpty() && t.getFinally() == null;
+                                        if (nothingLeft && !(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
+                                            // A bare `try { }` is not legal and only a statement in a block can be unwrapped, so leave e.g. `if (x) try (..) { }` alone
+                                            return super.visitTry(t, ctx);
+                                        }
+                                        if (kept.isEmpty()) {
+                                            t = t.withResources(null);
+                                        } else {
+                                            if (kept.get(0) != resources.get(0)) {
+                                                // The removed resource was first; keep its (usually empty) prefix
+                                                Space firstPrefix = resources.get(0).getPrefix();
+                                                kept = ListUtils.mapFirst(kept, r -> r.withPrefix(firstPrefix));
+                                            }
+                                            boolean lastTerminatedWithSemicolon = resources.get(resources.size() - 1).isTerminatedWithSemicolon();
+                                            kept = ListUtils.mapLast(kept, r -> r.withTerminatedWithSemicolon(lastTerminatedWithSemicolon));
+                                            t = t.withResources(kept);
+                                        }
+                                    }
+                                }
+                                return super.visitTry(t, ctx);
+                            }
+
+                            @Override
+                            public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+                                J.Block b = super.visitBlock(block, ctx);
+                                List<Statement> statements = b.getStatements();
+                                return b.withStatements(ListUtils.flatMap(statements, (i, stmt) -> {
+                                    if (!(stmt instanceof J.Try)) {
+                                        return stmt;
+                                    }
+                                    J.Try t = (J.Try) stmt;
+                                    if (t.getResources() != null || !t.getCatches().isEmpty() || t.getFinally() != null) {
+                                        return stmt;
+                                    }
+                                    // Only resources were mock initializers and there is no catch/finally: the try is gone, keep its body
+                                    J.Block body = t.getBody();
+                                    if (!body.getEnd().getComments().isEmpty() ||
+                                        declaresNameUsedLater(body, statements.subList(i + 1, statements.size()))) {
+                                        return body.withPrefix(t.getPrefix());
+                                    }
+                                    List<Statement> inlined = ListUtils.map(body.getStatements(), s -> ShiftFormat.indent(s, getCursor(), -1));
+                                    return ListUtils.mapFirst(inlined, s -> s.withPrefix(mergePrefix(t.getPrefix(), s.getPrefix())));
+                                }));
+                            }
+
+                            private Space mergePrefix(Space tryPrefix, Space statementPrefix) {
+                                if (statementPrefix.getComments().isEmpty()) {
+                                    return tryPrefix;
+                                }
+                                return tryPrefix.withComments(ListUtils.concatAll(tryPrefix.getComments(), statementPrefix.getComments()));
+                            }
+
+                            private boolean declaresNameUsedLater(J.Block body, List<Statement> laterStatements) {
+                                Set<String> declared = new HashSet<>();
+                                for (Statement s : body.getStatements()) {
+                                    if (s instanceof J.VariableDeclarations) {
+                                        for (J.VariableDeclarations.NamedVariable v : ((J.VariableDeclarations) s).getVariables()) {
+                                            declared.add(v.getSimpleName());
+                                        }
+                                    }
+                                }
+                                if (declared.isEmpty()) {
+                                    return false;
+                                }
+                                // Any later use of a hoisted name would either fail to compile or silently resolve to the hoisted local
+                                Set<String> usedLater = new HashSet<>();
+                                JavaIsoVisitor<Set<String>> names = new JavaIsoVisitor<Set<String>>() {
+                                    @Override
+                                    public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> found) {
+                                        found.add(identifier.getSimpleName());
+                                        return identifier;
+                                    }
+                                };
+                                for (Statement later : laterStatements) {
+                                    names.reduce(later, usedLater);
+                                }
+                                return declared.stream().anyMatch(usedLater::contains);
+                            }
+
+                            private boolean isRemovableMockInitResource(J.Try.Resource resource, J.Block body) {
+                                if (!(resource.getVariableDeclarations() instanceof J.VariableDeclarations)) {
+                                    return false;
+                                }
+                                List<J.VariableDeclarations.NamedVariable> variables = ((J.VariableDeclarations) resource.getVariableDeclarations()).getVariables();
+                                if (variables.size() != 1 || variables.get(0).getInitializer() == null) {
+                                    return false;
+                                }
+                                Expression initializer = variables.get(0).getInitializer();
+                                if (!isMockitoOpenMocksCall(initializer) && !isMockitoInitMocksCall(initializer)) {
+                                    return false;
+                                }
+                                // Keep the resource when the body still uses the variable
+                                String name = variables.get(0).getSimpleName();
+                                return !new JavaIsoVisitor<AtomicBoolean>() {
+                                    @Override
+                                    public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean referenced) {
+                                        if (identifier.getSimpleName().equals(name)) {
+                                            referenced.set(true);
+                                        }
+                                        return identifier;
+                                    }
+                                }.reduce(body, new AtomicBoolean()).get();
+                            }
+
+                            @Override
                             public  J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
                                 J.Assignment a = super.visitAssignment(assignment, ctx);
                                 // Remove assignments where RHS is initMocks/openMocks
@@ -123,7 +240,9 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             @Override
                             public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                                if (OPEN_MOCKS_MATCHER.matches(mi) || INIT_MOCKS_MATCHER.matches(mi)) {
+                                if ((OPEN_MOCKS_MATCHER.matches(mi) || INIT_MOCKS_MATCHER.matches(mi)) &&
+                                    // A variable initializer cannot be dropped; the try-with-resources case is handled in visitTry
+                                    !(getCursor().getParentTreeCursor().getValue() instanceof J.VariableDeclarations.NamedVariable)) {
                                     return null;
                                 }
                                 if (CLOSEABLE_MATCHER.matches(mi) && mi.getSelect() != null && closeables.stream().anyMatch(it -> SemanticallyEqual.areEqual(it, mi.getSelect()))) {
