@@ -26,6 +26,85 @@ import static org.openrewrite.java.Assertions.java;
 
 class MigrateJUnitTestCaseTest implements RewriteTest {
 
+    @Test
+    void updatesConstructorCallInSameFile() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  MathTest(String name) {
+                      super(name);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest("FOO");
+                  }
+              }
+              """,
+            """
+              class MathTest {
+
+                  static MathTest create() {
+                      return new MathTest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void updatesConstructorCallsAcrossHierarchyAndFiles() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              abstract class BaseTest extends TestCase {
+                  BaseTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              abstract class BaseTest {
+              }
+              """
+          ),
+          java(
+            """
+              class MathTest extends BaseTest {
+                  MathTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              class MathTest extends BaseTest {
+              }
+              """
+          ),
+          java(
+            """
+              class Caller {
+                  MathTest create() {
+                      return new MathTest("FOO");
+                  }
+              }
+              """,
+            """
+              class Caller {
+                  MathTest create() {
+                      return new MathTest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
