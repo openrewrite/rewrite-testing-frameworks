@@ -33,6 +33,7 @@ import static java.util.stream.Collectors.toList;
 public class AddParameterizedTestAnnotation extends Recipe {
     private static final AnnotationMatcher TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Test");
     private static final AnnotationMatcher PARAM_TEST_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest");
+    private static final AnnotationMatcher TEST_TEMPLATE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.TestTemplate", true);
     private static final List<AnnotationMatcher> SOURCE_ANNOTATIONS = Stream.of(
             "ValueSource",
             "CsvSource",
@@ -63,8 +64,8 @@ public class AddParameterizedTestAnnotation extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration md, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(md, ctx);
 
-            // Return early if already annotated with @ParameterizedTest or not annotated with any @...Source annotation
             if (m.getLeadingAnnotations().stream().anyMatch(PARAM_TEST_MATCHER::matches) ||
+                m.getLeadingAnnotations().stream().anyMatch(TEST_TEMPLATE_MATCHER::matches) ||
                 m.getLeadingAnnotations().stream().noneMatch(ann -> SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann)))) {
                 return m;
             }
