@@ -193,6 +193,41 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     }
 
     @Test
+    void preservesFieldReadInConstructorArgument() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  static volatile String name = "FOO";
+
+                  MathTest(String name) {
+                      super(name);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest(name);
+                  }
+              }
+              """,
+            """
+              class MathTest {
+                  static volatile String name = "FOO";
+
+                  MathTest(String name) {
+                  }
+
+                  static MathTest create() {
+                      return new MathTest(name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void keepsOverloadsWhenOneConstructorHasAdditionalStatements() {
         rewriteRun(
           java(

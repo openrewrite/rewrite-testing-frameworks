@@ -127,8 +127,15 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
     }
 
     private static boolean safeToDiscard(List<Expression> arguments) {
-        return arguments.stream().allMatch(argument ->
-                argument instanceof J.Literal || argument instanceof J.Identifier || argument instanceof J.Empty);
+        return arguments.stream().allMatch(argument -> {
+            if (argument instanceof J.Identifier) {
+                JavaType.Variable variable = ((J.Identifier) argument).getFieldType();
+                // Only local/parameter reads are safe: field reads can trigger class
+                // initialization or have volatile memory semantics.
+                return variable != null && variable.getOwner() instanceof JavaType.Method;
+            }
+            return argument instanceof J.Literal || argument instanceof J.Empty;
+        });
     }
 
     @Override
