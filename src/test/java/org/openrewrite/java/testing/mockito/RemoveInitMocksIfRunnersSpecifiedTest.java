@@ -525,7 +525,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
     }
 
     @Test
-    void leaveTryInNonBlockPositionAlone() {
+    void unwrapTryIntoIfWithoutBraces() {
         rewriteRun(
           //language=java
           java(
@@ -544,6 +544,180 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
                   @Test
                   void test() throws Exception {
                       if (runnable != null) try (AutoCloseable mocks = MockitoAnnotations.openMocks(this)) {
+                          runnable.run();
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Mock
+                  Runnable runnable;
+
+                  @Test
+                  void test() throws Exception {
+                      if (runnable != null) {
+                          runnable.run();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unwrapTryIntoForLoopWithoutBraces() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Mock
+                  Runnable runnable;
+
+                  @Test
+                  void test() throws Exception {
+                      for (int i = 0; i < 3; i++) try (AutoCloseable mocks = MockitoAnnotations.openMocks(this)) {
+                          runnable.run();
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Mock
+                  Runnable runnable;
+
+                  @Test
+                  void test() throws Exception {
+                      for (int i = 0; i < 3; i++) {
+                          runnable.run();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepTryWithCatchAfterResourceRemoval() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Mock
+                  Runnable runnable;
+
+                  @Test
+                  void test() {
+                      try (AutoCloseable mocks = MockitoAnnotations.openMocks(this)) {
+                          runnable.run();
+                      } catch (Exception e) {
+                          e.printStackTrace();
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Mock
+                  Runnable runnable;
+
+                  @Test
+                  void test() {
+                      try {
+                          runnable.run();
+                      } catch (Exception e) {
+                          e.printStackTrace();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeOpenMocksResourceInMiddlePosition() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Mock
+                  Runnable runnable;
+
+                  @Test
+                  void test() throws Exception {
+                      try (MockedStatic<Thread> t = Mockito.mockStatic(Thread.class);
+                           AutoCloseable mocks = MockitoAnnotations.openMocks(this);
+                           MockedStatic<Runtime> r = Mockito.mockStatic(Runtime.class)) {
+                          runnable.run();
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Mock
+                  Runnable runnable;
+
+                  @Test
+                  void test() throws Exception {
+                      try (MockedStatic<Thread> t = Mockito.mockStatic(Thread.class);
+                           MockedStatic<Runtime> r = Mockito.mockStatic(Runtime.class)) {
                           runnable.run();
                       }
                   }

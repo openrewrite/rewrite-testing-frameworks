@@ -123,8 +123,8 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                     List<J.Try.Resource> kept = ListUtils.map(resources, r -> isRemovableMockInitResource(r, tryable.getBody()) ? null : r);
                                     if (kept != resources) {
                                         boolean nothingLeft = kept.isEmpty() && t.getCatches().isEmpty() && t.getFinally() == null;
-                                        if (nothingLeft && !(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
-                                            // A bare `try { }` is not legal and only a statement in a block can be unwrapped, so leave e.g. `if (x) try (..) { }` alone
+                                        if (nothingLeft && !parentCanCollapseNeuteredTry()) {
+                                            // A resource-less/catchless/finallyless `try { body }` is invalid Java; leave the try alone unless an ancestor visit knows how to consume it
                                             return super.visitTry(t, ctx);
                                         }
                                         if (kept.isEmpty()) {
@@ -142,6 +142,64 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                     }
                                 }
                                 return super.visitTry(t, ctx);
+                            }
+
+                            @Override
+                            public J.If.Else visitElse(J.If.Else elze, ExecutionContext ctx) {
+                                J.If.Else e = super.visitElse(elze, ctx);
+                                return e.withBody(collapseNeuteredTry(e.getBody()));
+                            }
+
+                            @Override
+                            public J.WhileLoop visitWhileLoop(J.WhileLoop whileLoop, ExecutionContext ctx) {
+                                J.WhileLoop w = super.visitWhileLoop(whileLoop, ctx);
+                                return w.withBody(collapseNeuteredTry(w.getBody()));
+                            }
+
+                            @Override
+                            public J.DoWhileLoop visitDoWhileLoop(J.DoWhileLoop doWhileLoop, ExecutionContext ctx) {
+                                J.DoWhileLoop d = super.visitDoWhileLoop(doWhileLoop, ctx);
+                                return d.withBody(collapseNeuteredTry(d.getBody()));
+                            }
+
+                            @Override
+                            public J.ForLoop visitForLoop(J.ForLoop forLoop, ExecutionContext ctx) {
+                                J.ForLoop f = super.visitForLoop(forLoop, ctx);
+                                return f.withBody(collapseNeuteredTry(f.getBody()));
+                            }
+
+                            @Override
+                            public J.ForEachLoop visitForEachLoop(J.ForEachLoop forEachLoop, ExecutionContext ctx) {
+                                J.ForEachLoop f = super.visitForEachLoop(forEachLoop, ctx);
+                                return f.withBody(collapseNeuteredTry(f.getBody()));
+                            }
+
+                            @Override
+                            public J.Label visitLabel(J.Label label, ExecutionContext ctx) {
+                                J.Label l = super.visitLabel(label, ctx);
+                                return l.withStatement(collapseNeuteredTry(l.getStatement()));
+                            }
+
+                            private Statement collapseNeuteredTry(Statement stmt) {
+                                if (stmt instanceof J.Try) {
+                                    J.Try t = (J.Try) stmt;
+                                    if (t.getResources() == null && t.getCatches().isEmpty() && t.getFinally() == null) {
+                                        return t.getBody().withPrefix(t.getPrefix());
+                                    }
+                                }
+                                return stmt;
+                            }
+
+                            private boolean parentCanCollapseNeuteredTry() {
+                                Object parent = getCursor().getParentTreeCursor().getValue();
+                                return parent instanceof J.Block ||
+                                        parent instanceof J.If ||
+                                        parent instanceof J.If.Else ||
+                                        parent instanceof J.WhileLoop ||
+                                        parent instanceof J.DoWhileLoop ||
+                                        parent instanceof J.ForLoop ||
+                                        parent instanceof J.ForEachLoop ||
+                                        parent instanceof J.Label;
                             }
 
                             @Override
@@ -191,7 +249,10 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 JavaIsoVisitor<Set<String>> names = new JavaIsoVisitor<Set<String>>() {
                                     @Override
                                     public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> found) {
-                                        found.add(identifier.getSimpleName());
+                                        // Only variable/field references can shadow-collide with a hoisted local; method names and type refs have null fieldType
+                                        if (identifier.getFieldType() != null) {
+                                            found.add(identifier.getSimpleName());
+                                        }
                                         return identifier;
                                     }
                                 };
@@ -209,8 +270,9 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 if (variables.size() != 1 || variables.get(0).getInitializer() == null) {
                                     return false;
                                 }
+                                // `initMocks` returns void so cannot appear as a resource initializer; only `openMocks` is reachable here
                                 Expression initializer = variables.get(0).getInitializer();
-                                if (!isMockitoOpenMocksCall(initializer) && !isMockitoInitMocksCall(initializer)) {
+                                if (!isMockitoOpenMocksCall(initializer)) {
                                     return false;
                                 }
                                 // Keep the resource when the body still uses the variable
@@ -266,6 +328,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             @Override
                             public J.@Nullable If visitIf(J.If iff, ExecutionContext ctx) {
                                 J.If i = super.visitIf(iff, ctx);
+                                i = i.withThenPart(collapseNeuteredTry(i.getThenPart()));
                                 if (i != iff &&
                                     i.getThenPart() instanceof J.Block &&
                                     ((J.Block) i.getThenPart()).getStatements().isEmpty() &&
