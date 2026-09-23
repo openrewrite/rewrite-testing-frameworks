@@ -18,6 +18,8 @@ package org.openrewrite.java.testing.wiremock;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.FindSourceFiles;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
@@ -49,12 +51,12 @@ public class MigrateStubMappingUuidToId extends Recipe {
             "dropped the redundant `uuid` field. A stub that carries only `uuid` still parses under 4.x, silently " +
             "getting a randomly generated identifier instead, which breaks anything addressing the stub by id such " +
             "as `removeStub`, `editStub` or `PUT /__admin/mappings/{id}`. Rename `uuid` to `id`, or drop it where an " +
-            "`id` is already present. Only objects that look like stub mappings are considered, meaning they have a " +
-            "`request` or `response` member and a `uuid` holding a UUID.";
+            "`id` is already present. Only stub mapping files are considered, meaning JSON below a `mappings` " +
+            "directory holding an object with a `request` or `response` member and a `uuid` holding a UUID.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JsonIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new FindSourceFiles("**/mappings/**/*.json"), new JsonIsoVisitor<ExecutionContext>() {
 
             @Override
             public Json.JsonObject visitObject(Json.JsonObject obj, ExecutionContext ctx) {
@@ -140,6 +142,6 @@ public class MigrateStubMappingUuidToId extends Recipe {
                 Object value = ((Json.Literal) key).getValue();
                 return value == null ? null : value.toString();
             }
-        };
+        });
     }
 }

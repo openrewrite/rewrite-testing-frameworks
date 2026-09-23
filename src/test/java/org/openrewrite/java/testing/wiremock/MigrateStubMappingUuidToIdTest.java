@@ -247,6 +247,28 @@ class MigrateStubMappingUuidToIdTest implements RewriteTest {
     }
 
     @Test
+    void stubShapedJsonOutsideMappingsIsUntouched() {
+        rewriteRun(
+          //language=json
+          json(
+            """
+              {
+                "uuid": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+                "request": {
+                  "method": "GET",
+                  "url": "/user"
+                },
+                "response": {
+                  "status": 200
+                }
+              }
+              """,
+            spec -> spec.path("src/test/resources/fixtures/recorded-call.json")
+          )
+        );
+    }
+
+    @Test
     void uuidThatIsNotAUuidIsUntouched() {
         rewriteRun(
           //language=json
