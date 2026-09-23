@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.wiremock;
 
 import lombok.Getter;
-import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -242,7 +241,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                         for (Replacement replacement : REPLACEMENTS) {
                             if (replacement.getMatcher().matches(n)) {
                                 maybeAddImport(replacement.getOwner());
-                                return replacement.template()
+                                return replacement.getTemplate()
                                         .apply(getCursor(), n.getCoordinates().replace(),
                                                 arguments(n.getArguments()));
                             }
@@ -280,7 +279,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                             if (fold.getMatcher().matches(adminClient)) {
                                 maybeAddImport(WIRE_MOCK);
                                 maybeRemoveImport(HTTP_ADMIN_CLIENT);
-                                return fold.template().apply(getCursor(), wireMock.getCoordinates().replace(),
+                                return fold.getTemplate().apply(getCursor(), wireMock.getCoordinates().replace(),
                                         arguments(adminClient.getArguments()));
                             }
                         }
@@ -303,18 +302,16 @@ public class ReplaceRemovedConstructors extends Recipe {
                 });
     }
 
-    @Value
+    @Getter
     private static class Replacement {
-        String owner;
-        String pattern;
-        String code;
+        private final String owner;
+        private final MethodMatcher matcher;
+        private final JavaTemplate template;
 
-        MethodMatcher getMatcher() {
-            return new MethodMatcher(pattern);
-        }
-
-        JavaTemplate template() {
-            return JavaTemplate.builder(code)
+        Replacement(String owner, String pattern, String code) {
+            this.owner = owner;
+            this.matcher = new MethodMatcher(pattern);
+            this.template = JavaTemplate.builder(code)
                     .imports(owner)
                     .javaParser(JavaParser.fromJavaVersion().dependsOn(STUBS))
                     .build();
