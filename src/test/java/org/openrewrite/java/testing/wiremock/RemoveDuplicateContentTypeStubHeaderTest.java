@@ -204,6 +204,25 @@ class RemoveDuplicateContentTypeStubHeaderTest implements RewriteTest {
                 }
               }
               """,
+            spec -> spec.path("src/test/resources/mappings/get-user.json")
+          )
+        );
+    }
+
+    @Test
+    void stubShapedJsonOutsideMappingsIsUntouched() {
+        rewriteRun(
+          //language=json
+          json(
+            """
+              {
+                "response": {
+                  "headers": {
+                    "Content-Type": [ "text/plain", "application/json" ]
+                  }
+                }
+              }
+              """,
             spec -> spec.path("src/test/resources/fixtures/config.json")
           )
         );

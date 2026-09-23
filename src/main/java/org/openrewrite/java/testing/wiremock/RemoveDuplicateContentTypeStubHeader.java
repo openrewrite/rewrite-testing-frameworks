@@ -18,6 +18,8 @@ package org.openrewrite.java.testing.wiremock;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.FindSourceFiles;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.json.JsonIsoVisitor;
@@ -42,12 +44,12 @@ public class RemoveDuplicateContentTypeStubHeader extends Recipe {
     final String description = "WireMock 3 ran on Jetty 11, which stripped every `Content-Type` response header " +
             "but the last, so a stub file listing several of them served only one. WireMock 4 returns all of them, " +
             "and some clients reject a response carrying more than one. Keep only the last value, which is the one " +
-            "WireMock 3 actually sent. Request header matchers are untouched, since those hold matcher objects " +
-            "rather than plain strings.";
+            "WireMock 3 actually sent. Only JSON below a `mappings` directory is considered, and request header " +
+            "matchers are untouched, since those hold matcher objects rather than plain strings.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JsonIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new FindSourceFiles("**/mappings/**/*.json"), new JsonIsoVisitor<ExecutionContext>() {
 
             @Override
             public Json.Member visitMember(Json.Member member, ExecutionContext ctx) {
@@ -97,6 +99,6 @@ public class RemoveDuplicateContentTypeStubHeader extends Recipe {
                 Object value = ((Json.Literal) key).getValue();
                 return value == null ? null : value.toString();
             }
-        };
+        });
     }
 }
