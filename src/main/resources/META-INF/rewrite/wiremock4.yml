@@ -19,16 +19,10 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.wiremock.Wiremock3to4Migration
 displayName: Upgrade WireMock to 4.x
 description: >-
-  Upgrade WireMock to 4.x. WireMock 4 requires Java 17, ships Jetty 12.1 by default, and splits the
-  previously monolithic `org.wiremock:wiremock` artifact into modules; JUnit 4 and JUnit 5 support now
-  live in `wiremock-junit4` and `wiremock-junit5`, which are not pulled in transitively. The Jetty and
-  servlet integration classes were repackaged without version numbers in the package names.
-  The primary domain classes are now immutable, so in place setter calls become `transform(builder -> ...)`
-  and the removed convenience constructors become builder calls. A stub configured with more than one
-  `Content-Type` response header is collapsed to the single value WireMock 3 actually served, because 4.x
-  returns all of them, and `ContentTypeHeader.charset()` keeps the UTF-8 fallback it used to apply before it
-  started returning an `Optional`. Note that `RequestMethod.GET_OR_HEAD` is a multi method matcher in 4.x
-  rather than a method named `GET_OR_HEAD`, so code reading a name off that particular constant needs a look.
+  Upgrade WireMock to 4.x, which requires Java 17, ships Jetty 12.1 by default, splits JUnit support out
+  into separate modules and makes the primary domain classes immutable. Note that `RequestMethod.GET_OR_HEAD`
+  is a multi method matcher in 4.x rather than a method named `GET_OR_HEAD`, so code reading a name off that
+  particular constant needs a look.
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -51,37 +45,7 @@ recipeList:
       groupId: org.wiremock
       artifactId: wiremock-standalone
       newVersion: 4.0.0-beta.38
-  - org.openrewrite.java.testing.wiremock.AddWiremockJUnitDependencies
-  - org.openrewrite.java.testing.wiremock.AddWiremockJettyDependencies
-  - org.openrewrite.java.testing.wiremock.MigrateWiremockRepackagedTypes
-  - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
-  - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
-  - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
-  - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
-  - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: com.github.tomakehurst.wiremock.stubbing.StubMapping getUuid()
-      newMethodName: getId
-  # `value()` widened its return type to `Object` so that the multi method patterns can serialise as
-  # something other than a string; `getName()` still hands back the same name as a `String`
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
-      newMethodName: getName
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.wiremock.AddWiremockJUnitDependencies
-displayName: Add the WireMock JUnit modules
-description: >-
-  WireMock 4 split JUnit 4 and JUnit 5 support out of `org.wiremock:wiremock` into
-  `org.wiremock:wiremock-junit4` and `org.wiremock:wiremock-junit5`, neither of which is a transitive
-  dependency of `org.wiremock:wiremock`. Add whichever module the project actually uses, so that
-  `WireMockRule`, `WireMockExtension` and `@WireMockTest` keep compiling.
-tags:
-  - testing
-  - wiremock
-recipeList:
+  # JUnit 4 and JUnit 5 support moved out of `wiremock` into modules that are not transitive
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-junit5
@@ -94,18 +58,7 @@ recipeList:
       version: 4.0.0-beta.38
       onlyIfUsing: com.github.tomakehurst.wiremock.junit.WireMock*Rule
       scope: test
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.wiremock.AddWiremockJettyDependencies
-displayName: Add the Jetty dependencies WireMock 4 no longer exposes
-description: >-
-  WireMock 4 no longer has transitive dependencies on `jetty-client`, `jetty-proxy`, `jetty-xml` or
-  `jetty-webapp`. Declare them directly where the project uses them, and move `jetty-servlet` and
-  `jetty-servlets` to their Jetty 12 EE10 coordinates.
-tags:
-  - testing
-  - wiremock
-recipeList:
+  # `jetty-client`, `jetty-proxy`, `jetty-xml` and `jetty-webapp` are no longer transitive either
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.eclipse.jetty
       oldArtifactId: jetty-servlet
@@ -142,6 +95,22 @@ recipeList:
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.ee10.webapp.*
       scope: test
+  - org.openrewrite.java.testing.wiremock.MigrateWiremockRepackagedTypes
+  - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
+  - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
+  - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
+  - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
+  - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.github.tomakehurst.wiremock.stubbing.StubMapping getUuid()
+      newMethodName: getId
+  # `value()` widened its return type to `Object` so that the multi method patterns can serialise as
+  # something other than a string; `getName()` still hands back the same name as a `String`
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
+      newMethodName: getName
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.wiremock.MigrateWiremockRepackagedTypes
