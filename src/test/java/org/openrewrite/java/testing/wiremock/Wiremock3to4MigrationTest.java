@@ -615,6 +615,102 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void duplicateContentTypeHeadersCollapseWhileStillOnWiremock3() {
+        rewriteRun(
+          mavenProject("project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(WIREMOCK_3_VERSION),
+              spec -> spec.after(after -> """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(pomWiremock4Version(after)))
+            ),
+            //language=json
+            json(
+              """
+                {
+                  "response": {
+                    "status": 200,
+                    "headers": {
+                      "Content-Type": [ "text/plain", "application/json" ]
+                    }
+                  }
+                }
+                """,
+              """
+                {
+                  "response": {
+                    "status": 200,
+                    "headers": {
+                      "Content-Type": [ "application/json" ]
+                    }
+                  }
+                }
+                """,
+              spec -> spec.path("src/test/resources/mappings/get-user.json")
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                  import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                  class Stubs {
+                      ResponseDefinitionBuilder response() {
+                          return aResponse()
+                                  .withHeader("Content-Type", "text/plain", "application/json");
+                      }
+                  }
+                  """,
+                """
+                  import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                  import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                  class Stubs {
+                      ResponseDefinitionBuilder response() {
+                          return aResponse()
+                                  .withHeader("Content-Type", "application/json");
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
     void constructAndMutateBecomesBuilderAndTransform() {
         rewriteRun(
           //language=java

@@ -20,7 +20,6 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FindSourceFiles;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.json.JsonIsoVisitor;
 import org.openrewrite.json.tree.Json;
@@ -32,7 +31,7 @@ import java.util.List;
 
 import static java.util.Collections.singletonList;
 
-public class RemoveDuplicateContentTypeStubHeader extends Recipe {
+public class RemoveDuplicateContentTypeStubHeader extends WiremockThreeOnlyRecipe {
 
     private static final String CONTENT_TYPE = "Content-Type";
     private static final String HEADERS = "headers";
@@ -50,7 +49,7 @@ public class RemoveDuplicateContentTypeStubHeader extends Recipe {
             "`Content-Type`, it would drop values that are currently reaching the client.";
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    TreeVisitor<?, ExecutionContext> collapseDuplicates() {
         return Preconditions.check(new FindSourceFiles("**/mappings/**/*.json"), new JsonIsoVisitor<ExecutionContext>() {
 
             @Override

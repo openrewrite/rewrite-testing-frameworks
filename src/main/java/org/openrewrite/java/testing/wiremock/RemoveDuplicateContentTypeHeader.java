@@ -19,7 +19,6 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -32,7 +31,7 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 
-public class RemoveDuplicateContentTypeHeader extends Recipe {
+public class RemoveDuplicateContentTypeHeader extends WiremockThreeOnlyRecipe {
 
     private static final String CONTENT_TYPE = "Content-Type";
     private static final String RESPONSE_DEFINITION_BUILDER =
@@ -58,7 +57,7 @@ public class RemoveDuplicateContentTypeHeader extends Recipe {
             "reaching the client.";
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    TreeVisitor<?, ExecutionContext> collapseDuplicates() {
         return Preconditions.check(
                 Preconditions.or(
                         new UsesMethod<>(WITH_HEADER),

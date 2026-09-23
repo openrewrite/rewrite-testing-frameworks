@@ -21,8 +21,11 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpecs;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
 
@@ -37,36 +40,39 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void keepsOnlyTheLastValue() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response() {
-                      return aResponse()
-                              .withStatus(200)
-                              .withHeader("Content-Type", "text/plain", "application/json")
-                              .withBody("{}");
-                  }
-              }
-              """,
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response() {
-                      return aResponse()
-                              .withStatus(200)
-                              .withHeader("Content-Type", "application/json")
-                              .withBody("{}");
-                  }
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response() {
+                        return aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "text/plain", "application/json")
+                                .withBody("{}");
+                    }
+                }
+                """,
+              """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response() {
+                        return aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("{}");
+                    }
+                }
+                """
+            )
           )
         );
     }
@@ -74,28 +80,31 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void keepsTheLastOfThreeValues() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("Content-Type", "text/plain", "text/html", "application/json");
-              }
-              """,
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("Content-Type", "application/json");
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response = aResponse()
+                            .withHeader("Content-Type", "text/plain", "text/html", "application/json");
+                }
+                """,
+              """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response = aResponse()
+                            .withHeader("Content-Type", "application/json");
+                }
+                """
+            )
           )
         );
     }
@@ -103,28 +112,31 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void headerNameIsMatchedCaseInsensitively() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("content-type", "text/plain", "application/json");
-              }
-              """,
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("content-type", "application/json");
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response = aResponse()
+                            .withHeader("content-type", "text/plain", "application/json");
+                }
+                """,
+              """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response = aResponse()
+                            .withHeader("content-type", "application/json");
+                }
+                """
+            )
           )
         );
     }
@@ -132,22 +144,25 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void httpHeaderFactory() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.http.HttpHeader;
-
-              class Stubs {
-                  HttpHeader contentType = HttpHeader.httpHeader("Content-Type", "text/plain", "application/json");
-              }
-              """,
-            """
-              import com.github.tomakehurst.wiremock.http.HttpHeader;
-
-              class Stubs {
-                  HttpHeader contentType = HttpHeader.httpHeader("Content-Type", "application/json");
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import com.github.tomakehurst.wiremock.http.HttpHeader;
+
+                class Stubs {
+                    HttpHeader contentType = HttpHeader.httpHeader("Content-Type", "text/plain", "application/json");
+                }
+                """,
+              """
+                import com.github.tomakehurst.wiremock.http.HttpHeader;
+
+                class Stubs {
+                    HttpHeader contentType = HttpHeader.httpHeader("Content-Type", "application/json");
+                }
+                """
+            )
           )
         );
     }
@@ -155,22 +170,25 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void httpHeaderConstructor() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.http.HttpHeader;
-
-              class Stubs {
-                  HttpHeader contentType = new HttpHeader("Content-Type", "text/plain", "application/json");
-              }
-              """,
-            """
-              import com.github.tomakehurst.wiremock.http.HttpHeader;
-
-              class Stubs {
-                  HttpHeader contentType = new HttpHeader("Content-Type", "application/json");
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import com.github.tomakehurst.wiremock.http.HttpHeader;
+
+                class Stubs {
+                    HttpHeader contentType = new HttpHeader("Content-Type", "text/plain", "application/json");
+                }
+                """,
+              """
+                import com.github.tomakehurst.wiremock.http.HttpHeader;
+
+                class Stubs {
+                    HttpHeader contentType = new HttpHeader("Content-Type", "application/json");
+                }
+                """
+            )
           )
         );
     }
@@ -178,18 +196,21 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void singleValueIsUntouched() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("Content-Type", "application/json");
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response = aResponse()
+                            .withHeader("Content-Type", "application/json");
+                }
+                """
+            )
           )
         );
     }
@@ -197,18 +218,21 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void otherHeadersKeepEveryValue() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("Set-Cookie", "a=1", "b=2");
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response = aResponse()
+                            .withHeader("Set-Cookie", "a=1", "b=2");
+                }
+                """
+            )
           )
         );
     }
@@ -216,19 +240,22 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void valuesHeldInAnArrayCannotBeSplitApart() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response(String[] values) {
-                      return aResponse().withHeader("Content-Type", values);
-                  }
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response(String[] values) {
+                        return aResponse().withHeader("Content-Type", values);
+                    }
+                }
+                """
+            )
           )
         );
     }
@@ -236,20 +263,23 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void requestHeaderMatchersAreUntouched() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-              import static com.github.tomakehurst.wiremock.client.WireMock.get;
-              import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-
-              import com.github.tomakehurst.wiremock.client.MappingBuilder;
-
-              class Stubs {
-                  MappingBuilder mapping = get(urlEqualTo("/x"))
-                          .withHeader("Content-Type", equalTo("application/json"));
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+                import static com.github.tomakehurst.wiremock.client.WireMock.get;
+                import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+
+                import com.github.tomakehurst.wiremock.client.MappingBuilder;
+
+                class Stubs {
+                    MappingBuilder mapping = get(urlEqualTo("/x"))
+                            .withHeader("Content-Type", equalTo("application/json"));
+                }
+                """
+            )
           )
         );
     }
@@ -257,37 +287,86 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     @Test
     void appliesWithoutAnExplicitResponseDefinitionBuilderImport() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-              import static com.github.tomakehurst.wiremock.client.WireMock.get;
-              import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-              import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-
-              class Stubs {
-                  void stub() {
-                      stubFor(get(urlEqualTo("/user")).willReturn(aResponse()
-                              .withStatus(200)
-                              .withHeader("Content-Type", "text/plain", "application/json")));
-                  }
-              }
-              """,
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-              import static com.github.tomakehurst.wiremock.client.WireMock.get;
-              import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-              import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-
-              class Stubs {
-                  void stub() {
-                      stubFor(get(urlEqualTo("/user")).willReturn(aResponse()
-                              .withStatus(200)
-                              .withHeader("Content-Type", "application/json")));
-                  }
-              }
+          mavenProject("project",
+            wiremockPom("3.13.2"),
+            //language=java
+            java(
               """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+                import static com.github.tomakehurst.wiremock.client.WireMock.get;
+                import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+                import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+
+                class Stubs {
+                    void stub() {
+                        stubFor(get(urlEqualTo("/user")).willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "text/plain", "application/json")));
+                    }
+                }
+                """,
+              """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+                import static com.github.tomakehurst.wiremock.client.WireMock.get;
+                import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+                import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+
+                class Stubs {
+                    void stub() {
+                        stubFor(get(urlEqualTo("/user")).willReturn(aResponse()
+                                .withStatus(200)
+                                .withHeader("Content-Type", "application/json")));
+                    }
+                }
+                """
+            )
           )
+        );
+    }
+
+    @Test
+    void leavesMultipleValuesAloneOnWiremock4() {
+        rewriteRun(
+          mavenProject("project",
+            wiremockPom("4.0.0-beta.38"),
+            //language=java
+            java(
+              """
+                import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                class Stubs {
+                    ResponseDefinitionBuilder response() {
+                        return aResponse()
+                                .withHeader("Content-Type", "text/plain", "application/json");
+                    }
+                }
+                """
+            )
+          )
+        );
+    }
+
+    private static SourceSpecs wiremockPom(String version) {
+        return pomXml(
+          //language=xml
+          """
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.example</groupId>
+                <artifactId>demo</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.wiremock</groupId>
+                        <artifactId>wiremock</artifactId>
+                        <version>%s</version>
+                        <scope>test</scope>
+                    </dependency>
+                </dependencies>
+            </project>
+            """.formatted(version)
         );
     }
 }

@@ -29,6 +29,9 @@ tags:
   - testing
   - wiremock
 recipeList:
+  # These two only hold while the module is still on 3.x, so they run before the version is bumped
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
   - org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
   # 4.x dropped the separate Jetty 12 distribution; Jetty 12.1 is now the default in `wiremock`
   - org.openrewrite.java.dependencies.ChangeDependency:
@@ -99,8 +102,6 @@ recipeList:
   - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
   - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
   - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
   - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
   - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
   - org.openrewrite.java.ChangeMethodName:
