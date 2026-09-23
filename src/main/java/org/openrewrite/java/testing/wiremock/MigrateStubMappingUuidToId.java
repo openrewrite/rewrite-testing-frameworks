@@ -31,6 +31,7 @@ import org.openrewrite.json.tree.JsonValue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
@@ -67,13 +68,27 @@ public class MigrateStubMappingUuidToId extends Recipe {
                     return o;
                 }
 
-                if (member(members, ID_KEY) == null) {
+                Json.Member id = member(members, ID_KEY);
+                if (id == null) {
                     return o.withMembers(ListUtils.map(members, member ->
                             UUID_KEY.equals(keyName(member)) ? renameToId((Json.Member) member) : member));
                 }
 
-                // `id` already carries the identifier, so `uuid` is the redundant copy WireMock 4 dropped
-                return removeMember(o, members.indexOf(member(members, UUID_KEY)));
+                // `id` and `uuid` both wrote the same field in WireMock 3, so where they disagree the later one
+                // is the identifier that was actually in use, and it has to survive dropping the `uuid` member
+                Json.Member uuid = member(members, UUID_KEY);
+                int uuidIndex = members.indexOf(uuid);
+                Json.JsonObject withIdentifier = o;
+                if (members.indexOf(id) < uuidIndex && !sameLiteral(id.getValue(), uuid.getValue())) {
+                    Json.Member winner = id.withValue(uuid.getValue().withPrefix(id.getValue().getPrefix()));
+                    withIdentifier = o.withMembers(ListUtils.map(members, member -> member == id ? winner : member));
+                }
+                return removeMember(withIdentifier, uuidIndex);
+            }
+
+            private boolean sameLiteral(JsonValue one, JsonValue other) {
+                return one instanceof Json.Literal && other instanceof Json.Literal &&
+                        Objects.equals(((Json.Literal) one).getValue(), ((Json.Literal) other).getValue());
             }
 
             /**

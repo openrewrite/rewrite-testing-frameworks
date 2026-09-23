@@ -178,6 +178,12 @@ public class ReplaceSettersWithTransform extends Recipe {
                             if (!isAssignable(select)) {
                                 return null;
                             }
+                            // Assigning the transformed copy back costs a local its effective finality, so an
+                            // argument reading it cannot be moved inside the lambda that now captures it
+                            if (isLocal(select) &&
+                                    referencesReceiver(method.getArguments().get(0), receiverName(select))) {
+                                return null;
+                            }
                             return new SetterCall(owner, builderSetter, select,
                                     select.printTrimmed(getCursor()), receiverName(select),
                                     method.getArguments().get(0));
@@ -191,6 +197,10 @@ public class ReplaceSettersWithTransform extends Recipe {
                      */
                     private boolean isAssignable(Expression select) {
                         if (select instanceof J.FieldAccess) {
+                            JavaType.Variable field = ((J.FieldAccess) select).getName().getFieldType();
+                            if (field == null || field.hasFlags(Flag.Final)) {
+                                return false;
+                            }
                             // `this.mapping` and `Holder.MAPPING` style receivers are safe to repeat and assign to
                             return isSimpleAccessChain(((J.FieldAccess) select).getTarget());
                         }
@@ -203,6 +213,14 @@ public class ReplaceSettersWithTransform extends Recipe {
                         }
                         // A local captured by a lambda has to stay effectively final, so leave those alone
                         return variable.getOwner() instanceof JavaType.FullyQualified || !withinLambda();
+                    }
+
+                    private boolean isLocal(Expression select) {
+                        if (!(select instanceof J.Identifier)) {
+                            return false;
+                        }
+                        JavaType.Variable variable = ((J.Identifier) select).getFieldType();
+                        return variable != null && !(variable.getOwner() instanceof JavaType.FullyQualified);
                     }
 
                     private String receiverName(Expression select) {

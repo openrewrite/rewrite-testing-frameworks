@@ -311,6 +311,26 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
     }
 
     @Test
+    void finalFieldReceiverIsLeftAlone() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+              class Stubs {
+                  private final StubMapping mapping = new StubMapping();
+
+                  void describe() {
+                      this.mapping.setName("get user");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void capturedLocalInsideLambdaIsLeftAlone() {
         rewriteRun(
           //language=java
@@ -353,7 +373,7 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
     }
 
     @Test
-    void argumentReadingTheReceiverStartsANewTransform() {
+    void argumentReadingALocalReceiverIsLeftAlone() {
         rewriteRun(
           //language=java
           java(
@@ -373,7 +393,40 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
               class Stubs {
                   void describe(StubMapping mapping) {
                       mapping = mapping.transform(builder -> builder.setName("get user"));
-                      mapping = mapping.transform(builder -> builder.setScenarioName(mapping.getName()));
+                      mapping.setScenarioName(mapping.getName());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void argumentReadingAFieldReceiverStartsANewTransform() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+              class Stubs {
+                  private StubMapping mapping;
+
+                  void describe() {
+                      this.mapping.setName("get user");
+                      this.mapping.setScenarioName(this.mapping.getName());
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+              class Stubs {
+                  private StubMapping mapping;
+
+                  void describe() {
+                      this.mapping = this.mapping.transform(builder -> builder.setName("get user"));
+                      this.mapping = this.mapping.transform(builder -> builder.setScenarioName(this.mapping.getName()));
                   }
               }
               """

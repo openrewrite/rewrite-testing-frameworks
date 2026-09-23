@@ -104,6 +104,64 @@ class MigrateStubMappingUuidToIdTest implements RewriteTest {
     }
 
     @Test
+    void laterUuidWinsOverAnEarlierDifferentId() {
+        rewriteRun(
+          //language=json
+          json(
+            """
+              {
+                "id": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+                "request": {
+                  "method": "GET",
+                  "url": "/user"
+                },
+                "uuid": "11111111-2222-3333-4444-555555555555"
+              }
+              """,
+            """
+              {
+                "id": "11111111-2222-3333-4444-555555555555",
+                "request": {
+                  "method": "GET",
+                  "url": "/user"
+                }
+              }
+              """,
+            spec -> spec.path("src/test/resources/mappings/get-user.json")
+          )
+        );
+    }
+
+    @Test
+    void earlierUuidLosesToALaterDifferentId() {
+        rewriteRun(
+          //language=json
+          json(
+            """
+              {
+                "uuid": "11111111-2222-3333-4444-555555555555",
+                "id": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+                "request": {
+                  "method": "GET",
+                  "url": "/user"
+                }
+              }
+              """,
+            """
+              {
+                "id": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+                "request": {
+                  "method": "GET",
+                  "url": "/user"
+                }
+              }
+              """,
+            spec -> spec.path("src/test/resources/mappings/get-user.json")
+          )
+        );
+    }
+
+    @Test
     void uuidFirstWithIdPresentKeepsIndentation() {
         rewriteRun(
           //language=json
