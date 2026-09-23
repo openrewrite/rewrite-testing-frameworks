@@ -45,7 +45,9 @@ public class RemoveDuplicateContentTypeStubHeader extends Recipe {
             "but the last, so a stub file listing several of them served only one. WireMock 4 returns all of them, " +
             "and some clients reject a response carrying more than one. Keep only the last value, which is the one " +
             "WireMock 3 actually sent. Only JSON below a `mappings` directory is considered, and request header " +
-            "matchers are untouched, since those hold matcher objects rather than plain strings.";
+            "matchers are untouched, since those hold matcher objects rather than plain strings. This is a 3 to 4 " +
+            "migration step: run against a project already on 4.x that deliberately serves more than one " +
+            "`Content-Type`, it would drop values that are currently reaching the client.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
