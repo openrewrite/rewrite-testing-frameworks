@@ -467,4 +467,24 @@ class SimplifyChainedAssertJAssertionsTest implements RewriteTest {
             );
         }
     }
+
+    @Test
+    void doesNotRewriteParameterizedByteArrayOutputStreamToString() {
+        rewriteRun(
+          java(
+            """
+              import java.io.ByteArrayOutputStream;
+              import java.nio.charset.StandardCharsets;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void verify(ByteArrayOutputStream stdout, String expected) {
+                      assertThat(stdout.toString(StandardCharsets.UTF_8)).isEqualTo(expected);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
