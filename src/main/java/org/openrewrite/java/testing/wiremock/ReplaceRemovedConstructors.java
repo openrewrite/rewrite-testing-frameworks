@@ -302,19 +302,33 @@ public class ReplaceRemovedConstructors extends Recipe {
                 });
     }
 
-    @Getter
     private static class Replacement {
+        @Getter
         private final String owner;
+        @Getter
         private final MethodMatcher matcher;
-        private final JavaTemplate template;
+        private final String code;
+
+        private @Nullable JavaTemplate template;
 
         Replacement(String owner, String pattern, String code) {
             this.owner = owner;
             this.matcher = new MethodMatcher(pattern);
-            this.template = JavaTemplate.builder(code)
-                    .imports(owner)
-                    .javaParser(JavaParser.fromJavaVersion().dependsOn(STUBS))
-                    .build();
+            this.code = code;
+        }
+
+        /**
+         * Resolving a `JavaParser` requires a parser implementation on the classpath, which is absent while
+         * recipes are merely being loaded, so the template is built on first use rather than at class init.
+         */
+        JavaTemplate getTemplate() {
+            if (template == null) {
+                template = JavaTemplate.builder(code)
+                        .imports(owner)
+                        .javaParser(JavaParser.fromJavaVersion().dependsOn(STUBS))
+                        .build();
+            }
+            return template;
         }
     }
 }
