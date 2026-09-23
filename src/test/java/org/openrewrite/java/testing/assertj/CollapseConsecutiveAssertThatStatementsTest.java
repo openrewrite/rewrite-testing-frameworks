@@ -108,8 +108,8 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      // Comment nor whitespace below duplicated
                       assertThat(listA)
-                              // Comment nor whitespace below duplicated
                               .isNotNull()
                               .hasSize(3)
                               .containsExactly("a", "b", "c");
@@ -444,13 +444,44 @@ class CollapseConsecutiveAssertThatStatementsTest implements RewriteTest {
               class MyTest {
                   void test() {
                       List<String> listA = Arrays.asList("a", "b", "c");
+                      // Check not null
                       assertThat(listA)
-                              // Check not null
                               .isNotNull()
                               // Check size is 3
                               .hasSize(3)
                               // Check exact contents
                               .containsExactly("a", "b", "c");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservesSectionCommentBeforeCollapsedChain() {
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void verify(String value) {
+                      // then
+                      assertThat(value).isNotNull();
+                      assertThat(value).isEqualTo("expected");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void verify(String value) {
+                      // then
+                      assertThat(value)
+                              .isNotNull()
+                              .isEqualTo("expected");
                   }
               }
               """
