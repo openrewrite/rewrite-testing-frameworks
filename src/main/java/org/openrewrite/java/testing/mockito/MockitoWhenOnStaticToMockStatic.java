@@ -27,6 +27,7 @@ import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.tree.K;
 
+import java.beans.Expression;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,12 +99,20 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
             private List<Statement> maybeStatementsToMockedStatic(J.Block m, List<Statement> statements, ExecutionContext ctx) {
                 List<Statement> list = new ArrayList<>();
+                Map<String, String> pendingFields = new HashMap<>();
                 for (Statement statement : statements) {
                     J.MethodInvocation whenArg = getWhenArg(statement);
                     if (whenArg != null) {
                         JavaType.@Nullable Class invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
-                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx));
+                            String existingVariableName = pendingFields.get(invokedType.getFullyQualifiedName());
+                            if (existingVariableName != null) {
+                                list.add(reuseMockedStatic(m, (J.MethodInvocation) statement, existingVariableName, whenArg, ctx));
+                            } else {
+                                String variableName = generateVariableName("mock" + invokedType.getClassName() + ++varCounter, updateCursor(m), INCREMENT_NUMBER);
+                                pendingFields.put(invokedType.getFullyQualifiedName(), variableName);
+                                list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), variableName, whenArg, ctx));
+                            }
                         }
                     } else {
                         list.add(statement);
@@ -197,10 +206,9 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return replacement.withPrefix(statement.getPrefix());
             }
 
-            private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
+            private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement, String className, String variableName, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 boolean staticSetup = isMethodDeclarationWithAnnotation(containingMethod, BEFORE_CLASS, BEFORE_ALL, BEFORE_PARAM_CLASS_INV);
-                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 // We know it will have a matching `@Before*` annotation based on callers
                 String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
                 String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");
