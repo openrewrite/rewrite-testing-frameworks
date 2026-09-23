@@ -23,7 +23,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -59,8 +59,9 @@ public class RemoveDuplicateContentTypeHeader extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.or(
-                        new UsesType<>(RESPONSE_DEFINITION_BUILDER, true),
-                        new UsesType<>(HTTP_HEADER, true)),
+                        new UsesMethod<>(WITH_HEADER),
+                        new UsesMethod<>(HTTP_HEADER_FACTORY),
+                        new UsesMethod<>(HTTP_HEADER_CONSTRUCTOR)),
                 new JavaIsoVisitor<ExecutionContext>() {
 
                     @Override

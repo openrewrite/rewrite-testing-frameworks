@@ -25,12 +25,13 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 
@@ -217,14 +218,21 @@ public class ReplaceRemovedConstructors extends Recipe {
             "`WireMock` with the equivalent builder call, and `RequestPattern.everything()` with " +
             "`RequestPattern.ANYTHING`.";
 
+    @SuppressWarnings("unchecked")
+    private static TreeVisitor<?, ExecutionContext>[] usesAnyReplacedConstructor() {
+        return Stream.of(
+                        REPLACEMENTS.stream().map(Replacement::getMatcher),
+                        ADMIN_CLIENT_FOLDS.stream().map(Replacement::getMatcher),
+                        Stream.of(WIRE_MOCK_FROM_ADMIN, REQUEST_PATTERN_EVERYTHING))
+                .flatMap(matchers -> matchers)
+                .map(matcher -> (TreeVisitor<?, ExecutionContext>) new UsesMethod<ExecutionContext>(matcher))
+                .toArray(TreeVisitor[]::new);
+    }
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                Preconditions.or(
-                        new UsesType<>(STUB_MAPPING, true),
-                        new UsesType<>(RESPONSE_DEFINITION, true),
-                        new UsesType<>(REQUEST_PATTERN, true),
-                        new UsesType<>(WIRE_MOCK, true)),
+                Preconditions.or(usesAnyReplacedConstructor()),
                 new JavaVisitor<ExecutionContext>() {
 
                     @Override

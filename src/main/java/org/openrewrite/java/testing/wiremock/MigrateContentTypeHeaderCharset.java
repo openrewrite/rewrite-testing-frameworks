@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
@@ -61,7 +61,7 @@ public class MigrateContentTypeHeaderCharset extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(CONTENT_TYPE_HEADER, true),
+        return Preconditions.check(new UsesMethod<>(CHARSET),
                 new JavaVisitor<ExecutionContext>() {
 
                     @Override

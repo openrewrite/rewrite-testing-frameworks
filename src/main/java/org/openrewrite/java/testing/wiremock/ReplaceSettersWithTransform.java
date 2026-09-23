@@ -28,7 +28,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.VariableNameUtils;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
@@ -108,10 +108,17 @@ public class ReplaceSettersWithTransform extends Recipe {
             "builder.setRequest(pattern));`, collapsing consecutive setter calls on the same receiver into a single " +
             "`transform` call.";
 
+    @SuppressWarnings("unchecked")
+    private static TreeVisitor<?, ExecutionContext>[] usesAnySetter() {
+        return SETTER_MATCHERS.values().stream()
+                .map(matcher -> (TreeVisitor<?, ExecutionContext>) new UsesMethod<ExecutionContext>(matcher))
+                .toArray(TreeVisitor[]::new);
+    }
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                Preconditions.or(new UsesType<>(STUB_MAPPING, true), new UsesType<>(RESPONSE_DEFINITION, true)),
+                Preconditions.or(usesAnySetter()),
                 new JavaIsoVisitor<ExecutionContext>() {
 
                     @Override

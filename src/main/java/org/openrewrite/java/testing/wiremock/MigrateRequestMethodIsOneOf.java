@@ -24,7 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -67,7 +67,7 @@ public class MigrateRequestMethodIsOneOf extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(REQUEST_METHOD, true),
+        return Preconditions.check(new UsesMethod<>(IS_ONE_OF),
                 new JavaVisitor<ExecutionContext>() {
 
                     @Override
