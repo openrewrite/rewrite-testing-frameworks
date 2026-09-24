@@ -58,42 +58,26 @@ recipeList:
       version: 4.0.0-beta.38
       onlyIfUsing: com.github.tomakehurst.wiremock.junit.WireMock*Rule
       scope: test
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.eclipse.jetty
-      oldArtifactId: jetty-servlet
-      newGroupId: org.eclipse.jetty.ee10
-      newArtifactId: jetty-ee10-servlet
-      newVersion: 12.1.x
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.eclipse.jetty
-      oldArtifactId: jetty-servlets
-      newGroupId: org.eclipse.jetty.ee10
-      newArtifactId: jetty-ee10-servlets
-      newVersion: 12.1.x
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.eclipse.jetty
       artifactId: jetty-client
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.client.*
-      scope: test
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.eclipse.jetty
       artifactId: jetty-proxy
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.proxy.*
-      scope: test
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.eclipse.jetty
       artifactId: jetty-xml
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.xml.*
-      scope: test
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.eclipse.jetty.ee10
       artifactId: jetty-ee10-webapp
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.ee10.webapp.*
-      scope: test
   - org.openrewrite.java.testing.wiremock.MigrateWiremockRepackagedTypes
   - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
   - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
