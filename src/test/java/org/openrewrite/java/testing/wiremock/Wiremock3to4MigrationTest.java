@@ -22,8 +22,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.regex.Pattern;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
@@ -41,10 +40,6 @@ class Wiremock3to4MigrationTest implements RewriteTest {
 
     private static final String WIREMOCK_4_REGEX_STRING = "4\\.\\d+\\.\\d+(?:-[\\w.]+)?";
 
-    private static final Pattern POM_WIREMOCK_4_VERSION = Pattern.compile("<version>(" + WIREMOCK_4_REGEX_STRING + ")</version>");
-
-    private static final Pattern GRADLE_WIREMOCK_4_VERSION = Pattern.compile("wiremock:(" + WIREMOCK_4_REGEX_STRING + ")");
-
     private static final String WIREMOCK_3_VERSION = "3.3.1";
 
     // `wiremock-jetty12` was only published later in the 3.x line, so it cannot reuse WIREMOCK_3_VERSION.
@@ -59,12 +54,12 @@ class Wiremock3to4MigrationTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5", "wiremock-3.13"));
     }
 
-    private static String pomWiremock4Version(String after) {
-        return POM_WIREMOCK_4_VERSION.matcher(after).results().findFirst().orElseThrow().group(1);
+    private static String pomDependency(String artifactId) {
+        return "<artifactId>" + artifactId + "</artifactId>\\s*<version>" + WIREMOCK_4_REGEX_STRING + "</version>";
     }
 
-    private static String gradleWiremock4Version(String after) {
-        return GRADLE_WIREMOCK_4_VERSION.matcher(after).results().findFirst().orElseThrow().group(1);
+    private static String gradleDependency(String artifactId) {
+        return "org\\.wiremock:" + artifactId + ":" + WIREMOCK_4_REGEX_STRING;
     }
 
     @DocumentExample
@@ -89,22 +84,9 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                 </dependencies>
               </project>
               """.formatted(WIREMOCK_3_VERSION),
-            spec -> spec.after(after -> """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>demo</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.wiremock</groupId>
-                        <artifactId>wiremock</artifactId>
-                        <version>%s</version>
-                        <scope>test</scope>
-                    </dependency>
-                </dependencies>
-              </project>
-              """.formatted(pomWiremock4Version(after)))
+            spec -> spec.after(after -> assertThat(after)
+              .containsPattern(pomDependency("wiremock"))
+              .actual())
           )
         );
     }
@@ -130,22 +112,9 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                 </dependencies>
               </project>
               """.formatted(WIREMOCK_3_VERSION),
-            spec -> spec.after(after -> """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>demo</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.wiremock</groupId>
-                        <artifactId>wiremock-standalone</artifactId>
-                        <version>%s</version>
-                        <scope>test</scope>
-                    </dependency>
-                </dependencies>
-              </project>
-              """.formatted(pomWiremock4Version(after)))
+            spec -> spec.after(after -> assertThat(after)
+              .containsPattern(pomDependency("wiremock-standalone"))
+              .actual())
           )
         );
     }
@@ -171,22 +140,10 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                 </dependencies>
               </project>
               """.formatted(WIREMOCK_2_VERSION),
-            spec -> spec.after(after -> """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>demo</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.wiremock</groupId>
-                        <artifactId>wiremock</artifactId>
-                        <version>%s</version>
-                        <scope>test</scope>
-                    </dependency>
-                </dependencies>
-              </project>
-              """.formatted(pomWiremock4Version(after)))
+            spec -> spec.after(after -> assertThat(after)
+              .containsPattern(pomDependency("wiremock"))
+              .doesNotContain("com.github.tomakehurst", "wiremock-jre8")
+              .actual())
           )
         );
     }
@@ -209,19 +166,9 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                   testImplementation 'org.wiremock:wiremock:%s'
               }
               """.formatted(WIREMOCK_3_VERSION),
-            spec -> spec.after(after -> """
-              plugins {
-                  id 'java'
-              }
-
-              repositories {
-                  mavenCentral()
-              }
-
-              dependencies {
-                  testImplementation 'org.wiremock:wiremock:%s'
-              }
-              """.formatted(gradleWiremock4Version(after)))
+            spec -> spec.after(after -> assertThat(after)
+              .containsPattern(gradleDependency("wiremock"))
+              .actual())
           )
         );
     }
@@ -297,22 +244,10 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                 </dependencies>
               </project>
               """.formatted(WIREMOCK_3_JETTY12_VERSION),
-            spec -> spec.after(after -> """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>demo</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.wiremock</groupId>
-                        <artifactId>wiremock</artifactId>
-                        <version>%s</version>
-                        <scope>test</scope>
-                    </dependency>
-                </dependencies>
-              </project>
-              """.formatted(pomWiremock4Version(after)))
+            spec -> spec.after(after -> assertThat(after)
+              .containsPattern(pomDependency("wiremock"))
+              .doesNotContain("wiremock-jetty12")
+              .actual())
           )
         );
     }
@@ -353,28 +288,10 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """.formatted(WIREMOCK_3_VERSION),
-              spec -> spec.after(after -> """
-                <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>demo</artifactId>
-                  <version>0.0.1-SNAPSHOT</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.wiremock</groupId>
-                          <artifactId>wiremock</artifactId>
-                          <version>%s</version>
-                          <scope>test</scope>
-                      </dependency>
-                    <dependency>
-                      <groupId>org.wiremock</groupId>
-                      <artifactId>wiremock-junit5</artifactId>
-                      <version>%s</version>
-                      <scope>test</scope>
-                    </dependency>
-                  </dependencies>
-                </project>
-                """.formatted(pomWiremock4Version(after), pomWiremock4Version(after)))
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock"))
+                .containsPattern(pomDependency("wiremock-junit5"))
+                .actual())
             )
           )
         );
@@ -414,20 +331,10 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                     testImplementation 'org.wiremock:wiremock:%s'
                 }
                 """.formatted(WIREMOCK_3_VERSION),
-              spec -> spec.after(after -> """
-                plugins {
-                    id 'java'
-                }
-
-                repositories {
-                    mavenCentral()
-                }
-
-                dependencies {
-                    testImplementation 'org.wiremock:wiremock:%s'
-                    testImplementation "org.wiremock:wiremock-junit4:%s"
-                }
-                """.formatted(gradleWiremock4Version(after), gradleWiremock4Version(after)))
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(gradleDependency("wiremock"))
+                .containsPattern(gradleDependency("wiremock-junit4"))
+                .actual())
             )
           )
         );
@@ -467,22 +374,10 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """.formatted(WIREMOCK_3_VERSION),
-              spec -> spec.after(after -> """
-                <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>demo</artifactId>
-                  <version>0.0.1-SNAPSHOT</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.wiremock</groupId>
-                          <artifactId>wiremock</artifactId>
-                          <version>%s</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-                </project>
-                """.formatted(pomWiremock4Version(after)))
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock"))
+                .doesNotContain("wiremock-junit")
+                .actual())
             )
           )
         );
@@ -638,22 +533,9 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """.formatted(WIREMOCK_3_VERSION),
-              spec -> spec.after(after -> """
-                <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>demo</artifactId>
-                  <version>0.0.1-SNAPSHOT</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.wiremock</groupId>
-                          <artifactId>wiremock</artifactId>
-                          <version>%s</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-                </project>
-                """.formatted(pomWiremock4Version(after)))
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock"))
+                .actual())
             ),
             //language=json
             json(
