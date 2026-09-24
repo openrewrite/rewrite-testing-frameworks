@@ -32,6 +32,7 @@ recipeList:
   # Only holds while the module is still on 3.x, so this runs before the version is bumped
   - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
   - org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
+  # Pinned rather than `4.x`: every selector bar `latest.integration` rejects a `-beta.N` version
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.wiremock
       oldArtifactId: wiremock-jetty12
