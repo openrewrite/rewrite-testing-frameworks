@@ -164,8 +164,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                             ".hostHeader(#{any()}).proxyHost(#{any()}).proxyPort(#{any()})" +
                             ".authenticator(#{any()}).build()"));
 
-    private static final MethodMatcher WIRE_MOCK_FROM_ADMIN =
-            new MethodMatcher(WIRE_MOCK + " <constructor>(" + ADMIN + ")");
+    private static final MethodMatcher WIRE_MOCK_FROM_ADMIN = new MethodMatcher(WIRE_MOCK + " <constructor>(" + ADMIN + ")");
 
     /**
      * `HttpAdminClient` kept only its all arguments constructor, and the `HttpClient` that constructor now
@@ -205,8 +204,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                             ".hostHeader(#{any()}).proxyHost(#{any()}).proxyPort(#{any()})" +
                             ".authenticator(#{any()}).build()"));
 
-    private static final MethodMatcher REQUEST_PATTERN_EVERYTHING =
-            new MethodMatcher(REQUEST_PATTERN + " everything()");
+    private static final MethodMatcher REQUEST_PATTERN_EVERYTHING = new MethodMatcher(REQUEST_PATTERN + " everything()");
 
     @Getter
     final String displayName = "Replace WireMock constructors removed in 4.x";

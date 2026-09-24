@@ -35,16 +35,12 @@ import static java.util.Arrays.asList;
 public class RemoveDuplicateContentTypeHeader extends Recipe {
 
     private static final String CONTENT_TYPE = "Content-Type";
-    private static final String RESPONSE_DEFINITION_BUILDER =
-            "com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder";
+    private static final String RESPONSE_DEFINITION_BUILDER = "com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder";
     private static final String HTTP_HEADER = "com.github.tomakehurst.wiremock.http.HttpHeader";
 
-    private static final MethodMatcher WITH_HEADER =
-            new MethodMatcher(RESPONSE_DEFINITION_BUILDER + " withHeader(..)");
-    private static final MethodMatcher HTTP_HEADER_FACTORY =
-            new MethodMatcher(HTTP_HEADER + " httpHeader(..)");
-    private static final MethodMatcher HTTP_HEADER_CONSTRUCTOR =
-            new MethodMatcher(HTTP_HEADER + " <constructor>(..)");
+    private static final MethodMatcher WITH_HEADER = new MethodMatcher(RESPONSE_DEFINITION_BUILDER + " withHeader(..)");
+    private static final MethodMatcher HTTP_HEADER_FACTORY = new MethodMatcher(HTTP_HEADER + " httpHeader(..)");
+    private static final MethodMatcher HTTP_HEADER_CONSTRUCTOR = new MethodMatcher(HTTP_HEADER + " <constructor>(..)");
 
     @Getter
     final String displayName = "Keep a single `Content-Type` response header on WireMock stubs";
