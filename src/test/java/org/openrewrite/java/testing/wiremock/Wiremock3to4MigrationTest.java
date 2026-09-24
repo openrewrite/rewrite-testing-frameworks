@@ -711,6 +711,47 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void duplicateContentTypeHeadersSurviveOnWiremock4() {
+        rewriteRun(
+          mavenProject("project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(WIREMOCK_4_VERSION)
+            ),
+            //language=json
+            json(
+              """
+                {
+                  "response": {
+                    "status": 200,
+                    "headers": {
+                      "Content-Type": [ "text/plain", "application/json" ]
+                    }
+                  }
+                }
+                """,
+              spec -> spec.path("src/test/resources/mappings/get-user.json")
+            )
+          )
+        );
+    }
+
+    @Test
     void constructAndMutateBecomesBuilderAndTransform() {
         rewriteRun(
           //language=java
