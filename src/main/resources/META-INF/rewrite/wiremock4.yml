@@ -32,7 +32,6 @@ recipeList:
   # Only holds while the module is still on 3.x, so this runs before the version is bumped
   - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
   - org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
-  # 4.x dropped the separate Jetty 12 distribution; Jetty 12.1 is now the default in `wiremock`
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.wiremock
       oldArtifactId: wiremock-jetty12
@@ -47,7 +46,6 @@ recipeList:
       groupId: org.wiremock
       artifactId: wiremock-standalone
       newVersion: 4.0.0-beta.38
-  # JUnit 4 and JUnit 5 support moved out of `wiremock` into modules that are not transitive
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-junit5
@@ -60,7 +58,6 @@ recipeList:
       version: 4.0.0-beta.38
       onlyIfUsing: com.github.tomakehurst.wiremock.junit.WireMock*Rule
       scope: test
-  # `jetty-client`, `jetty-proxy`, `jetty-xml` and `jetty-webapp` are no longer transitive either
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.eclipse.jetty
       oldArtifactId: jetty-servlet
@@ -106,8 +103,7 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: com.github.tomakehurst.wiremock.stubbing.StubMapping getUuid()
       newMethodName: getId
-  # `value()` widened its return type to `Object` so that the multi method patterns can serialise as
-  # something other than a string; `getName()` still hands back the same name as a `String`
+  # `value()` widened its return type to `Object` in 4.x; `getName()` still answers a `String`
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
       newMethodName: getName
