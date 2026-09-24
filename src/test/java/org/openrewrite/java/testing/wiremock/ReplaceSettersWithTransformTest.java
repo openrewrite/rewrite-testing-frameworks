@@ -86,7 +86,10 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
 
               class Stubs {
                   void describe(StubMapping mapping) {
-                      mapping = mapping.transform(builder -> builder.setName("get user").setPriority(3).setScenarioName("users"));
+                      mapping = mapping.transform(builder -> builder
+                              .setName("get user")
+                              .setPriority(3)
+                              .setScenarioName("users"));
                   }
               }
               """

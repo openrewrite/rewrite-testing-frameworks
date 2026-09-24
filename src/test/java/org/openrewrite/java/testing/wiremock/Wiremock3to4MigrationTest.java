@@ -572,7 +572,9 @@ class Wiremock3to4MigrationTest implements RewriteTest {
 
               class Stubs {
                   void retarget(StubMapping mapping, RequestPattern pattern) {
-                      mapping = mapping.transform(builder -> builder.setRequest(pattern).setPriority(1));
+                      mapping = mapping.transform(builder -> builder
+                              .setRequest(pattern)
+                              .setPriority(1));
                   }
               }
               """
@@ -778,7 +780,9 @@ class Wiremock3to4MigrationTest implements RewriteTest {
               class Stubs {
                   StubMapping build(RequestPattern pattern) {
                       StubMapping mapping = StubMapping.builder().build();
-                      mapping = mapping.transform(builder -> builder.setRequest(pattern).setResponse(new ResponseDefinition.Builder().setStatus(200).setBody("hello").build()));
+                      mapping = mapping.transform(builder -> builder
+                              .setRequest(pattern)
+                              .setResponse(new ResponseDefinition.Builder().setStatus(200).setBody("hello").build()));
                       return mapping;
                   }
               }

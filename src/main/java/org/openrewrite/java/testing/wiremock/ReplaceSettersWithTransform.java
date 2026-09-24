@@ -282,7 +282,12 @@ public class ReplaceSettersWithTransform extends Recipe {
                                 .append(" -> ").append(lambdaParameter);
                         List<Object> parameters = new ArrayList<>();
                         parameters.add(first.getReceiver());
+                        // A run of setters reads better one per line than as a single long chain
+                        String chainIndent = "\n" + original.getPrefix().getIndent() + "        ";
                         for (SetterCall call : run) {
+                            if (run.size() > 1) {
+                                code.append(chainIndent);
+                            }
                             code.append('.').append(call.getBuilderSetter()).append("(#{any()})");
                             parameters.add(call.getArgument());
                         }
