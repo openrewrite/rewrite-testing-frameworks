@@ -36,19 +36,6 @@ public class MigrateContentTypeHeaderCharset extends Recipe {
 
     private static final MethodMatcher CHARSET = new MethodMatcher(CONTENT_TYPE_HEADER + " charset()");
 
-    /**
-     * WireMock 4's `charset()` returns an `Optional`, which the WireMock 3 on the classpath does not, so the
-     * template needs it declared to parse and type check.
-     */
-    //language=java
-    private static final String[] STUBS = {
-            "package com.github.tomakehurst.wiremock.http;\n" +
-                    "import java.nio.charset.Charset;\n" +
-                    "import java.util.Optional;\n" +
-                    "public class ContentTypeHeader {\n" +
-                    "  public native Optional<Charset> charset();\n" +
-                    "}\n"};
-
     @Getter
     final String displayName = "Preserve the UTF-8 default of `ContentTypeHeader.charset()`";
 
@@ -74,7 +61,7 @@ public class MigrateContentTypeHeaderCharset extends Recipe {
                         return JavaTemplate
                                 .builder("#{any(" + CONTENT_TYPE_HEADER + ")}.charset().orElse(StandardCharsets.UTF_8)")
                                 .imports(STANDARD_CHARSETS)
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(STUBS))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
                                 .build()
                                 .apply(getCursor(), m.getCoordinates().replace(), m.getSelect());
                     }

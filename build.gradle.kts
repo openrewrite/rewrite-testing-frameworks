@@ -46,6 +46,7 @@ recipeDependencies {
     parserClasspath("org.testcontainers:junit-jupiter:1.20.6")
     parserClasspath("org.testng:testng:7.+")
     parserClasspath("org.wiremock:wiremock:3.13.2")
+    parserClasspath("org.wiremock:wiremock-core:4.0.0-beta.38")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("uk.org.webcompere:system-stubs-core:2.1.8")
     parserClasspath("uk.org.webcompere:system-stubs-jupiter:2.1.8")

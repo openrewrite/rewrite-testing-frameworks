@@ -46,71 +46,6 @@ public class ReplaceRemovedConstructors extends Recipe {
     private static final String AUTHENTICATOR = "com.github.tomakehurst.wiremock.security.ClientAuthenticator";
 
     /**
-     * Enough of the WireMock 4 API for the templates below to parse and type check, plus the WireMock 3 types
-     * that appear as arguments. The source being migrated still compiles against WireMock 3, where none of the
-     * builders exist, so without these the generated calls come back without method types.
-     */
-    //language=java
-    private static final String[] STUBS = {
-            "package com.github.tomakehurst.wiremock.http;\n" +
-                    "public class Request {}\n",
-            "package com.github.tomakehurst.wiremock.matching;\n" +
-                    "public interface ValueMatcher<T> {}\n",
-            "package com.github.tomakehurst.wiremock.matching;\n" +
-                    "public class CustomMatcherDefinition {}\n",
-            "package com.github.tomakehurst.wiremock.security;\n" +
-                    "public interface ClientAuthenticator {}\n",
-            "package com.github.tomakehurst.wiremock.matching;\n" +
-                    "import com.github.tomakehurst.wiremock.http.Request;\n" +
-                    "public class RequestPattern {\n" +
-                    "  public static final RequestPattern ANYTHING = null;\n" +
-                    "  public static class Builder {\n" +
-                    "    public Builder() {}\n" +
-                    "    public native Builder setInlineCustomMatcher(ValueMatcher<Request> value);\n" +
-                    "    public native Builder setCustomMatcherDefinition(CustomMatcherDefinition value);\n" +
-                    "    public native RequestPattern build();\n" +
-                    "  }\n" +
-                    "}\n",
-            "package com.github.tomakehurst.wiremock.http;\n" +
-                    "public class ResponseDefinition {\n" +
-                    "  public static class Builder {\n" +
-                    "    public Builder() {}\n" +
-                    "    public native Builder setStatus(int value);\n" +
-                    "    public native Builder setBody(String value);\n" +
-                    "    public native Builder setBody(byte[] value);\n" +
-                    "    public native ResponseDefinition build();\n" +
-                    "  }\n" +
-                    "}\n",
-            "package com.github.tomakehurst.wiremock.stubbing;\n" +
-                    "import com.github.tomakehurst.wiremock.http.ResponseDefinition;\n" +
-                    "import com.github.tomakehurst.wiremock.matching.RequestPattern;\n" +
-                    "public class StubMapping {\n" +
-                    "  public static native Builder builder();\n" +
-                    "  public static class Builder {\n" +
-                    "    public native Builder setRequest(RequestPattern value);\n" +
-                    "    public native Builder setResponse(ResponseDefinition value);\n" +
-                    "    public native StubMapping build();\n" +
-                    "  }\n" +
-                    "}\n",
-            "package com.github.tomakehurst.wiremock.client;\n" +
-                    "import com.github.tomakehurst.wiremock.security.ClientAuthenticator;\n" +
-                    "public class WireMockBuilder {\n" +
-                    "  public native WireMockBuilder scheme(String value);\n" +
-                    "  public native WireMockBuilder host(String value);\n" +
-                    "  public native WireMockBuilder port(int value);\n" +
-                    "  public native WireMockBuilder urlPathPrefix(String value);\n" +
-                    "  public native WireMockBuilder hostHeader(String value);\n" +
-                    "  public native WireMockBuilder proxyHost(String value);\n" +
-                    "  public native WireMockBuilder proxyPort(int value);\n" +
-                    "  public native WireMockBuilder authenticator(ClientAuthenticator value);\n" +
-                    "  public native WireMock build();\n" +
-                    "}\n",
-            "package com.github.tomakehurst.wiremock.client;\n" +
-                    "public class WireMock {\n" +
-                    "  public static native WireMockBuilder create();\n" +
-                    "}\n"};
-
-    /**
      * WireMock 4 kept only the canonical all arguments constructor on each of these types, so the convenience
      * overloads have to go through a builder instead. `WireMock(String scheme, String host)` is deliberately
      * absent: it left the port undefined, whereas `WireMockBuilder` defaults it to 8080, so rewriting it would
@@ -240,14 +175,14 @@ public class ReplaceRemovedConstructors extends Recipe {
                             // An anonymous subclass cannot become a builder call
                             return n;
                         }
-                        J folded = foldAdminClient(n);
+                        J folded = foldAdminClient(n, ctx);
                         if (folded != null) {
                             return folded;
                         }
                         for (Replacement replacement : REPLACEMENTS) {
                             if (replacement.getMatcher().matches(n)) {
                                 maybeAddImport(replacement.getOwner());
-                                return replacement.getTemplate()
+                                return replacement.getTemplate(ctx)
                                         .apply(getCursor(), n.getCoordinates().replace(),
                                                 arguments(n.getArguments()));
                             }
@@ -262,7 +197,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                             maybeAddImport(REQUEST_PATTERN);
                             return JavaTemplate.builder("RequestPattern.ANYTHING")
                                     .imports(REQUEST_PATTERN)
-                                    .javaParser(JavaParser.fromJavaVersion().dependsOn(STUBS))
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
                                     .build()
                                     .apply(getCursor(), m.getCoordinates().replace());
                         }
@@ -272,7 +207,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                     /**
                      * `new WireMock(new HttpAdminClient(..))` collapses to a single `WireMockBuilder` chain.
                      */
-                    private @Nullable J foldAdminClient(J.NewClass wireMock) {
+                    private @Nullable J foldAdminClient(J.NewClass wireMock, ExecutionContext ctx) {
                         if (!WIRE_MOCK_FROM_ADMIN.matches(wireMock) || wireMock.getArguments().size() != 1 ||
                                 !(wireMock.getArguments().get(0) instanceof J.NewClass)) {
                             return null;
@@ -285,7 +220,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                             if (fold.getMatcher().matches(adminClient)) {
                                 maybeAddImport(WIRE_MOCK);
                                 maybeRemoveImport(HTTP_ADMIN_CLIENT);
-                                return fold.getTemplate().apply(getCursor(), wireMock.getCoordinates().replace(),
+                                return fold.getTemplate(ctx).apply(getCursor(), wireMock.getCoordinates().replace(),
                                         arguments(adminClient.getArguments()));
                             }
                         }
@@ -327,11 +262,11 @@ public class ReplaceRemovedConstructors extends Recipe {
          * Resolving a `JavaParser` requires a parser implementation on the classpath, which is absent while
          * recipes are merely being loaded, so the template is built on first use rather than at class init.
          */
-        JavaTemplate getTemplate() {
+        JavaTemplate getTemplate(ExecutionContext ctx) {
             if (template == null) {
                 template = JavaTemplate.builder(code)
                         .imports(owner)
-                        .javaParser(JavaParser.fromJavaVersion().dependsOn(STUBS))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
                         .build();
             }
             return template;

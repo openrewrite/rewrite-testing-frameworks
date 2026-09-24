@@ -38,23 +38,6 @@ public class MigrateRequestMethodIsOneOf extends Recipe {
 
     private static final MethodMatcher IS_ONE_OF = new MethodMatcher(REQUEST_METHOD + " isOneOf(..)");
 
-    /**
-     * `isOneOf` is an instance method returning `boolean` on the WireMock 3 on the classpath, so the static
-     * pattern building form the template calls has to be declared for it to parse and type check.
-     */
-    //language=java
-    private static final String[] STUBS = {
-            "package com.github.tomakehurst.wiremock.matching;\n" +
-                    "public abstract class MatchResult {\n" +
-                    "  public abstract boolean isExactMatch();\n" +
-                    "}\n",
-            "package com.github.tomakehurst.wiremock.http;\n" +
-                    "import com.github.tomakehurst.wiremock.matching.MatchResult;\n" +
-                    "public class RequestMethod {\n" +
-                    "  public static native RequestMethod isOneOf(RequestMethod... methods);\n" +
-                    "  public native MatchResult match(RequestMethod value);\n" +
-                    "}\n"};
-
     @Getter
     final String displayName = "Migrate `RequestMethod.isOneOf` to the matcher it became";
 
@@ -97,7 +80,7 @@ public class MigrateRequestMethodIsOneOf extends Recipe {
                         maybeAddImport(REQUEST_METHOD);
                         return JavaTemplate.builder(code.toString())
                                 .imports(REQUEST_METHOD)
-                                .javaParser(JavaParser.fromJavaVersion().dependsOn(STUBS))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
                                 .build()
                                 .apply(getCursor(), m.getCoordinates().replace(), parameters.toArray());
                     }
