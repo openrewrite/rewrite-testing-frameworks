@@ -59,7 +59,7 @@ class RemoveDuplicateContentTypeStubHeaderTest implements RewriteTest {
                 "response": {
                   "status": 200,
                   "headers": {
-                    "Content-Type": [ "application/json" ]
+                    "Content-Type": "application/json"
                   },
                   "body": "{}"
                 }
@@ -92,9 +92,7 @@ class RemoveDuplicateContentTypeStubHeaderTest implements RewriteTest {
               {
                 "response": {
                   "headers": {
-                    "Content-Type": [
-                      "application/json"
-                    ]
+                    "Content-Type": "application/json"
                   }
                 }
               }
@@ -122,7 +120,7 @@ class RemoveDuplicateContentTypeStubHeaderTest implements RewriteTest {
               {
                 "response": {
                   "headers": {
-                    "content-type": [ "application/json" ]
+                    "content-type": "application/json"
                   }
                 }
               }

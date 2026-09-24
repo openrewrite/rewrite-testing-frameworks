@@ -30,7 +30,6 @@ import org.openrewrite.json.tree.JsonValue;
 import java.util.Iterator;
 import java.util.List;
 
-import static java.util.Collections.singletonList;
 
 public class RemoveDuplicateContentTypeStubHeader extends Recipe {
 
@@ -73,10 +72,9 @@ public class RemoveDuplicateContentTypeStubHeader extends Recipe {
                         return m;
                     }
                 }
-                // Collapse to the single value WireMock 3 served, keeping the array's own formatting
+                // WireMock reads a bare string as a single valued header, so drop the now pointless array
                 JsonValue last = entries.get(entries.size() - 1);
-                return m.withValue(values.withValues(singletonList(
-                        last.withPrefix(entries.get(0).getPrefix()))));
+                return m.withValue(last.withPrefix(values.getPrefix()));
             }
 
             /**

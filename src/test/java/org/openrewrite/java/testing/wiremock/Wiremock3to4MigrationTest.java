@@ -670,7 +670,7 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                   "response": {
                     "status": 200,
                     "headers": {
-                      "Content-Type": [ "application/json" ]
+                      "Content-Type": "application/json"
                     }
                   }
                 }
