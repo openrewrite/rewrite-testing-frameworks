@@ -79,50 +79,6 @@ recipeList:
       artifactId: jetty-ee10-webapp
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.ee10.webapp.*
-  - org.openrewrite.java.testing.wiremock.MigrateWiremockRepackagedTypes
-  - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
-  - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
-  - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
-  - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
-  - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: com.github.tomakehurst.wiremock.stubbing.StubMapping getUuid()
-      newMethodName: getId
-  # `value()` widened its return type to `Object` in 4.x; `getName()` still answers a `String`
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
-      newMethodName: getName
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
-displayName: Keep a single `Content-Type` response header while still on WireMock 3
-description: >-
-  Collapse duplicate `Content-Type` response headers in both stub files and the Java DSL, but only where the
-  module still depends on WireMock 3.x. Jetty 11 already served a single value there, so dropping the rest
-  changes nothing; against 4.x the extra values really do reach the client, and removing them would.
-tags:
-  - testing
-  - wiremock
-preconditions:
-  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
-      groupIdPattern: org.wiremock
-      artifactIdPattern: wiremock*
-      version: 3.x
-recipeList:
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.wiremock.MigrateWiremockRepackagedTypes
-displayName: Migrate WireMock types repackaged in 4.x
-description: >-
-  WireMock 4 moved the Jetty, servlet and Apache HTTP client integration classes into new packages, and
-  dropped the Jetty version number from the package names, so that `jetty11` and `jetty12` both became
-  `jetty`.
-tags:
-  - testing
-  - wiremock
-recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.github.tomakehurst.wiremock.jetty11.CertificateGeneratingSslContextFactory
       newFullyQualifiedTypeName: com.github.tomakehurst.wiremock.jetty.ssl.CertificateGeneratingSslContextFactory
@@ -263,3 +219,34 @@ recipeList:
       oldFullyQualifiedTypeName: com.github.tomakehurst.wiremock.http.MimeType
       newFullyQualifiedTypeName: com.github.tomakehurst.wiremock.common.entity.MimeType
       ignoreDefinition: true
+  - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
+  - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
+  - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
+  - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
+  - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.github.tomakehurst.wiremock.stubbing.StubMapping getUuid()
+      newMethodName: getId
+  # `value()` widened its return type to `Object` in 4.x; `getName()` still answers a `String`
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
+      newMethodName: getName
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
+displayName: Keep a single `Content-Type` response header while still on WireMock 3
+description: >-
+  Collapse duplicate `Content-Type` response headers in both stub files and the Java DSL, but only where the
+  module still depends on WireMock 3.x. Jetty 11 already served a single value there, so dropping the rest
+  changes nothing; against 4.x the extra values really do reach the client, and removing them would.
+tags:
+  - testing
+  - wiremock
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.wiremock
+      artifactIdPattern: wiremock*
+      version: 3.x
+recipeList:
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
