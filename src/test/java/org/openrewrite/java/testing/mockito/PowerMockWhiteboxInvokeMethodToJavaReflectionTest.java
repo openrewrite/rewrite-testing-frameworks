@@ -374,4 +374,58 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void invokeMethodNestedInExpression() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String greet(String name) {
+                      return "Hello " + name;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = spy(new MyService());
+                      check(Whitebox.invokeMethod(service, "greet", "World"));
+                  }
+
+                  <T> T spy(T t) {
+                      return t;
+                  }
+
+                  void check(String value) {
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = spy(new MyService());
+                      Method greetMethod = MyService.class.getDeclaredMethod("greet", String.class);
+                      greetMethod.setAccessible(true);
+                      check((String) greetMethod.invoke(service, "World"));
+                  }
+
+                  <T> T spy(T t) {
+                      return t;
+                  }
+
+                  void check(String value) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

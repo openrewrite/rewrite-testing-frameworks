@@ -45,7 +45,9 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
     final String description = "Replace `Whitebox.invokeMethod(Object, String, ..)` with `java.lang.reflect.Method` " +
             "lookup and `invoke()`. The method is looked up on the class declaring the unambiguously resolved target " +
             "method, which also covers Mockito spies and mocks, and its parameter types are taken from that method, " +
-            "falling back to the target's runtime class and each argument's compile-time class.";
+            "falling back to the target's runtime class and each argument's compile-time class. A call nested in a " +
+            "larger expression is replaced by `method.invoke(target, ..)`, with the `Method` declared before the " +
+            "enclosing statement.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -115,6 +117,38 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
             sb.append(");");
 
             return sb.toString();
+        }
+
+        @Override
+        @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
+            JavaType.Method resolvedMethod = resolve(mi);
+            JavaType.FullyQualified owner = lookupOwner(mi, resolvedMethod);
+            if (resolvedMethod == null || owner == null) {
+                return null;
+            }
+            List<Expression> args = mi.getArguments();
+            String varName = generateVariableName(extractStringLiteral(args.get(1)) + "Method", scope, INCREMENT_NUMBER);
+            StringBuilder declaration = new StringBuilder("Method ").append(varName)
+                    .append(" = #{any(java.lang.Class)}.getDeclaredMethod(#{any(java.lang.String)}");
+            for (JavaType parameterType : resolvedMethod.getParameterTypes()) {
+                String literal = classLiteralFromType(parameterType);
+                if (literal == null) {
+                    return null;
+                }
+                declaration.append(", ").append(literal);
+            }
+            declaration.append(");\n").append(varName).append(".setAccessible(true);");
+            StringBuilder expression = new StringBuilder(castPrefix(mi))
+                    .append("#{any(java.lang.reflect.Method)}.invoke(#{any(java.lang.Object)}");
+            List<Object> expressionArgs = new ArrayList<>();
+            expressionArgs.add(args.get(0));
+            for (int i = 2; i < args.size(); i++) {
+                expression.append(", #{any(java.lang.Object)}");
+                expressionArgs.add(args.get(i));
+            }
+            expression.append(")");
+            return new Hoisted(varName, declaration.toString(), new Object[]{classLiteral(owner), args.get(1)},
+                    expression.toString(), expressionArgs.toArray());
         }
 
         @Override
