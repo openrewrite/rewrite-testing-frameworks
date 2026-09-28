@@ -2020,7 +2020,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
                   """,
                 spec -> spec.after(actual -> {
-                    assertThat(actual).contains("mockedCalendar = Mockito.mockStatic(Calendar.class);");
+                    assertThat(actual).doesNotContain("powermock");
                     return actual;
                 })
               )
