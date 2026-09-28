@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -501,4 +502,214 @@ class Mockito1to3MigrationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1115")
+    @Test
+    void handlesAnyXOfFromMockitoWildCardImport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(anyVararg(), anyString(), anyListOf(String.class))).thenReturn(false);
+                      when(subject.someMethod(anySetOf(String.class), anyString(), anyListOf(String.class))).thenReturn(false);
+                      when(subject.someMethod(anyMapOf(String.class, Integer.class), anyString(), anyListOf(String.class))).thenReturn(false);
+                      when(subject.someMethod(anyCollectionOf(String.class), anyString(), anyListOf(String.class))).thenReturn(false);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(any(), anyString(), anyList())).thenReturn(false);
+                      when(subject.someMethod(anySet(), anyString(), anyList())).thenReturn(false);
+                      when(subject.someMethod(anyMap(), anyString(), anyList())).thenReturn(false);
+                      when(subject.someMethod(anyCollection(), anyString(), anyList())).thenReturn(false);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1115")
+    @Test
+    void handlesAnyXOfFromBDDMockitoWildCardImport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.mockito.BDDMockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      given(subject.someMethod(anyVararg(), anyString(), anyListOf(String.class))).willReturn(false);
+                      given(subject.someMethod(anySetOf(String.class), anyString(), anyListOf(String.class))).willReturn(false);
+                      given(subject.someMethod(anyMapOf(String.class, Integer.class), anyString(), anyListOf(String.class))).willReturn(false);
+                      given(subject.someMethod(anyCollectionOf(String.class), anyString(), anyListOf(String.class))).willReturn(false);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.BDDMockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      given(subject.someMethod(any(), anyString(), anyList())).willReturn(false);
+                      given(subject.someMethod(anySet(), anyString(), anyList())).willReturn(false);
+                      given(subject.someMethod(anyMap(), anyString(), anyList())).willReturn(false);
+                      given(subject.someMethod(anyCollection(), anyString(), anyList())).willReturn(false);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1115")
+    @Test
+    void handlesAnyXOfFromMockitoSingleStaticImport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.mockito.Mockito.anyListOf;
+              import static org.mockito.Mockito.anyString;
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(null, anyString(), anyListOf(String.class))).thenReturn(false);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.anyList;
+              import static org.mockito.Mockito.anyString;
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.when;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(null, anyString(), anyList())).thenReturn(false);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1115")
+    @Test
+    void keepsOtherImportsWhenExpandingMockitoWildCardImport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      String s = anyString();
+                      List<String> l = anyListOf(String.class);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.mockito.Mockito.anyList;
+              import static org.mockito.Mockito.anyString;
+
+              class MyTest {
+                  void test() {
+                      String s = anyString();
+                      List<String> l = anyList();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1115")
+    @Test
+    void removesClassArgumentFromNullMatchersFromMockitoWildCardImport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(isNull(String.class), anyString(), notNull(List.class))).thenReturn(false);
+                      verify(subject, never()).someMethod(any(), anyString(), anyList());
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(isNull(), anyString(), notNull())).thenReturn(false);
+                      verify(subject, never()).someMethod(any(), anyString(), anyList());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1115")
+    @Test
+    void handlesAnyIterableOfFromMockitoWildCardImport() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3.12")),
+          //language=java
+          java(
+            """
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      Iterable<String> i = anyIterableOf(String.class);
+                      verify(mock(Object.class), never()).toString();
+                      when(anyString()).thenReturn(null);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      Iterable<String> i = anyIterable();
+                      verify(mock(Object.class), never()).toString();
+                      when(anyString()).thenReturn(null);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
