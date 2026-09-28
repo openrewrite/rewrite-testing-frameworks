@@ -320,4 +320,58 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void methodDeclaredInSuperclassIsLookedUpOnDeclaringClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.base;
+
+              public class BaseService {
+                  private String compute() { return "result"; }
+              }
+              """
+          ),
+          java(
+            """
+              package com.app;
+
+              public class MyService extends com.base.BaseService {
+              }
+              """
+          ),
+          java(
+            """
+              package com.app;
+
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testInvoke() {
+                      MyService service = new MyService();
+                      String result = Whitebox.invokeMethod(service, "compute");
+                  }
+              }
+              """,
+            """
+              package com.app;
+
+              import com.base.BaseService;
+
+              import java.lang.reflect.Method;
+
+              class MyServiceTest {
+                  void testInvoke() throws Exception {
+                      MyService service = new MyService();
+                      Method computeMethod = BaseService.class.getDeclaredMethod("compute");
+                      computeMethod.setAccessible(true);
+                      String result = (String) computeMethod.invoke(service);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -87,13 +87,7 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
                 // whereClass, fieldName, target, value
                 return new Object[]{args.get(3), args.get(1), args.get(0), args.get(2)};
             }
-            JavaType.FullyQualified owner = lookupOwner(mi, resolvedMethod);
-            if (owner != null) {
-                // owner, fieldName, target, value
-                return new Object[]{classLiteral(owner), args.get(1), args.get(0), args.get(2)};
-            }
-            // target, fieldName, target, value
-            return new Object[]{args.get(0), args.get(1), args.get(0), args.get(2)};
+            return new Object[]{lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)), args.get(1), args.get(0), args.get(2)};
         }
     }
 }

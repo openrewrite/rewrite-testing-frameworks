@@ -84,9 +84,8 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
 
             // getDeclaredMethod line
             StringBuilder sb = new StringBuilder();
-            JavaType.FullyQualified owner = lookupOwner(mi, resolvedMethod);
             sb.append("Method ").append(varName).append(" = ")
-                    .append(owner == null ? "#{any(java.lang.Object)}.getClass()" : "#{any(java.lang.Class)}")
+                    .append(lookupReceiverTemplate(lookupOwner(mi, resolvedMethod)))
                     .append(".getDeclaredMethod(#{any(java.lang.String)}");
             for (int i = 2; i < args.size(); i++) {
                 String classLiteral = getParamClassLiteral(args, i, resolvedMethod);
@@ -122,8 +121,7 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
             List<Object> result = new ArrayList<>();
-            JavaType.FullyQualified owner = lookupOwner(mi, resolvedMethod);
-            result.add(owner == null ? args.get(0) : classLiteral(owner)); // receiver of getDeclaredMethod
+            result.add(lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)));
             result.add(args.get(1)); // methodName
             for (int i = 2; i < args.size(); i++) {
                 if (getParamClassLiteral(args, i, resolvedMethod) == null) {

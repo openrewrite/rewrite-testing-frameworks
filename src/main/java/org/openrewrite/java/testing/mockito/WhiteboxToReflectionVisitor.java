@@ -139,8 +139,12 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         if (type.getFlags().contains(Flag.Private) || type.getClassName().contains("$")) {
             return false;
         }
+        JavaType.FullyQualified owningClass = type.getOwningClass();
+        if (owningClass != null && !isAccessible(owningClass)) {
+            return false;
+        }
         if (type.getFlags().contains(Flag.Public)) {
-            return type.getOwningClass() == null || isAccessible(type.getOwningClass());
+            return true;
         }
         JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
         if (sourceFile == null) {
@@ -148,6 +152,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         J.Package pkg = sourceFile.getPackageDeclaration();
         return type.getPackageName().equals(pkg == null ? "" : pkg.getPackageName());
+    }
+
+    String lookupReceiverTemplate(JavaType.@Nullable FullyQualified owner) {
+        return owner == null ? "#{any(java.lang.Object)}.getClass()" : "#{any(java.lang.Class)}";
+    }
+
+    Object lookupReceiverArg(Expression target, JavaType.@Nullable FullyQualified owner) {
+        return owner == null ? target : classLiteral(owner);
     }
 
     /**
@@ -235,7 +247,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 b = JavaTemplate.builder(template)
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion())
-                        .imports(templateImports(mi, resolvedMethod).toArray(new String[0]))
+                        .imports(templateImports(resolvedMethod).toArray(new String[0]))
                         .build()
                         .apply(
                                 new Cursor(getCursor().getParentOrThrow(), b),
@@ -262,14 +274,10 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
     }
 
-    private List<String> templateImports(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+    private List<String> templateImports(JavaType.@Nullable Method resolvedMethod) {
         List<String> imports = new ArrayList<>();
         imports.add(reflectiveImport);
         imports.addAll(resolvedParamImports(resolvedMethod));
-        String ownerImport = topLevelImport(lookupOwner(mi, resolvedMethod));
-        if (ownerImport != null) {
-            imports.add(ownerImport);
-        }
         return imports;
     }
 
@@ -327,8 +335,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     // `Field <var> = <Owner>.class.getDeclaredField(<name>); <var>.setAccessible(true);`, falling back to
     // `<target>.getClass()` as the owner when it is unknown — shared by the get/set field variants.
     String fieldLookupPrefix(String varName, JavaType.@Nullable FullyQualified owner) {
-        return "Field " + varName + " = " + (owner == null ? "#{any(java.lang.Object)}.getClass()" : "#{any(java.lang.Class)}") +
-                ".getDeclaredField(#{any(java.lang.String)});\n" +
+        return "Field " + varName + " = " + lookupReceiverTemplate(owner) + ".getDeclaredField(#{any(java.lang.String)});\n" +
                 varName + ".setAccessible(true);\n";
     }
 
