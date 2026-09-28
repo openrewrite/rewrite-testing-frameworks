@@ -1869,7 +1869,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               class MyServiceTest {
                   void test() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "value");
                       MyService other = /* PowerMock `Whitebox` call could not be automatically migrated to reflection; migrate manually */ Whitebox.newInstance(MyService.class);

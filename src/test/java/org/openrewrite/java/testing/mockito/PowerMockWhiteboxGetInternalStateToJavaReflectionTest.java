@@ -66,7 +66,7 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testGetField() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       String result = (String) nameField.get(service);
                   }
@@ -104,9 +104,98 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void test() throws Exception {
                       MyService service = new MyService();
-                      Field countField = service.getClass().getDeclaredField("count");
+                      Field countField = MyService.class.getDeclaredField("count");
                       countField.setAccessible(true);
                       int count = (Integer) countField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldDeclaredInSuperclassIsLookedUpOnDeclaringClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class BaseService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              class MyService extends BaseService {
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      MyService service = new MyService();
+                      String result = Whitebox.getInternalState(service, "name");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testGetField() throws Exception {
+                      MyService service = new MyService();
+                      Field nameField = BaseService.class.getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      String result = (String) nameField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldDeclaredInClassNestedInPrivateClassFallsBackToRuntimeClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Outer {
+                  private static class Hidden {
+                      static class Base {
+                          private String name = "hello";
+                      }
+                  }
+
+                  static class MyService extends Hidden.Base {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      Outer.MyService service = new Outer.MyService();
+                      String result = Whitebox.getInternalState(service, "name");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testGetField() throws Exception {
+                      Outer.MyService service = new Outer.MyService();
+                      Field nameField = service.getClass().getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      String result = (String) nameField.get(service);
                   }
               }
               """

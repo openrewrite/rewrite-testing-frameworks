@@ -66,7 +66,7 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
               class MyServiceTest {
                   void testInvoke() throws Exception {
                       MyService service = new MyService();
-                      Method computeMethod = service.getClass().getDeclaredMethod("compute");
+                      Method computeMethod = MyService.class.getDeclaredMethod("compute");
                       computeMethod.setAccessible(true);
                       String result = (String) computeMethod.invoke(service);
                   }
@@ -104,7 +104,7 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
               class MyServiceTest {
                   void testInvokeWithArgs() throws Exception {
                       MyService service = new MyService();
-                      Method greetMethod = service.getClass().getDeclaredMethod("greet", String.class);
+                      Method greetMethod = MyService.class.getDeclaredMethod("greet", String.class);
                       greetMethod.setAccessible(true);
                       String result = (String) greetMethod.invoke(service, "World");
                   }
@@ -142,7 +142,7 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
               class MyServiceTest {
                   void testInvokeWithMultipleArgs() throws Exception {
                       MyService service = new MyService();
-                      Method combineMethod = service.getClass().getDeclaredMethod("combine", String.class, String.class);
+                      Method combineMethod = MyService.class.getDeclaredMethod("combine", String.class, String.class);
                       combineMethod.setAccessible(true);
                       String result = (String) combineMethod.invoke(service, "Hello", "World");
                   }
@@ -180,7 +180,7 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
               class MyServiceTest {
                   void testInvokeWithPrimitive() throws Exception {
                       MyService service = new MyService();
-                      Method doubleItMethod = service.getClass().getDeclaredMethod("doubleIt", int.class);
+                      Method doubleItMethod = MyService.class.getDeclaredMethod("doubleIt", int.class);
                       doubleItMethod.setAccessible(true);
                       doubleItMethod.invoke(service, 5);
                   }
@@ -225,7 +225,7 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
                   void testInvokeWithConcreteArg() throws Exception {
                       MyService service = new MyService();
                       ArrayList<String> items = new ArrayList<>();
-                      Method processMethod = service.getClass().getDeclaredMethod("process", List.class);
+                      Method processMethod = MyService.class.getDeclaredMethod("process", List.class);
                       processMethod.setAccessible(true);
                       String result = (String) processMethod.invoke(service, items);
                   }
@@ -271,7 +271,7 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
                   void testInvokeWithInterfaceArg() throws Exception {
                       MyService service = new MyService();
                       List<String> items = new ArrayList<>();
-                      Method processMethod = service.getClass().getDeclaredMethod("process", List.class);
+                      Method processMethod = MyService.class.getDeclaredMethod("process", List.class);
                       processMethod.setAccessible(true);
                       String result = (String) processMethod.invoke(service, items);
                   }
@@ -311,9 +311,63 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
               class MyServiceTest {
                   void test() throws Exception {
                       MyService service = new MyService();
-                      Method computeMethod = service.getClass().getDeclaredMethod("compute");
+                      Method computeMethod = MyService.class.getDeclaredMethod("compute");
                       computeMethod.setAccessible(true);
                       int r = (Integer) computeMethod.invoke(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void methodDeclaredInSuperclassIsLookedUpOnDeclaringClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.base;
+
+              public class BaseService {
+                  private String compute() { return "result"; }
+              }
+              """
+          ),
+          java(
+            """
+              package com.app;
+
+              public class MyService extends com.base.BaseService {
+              }
+              """
+          ),
+          java(
+            """
+              package com.app;
+
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testInvoke() {
+                      MyService service = new MyService();
+                      String result = Whitebox.invokeMethod(service, "compute");
+                  }
+              }
+              """,
+            """
+              package com.app;
+
+              import com.base.BaseService;
+
+              import java.lang.reflect.Method;
+
+              class MyServiceTest {
+                  void testInvoke() throws Exception {
+                      MyService service = new MyService();
+                      Method computeMethod = BaseService.class.getDeclaredMethod("compute");
+                      computeMethod.setAccessible(true);
+                      String result = (String) computeMethod.invoke(service);
                   }
               }
               """

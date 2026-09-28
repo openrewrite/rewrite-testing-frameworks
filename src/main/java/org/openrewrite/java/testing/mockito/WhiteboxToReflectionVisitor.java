@@ -32,6 +32,7 @@ import org.openrewrite.marker.Markers;
 import java.util.*;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -107,6 +108,92 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     /**
+     * The class declaring the field or method the call reflects on, when it can be statically resolved
+     * and referenced from the test. Reflecting on this class rather than on {@code target.getClass()}
+     * also finds members declared in a superclass, and members of Mockito spies and mocks, whose runtime
+     * class is a generated subclass.
+     */
+    JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+        return null;
+    }
+
+    JavaType.@Nullable FullyQualified fieldOwner(Expression target, @Nullable String fieldName) {
+        if (fieldName == null) {
+            return null;
+        }
+        for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
+             type != null; type = type.getSupertype()) {
+            for (JavaType.Variable member : type.getMembers()) {
+                if (member.getName().equals(fieldName)) {
+                    return isAccessible(type) ? type : null;
+                }
+            }
+        }
+        return null;
+    }
+
+    boolean isAccessible(JavaType.FullyQualified type) {
+        if (type instanceof JavaType.Parameterized) {
+            type = ((JavaType.Parameterized) type).getType();
+        }
+        if (type.getFlags().contains(Flag.Private) || type.getClassName().contains("$")) {
+            return false;
+        }
+        JavaType.FullyQualified owningClass = type.getOwningClass();
+        if (owningClass != null && !isAccessible(owningClass)) {
+            return false;
+        }
+        if (type.getFlags().contains(Flag.Public)) {
+            return true;
+        }
+        JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+        if (sourceFile == null) {
+            return false;
+        }
+        J.Package pkg = sourceFile.getPackageDeclaration();
+        return type.getPackageName().equals(pkg == null ? "" : pkg.getPackageName());
+    }
+
+    String lookupReceiverTemplate(JavaType.@Nullable FullyQualified owner) {
+        return owner == null ? "#{any(java.lang.Object)}.getClass()" : "#{any(java.lang.Class)}";
+    }
+
+    Object lookupReceiverArg(Expression target, JavaType.@Nullable FullyQualified owner) {
+        return owner == null ? target : classLiteral(owner);
+    }
+
+    /**
+     * A type-attributed {@code Owner.class} literal, passed to templates as a parameter because the template
+     * parser does not see types declared in other source files.
+     */
+    static J.FieldAccess classLiteral(JavaType.FullyQualified owner) {
+        JavaType.FullyQualified raw = owner instanceof JavaType.Parameterized ? ((JavaType.Parameterized) owner).getType() : owner;
+        JavaType.Parameterized classType = new JavaType.Parameterized(null, JavaType.ShallowClass.build("java.lang.Class"), singletonList(raw));
+        return new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY, typeReference(raw),
+                JLeftPadded.build(new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "class", classType, null)),
+                classType);
+    }
+
+    private static Expression typeReference(JavaType.FullyQualified type) {
+        String simpleName = type.getClassName().substring(type.getClassName().lastIndexOf('.') + 1);
+        J.Identifier name = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), simpleName, type, null);
+        JavaType.FullyQualified owningClass = type.getOwningClass();
+        return owningClass == null ? name :
+                new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY, typeReference(owningClass), JLeftPadded.build(name), type);
+    }
+
+    private static @Nullable String topLevelImport(JavaType.@Nullable FullyQualified owner) {
+        if (owner == null) {
+            return null;
+        }
+        while (owner.getOwningClass() != null) {
+            owner = owner.getOwningClass();
+        }
+        return "java.lang".equals(owner.getPackageName()) || owner.getPackageName().isEmpty() ?
+                null : owner.getFullyQualifiedName();
+    }
+
+    /**
      * This visitor gated so that only source files calling one of the configured Whitebox methods
      * are traversed.
      */
@@ -167,7 +254,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                                 stmt.getCoordinates().replace(),
                                 buildArgs(mi, resolvedMethod)
                         );
-                recordReplacement(resolvedMethod);
+                recordReplacement(mi, resolvedMethod);
                 // Re-read statements list since the block has been rebuilt
                 statements = b.getStatements();
             }
@@ -176,10 +263,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return b;
     }
 
-    private void recordReplacement(JavaType.@Nullable Method resolvedMethod) {
+    private void recordReplacement(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, WHITEBOX_REPLACED, true);
         for (String paramImport : resolvedParamImports(resolvedMethod)) {
             maybeAddImport(paramImport);
+        }
+        String ownerImport = topLevelImport(lookupOwner(mi, resolvedMethod));
+        if (ownerImport != null) {
+            maybeAddImport(ownerImport);
         }
     }
 
@@ -241,10 +332,10 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return mi.getMethodType() != null && JavaType.Primitive.Void == mi.getMethodType().getReturnType();
     }
 
-    // `Field <var> = <target>.getClass().getDeclaredField(<name>); <var>.setAccessible(true);` —
-    // shared by the get/set field variants.
-    String fieldLookupPrefix(String varName) {
-        return "Field " + varName + " = #{any(java.lang.Object)}.getClass().getDeclaredField(#{any(java.lang.String)});\n" +
+    // `Field <var> = <Owner>.class.getDeclaredField(<name>); <var>.setAccessible(true);`, falling back to
+    // `<target>.getClass()` as the owner when it is unknown — shared by the get/set field variants.
+    String fieldLookupPrefix(String varName, JavaType.@Nullable FullyQualified owner) {
+        return "Field " + varName + " = " + lookupReceiverTemplate(owner) + ".getDeclaredField(#{any(java.lang.String)});\n" +
                 varName + ".setAccessible(true);\n";
     }
 

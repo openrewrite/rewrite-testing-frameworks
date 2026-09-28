@@ -66,7 +66,7 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testSetField() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "expectedValue");
                   }
@@ -194,7 +194,7 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testSetField() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "expectedValue");
                   }
@@ -235,7 +235,7 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
                   void testSetFieldConditionally(boolean condition) throws Exception {
                       MyService service = new MyService();
                       if (condition) {
-                          Field nameField = service.getClass().getDeclaredField("name");
+                          Field nameField = MyService.class.getDeclaredField("name");
                           nameField.setAccessible(true);
                           nameField.set(service, "expectedValue");
                       }
@@ -277,10 +277,10 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
                   void testSetFieldTwice() throws Exception {
                       MyService svc1 = new MyService();
                       MyService svc2 = new MyService();
-                      Field nameField1 = svc1.getClass().getDeclaredField("name");
+                      Field nameField1 = MyService.class.getDeclaredField("name");
                       nameField1.setAccessible(true);
                       nameField1.set(svc1, "first");
-                      Field nameField = svc2.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(svc2, "second");
                   }
@@ -318,7 +318,7 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testSetField() throws Throwable {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "expectedValue");
                   }

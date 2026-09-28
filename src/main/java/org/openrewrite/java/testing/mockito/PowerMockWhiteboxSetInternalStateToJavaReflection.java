@@ -44,8 +44,9 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
     @Getter
     final String description = "Replace `Whitebox.setInternalState(Object, String, Object)` and " +
             "`Whitebox.setInternalState(Object, String, Object, Class)` with `java.lang.reflect.Field` access. " +
-            "The 3-arg overload looks up the field on the target's class; the 4-arg where-overload uses the " +
-            "supplied Class to resolve fields declared on a superclass.";
+            "The 3-arg overload looks up the field on the class declaring it, found through the target's declared " +
+            "type and its superclasses, falling back to the target's runtime class; the 4-arg where-overload uses " +
+            "the supplied Class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -68,9 +69,15 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
             String prefix = mi.getArguments().size() == 4 ?
                     fieldLookupPrefixWhere(varName) :
-                    fieldLookupPrefix(varName);
+                    fieldLookupPrefix(varName, lookupOwner(mi, resolvedMethod));
             return prefix +
                     varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
+        }
+
+        @Override
+        JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+            return mi.getArguments().size() == 4 ? null :
+                    fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
         }
 
         @Override
@@ -80,8 +87,12 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
                 // whereClass, fieldName, target, value
                 return new Object[]{args.get(3), args.get(1), args.get(0), args.get(2)};
             }
-            // target, fieldName, target, value
-            return new Object[]{args.get(0), args.get(1), args.get(0), args.get(2)};
+            return new Object[]{
+                    lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)),
+                    args.get(1),
+                    args.get(0),
+                    args.get(2)
+            };
         }
     }
 }
