@@ -140,6 +140,11 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
                             }
                             J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
+                            if (staticMockedVariable != null && throwsCheckedException(whenArg)) {
+                                // `when` stubs the active static mock as well, and a lambda would leave the
+                                // enclosing handling of the checked exception unreachable
+                                return statement;
+                            }
                             if (staticMockedVariable != null) {
                                 Object name = nameForReuse(block, invokedType.getClassName(), staticMockedVariable);
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
@@ -150,6 +155,20 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     }
                     return statement;
                 });
+            }
+
+            private boolean throwsCheckedException(J.MethodInvocation invocation) {
+                JavaType.Method method = invocation.getMethodType();
+                if (method == null) {
+                    return false;
+                }
+                for (JavaType thrown : method.getThrownExceptions()) {
+                    if (!TypeUtils.isAssignableTo("java.lang.RuntimeException", thrown) &&
+                        !TypeUtils.isAssignableTo("java.lang.Error", thrown)) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             private J.Try tryWithMockedStatic(J.Block block, List<Statement> statements, Integer index,
