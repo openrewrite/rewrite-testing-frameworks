@@ -82,7 +82,11 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
-            return new Object[]{lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)), args.get(1), args.get(0)};
+            return new Object[]{
+                    lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)),
+                    args.get(1),
+                    args.get(0)
+            };
         }
     }
 }
