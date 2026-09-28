@@ -43,7 +43,9 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
     final String description = "Replace `Whitebox.getInternalState(Object, String)` with `java.lang.reflect.Field` " +
             "access, casting to the declared result type where needed. The field is looked up on the class " +
             "declaring it, found through the target's declared type and its superclasses, which also covers Mockito " +
-            "spies and mocks; when that class cannot be determined, the target's runtime class is used.";
+            "spies and mocks; when that class cannot be determined, the target's runtime class is used. A call nested " +
+            "in a larger expression is replaced by `field.get(target)`, with the `Field` declared before the " +
+            "enclosing statement.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -77,6 +79,17 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         @Override
         JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             return fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
+        }
+
+        @Override
+        @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
+            JavaType.FullyQualified owner = lookupOwner(mi, null);
+            if (owner == null) {
+                return null;
+            }
+            String varName = fieldVarName(mi.getArguments().get(1), scope);
+            return new Hoisted(mi, varName, fieldLookupPrefix(varName, owner),
+                    castPrefix(mi) + "#{any(java.lang.reflect.Field)}.get(#{any(java.lang.Object)})");
         }
 
         @Override

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
@@ -24,15 +25,18 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -66,6 +70,9 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private final String reflectiveImport;
     private final List<MethodMatcher> matchers;
+
+    private @Nullable JavaSourceFile stringConstantsSource;
+    private List<J.VariableDeclarations.NamedVariable> stringConstants = emptyList();
 
     WhiteboxToReflectionVisitor(String reflectiveImport, MethodMatcher... matchers) {
         this.reflectiveImport = reflectiveImport;
@@ -244,23 +251,157 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             JavaType.Method resolvedMethod = resolve(mi);
             String template = buildTemplate(mi, sinkFromStatement(stmt), blockCursor, resolvedMethod);
             if (template != null) {
-                b = JavaTemplate.builder(template)
-                        .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion())
-                        .imports(templateImports(resolvedMethod).toArray(new String[0]))
-                        .build()
-                        .apply(
-                                new Cursor(getCursor().getParentOrThrow(), b),
-                                stmt.getCoordinates().replace(),
-                                buildArgs(mi, resolvedMethod)
-                        );
+                b = reflectionTemplate(template, resolvedMethod)
+                        .apply(blockCursor, stmt.getCoordinates().replace(), buildArgs(mi, resolvedMethod));
                 recordReplacement(mi, resolvedMethod);
                 // Re-read statements list since the block has been rebuilt
                 statements = b.getStatements();
             }
         }
 
+        return hoistNestedCalls(b, ctx);
+    }
+
+    /**
+     * For a value-returning call nested in a larger expression: the declaration of the reflective
+     * {@code Field} or {@code Method} named {@code varName} to insert before the enclosing statement, taking
+     * the owner's class literal and the member name, and the expression that replaces the call, taking the
+     * declared {@code Field} or {@code Method}, the target and the remaining arguments.
+     */
+    @RequiredArgsConstructor
+    static final class Hoisted {
+        final J.MethodInvocation call;
+        final String varName;
+        final String declaration;
+        final String expression;
+    }
+
+    /**
+     * How to migrate the call when it is nested in a larger expression, or null when the family does
+     * not support that or the declaring class of the member cannot be determined. The declaration then
+     * only refers to class literals, so it can be moved in front of the enclosing statement.
+     */
+    @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
+        return null;
+    }
+
+    String castPrefix(J.MethodInvocation mi) {
+        JavaType returnType = mi.getMethodType() == null ? null : mi.getMethodType().getReturnType();
+        if (returnType instanceof JavaType.Parameterized) {
+            returnType = ((JavaType.Parameterized) returnType).getType();
+        }
+        String castType = returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown ?
+                null : getCastType(returnType);
+        if (!isNonObjectCast(castType)) {
+            return "";
+        }
+        String typeImport = topLevelImport(TypeUtils.asFullyQualified(returnType));
+        if (typeImport != null) {
+            maybeAddImport(typeImport);
+        }
+        return "(" + boxedCastType(castType) + ") ";
+    }
+
+    private J.Block hoistNestedCalls(J.Block block, ExecutionContext ctx) {
+        J.Block b = block;
+        for (int i = b.getStatements().size() - 1; i >= 0; i--) {
+            UUID statementId = b.getStatements().get(i).getId();
+            while (true) {
+                Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
+                Statement statement = findStatement(b, statementId);
+                Hoisted hoisted = firstHoistable(statement, blockCursor);
+                if (hoisted == null) {
+                    break;
+                }
+                J.MethodInvocation nested = hoisted.call;
+                List<Expression> args = nested.getArguments();
+                JavaType.Method resolvedMethod = resolve(nested);
+                b = reflectionTemplate(hoisted.declaration, resolvedMethod).apply(blockCursor,
+                        statement.getCoordinates().before(),
+                        classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))), args.get(1));
+                // Passed as a parameter because the template parser does not attribute a local it has just inserted.
+                List<Expression> expressionArgs = new ArrayList<>();
+                expressionArgs.add(declaredVariable(b, hoisted.varName));
+                expressionArgs.add(args.get(0));
+                expressionArgs.addAll(args.subList(2, args.size()));
+                b = (J.Block) new JavaVisitor<ExecutionContext>() {
+                    @Override
+                    public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                        if (method.getId().equals(nested.getId())) {
+                            return reflectionTemplate(hoisted.expression, resolvedMethod)
+                                    .apply(getCursor(), method.getCoordinates().replace(), expressionArgs.toArray());
+                        }
+                        return super.visitMethodInvocation(method, ctx);
+                    }
+                }.visitNonNull(b, ctx, getCursor().getParentOrThrow());
+                recordReplacement(nested, resolvedMethod);
+            }
+        }
         return b;
+    }
+
+    private JavaTemplate reflectionTemplate(String code, JavaType.@Nullable Method resolvedMethod) {
+        return JavaTemplate.builder(code)
+                .contextSensitive()
+                .javaParser(JavaParser.fromJavaVersion())
+                .imports(templateImports(resolvedMethod).toArray(new String[0]))
+                .build();
+    }
+
+    private static Statement findStatement(J.Block block, UUID id) {
+        for (Statement statement : block.getStatements()) {
+            if (statement.getId().equals(id)) {
+                return statement;
+            }
+        }
+        throw new IllegalStateException("Statement not found");
+    }
+
+    private static J.Identifier declaredVariable(J.Block block, String name) {
+        for (Statement statement : block.getStatements()) {
+            if (statement instanceof J.VariableDeclarations) {
+                for (J.VariableDeclarations.NamedVariable variable : ((J.VariableDeclarations) statement).getVariables()) {
+                    if (variable.getSimpleName().equals(name)) {
+                        return variable.getName().withId(randomId()).withPrefix(Space.EMPTY);
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("Variable " + name + " not found");
+    }
+
+    private @Nullable Hoisted firstHoistable(Statement statement, Cursor blockCursor) {
+        return new JavaIsoVisitor<AtomicReference<@Nullable Hoisted>>() {
+            @Override
+            public J.Block visitBlock(J.Block block, AtomicReference<@Nullable Hoisted> found) {
+                // Nested blocks were already handled when the outer visitor visited them.
+                return block;
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicReference<@Nullable Hoisted> found) {
+                if (found.get() != null) {
+                    return method;
+                }
+                J.MethodInvocation mi = super.visitMethodInvocation(method, found);
+                if (found.get() == null && matches(mi) && isOutsideLambdaAndAnonymousClass(getCursor())) {
+                    found.set(hoist(mi, blockCursor));
+                }
+                return mi;
+            }
+        }.reduce(statement, new AtomicReference<>(), blockCursor).get();
+    }
+
+    // Checked reflection exceptions cannot propagate out of a lambda or anonymous class body.
+    private static boolean isOutsideLambdaAndAnonymousClass(Cursor cursor) {
+        for (Cursor c = cursor.getParentTreeCursor(); !(c.getValue() instanceof J.MethodDeclaration); c = c.getParentTreeCursor()) {
+            Object value = c.getValue();
+            if (value instanceof J.Lambda || value instanceof J.NewClass || value instanceof J.ClassDeclaration ||
+                value instanceof JavaSourceFile) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void recordReplacement(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
@@ -351,11 +492,49 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return castType != null && !"Object".equals(castType) && !"java.lang.Object".equals(castType);
     }
 
+    /**
+     * The value of a String literal, or of a {@code static final} String constant initialized with a
+     * literal in the same source file, as tests commonly name the fields and methods they reflect on.
+     */
     @Nullable String extractStringLiteral(Expression expr) {
-        if (expr instanceof J.Literal && ((J.Literal) expr).getValue() instanceof String) {
-            return (String) ((J.Literal) expr).getValue();
+        if (expr instanceof J.Literal) {
+            Object value = ((J.Literal) expr).getValue();
+            return value instanceof String ? (String) value : null;
+        }
+        JavaType.Variable constant = expr instanceof J.Identifier ? ((J.Identifier) expr).getFieldType() :
+                expr instanceof J.FieldAccess ? ((J.FieldAccess) expr).getName().getFieldType() : null;
+        if (constant == null || !constant.hasFlags(Flag.Static, Flag.Final)) {
+            return null;
+        }
+        for (J.VariableDeclarations.NamedVariable variable : stringConstants()) {
+            if (constant.equals(variable.getVariableType())) {
+                return (String) ((J.Literal) requireNonNull(variable.getInitializer())).getValue();
+            }
         }
         return null;
+    }
+
+    // A list rather than a map keyed by JavaType.Variable, which overrides equals but not hashCode.
+    private List<J.VariableDeclarations.NamedVariable> stringConstants() {
+        JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+        if (sourceFile == null) {
+            return emptyList();
+        }
+        if (sourceFile != stringConstantsSource) {
+            stringConstantsSource = sourceFile;
+            stringConstants = new JavaIsoVisitor<List<J.VariableDeclarations.NamedVariable>>() {
+                @Override
+                public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable,
+                                                                          List<J.VariableDeclarations.NamedVariable> constants) {
+                    if (variable.getInitializer() instanceof J.Literal &&
+                        ((J.Literal) variable.getInitializer()).getValue() instanceof String) {
+                        constants.add(variable);
+                    }
+                    return variable;
+                }
+            }.reduce(sourceFile, new ArrayList<>());
+        }
+        return stringConstants;
     }
 
     @Nullable String getCastType(@Nullable JavaType type) {

@@ -45,7 +45,9 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
     final String description = "Replace `Whitebox.invokeMethod(Object, String, ..)` with `java.lang.reflect.Method` " +
             "lookup and `invoke()`. The method is looked up on the class declaring the unambiguously resolved target " +
             "method, which also covers Mockito spies and mocks, and its parameter types are taken from that method, " +
-            "falling back to the target's runtime class and each argument's compile-time class.";
+            "falling back to the target's runtime class and each argument's compile-time class. A call nested in a " +
+            "larger expression is replaced by `method.invoke(target, ..)`, with the `Method` declared before the " +
+            "enclosing statement.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -81,26 +83,13 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
                 return null;
             }
             String varName = generateVariableName(methodName + "Method", scope, INCREMENT_NUMBER);
-
-            // getDeclaredMethod line
-            StringBuilder sb = new StringBuilder();
-            sb.append("Method ").append(varName).append(" = ")
-                    .append(lookupReceiverTemplate(lookupOwner(mi, resolvedMethod)))
-                    .append(".getDeclaredMethod(#{any(java.lang.String)}");
+            List<String> parameterTypes = new ArrayList<>();
             for (int i = 2; i < args.size(); i++) {
                 String classLiteral = getParamClassLiteral(args, i, resolvedMethod);
-                if (classLiteral != null) {
-                    sb.append(", ").append(classLiteral);
-                } else {
-                    sb.append(", #{any(java.lang.Object)}.getClass()");
-                }
+                parameterTypes.add(classLiteral != null ? classLiteral : "#{any(java.lang.Object)}.getClass()");
             }
-            sb.append(");\n");
-
-            // setAccessible line
-            sb.append(varName).append(".setAccessible(true);\n");
-
-            // invoke line
+            StringBuilder sb = new StringBuilder(methodLookupPrefix(varName,
+                    lookupReceiverTemplate(lookupOwner(mi, resolvedMethod)), parameterTypes));
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
                     sb.append(sink.castType).append(" ").append(sink.varName).append(" = (").append(boxedCastType(sink.castType)).append(") ");
@@ -108,13 +97,44 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
                     sb.append("Object ").append(sink.varName).append(" = ");
                 }
             }
-            sb.append(varName).append(".invoke(#{any(java.lang.Object)}");
-            for (int i = 2; i < args.size(); i++) {
+            return sb.append(invocation(varName, args.size() - 2)).append(";").toString();
+        }
+
+        @Override
+        @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
+            JavaType.Method resolvedMethod = resolve(mi);
+            JavaType.FullyQualified owner = lookupOwner(mi, resolvedMethod);
+            if (resolvedMethod == null || owner == null) {
+                return null;
+            }
+            List<String> parameterTypes = new ArrayList<>();
+            for (JavaType parameterType : resolvedMethod.getParameterTypes()) {
+                String literal = classLiteralFromType(parameterType);
+                if (literal == null) {
+                    return null;
+                }
+                parameterTypes.add(literal);
+            }
+            String varName = methodVarName(mi.getArguments().get(1), scope);
+            return new Hoisted(mi, varName, methodLookupPrefix(varName, lookupReceiverTemplate(owner), parameterTypes),
+                    castPrefix(mi) + invocation("#{any(java.lang.reflect.Method)}", parameterTypes.size()));
+        }
+
+        private String methodLookupPrefix(String varName, String receiver, List<String> parameterTypes) {
+            StringBuilder sb = new StringBuilder("Method ").append(varName).append(" = ").append(receiver)
+                    .append(".getDeclaredMethod(#{any(java.lang.String)}");
+            for (String parameterType : parameterTypes) {
+                sb.append(", ").append(parameterType);
+            }
+            return sb.append(");\n").append(varName).append(".setAccessible(true);\n").toString();
+        }
+
+        private String invocation(String method, int argCount) {
+            StringBuilder sb = new StringBuilder(method).append(".invoke(#{any(java.lang.Object)}");
+            for (int i = 0; i < argCount; i++) {
                 sb.append(", #{any(java.lang.Object)}");
             }
-            sb.append(");");
-
-            return sb.toString();
+            return sb.append(")").toString();
         }
 
         @Override
