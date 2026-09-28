@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -501,4 +502,39 @@ class Mockito1to3MigrationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1115")
+    @Test
+    void handlesAnyXOfFromMockitoWildCardImport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(anyVararg(), anyString(), anyListOf(String.class))).thenReturn(false);
+                      when(subject.someMethod(anySetOf(String.class), anyString(), anyListOf(String.class))).thenReturn(false);
+                      when(subject.someMethod(anyMapOf(String.class, Integer.class), anyString(), anyListOf(String.class))).thenReturn(false);
+                      when(subject.someMethod(anyCollectionOf(String.class), anyString(), anyListOf(String.class))).thenReturn(false);
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.*;
+
+              class MyTest {
+                  void test() {
+                      A subject = mock(A.class);
+                      when(subject.someMethod(any(), anyString(), anyList())).thenReturn(false);
+                      when(subject.someMethod(anySet(), anyString(), anyList())).thenReturn(false);
+                      when(subject.someMethod(anyMap(), anyString(), anyList())).thenReturn(false);
+                      when(subject.someMethod(anyCollection(), anyString(), anyList())).thenReturn(false);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
