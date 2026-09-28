@@ -683,31 +683,39 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
 
                   public final String otherMethod() {
@@ -764,16 +772,19 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator1> mockedConstructionGenerator1;
+                  private MockedConstruction<Generator2> mockedConstructionGenerator2;
                   static class Generator1 {
                       public int getLuckyNumber() {
                         return 436;
@@ -785,22 +796,33 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator1 != null) {
+                          mockedConstructionGenerator1.closeOnDemand();
+                      }
+                      if (mockedConstructionGenerator2 != null) {
+                          mockedConstructionGenerator2.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator2> mockGenerator2 = Mockito.mockConstruction(Generator2.class)) {
-                          try (MockedConstruction<Generator1> mockGenerator1 = Mockito.mockConstruction(Generator1.class)) {
+                      Generator1 mock1 = mock(Generator1.class);
+                      mockedConstructionGenerator1 = Mockito.mockConstructionWithAnswer(Generator1.class, AdditionalAnswers.delegatesTo(mock1));
 
-                              Generator1 gen1 = new Generator1();
-                              when(gen1.getLuckyNumber()).thenReturn(504);
+                      Generator1 gen1 = new Generator1();
+                      when(gen1.getLuckyNumber()).thenReturn(504);
 
-                              assertEquals(504, gen1.getLuckyNumber());
+                      assertEquals(504, gen1.getLuckyNumber());
 
-                              Generator2 gen2 = new Generator2();
-                              when(gen2.getLuckyNumber()).thenReturn(504);
+                      Generator2 mock2 = mock(Generator2.class);
+                      mockedConstructionGenerator2 = Mockito.mockConstructionWithAnswer(Generator2.class, AdditionalAnswers.delegatesTo(mock2));
 
-                              assertEquals(504, gen2.getLuckyNumber());
-                          }
-                      }
+                      Generator2 gen2 = new Generator2();
+                      when(gen2.getLuckyNumber()).thenReturn(504);
+
+                      assertEquals(504, gen2.getLuckyNumber());
                   }
               }
               """
@@ -841,29 +863,39 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """.replaceAll("METHODCALL", methodCall),
             """
+              import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest2 {
+                  private MockedConstruction<SomeTexts> mockedConstructionSomeTexts;
                   static class SomeTexts {
                       String text;
                       public SomeTexts(String text) { this.text = text; }
                       public String getText() { return text; }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionSomeTexts != null) {
+                          mockedConstructionSomeTexts.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testWords() throws Exception {
-                      try (MockedConstruction<SomeTexts> mockSomeTexts = Mockito.mockConstruction(SomeTexts.class)) {
+                      SomeTexts mock = Mockito.mock(SomeTexts.class);
+                      mockedConstructionSomeTexts = Mockito.mockConstructionWithAnswer(SomeTexts.class, AdditionalAnswers.delegatesTo(mock));
 
-                          SomeTexts st = new SomeTexts("Have a nice day!");
-                          when(st.getText()).thenReturn("overridden");
+                      SomeTexts st = new SomeTexts("Have a nice day!");
+                      when(st.getText()).thenReturn("overridden");
 
-                          assertEquals("overridden", st.getText());
-                      }
+                      assertEquals("overridden", st.getText());
                   }
               }
               """
@@ -903,31 +935,39 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(MyTest.Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(MyTest.Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
               }
               """
@@ -1384,31 +1424,39 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
               }
               """
