@@ -1999,12 +1999,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """,
-              spec -> spec.after(actual -> {
-                  assertThat(actual)
-                    .doesNotContain("powermock")
-                    .contains("<artifactId>mockito-inline</artifactId>");
-                  return actual;
-              })
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .actual())
             ),
             srcTestJava(
               //language=java
@@ -2019,10 +2017,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       }
                   }
                   """,
-                spec -> spec.after(actual -> {
-                    assertThat(actual).doesNotContain("powermock");
-                    return actual;
-                })
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
               )
             )
           )
