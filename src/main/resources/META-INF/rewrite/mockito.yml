@@ -217,6 +217,44 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.mockito.Mockito anyObject()
       newMethodName: any
+  # `Mockito` extended `Matchers` in 1.x, so calls through `org.mockito.Mockito` (as with a
+  # `import static org.mockito.Mockito.*`) are not covered by the `ArgumentMatchers` renames above.
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito anyVararg()
+      newMethodName: any
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito anyListOf(java.lang.Class)
+      newMethodName: anyList
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.Mockito anyList(java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito anySetOf(java.lang.Class)
+      newMethodName: anySet
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.Mockito anySet(java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito anyMapOf(java.lang.Class, java.lang.Class)
+      newMethodName: anyMap
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.Mockito anyMap(java.lang.Class, java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.Mockito anyMap(java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito anyCollectionOf(java.lang.Class)
+      newMethodName: anyCollection
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.Mockito anyCollection(java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.mockito.Mockito anyIterableOf(java.lang.Class)
+      newMethodName: anyIterable
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.Mockito anyIterable(java.lang.Class)
+      argumentIndex: 0
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictnessForLegacyMockito
