@@ -32,6 +32,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -370,27 +371,25 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     private @Nullable Hoisted firstHoistable(Statement statement, Cursor blockCursor) {
-        Hoisted[] found = new Hoisted[1];
-        new JavaIsoVisitor<Integer>() {
+        return new JavaIsoVisitor<AtomicReference<@Nullable Hoisted>>() {
             @Override
-            public J.Block visitBlock(J.Block block, Integer p) {
+            public J.Block visitBlock(J.Block block, AtomicReference<@Nullable Hoisted> found) {
                 // Nested blocks were already handled when the outer visitor visited them.
                 return block;
             }
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
-                if (found[0] != null) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicReference<@Nullable Hoisted> found) {
+                if (found.get() != null) {
                     return method;
                 }
-                J.MethodInvocation mi = super.visitMethodInvocation(method, p);
-                if (found[0] == null && matches(mi) && isOutsideLambdaAndAnonymousClass(getCursor())) {
-                    found[0] = hoist(mi, blockCursor);
+                J.MethodInvocation mi = super.visitMethodInvocation(method, found);
+                if (found.get() == null && matches(mi) && isOutsideLambdaAndAnonymousClass(getCursor())) {
+                    found.set(hoist(mi, blockCursor));
                 }
                 return mi;
             }
-        }.visit(statement, 0, blockCursor);
-        return found[0];
+        }.reduce(statement, new AtomicReference<>(), blockCursor).get();
     }
 
     // Checked reflection exceptions cannot propagate out of a lambda or anonymous class body.
