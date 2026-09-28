@@ -1879,4 +1879,45 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void remainingPowerMockCallsAndAnnotationsAreReplaced() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(fullyQualifiedNames = "com.example.*")
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      List<?> list = PowerMockito.mock(List.class);
+                      PowerMockito.verifyZeroInteractions(list);
+                      PowerMockito.verifyNoMoreInteractions(list);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import org.junit.Test;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      List<?> list = Mockito.mock(List.class);
+                      Mockito.verifyZeroInteractions(list);
+                      Mockito.verifyNoMoreInteractions(list);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
