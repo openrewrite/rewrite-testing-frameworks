@@ -84,15 +84,12 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         @Override
         @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
             JavaType.FullyQualified owner = lookupOwner(mi, null);
-            String fieldName = extractStringLiteral(mi.getArguments().get(1));
-            if (owner == null || fieldName == null) {
+            if (owner == null) {
                 return null;
             }
-            String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            return new Hoisted(varName, fieldLookupPrefix(varName, owner),
-                    new Object[]{classLiteral(owner), mi.getArguments().get(1)},
-                    castPrefix(mi) + "#{any(java.lang.reflect.Field)}.get(#{any(java.lang.Object)})",
-                    new Object[]{mi.getArguments().get(0)});
+            String varName = fieldVarName(mi.getArguments().get(1), scope);
+            return new Hoisted(mi, varName, fieldLookupPrefix(varName, owner),
+                    castPrefix(mi) + "#{any(java.lang.reflect.Field)}.get(#{any(java.lang.Object)})");
         }
 
         @Override
