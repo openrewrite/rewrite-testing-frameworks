@@ -41,9 +41,9 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
 
     @Getter
     final String description = "Replace `Whitebox.getInternalState(Object, String)` with `java.lang.reflect.Field` " +
-            "access, casting to the declared result type where needed. The field lookup uses `getDeclaredField` on " +
-            "the target object's class, which differs from PowerMock's class-hierarchy traversal for fields " +
-            "inherited from a superclass.";
+            "access, casting to the declared result type where needed. The field is looked up on the class " +
+            "declaring it, found through the target's declared type and its superclasses, which also covers Mockito " +
+            "spies and mocks; when that class cannot be determined, the target's runtime class is used.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -64,7 +64,7 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
                 return null;
             }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            String prefix = fieldLookupPrefix(varName);
+            String prefix = fieldLookupPrefix(varName, lookupOwner(mi, resolvedMethod));
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
                     return prefix + sink.castType + " " + sink.varName + " = (" + boxedCastType(sink.castType) + ") " + varName + ".get(#{any(java.lang.Object)});";
@@ -75,8 +75,18 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         }
 
         @Override
+        JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+            return fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
+        }
+
+        @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
+            JavaType.FullyQualified owner = lookupOwner(mi, resolvedMethod);
+            if (owner != null) {
+                // owner, fieldName, target
+                return new Object[]{classLiteral(owner), args.get(1), args.get(0)};
+            }
             // target, fieldName, target
             return new Object[]{args.get(0), args.get(1), args.get(0)};
         }
