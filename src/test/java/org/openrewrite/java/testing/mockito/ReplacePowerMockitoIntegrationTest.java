@@ -26,6 +26,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
@@ -1917,6 +1918,108 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void parentManagedPowerMockVersionsAreReplacedConsistently() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                      <version>1.6.5</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>1.6.5</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
           )
         );
     }
