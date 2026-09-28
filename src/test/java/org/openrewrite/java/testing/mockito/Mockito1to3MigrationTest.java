@@ -421,7 +421,7 @@ class Mockito1to3MigrationTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
 
-              @RunWith(MockitoJUnitRunner.class)
+              @RunWith(MockitoJUnitRunner.Silent.class)
               public class MyTest {
                   @Mock
                   Object myMock;
