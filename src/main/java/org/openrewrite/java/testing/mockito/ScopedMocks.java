@@ -31,6 +31,7 @@ import java.util.*;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
+import static org.openrewrite.java.testing.mockito.MockitoUtils.separateAddedMembers;
 
 /// Mockito's `MockedStatic` and `MockedConstruction` stay active on the current thread until closed, whereas
 /// PowerMock resets its mocks after every test, including those created in static setup methods. Migrated mocks are
@@ -211,7 +212,7 @@ final class ScopedMocks {
     /// refuses to create a second scoped mock for the same type on the same thread. The field is only known to be
     /// set where the mock was assigned in the set-up method or unconditionally earlier in the same method.
     @Nullable
-    Statement closeIfOpen(ScopedMock mock, Cursor site, J.MethodInvocation replaced, ExecutionContext ctx) {
+    Statement closeIfOpen(ScopedMock mock, Cursor site, Statement replaced, ExecutionContext ctx) {
         J.MethodDeclaration method = site.firstEnclosing(J.MethodDeclaration.class);
         if (method == null) {
             return null;
@@ -226,7 +227,7 @@ final class ScopedMocks {
         String any = "#{any(" + mock.scopedMockType + ")}";
         return JavaTemplate.builder(guarded ?
                         "if (" + any + " != null) {\n" + any + ".closeOnDemand();\n}" :
-                        any + ".closeOnDemand()")
+                        any + ".closeOnDemand();")
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .build()
                 .apply(site, replaced.getCoordinates().replace(),
@@ -247,6 +248,7 @@ final class ScopedMocks {
                 toDeclare.add(0, mock);
             }
         }
+        J.ClassDeclaration original = cd;
         for (ScopedMock mock : toDeclare) {
             String simpleName = mock.scopedMockType.substring(mock.scopedMockType.lastIndexOf('.') + 1);
             cd = JavaTemplate.builder("private " + (mock.isStatic ? "static " : "") +
@@ -258,6 +260,7 @@ final class ScopedMocks {
                     .apply(new Cursor(visitor.getCursor().getParentOrThrow(), cd), cd.getBody().getCoordinates().firstStatement());
             visitor.maybeAddImport(mock.scopedMockType);
         }
+        cd = separateAddedMembers(original, cd);
         for (Statement statement : cd.getBody().getStatements()) {
             if (statement instanceof J.VariableDeclarations) {
                 for (J.VariableDeclarations.NamedVariable variable : ((J.VariableDeclarations) statement).getVariables()) {
