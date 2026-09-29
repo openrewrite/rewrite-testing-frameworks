@@ -18,6 +18,8 @@ package org.openrewrite.java.testing.mockito;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Tree;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -28,8 +30,11 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 public class MockitoUtils {
     public static J.ClassDeclaration maybeAddMethodWithAnnotation(
@@ -55,7 +60,7 @@ public class MockitoUtils {
         visitor.maybeAddImport(importToAdd);
         String tplStr = methodAnnotationToAdd + methodAnnotationParameters +
           (isPublic ? " public" : "") + " void " + methodName + "() {}";
-        return JavaTemplate.builder(tplStr)
+        return separateAddedMembers(classDecl, JavaTemplate.builder(tplStr)
                 .contextSensitive()
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, additionalClasspathResource))
                 .imports(importToAdd)
@@ -65,7 +70,24 @@ public class MockitoUtils {
                         firstTestMethod != null ?
                                 firstTestMethod.getCoordinates().before() :
                                 classDecl.getBody().getCoordinates().lastStatement()
-                );
+                ));
+    }
+
+    static J.ClassDeclaration separateAddedMembers(J.ClassDeclaration original, J.ClassDeclaration modified) {
+        Set<UUID> originalIds = original.getBody().getStatements().stream().map(Tree::getId).collect(toSet());
+        List<Statement> statements = modified.getBody().getStatements();
+        return modified.withBody(modified.getBody().withStatements(ListUtils.map(statements, (i, statement) -> {
+            if (i == 0 || !originalIds.contains(statement.getId())) {
+                return statement;
+            }
+            Statement previous = statements.get(i - 1);
+            boolean betweenFields = previous instanceof J.VariableDeclarations && statement instanceof J.VariableDeclarations;
+            String whitespace = statement.getPrefix().getWhitespace();
+            if (originalIds.contains(previous.getId()) || betweenFields || whitespace.contains("\n\n")) {
+                return statement;
+            }
+            return statement.withPrefix(statement.getPrefix().withWhitespace("\n" + whitespace));
+        })));
     }
 
     /// Wrapping a call to such a method in a lambda would leave a surrounding `catch` of that exception

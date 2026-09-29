@@ -695,6 +695,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               class MyTest {
                   private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
@@ -707,6 +708,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                           mockedConstructionGenerator.closeOnDemand();
                       }
                   }
+
                   @Test
                   void testNumbers() throws Exception {
                       Generator mock = mock(Generator.class);
@@ -785,6 +787,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               class MyTest {
                   private MockedConstruction<Generator1> mockedConstructionGenerator1;
                   private MockedConstruction<Generator2> mockedConstructionGenerator2;
+
                   static class Generator1 {
                       public int getLuckyNumber() {
                         return 436;
@@ -874,6 +877,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               class MyTest2 {
                   private MockedConstruction<SomeTexts> mockedConstructionSomeTexts;
+
                   static class SomeTexts {
                       String text;
                       public SomeTexts(String text) { this.text = text; }
@@ -947,6 +951,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               class MyTest {
                   private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
@@ -959,6 +964,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                           mockedConstructionGenerator.closeOnDemand();
                       }
                   }
+
                   @Test
                   void testNumbers() throws Exception {
                       Generator mock = mock(MyTest.Generator.class);
@@ -1436,6 +1442,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               class MyTest {
                   private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
@@ -1448,6 +1455,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                           mockedConstructionGenerator.closeOnDemand();
                       }
                   }
+
                   @Test
                   void testNumbers() throws Exception {
                       Generator mock = mock(Generator.class);

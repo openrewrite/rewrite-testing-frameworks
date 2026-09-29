@@ -31,6 +31,7 @@ import java.util.*;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
+import static org.openrewrite.java.testing.mockito.MockitoUtils.separateAddedMembers;
 
 /// Mockito's `MockedStatic` and `MockedConstruction` stay active on the current thread until closed, whereas
 /// PowerMock resets its mocks after every test, including those created in static setup methods. Migrated mocks are
@@ -247,6 +248,7 @@ final class ScopedMocks {
                 toDeclare.add(0, mock);
             }
         }
+        J.ClassDeclaration original = cd;
         for (ScopedMock mock : toDeclare) {
             String simpleName = mock.scopedMockType.substring(mock.scopedMockType.lastIndexOf('.') + 1);
             cd = JavaTemplate.builder("private " + (mock.isStatic ? "static " : "") +
@@ -258,6 +260,7 @@ final class ScopedMocks {
                     .apply(new Cursor(visitor.getCursor().getParentOrThrow(), cd), cd.getBody().getCoordinates().firstStatement());
             visitor.maybeAddImport(mock.scopedMockType);
         }
+        cd = separateAddedMembers(original, cd);
         for (Statement statement : cd.getBody().getStatements()) {
             if (statement instanceof J.VariableDeclarations) {
                 for (J.VariableDeclarations.NamedVariable variable : ((J.VariableDeclarations) statement).getVariables()) {

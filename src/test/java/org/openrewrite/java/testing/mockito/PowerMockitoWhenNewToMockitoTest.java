@@ -197,6 +197,7 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
 
               public class MyTest {
                   private MockedConstruction<File> mockedConstructionFile;
+
                   @Before
                   public void setUp() throws Exception {
                       mockedConstructionFile = Mockito.mockConstructionWithAnswer(File.class, AdditionalAnswers.delegatesTo(mock(File.class)));
@@ -262,6 +263,7 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
                           mockedConstructionFile.closeOnDemand();
                       }
                   }
+
                   @Test
                   public void test() throws Exception {
                       for (String name : new String[]{"a.txt", "b.txt"}) {
