@@ -1,5 +1,4 @@
 /*
-import org.openrewrite.marker.SearchResult;
  * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Moderne Source Available License (the "License");
@@ -25,6 +24,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -101,7 +101,6 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             return cd;
         }
 
-        @Override
         /**
          * When the {@code @Parameters} factory is inherited rather than declared in the test class itself, find it on a
          * supertype, to reference it the way {@code @MethodSource} accepts for a method outside the test class.
@@ -139,12 +138,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             return null;
         }
 
+        @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
             Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
             if (m.isConstructor()) {
                 params.put(CONSTRUCTOR_ARGUMENTS, m.getParameters());
+                if (m.getBody() != null && m.getBody().getStatements().stream().anyMatch(ParameterizedRunnerVisitor::isSuperCallWithArguments)) {
+                    params.put(CONSTRUCTOR_PASSES_ARGUMENTS_TO_SUPER, true);
+                }
             }
             for (J.Annotation annotation : service(AnnotationService.class).getAllAnnotations(getCursor())) {
                 if (PARAMETERS.matches(annotation)) {
@@ -159,13 +162,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             return m;
         }
 
-        @Override
         private static boolean isSuperCallWithArguments(Statement statement) {
             return statement instanceof J.MethodInvocation &&
                     "super".equals(((J.MethodInvocation) statement).getSimpleName()) &&
                     ((J.MethodInvocation) statement).getArguments().stream().noneMatch(J.Empty.class::isInstance);
         }
 
+        @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, ctx);
             Cursor classDeclCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
