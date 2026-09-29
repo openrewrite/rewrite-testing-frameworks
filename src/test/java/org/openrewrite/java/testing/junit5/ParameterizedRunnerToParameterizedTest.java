@@ -788,6 +788,8 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               }
               """
           )
+        );
+    }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1126")
     @Test
@@ -1008,8 +1010,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               }
               """
           )
-        );
-    }
         );
     }
 }
