@@ -54,7 +54,7 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         return new InvokeMethodVisitor().withPrecondition();
     }
 
-    private static class InvokeMethodVisitor extends WhiteboxToReflectionVisitor {
+    static class InvokeMethodVisitor extends WhiteboxToReflectionVisitor {
 
         InvokeMethodVisitor() {
             super("java.lang.reflect.Method", INVOKE_METHOD);
@@ -135,6 +135,17 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
                 sb.append(", #{any(java.lang.Object)}");
             }
             return sb.append(")").toString();
+        }
+
+        @Override
+        boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+            return lookupOwner(mi, resolve(mi)) == null;
+        }
+
+        @Override
+        boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
+            JavaType.Method resolvedMethod = resolve(mi);
+            return resolvedMethod != null && isSuperclassOf(resolvedMethod.getDeclaringType(), mi.getArguments().get(0));
         }
 
         @Override
