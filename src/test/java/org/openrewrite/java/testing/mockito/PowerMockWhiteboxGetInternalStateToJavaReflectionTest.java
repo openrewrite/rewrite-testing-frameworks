@@ -66,7 +66,7 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testGetField() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       String result = (String) nameField.get(service);
                   }
@@ -104,9 +104,246 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void test() throws Exception {
                       MyService service = new MyService();
-                      Field countField = service.getClass().getDeclaredField("count");
+                      Field countField = MyService.class.getDeclaredField("count");
                       countField.setAccessible(true);
                       int count = (Integer) countField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldDeclaredInSuperclassIsLookedUpOnDeclaringClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class BaseService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              class MyService extends BaseService {
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      MyService service = new MyService();
+                      String result = Whitebox.getInternalState(service, "name");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testGetField() throws Exception {
+                      MyService service = new MyService();
+                      Field nameField = BaseService.class.getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      String result = (String) nameField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldDeclaredInClassNestedInPrivateClassFallsBackToRuntimeClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Outer {
+                  private static class Hidden {
+                      static class Base {
+                          private String name = "hello";
+                      }
+                  }
+
+                  static class MyService extends Hidden.Base {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      Outer.MyService service = new Outer.MyService();
+                      String result = Whitebox.getInternalState(service, "name");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testGetField() throws Exception {
+                      Outer.MyService service = new Outer.MyService();
+                      Field nameField = service.getClass().getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      String result = (String) nameField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getInternalStateNestedInExpression() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "hello";
+                  private int count = 1;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      MyService service = new MyService();
+                      check(Whitebox.getInternalState(service, "name"));
+                      System.out.println(Whitebox.getInternalState(service, "count"));
+                  }
+
+                  void check(String value) {
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testGetField() throws Exception {
+                      MyService service = new MyService();
+                      Field nameField = MyService.class.getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      check((String) nameField.get(service));
+                      Field countField = MyService.class.getDeclaredField("count");
+                      countField.setAccessible(true);
+                      System.out.println(countField.get(service));
+                  }
+
+                  void check(String value) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getInternalStateInLambdaIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+              import java.util.function.Supplier;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      MyService service = new MyService();
+                      Supplier<Object> name = () -> Whitebox.getInternalState(service, "name");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldNamedByConstant() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  private static final String NAME = "name";
+
+                  void testGetField() {
+                      MyService service = new MyService();
+                      System.out.println(Whitebox.getInternalState(service, NAME));
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  private static final String NAME = "name";
+
+                  void testGetField() throws Exception {
+                      MyService service = new MyService();
+                      Field nameField = MyService.class.getDeclaredField(NAME);
+                      nameField.setAccessible(true);
+                      System.out.println(nameField.get(service));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getInternalStateInLambdaBlockIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+              import java.util.function.Supplier;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      MyService service = new MyService();
+                      Supplier<Object> name = () -> {
+                          System.out.println(Whitebox.getInternalState(service, "name"));
+                          return null;
+                      };
                   }
               }
               """

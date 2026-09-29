@@ -32,7 +32,12 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static java.util.Arrays.asList;
 
 public class MigrateJUnitTestCase extends Recipe {
 
@@ -101,6 +106,8 @@ public class MigrateJUnitTestCase extends Recipe {
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
         private static final MethodMatcher TEST_CASE_SUPER_MATCHER = new MethodMatcher("junit.framework.TestCase <constructor>(..)");
+        private static final Set<String> SUPERTYPES_REMOVED_BY_MIGRATION = new HashSet<>(asList(
+                "junit.framework.TestCase", "junit.framework.Assert", "junit.framework.Test"));
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -148,7 +155,7 @@ public class MigrateJUnitTestCase extends Recipe {
             } else if ("tearDown".equals(md.getSimpleName()) && md.getLeadingAnnotations().stream().noneMatch(JUNIT_AFTER_ANNOTATION_MATCHER::matches)) {
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach", ctx);
             }
-            return md;
+            return maybeRemoveOverrideAnnotation(md, ctx);
         }
 
         @Override
@@ -171,7 +178,6 @@ public class MigrateJUnitTestCase extends Recipe {
                         .imports(fullyQualifiedAnnotation).build()
                         .apply(getCursor(), methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                 md = maybeAddPublicModifier(md);
-                md = maybeRemoveOverrideAnnotation(md);
                 maybeAddImport(fullyQualifiedAnnotation);
             }
             return md;
@@ -187,14 +193,27 @@ public class MigrateJUnitTestCase extends Recipe {
             return md.withModifiers(modifiers);
         }
 
-        private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md) {
-            return md.withLeadingAnnotations(ListUtils.map(md.getLeadingAnnotations(), annotation -> {
-                if (OVERRIDE_ANNOTATION_MATCHER.matches(annotation)) {
-                    //noinspection DataFlowIssue
-                    return null;
+        private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md, ExecutionContext ctx) {
+            JavaType.Method methodType = md.getMethodType();
+            if (methodType == null ||
+                md.getLeadingAnnotations().stream().noneMatch(OVERRIDE_ANNOTATION_MATCHER::matches) ||
+                stillOverridesAfterMigration(methodType)) {
+                return md;
+            }
+            J.MethodDeclaration withoutBody = (J.MethodDeclaration) new RemoveAnnotationVisitor(OVERRIDE_ANNOTATION_MATCHER)
+                    .visitNonNull(md.withBody(null), ctx, getCursor().getParentOrThrow());
+            return withoutBody.withBody(md.getBody());
+        }
+
+        private static boolean stillOverridesAfterMigration(JavaType.Method method) {
+            Optional<JavaType.Method> overridden = TypeUtils.findOverriddenMethod(method);
+            while (overridden.isPresent()) {
+                if (!SUPERTYPES_REMOVED_BY_MIGRATION.contains(overridden.get().getDeclaringType().getFullyQualifiedName())) {
+                    return true;
                 }
-                return annotation;
-            }));
+                overridden = TypeUtils.findOverriddenMethod(overridden.get());
+            }
+            return false;
         }
     }
 }

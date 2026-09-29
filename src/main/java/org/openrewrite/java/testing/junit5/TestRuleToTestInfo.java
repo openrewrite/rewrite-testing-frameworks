@@ -83,9 +83,24 @@ public class TestRuleToTestInfo extends Recipe {
                     }
                     return anno;
                 }));
+                varDecls = removeFinalModifier(varDecls);
                 getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("has-testName-rule", varDecls);
             }
             return varDecls;
+        }
+
+        private static J.VariableDeclarations removeFinalModifier(J.VariableDeclarations varDecls) {
+            List<J.Modifier> modifiers = varDecls.getModifiers();
+            List<J.Modifier> retained = ListUtils.filter(modifiers, mod -> mod.getType() != J.Modifier.Type.Final);
+            if (retained == modifiers) {
+                return varDecls;
+            }
+            Space prefix = modifiers.get(0).getPrefix();
+            if (retained.isEmpty()) {
+                return varDecls.withModifiers(retained).withTypeExpression(
+                        varDecls.getTypeExpression() == null ? null : varDecls.getTypeExpression().withPrefix(prefix));
+            }
+            return varDecls.withModifiers(ListUtils.mapFirst(retained, mod -> mod.withPrefix(prefix)));
         }
 
         @Override

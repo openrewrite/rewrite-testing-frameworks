@@ -21,6 +21,7 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinParser;
@@ -31,7 +32,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -64,7 +67,11 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new TreeVisitor<Tree, ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(
+                new UsesMethod<>(MOCKITO_WHEN),
+                // Static stubbing in tests that are still on PowerMock is backed by PowerMock's own static mocks
+                Preconditions.not(new UsesType<>("org.powermock..*", false))
+        ), new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree preVisit(Tree tree, ExecutionContext ctx) {
                 stopAfterPreVisit();
@@ -124,15 +131,21 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         JavaType.@Nullable Class invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
                             String pending = pendingResources.get(invokedType.getFullyQualifiedName());
+                            Optional<J.VariableDeclarations.NamedVariable> wrappingMockedStatic = pending == null ?
+                                    tryGetMatchedWrappingResource(getCursor(), invokedType, generatedMocks) : Optional.empty();
+                            J.VariableDeclarations.NamedVariable staticMockedVariable = pending == null && !wrappingMockedStatic.isPresent() ?
+                                    findMockedStaticVariable(getCursor(), invokedType) : null;
+                            if ((pending != null || wrappingMockedStatic.isPresent() || staticMockedVariable != null) &&
+                                MockitoUtils.throwsCheckedException(whenArg.getMethodType())) {
+                                return statement;
+                            }
                             if (pending != null) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, pending, whenArg, ctx);
                             }
-                            Optional<J.VariableDeclarations.NamedVariable> wrappingMockedStatic = tryGetMatchedWrappingResource(getCursor(), invokedType, generatedMocks);
                             if (wrappingMockedStatic.isPresent()) {
                                 Object name = nameForReuse(block, invokedType.getClassName(), wrappingMockedStatic.get());
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
                             }
-                            J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable != null) {
                                 Object name = nameForReuse(block, invokedType.getClassName(), staticMockedVariable);
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
@@ -150,13 +163,13 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                               Map<String, String> pendingResources) {
                 String className = invokedType.getClassName();
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
-                Expression thenReturnArg = statement.getArguments().get(0);
+                List<Expression> stubbingArguments = stubbingArguments(statement);
 
                 J.Try try_ = (J.Try) javaTemplateMockStatic(String.format(
                         "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
-                                "    %2$s.when(() -> #{any()}).thenReturn(#{any()});\n" +
-                                "}", className, variableName), ctx)
-                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                                "    %2$s.when(() -> #{any()}).%3$s(%4$s);\n" +
+                                "}", className, variableName, statement.getSimpleName(), argumentPlaceholders(stubbingArguments)), ctx)
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), templateParameters(singletonList(whenArg), stubbingArguments))
                         .getStatements().get(0);
 
                 List<Statement> precedingStatements = statements.subList(0, index);
@@ -187,8 +200,10 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, Object variable, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 String mockedStaticVariableTemplate = variable instanceof J ? "#{any()}" : "#{}";
                 J.Block cursorBlock = (J.Block) getCursor().getValue();
-                Statement replacement = javaTemplateMockStatic(mockedStaticVariableTemplate + ".when(() -> #{any()}).thenReturn(#{any()});", ctx)
-                        .<J.Block>apply(getCursor(), cursorBlock.getCoordinates().firstStatement(), variable, whenArg, statement.getArguments().get(0))
+                List<Expression> stubbingArguments = stubbingArguments(statement);
+                Statement replacement = javaTemplateMockStatic(String.format("%s.when(() -> #{any()}).%s(%s);",
+                                mockedStaticVariableTemplate, statement.getSimpleName(), argumentPlaceholders(stubbingArguments)), ctx)
+                        .<J.Block>apply(getCursor(), cursorBlock.getCoordinates().firstStatement(), templateParameters(asList(variable, whenArg), stubbingArguments))
                         .getStatements().get(0);
                 return replacement.withPrefix(statement.getPrefix());
             }
@@ -200,12 +215,12 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 // We know it will have a matching `@Before*` annotation based on callers
                 String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
                 String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");
-                Expression thenReturnArg = statement.getArguments().get(0);
+                List<Expression> stubbingArguments = stubbingArguments(statement);
 
                 List<Statement> statements = javaTemplateMockStatic(String.format(
                         "%2$s = mockStatic(%1$s.class);\n" +
-                                "%2$s.when(() -> #{any()}).thenReturn(#{any()});", className, variableName), ctx)
-                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), whenArg, thenReturnArg)
+                                "%2$s.when(() -> #{any()}).%3$s(%4$s);", className, variableName, statement.getSimpleName(), argumentPlaceholders(stubbingArguments)), ctx)
+                        .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), templateParameters(singletonList(whenArg), stubbingArguments))
                         .getStatements().subList(0, 2);
 
                 doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
@@ -307,14 +322,14 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 }
 
                 String returnTypeName = getReturnTypeName(whenArg);
-                Expression thenReturnArg = m.getArguments().get(0);
+                List<Expression> stubbingArguments = stubbingArguments(m);
                 J.MethodInvocation rewritten = KotlinTemplate.builder(String.format(
-                                "%s.`when`<%s> { #{any()} }.thenReturn(#{any()})",
-                                paramName, returnTypeName))
+                                "%s.`when`<%s> { #{any()} }.%s(%s)",
+                                paramName, returnTypeName, m.getSimpleName(), argumentPlaceholders(stubbingArguments)))
                         .imports("org.mockito.MockedStatic")
                         .parser(KotlinParser.builder().classpathFromResources(ctx, "mockito-core-5"))
                         .build()
-                        .apply(getCursor(), m.getCoordinates().replace(), whenArg, thenReturnArg);
+                        .apply(getCursor(), m.getCoordinates().replace(), templateParameters(singletonList(whenArg), stubbingArguments));
                 maybeRemoveImport("org.mockito.Mockito.when");
                 return rewritten;
             }
@@ -332,6 +347,18 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             }
         }
         return null;
+    }
+
+    private static List<Expression> stubbingArguments(J.MethodInvocation statement) {
+        return ListUtils.filter(statement.getArguments(), argument -> !(argument instanceof J.Empty));
+    }
+
+    private static String argumentPlaceholders(List<Expression> arguments) {
+        return String.join(", ", Collections.nCopies(arguments.size(), "#{any()}"));
+    }
+
+    private static Object[] templateParameters(List<Object> leading, List<Expression> stubbingArguments) {
+        return ListUtils.concatAll(leading, stubbingArguments).toArray();
     }
 
     private static JavaType.@Nullable Class getTypeFromInvocation(J.MethodInvocation whenArg) {

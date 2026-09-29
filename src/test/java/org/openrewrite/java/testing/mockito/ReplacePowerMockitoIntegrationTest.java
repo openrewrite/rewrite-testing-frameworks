@@ -26,6 +26,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
@@ -109,14 +110,11 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.Mockito;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeClass;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
-                  private MockedStatic<Currency> mockedCurrency;
-
                   private MockedStatic<Calendar> mockedCalendar;
+                  private MockedStatic<Currency> mockedCurrency;
 
                   private Calendar calendarMock;
 
@@ -125,20 +123,20 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       calendarMock = Mockito.mock(Calendar.class);
                   }
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCurrency = Mockito.mockStatic(Currency.class);
-                      mockedCalendar = Mockito.mockStatic(Calendar.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
-                      mockedCurrency.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
+                      if (mockedCurrency != null) {
+                          mockedCurrency.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
+                      mockedCurrency = Mockito.mockStatic(Currency.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                       mockedCurrency.verify(Currency::getAvailableCurrencies, Mockito.never());
@@ -256,37 +254,34 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
-                  private MockedStatic<Currency> mockedCurrency;
-
                   private MockedStatic<Calendar> mockedCalendar;
+                  private MockedStatic<Currency> mockedCurrency;
 
                   private Calendar calendarMock = mock(Calendar.class);
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCurrency = mockStatic(Currency.class);
-                      mockedCalendar = mockStatic(Calendar.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
-                      mockedCurrency.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
+                      if (mockedCurrency != null) {
+                          mockedCurrency.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
+                      mockedCalendar = mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
 
                   @Test
                   void testWithCurrency() {
+                      mockedCurrency = mockStatic(Currency.class);
                       mockedCurrency.verify(Currency::getAvailableCurrencies, never());
                   }
 
@@ -343,7 +338,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -421,25 +415,27 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
 
                   @BeforeMethod
                   void setUp() {
-                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                       calendarMock = Mockito.mock(Calendar.class);
                   }
 
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
-                      Mockito.spy(Calendar.class);
+                      mockedCalendar = Mockito.mockStatic(Calendar.class, Mockito.CALLS_REAL_METHODS);
+                      mockedCalendar.closeOnDemand();
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
@@ -491,24 +487,21 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import foo.StringFilter;
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class MyTest {
                   private MockedStatic<StringFilter> mockedStringFilter;
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedStringFilter = mockStatic(StringFilter.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedStringFilter.closeOnDemand();
+                      if (mockedStringFilter != null) {
+                          mockedStringFilter.closeOnDemand();
+                      }
                   }
 
                   @Test
                   public void testStaticMock() {
+                      mockedStringFilter = mockStatic(StringFilter.class);
                       mockedStringFilter.when(() -> StringFilter.splitFilterStringValues(anyString())).thenReturn(new String[]{"Fee", "Faa", "Foo"});
                   }
               }
@@ -586,26 +579,22 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class MyTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
-
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCalendar = mockStatic(Calendar.class);
-                  }
 
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
                   }
 
                   @Test
                   public void testCalendarDynamic() throws Exception {
                       Calendar calendarMock = mock(Calendar.class);
+                      mockedCalendar = mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(any(Locale.class))).thenReturn(calendarMock);
                   }
               }
@@ -694,31 +683,41 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
 
                   public final String otherMethod() {
@@ -775,16 +774,20 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator1> mockedConstructionGenerator1;
+                  private MockedConstruction<Generator2> mockedConstructionGenerator2;
+
                   static class Generator1 {
                       public int getLuckyNumber() {
                         return 436;
@@ -796,22 +799,33 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator1 != null) {
+                          mockedConstructionGenerator1.closeOnDemand();
+                      }
+                      if (mockedConstructionGenerator2 != null) {
+                          mockedConstructionGenerator2.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator2> mockGenerator2 = Mockito.mockConstruction(Generator2.class)) {
-                          try (MockedConstruction<Generator1> mockGenerator1 = Mockito.mockConstruction(Generator1.class)) {
+                      Generator1 mock1 = mock(Generator1.class);
+                      mockedConstructionGenerator1 = Mockito.mockConstructionWithAnswer(Generator1.class, AdditionalAnswers.delegatesTo(mock1));
 
-                              Generator1 gen1 = new Generator1();
-                              when(gen1.getLuckyNumber()).thenReturn(504);
+                      Generator1 gen1 = new Generator1();
+                      when(gen1.getLuckyNumber()).thenReturn(504);
 
-                              assertEquals(504, gen1.getLuckyNumber());
+                      assertEquals(504, gen1.getLuckyNumber());
 
-                              Generator2 gen2 = new Generator2();
-                              when(gen2.getLuckyNumber()).thenReturn(504);
+                      Generator2 mock2 = mock(Generator2.class);
+                      mockedConstructionGenerator2 = Mockito.mockConstructionWithAnswer(Generator2.class, AdditionalAnswers.delegatesTo(mock2));
 
-                              assertEquals(504, gen2.getLuckyNumber());
-                          }
-                      }
+                      Generator2 gen2 = new Generator2();
+                      when(gen2.getLuckyNumber()).thenReturn(504);
+
+                      assertEquals(504, gen2.getLuckyNumber());
                   }
               }
               """
@@ -852,29 +866,40 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """.replaceAll("METHODCALL", methodCall),
             """
+              import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest2 {
+                  private MockedConstruction<SomeTexts> mockedConstructionSomeTexts;
+
                   static class SomeTexts {
                       String text;
                       public SomeTexts(String text) { this.text = text; }
                       public String getText() { return text; }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionSomeTexts != null) {
+                          mockedConstructionSomeTexts.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testWords() throws Exception {
-                      try (MockedConstruction<SomeTexts> mockSomeTexts = Mockito.mockConstruction(SomeTexts.class)) {
+                      SomeTexts mock = Mockito.mock(SomeTexts.class);
+                      mockedConstructionSomeTexts = Mockito.mockConstructionWithAnswer(SomeTexts.class, AdditionalAnswers.delegatesTo(mock));
 
-                          SomeTexts st = new SomeTexts("Have a nice day!");
-                          when(st.getText()).thenReturn("overridden");
+                      SomeTexts st = new SomeTexts("Have a nice day!");
+                      when(st.getText()).thenReturn("overridden");
 
-                          assertEquals("overridden", st.getText());
-                      }
+                      assertEquals("overridden", st.getText());
                   }
               }
               """
@@ -914,31 +939,41 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(MyTest.Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(MyTest.Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
               }
               """
@@ -1043,11 +1078,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.Mockito;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeClass;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -1057,18 +1090,16 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       calendarMock = Mockito.mock(Calendar.class);
                   }
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCalendar = Mockito.mockStatic(Calendar.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
@@ -1284,7 +1315,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @BeforeMethod
@@ -1400,31 +1430,41 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
-              import org.mockito.MockedConstruction;
-              import org.mockito.Mockito;
-
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
               }
               """
@@ -1523,9 +1563,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
-              import org.mockito.Mockito;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
+              import org.mockito.Mockito;
+
               import static org.junit.jupiter.api.Assertions.assertNotNull;
               import java.util.Calendar;
 
@@ -1878,13 +1919,156 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               class MyServiceTest {
                   void test() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "value");
                       MyService other = /* PowerMock `Whitebox` call could not be automatically migrated to reflection; migrate manually */ Whitebox.newInstance(MyService.class);
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void remainingPowerMockCallsAndAnnotationsAreReplaced() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(fullyQualifiedNames = "com.example.*")
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      List<?> list = PowerMockito.mock(List.class);
+                      PowerMockito.verifyZeroInteractions(list);
+                      PowerMockito.verifyNoMoreInteractions(list);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import org.junit.Test;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      List<?> list = Mockito.mock(List.class);
+                      Mockito.verifyZeroInteractions(list);
+                      Mockito.verifyNoMoreInteractions(list);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void parentManagedPowerMockVersionsAreReplacedConsistently() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                      <version>1.6.5</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>1.6.5</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
           )
         );
     }

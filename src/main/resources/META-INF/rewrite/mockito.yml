@@ -112,44 +112,52 @@ recipeList:
       oldFullyQualifiedTypeName: org.mockito.Matchers
       newFullyQualifiedTypeName: org.mockito.ArgumentMatchers
   - org.openrewrite.java.testing.mockito.ArgumentMatcherToLambda
+  # `org.mockito.*` rather than `ArgumentMatchers` alone, as calls through a static import of `Mockito` or
+  # `BDDMockito` are attributed to that class instead of the class declaring the matcher
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyVararg()
+      methodPattern: org.mockito.* anyVararg()
       newMethodName: any
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyObject()
+      methodPattern: org.mockito.* anyObject()
       newMethodName: any
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.* anyListOf(java.lang.Class)
+      argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyListOf(java.lang.Class)
+      methodPattern: org.mockito.* anyListOf()
       newMethodName: anyList
   - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers anyList(java.lang.Class)
+      methodPattern: org.mockito.* anySetOf(java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anySetOf(java.lang.Class)
+      methodPattern: org.mockito.* anySetOf()
       newMethodName: anySet
   - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers anySet(java.lang.Class)
+      methodPattern: org.mockito.* anyMapOf(java.lang.Class, java.lang.Class)
+      argumentIndex: 0
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.* anyMapOf(java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyMapOf(java.lang.Class, java.lang.Class)
+      methodPattern: org.mockito.* anyMapOf()
       newMethodName: anyMap
   - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class, java.lang.Class)
-      argumentIndex: 0
-  - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers anyMap(java.lang.Class)
+      methodPattern: org.mockito.* anyCollectionOf(java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyCollectionOf()
+      methodPattern: org.mockito.* anyCollectionOf()
       newMethodName: anyCollection
+  - org.openrewrite.java.DeleteMethodArgument:
+      methodPattern: org.mockito.* anyIterableOf(java.lang.Class)
+      argumentIndex: 0
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.ArgumentMatchers anyIterableOf()
+      methodPattern: org.mockito.* anyIterableOf()
       newMethodName: anyIterable
   - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers isNull(java.lang.Class)
+      methodPattern: org.mockito.* isNull(java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.DeleteMethodArgument:
-      methodPattern: org.mockito.ArgumentMatchers notNull(java.lang.Class)
+      methodPattern: org.mockito.* notNull(java.lang.Class)
       argumentIndex: 0
   - org.openrewrite.java.ReorderMethodArguments:
       methodPattern: org.mockito.MockedStatic verify(org.mockito.verification.VerificationMode, org.mockito.MockedStatic.Verification)
@@ -208,9 +216,6 @@ recipeList:
       groupId: net.bytebuddy
       artifactId: byte-buddy*
       newVersion: 1.11.13
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.mockito.Mockito anyObject()
-      newMethodName: any
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictnessForLegacyMockito

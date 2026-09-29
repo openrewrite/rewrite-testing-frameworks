@@ -144,4 +144,48 @@ class TestRuleToTestInfoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void ruleIsFinal() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TestName;
+
+              public class SomeTest {
+                  @Rule
+                  public final TestName name = new TestName();
+                  protected String randomName() {
+                      return name.getMethodName();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.TestInfo;
+
+              import java.lang.reflect.Method;
+              import java.util.Optional;
+
+              public class SomeTest {
+                 \s
+                  public String name;
+                  protected String randomName() {
+                      return name;
+                  }
+
+                  @BeforeEach
+                  public void setup(TestInfo testInfo) {
+                      Optional<Method> testMethod = testInfo.getTestMethod();
+                      if (testMethod.isPresent()) {
+                          this.name = testMethod.get().getName();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }

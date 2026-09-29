@@ -99,4 +99,75 @@ class AddJupiterDependenciesTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doNotAddWithoutJUnit() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  public class NotATest {
+                      public void addition() {
+                          assert 4 == 2 + 2;
+                      }
+                  }
+                  """
+              )
+            ),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>0.0.1</version>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1113")
+    @Test
+    void addWhenOnlyJUnit3TestCaseIsUsed() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4")),
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class LegacyTest extends TestCase {
+                      public void testAddition() {
+                          assertEquals(4, 2 + 2);
+                      }
+                  }
+                  """
+              )
+            ),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>0.0.1</version>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  return assertThat(pom)
+                          .contains("junit-jupiter")
+                          .contains("<scope>test</scope>").actual();
+              })
+            )
+          )
+        );
+    }
 }

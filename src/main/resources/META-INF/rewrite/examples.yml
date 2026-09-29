@@ -5472,7 +5472,7 @@ examples:
       class MyServiceTest {
           void testGetField() throws Exception {
               MyService service = new MyService();
-              Field nameField = service.getClass().getDeclaredField("name");
+              Field nameField = MyService.class.getDeclaredField("name");
               nameField.setAccessible(true);
               String result = (String) nameField.get(service);
           }
@@ -5565,7 +5565,7 @@ examples:
       class MyServiceTest {
           void testInvoke() throws Exception {
               MyService service = new MyService();
-              Method computeMethod = service.getClass().getDeclaredMethod("compute");
+              Method computeMethod = MyService.class.getDeclaredMethod("compute");
               computeMethod.setAccessible(true);
               String result = (String) computeMethod.invoke(service);
           }
@@ -5597,7 +5597,7 @@ examples:
       class MyServiceTest {
           void testSetField() throws Exception {
               MyService service = new MyService();
-              Field nameField = service.getClass().getDeclaredField("name");
+              Field nameField = MyService.class.getDeclaredField("name");
               nameField.setAccessible(true);
               nameField.set(service, "expectedValue");
           }
@@ -5629,7 +5629,7 @@ examples:
       class MyServiceTest {
           void testSetField() throws Exception {
               MyService service = new MyService();
-              Field nameField = service.getClass().getDeclaredField("name");
+              Field nameField = MyService.class.getDeclaredField("name");
               nameField.setAccessible(true);
               nameField.set(service, "expectedValue");
           }

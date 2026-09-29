@@ -228,6 +228,58 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1113")
+    @Test
+    void addJupiterWhenOnlyTestCaseIsUsed() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class LegacyTest extends TestCase {
+                      public void testAddition() {
+                          assertEquals(4, 2 + 2);
+                      }
+                  }
+                  """,
+                spec -> spec.after(src -> {
+                    return assertThat(src)
+                            .contains("import org.junit.jupiter.api.Test;")
+                            .doesNotContain("junit.framework").actual();
+                })
+              )
+            ),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>0.0.1</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  return assertThat(pom)
+                          .contains("<artifactId>junit-jupiter</artifactId>")
+                          .doesNotContain("<artifactId>junit</artifactId>").actual();
+              })
+            )
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/429")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/850")
     @Test
@@ -1019,6 +1071,113 @@ class JUnit5MigrationTest implements RewriteTest {
                   public void shouldPass() {
                       assertEquals(1, 1, "expected message");
                       assertTrue(true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1103")
+    @Test
+    void removeOverrideOnMigratedTestCaseMethods() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              import org.junit.Before;
+              import org.junit.Test;
+
+              public class MathTest extends TestCase {
+                  protected long value1;
+
+                  @Override
+                  @Before
+                  public void setUp() {
+                      value1 = 2;
+                  }
+
+                  @Override
+                  public String toString() {
+                      return "math";
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, value1);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MathTest {
+                  protected long value1;
+
+                  @BeforeEach
+                  public void setUp() {
+                      value1 = 2;
+                  }
+
+                  @Override
+                  public String toString() {
+                      return "math";
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, value1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1097")
+    @Test
+    void junitSoftAssertionsRuleToSoftAssertionsExtension() {
+        rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "assertj-core-3")),
+          //language=java
+          java(
+            """
+              import org.assertj.core.api.JUnitSoftAssertions;
+              import org.junit.Rule;
+              import org.junit.Test;
+
+              public class SoftlyTest {
+                  @Rule
+                  public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
+                  @Test
+                  public void multipleAssertions() {
+                      softly.assertThat("foo").isEqualTo("bar");
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.SoftAssertions;
+              import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
+              import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(SoftAssertionsExtension.class)
+              public class SoftlyTest {
+                  @InjectSoftAssertions
+                  public SoftAssertions softly;
+
+                  @Test
+                  public void multipleAssertions() {
+                      softly.assertThat("foo").isEqualTo("bar");
                   }
               }
               """
