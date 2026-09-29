@@ -56,12 +56,8 @@ public class ReplaceSettersWithTransform extends Recipe {
     private static final String TRANSFORM = "transform";
     private static final String CONSUMER = "java.util.function.Consumer";
 
-    /**
-     * For each immutable type, the WireMock 3 setter names mapped onto the name of the equivalent
-     * setter on the WireMock 4 builder. Setters without a builder equivalent, such as
-     * {@code StubMapping#setDirty(boolean)}, are deliberately absent so that they are left in place
-     * for the compiler to flag.
-     */
+    // WireMock 3 setter names mapped onto their WireMock 4 builder equivalents. Setters without one, such as
+    // `StubMapping#setDirty(boolean)`, are deliberately absent so the compiler flags them where they are left.
     private static final Map<String, Map<String, String>> BUILDER_SETTERS = new HashMap<>();
 
     static {
@@ -160,10 +156,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                         return changed ? b.withStatements(rewritten) : b;
                     }
 
-                    /**
-                     * @return the setter call if {@code statement} is an in place mutation this recipe knows how to
-                     * rewrite, or {@code null} if it should be left alone.
-                     */
+                    // Returns the setter call this recipe can rewrite, or null if the statement is to be left alone
                     private @Nullable SetterCall asConvertibleSetterCall(Statement statement) {
                         if (!(statement instanceof J.MethodInvocation)) {
                             return null;
@@ -198,10 +191,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                         return null;
                     }
 
-                    /**
-                     * Assigning the transformed copy back only compiles when the receiver is a variable or field we
-                     * can write to.
-                     */
+                    // Assigning the copy back only compiles when the receiver is something we can write to.
                     private boolean isAssignable(Expression select) {
                         if (select instanceof J.FieldAccess) {
                             JavaType.Variable field = ((J.FieldAccess) select).getName().getFieldType();
@@ -311,10 +301,8 @@ public class ReplaceSettersWithTransform extends Recipe {
                                 first.getReceiver().getType());
                     }
 
-                    /**
-                     * `transform` and its builder only exist in WireMock 4, while the source being migrated still
-                     * compiles against WireMock 3, so the template cannot attribute either of them.
-                     */
+                    // `transform` and its builder only exist in WireMock 4, so the template cannot attribute them
+                    // against the WireMock 3 the source still compiles against.
                     private Expression attributeWiremock4Api(Expression transform, String lambdaParameter, String owner) {
                         JavaType.Class ownerType = JavaType.ShallowClass.build(owner);
                         JavaType.Class builderType = JavaType.ShallowClass.build(owner + "$Builder");
@@ -356,7 +344,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                                 emptyList(), emptyList(), emptyList(), emptyList());
                     }
 
-                    /** Whether {@code select} is the builder the lambda received, or an earlier call chained on it. */
+                    // Whether `select` is the builder the lambda received, or an earlier call chained on it.
                     private boolean onBuilder(@Nullable Expression select, JavaType.Class builderType) {
                         if (select instanceof J.Identifier) {
                             return builderType.equals(((J.Identifier) select).getType());
@@ -366,10 +354,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                                 builderType.equals(((J.MethodInvocation) select).getMethodType().getDeclaringType());
                     }
 
-                    /**
-                     * The receiver appears both as the assignment target and inside the `transform` call, and every
-                     * element of an LST has to carry its own id.
-                     */
+                    // The receiver appears twice in the output, and every element of an LST needs its own id.
                     private Expression copyWithNewIds(Expression expression) {
                         return (Expression) new JavaIsoVisitor<Integer>() {
                             @Override

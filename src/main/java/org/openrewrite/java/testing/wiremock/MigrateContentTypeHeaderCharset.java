@@ -66,10 +66,7 @@ public class MigrateContentTypeHeaderCharset extends Recipe {
                                 .apply(getCursor(), m.getCoordinates().replace(), m.getSelect());
                     }
 
-                    /**
-                     * Both the calls this recipe has already rewritten and code written against 4.x in the first
-                     * place hand back an `Optional`, and neither wants wrapping again.
-                     */
+                    // Code already on 4.x, and calls this recipe has rewritten, hand back an `Optional` already.
                     private boolean alreadyOptional(J.MethodInvocation method) {
                         JavaType.Method methodType = method.getMethodType();
                         return methodType != null &&

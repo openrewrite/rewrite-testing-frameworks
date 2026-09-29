@@ -77,10 +77,7 @@ public class RemoveDuplicateContentTypeStubHeader extends Recipe {
                 return m.withValue(last.withPrefix(values.getPrefix()));
             }
 
-            /**
-             * Only response headers hold bare strings, but scoping to a `headers` object as well keeps this off
-             * unrelated JSON that happens to have a `Content-Type` array.
-             */
+            // Scoping to a `headers` object keeps this off unrelated JSON carrying a `Content-Type` array.
             private boolean withinResponseHeaders() {
                 for (Iterator<Object> path = getCursor().getPath(); path.hasNext(); ) {
                     Object parent = path.next();

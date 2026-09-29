@@ -45,12 +45,8 @@ public class ReplaceRemovedConstructors extends Recipe {
     private static final String ADMIN = "com.github.tomakehurst.wiremock.core.Admin";
     private static final String AUTHENTICATOR = "com.github.tomakehurst.wiremock.security.ClientAuthenticator";
 
-    /**
-     * WireMock 4 kept only the canonical all arguments constructor on each of these types, so the convenience
-     * overloads have to go through a builder instead. `WireMock(String scheme, String host)` is deliberately
-     * absent: it left the port undefined, whereas `WireMockBuilder` defaults it to 8080, so rewriting it would
-     * quietly change which port the client talks to.
-     */
+    // `WireMock(String scheme, String host)` is deliberately absent: it left the port undefined, while
+    // `WireMockBuilder` defaults it to 8080, so rewriting it would change which port the client talks to.
     private static final List<Replacement> REPLACEMENTS = asList(
             new Replacement(STUB_MAPPING,
                     STUB_MAPPING + " <constructor>()",
@@ -101,14 +97,8 @@ public class ReplaceRemovedConstructors extends Recipe {
 
     private static final MethodMatcher WIRE_MOCK_FROM_ADMIN = new MethodMatcher(WIRE_MOCK + " <constructor>(" + ADMIN + ")");
 
-    /**
-     * `HttpAdminClient` kept only its all arguments constructor, and the `HttpClient` that constructor now
-     * demands cannot be built without `wiremock-httpclient-apache5`, which `org.wiremock:wiremock` pulls in at
-     * runtime scope only. Where the client is immediately wrapped in a `WireMock`, though, `WireMockBuilder`
-     * does the same job through public API, so fold the pair into it. Its defaults line up with what the v3
-     * convenience constructors filled in: `http` scheme, empty url path prefix, no host header, no proxy and
-     * `noClientAuthenticator()`.
-     */
+    // The `HttpClient` that `HttpAdminClient`'s remaining constructor demands needs `wiremock-httpclient-apache5`,
+    // so where it is wrapped in a `WireMock` fold the pair into `WireMockBuilder`, whose defaults match the v3 ones.
     private static final List<Replacement> ADMIN_CLIENT_FOLDS = asList(
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, int)",
@@ -204,9 +194,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                         return m;
                     }
 
-                    /**
-                     * `new WireMock(new HttpAdminClient(..))` collapses to a single `WireMockBuilder` chain.
-                     */
+                    // `new WireMock(new HttpAdminClient(..))` collapses to a single `WireMockBuilder` chain.
                     private @Nullable J foldAdminClient(J.NewClass wireMock, ExecutionContext ctx) {
                         if (!WIRE_MOCK_FROM_ADMIN.matches(wireMock) || wireMock.getArguments().size() != 1 ||
                                 !(wireMock.getArguments().get(0) instanceof J.NewClass)) {
@@ -227,10 +215,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                         return null;
                     }
 
-                    /**
-                     * An argument list of a single `null` arrives as one empty-marker expression for a no-arg
-                     * constructor, which carries no argument at all.
-                     */
+                    // A no-arg constructor arrives as a single empty-marker expression, carrying no argument at all.
                     private Object[] arguments(List<Expression> arguments) {
                         List<Object> real = new ArrayList<>(arguments.size());
                         for (Expression argument : arguments) {
@@ -258,10 +243,8 @@ public class ReplaceRemovedConstructors extends Recipe {
             this.code = code;
         }
 
-        /**
-         * Resolving a `JavaParser` requires a parser implementation on the classpath, which is absent while
-         * recipes are merely being loaded, so the template is built on first use rather than at class init.
-         */
+        // Resolving a `JavaParser` needs a parser implementation, absent while recipes are merely being loaded,
+        // so the template is built on first use rather than at class init.
         JavaTemplate getTemplate(ExecutionContext ctx) {
             if (template == null) {
                 template = JavaTemplate.builder(code)

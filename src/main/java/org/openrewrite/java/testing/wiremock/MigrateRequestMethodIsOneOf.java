@@ -85,11 +85,7 @@ public class MigrateRequestMethodIsOneOf extends Recipe {
                                 .apply(getCursor(), m.getCoordinates().replace(), parameters.toArray());
                     }
 
-                    /**
-                     * Only WireMock 3's instance method hands back a `boolean`; the static one this recipe
-                     * generates returns a pattern, so checking the return type keeps it from being rewritten twice
-                     * and leaves code already written against 4.x alone.
-                     */
+                    // Only WireMock 3's instance method answers a `boolean`, so the return type tells the two apart.
                     private boolean answersABoolean(J.MethodInvocation method) {
                         JavaType.Method methodType = method.getMethodType();
                         return methodType != null &&

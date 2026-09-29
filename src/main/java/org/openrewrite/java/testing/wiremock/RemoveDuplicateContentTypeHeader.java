@@ -82,10 +82,7 @@ public class RemoveDuplicateContentTypeHeader extends Recipe {
                         return kept == null ? n : n.withArguments(kept);
                     }
 
-                    /**
-                     * @return the header name followed by only the last value, or {@code null} when this is not a
-                     * `Content-Type` carrying more than one value.
-                     */
+                    // Returns the name plus only the last value, or null when this is not a multi valued `Content-Type`
                     private @Nullable List<Expression> keepLastValue(List<Expression> arguments) {
                         // The name plus at least two values; a single `String...` or `Collection` argument
                         // holding the values cannot be split apart here
@@ -100,9 +97,7 @@ public class RemoveDuplicateContentTypeHeader extends Recipe {
                         return asList(arguments.get(0), arguments.get(arguments.size() - 1));
                     }
 
-                    /**
-                     * Header names are case insensitive, and WireMock treats them so.
-                     */
+                    // Header names are case insensitive, and WireMock treats them so.
                     private boolean isContentType(Expression name) {
                         if (!(name instanceof J.Literal)) {
                             return false;

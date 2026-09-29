@@ -91,11 +91,7 @@ public class MigrateStubMappingUuidToId extends Recipe {
                         Objects.equals(((Json.Literal) one).getValue(), ((Json.Literal) other).getValue());
             }
 
-            /**
-             * Dropping a member has to hand its surrounding whitespace to a neighbour, otherwise removing the
-             * first one takes the newline and indent that positioned it, and removing the last one takes the
-             * newline that put the closing brace on its own line.
-             */
+            // Hand the dropped member's whitespace to a neighbour, or the members left behind lose their placing.
             private Json.JsonObject removeMember(Json.JsonObject o, int index) {
                 List<JsonRightPadded<Json>> members = o.getPadding().getMembers();
                 if (members.size() == 1) {
@@ -114,9 +110,7 @@ public class MigrateStubMappingUuidToId extends Recipe {
                 return o.getPadding().withMembers(remaining);
             }
 
-            /**
-             * A `uuid` on its own is far too common to key off, so only rewrite objects shaped like a stub mapping.
-             */
+            // A bare `uuid` is far too common to key off, so require the shape of a stub mapping.
             private boolean isStubMapping(List<Json> members) {
                 Json.Member uuid = member(members, UUID_KEY);
                 if (uuid == null) {
