@@ -2155,47 +2155,4 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"1.7", "7"})
-    void repositoryCompilingToJavaBefore8IsLeftOnPowerMock(String javaVersion) {
-        rewriteRun(
-          //language=xml
-          pomXml(
-            """
-              <project>
-                <groupId>org.example</groupId>
-                <artifactId>legacy</artifactId>
-                <version>1.0-SNAPSHOT</version>
-                <properties>
-                  <maven.compiler.source>%1$s</maven.compiler.source>
-                  <maven.compiler.target>%1$s</maven.compiler.target>
-                </properties>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.powermock</groupId>
-                        <artifactId>powermock-api-mockito</artifactId>
-                        <version>1.6.5</version>
-                    </dependency>
-                </dependencies>
-              </project>
-              """.formatted(javaVersion)
-          ),
-          srcTestJava(
-            //language=java
-            java(
-              """
-                import org.powermock.api.mockito.PowerMockito;
-                import java.util.Calendar;
-
-                class StaticMockTest {
-                    void test() {
-                        PowerMockito.mockStatic(Calendar.class);
-                    }
-                }
-                """
-            )
-          )
-        );
-    }
 }

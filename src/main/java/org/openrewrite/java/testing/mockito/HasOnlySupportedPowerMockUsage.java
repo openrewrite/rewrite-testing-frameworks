@@ -15,18 +15,12 @@
  */
 package org.openrewrite.java.testing.mockito;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
-import org.openrewrite.maven.tree.MavenResolutionResult;
-import org.openrewrite.maven.tree.Plugin;
-import org.openrewrite.maven.tree.ResolvedPom;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -37,10 +31,9 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
 
     @Getter
     final String description = "Matches all source files of a repository whose PowerMock usage can be migrated to " +
-            "Mockito in full. Repositories that use PowerMock features without a Mockito equivalent, or that compile to " +
-            "a Java version older than 8, where the Mockito replacements need lambdas, do not match, so that they can be " +
-            "left on PowerMock rather than partially migrated. The decision is made per repository rather than per " +
-            "module, as modules typically share PowerMock versions managed by a parent.";
+            "Mockito in full. Repositories that use PowerMock features without a Mockito equivalent do not match, so " +
+            "that they can be left on PowerMock rather than partially migrated. The decision is made per repository " +
+            "rather than per module, as modules typically share PowerMock versions managed by a parent.";
 
     @Override
     public AtomicBoolean getInitialValue(ExecutionContext ctx) {
@@ -58,16 +51,9 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
                 }
                 if (tree instanceof JavaSourceFile) {
                     JavaSourceFile sourceFile = (JavaSourceFile) tree;
-                    if (usesPowerMock(sourceFile) &&
-                        (compilesToJavaBefore8(sourceFile) || !UnsupportedPowerMockUsage.find(sourceFile, ctx).isEmpty())) {
+                    if (usesPowerMock(sourceFile) && !UnsupportedPowerMockUsage.find(sourceFile, ctx).isEmpty()) {
                         unsupported.set(true);
                     }
-                } else {
-                    tree.getMarkers().findFirst(MavenResolutionResult.class).ifPresent(mrr -> {
-                        if (compilesToJavaBefore8(mrr.getPom())) {
-                            unsupported.set(true);
-                        }
-                    });
                 }
                 return tree;
             }
@@ -92,50 +78,5 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
             }
         }
         return false;
-    }
-
-    private static boolean compilesToJavaBefore8(JavaSourceFile sourceFile) {
-        return sourceFile.getMarkers().findFirst(JavaVersion.class)
-                .map(version -> isBefore8(version.getMajorVersion()))
-                .orElse(false);
-    }
-
-    private static boolean compilesToJavaBefore8(ResolvedPom pom) {
-        for (String property : new String[]{"maven.compiler.source", "maven.compiler.target", "maven.compiler.release"}) {
-            if (isBefore8(pom.getProperties().get(property), pom)) {
-                return true;
-            }
-        }
-        for (Plugin plugin : pom.getPlugins()) {
-            if ("maven-compiler-plugin".equals(plugin.getArtifactId()) && plugin.getConfiguration() != null) {
-                for (String setting : new String[]{"source", "target", "release"}) {
-                    JsonNode value = plugin.getConfiguration().get(setting);
-                    if (value != null && isBefore8(value.asText(), pom)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private static boolean isBefore8(@Nullable String version, ResolvedPom pom) {
-        String resolved = version == null ? null : pom.getValue(version);
-        if (resolved == null) {
-            return false;
-        }
-        String major = resolved.trim();
-        if (major.startsWith("1.")) {
-            major = major.substring(2);
-        }
-        try {
-            return isBefore8(Integer.parseInt(major));
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    private static boolean isBefore8(int majorVersion) {
-        return 0 < majorVersion && majorVersion < 8;
     }
 }

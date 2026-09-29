@@ -125,6 +125,11 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     JavaType.@Nullable FullyQualified fieldOwner(Expression target, @Nullable String fieldName) {
+        JavaType.FullyQualified declaringType = fieldDeclaringType(target, fieldName);
+        return declaringType != null && isAccessible(declaringType) ? declaringType : null;
+    }
+
+    JavaType.@Nullable FullyQualified fieldDeclaringType(Expression target, @Nullable String fieldName) {
         if (fieldName == null) {
             return null;
         }
@@ -132,11 +137,17 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
              type != null; type = type.getSupertype()) {
             for (JavaType.Variable member : type.getMembers()) {
                 if (member.getName().equals(fieldName)) {
-                    return isAccessible(type) ? type : null;
+                    return type;
                 }
             }
         }
         return null;
+    }
+
+    static boolean isSuperclassOf(JavaType.@Nullable FullyQualified declaringType, Expression target) {
+        JavaType.FullyQualified targetType = TypeUtils.asFullyQualified(target.getType());
+        return declaringType != null && targetType != null &&
+               !declaringType.getFullyQualifiedName().equals(targetType.getFullyQualifiedName());
     }
 
     boolean isAccessible(JavaType.FullyQualified type) {
@@ -214,10 +225,18 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     /**
      * Whether migrating the call has to look the member up on {@code target.getClass()}, as its declaring
-     * class cannot be determined. That misses members declared in a superclass and those of Mockito spies
+     * class cannot be referenced. That misses members declared in a superclass and those of Mockito spies
      * and mocks, so the migrated test may fail where the PowerMock one passed.
      */
     boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+        return false;
+    }
+
+    /**
+     * Whether the member the call accesses is known to be declared in a superclass of the target's type,
+     * where {@code target.getClass().getDeclared*} does not find it.
+     */
+    boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
         return false;
     }
 

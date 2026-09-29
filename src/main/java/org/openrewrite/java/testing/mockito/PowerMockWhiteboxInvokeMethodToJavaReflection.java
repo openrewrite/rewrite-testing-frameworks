@@ -143,6 +143,12 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         }
 
         @Override
+        boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
+            JavaType.Method resolvedMethod = resolve(mi);
+            return resolvedMethod != null && isSuperclassOf(resolvedMethod.getDeclaringType(), mi.getArguments().get(0));
+        }
+
+        @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
             List<Object> result = new ArrayList<>();

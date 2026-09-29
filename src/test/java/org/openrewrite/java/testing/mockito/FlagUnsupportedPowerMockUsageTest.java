@@ -261,9 +261,22 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
-    void whiteboxOnMemberOfUnknownClass() {
+    void whiteboxOnFieldOfRuntimeClassIsNotFlagged() {
         //language=java
         rewriteRun(
+          java(
+            """
+              interface Service {
+              }
+              """
+          ),
+          java(
+            """
+              class ServiceImpl implements Service {
+                  private Object repository;
+              }
+              """
+          ),
           java(
             """
               import org.junit.Test;
@@ -272,8 +285,36 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      Object target = new Object();
-                      Object value = Whitebox.getInternalState(target, "field");
+                      Service service = new ServiceImpl();
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxOnFieldOfUnreferenceableSuperclass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private static class Base {
+                      private int count;
+                  }
+
+                  private static class Sub extends Base {
+                  }
+
+                  @Test
+                  public void test() {
+                      Sub target = new Sub();
+                      Object value = Whitebox.getInternalState(target, "count");
                   }
               }
               """,
@@ -282,10 +323,53 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               import org.powermock.reflect.Whitebox;
 
               public class MyTest {
+                  private static class Base {
+                      private int count;
+                  }
+
+                  private static class Sub extends Base {
+                  }
+
                   @Test
                   public void test() {
-                      Object target = new Object();
-                      /* `Whitebox.getInternalState` cannot be migrated, as the class declaring the member it accesses is unknown; migrate it manually to replace PowerMock */
+                      Sub target = new Sub();
+                      /* `Whitebox.getInternalState` cannot be migrated, as the member it accesses is declared in a superclass that the test cannot reference; migrate it manually to replace PowerMock */
+                      Object value = Whitebox.getInternalState(target, "count");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxOnSpyOfUnknownClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.mockito.Mockito;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Object target = Mockito.spy(new Object());
+                      Object value = Whitebox.getInternalState(target, "field");
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.mockito.Mockito;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Object target = Mockito.spy(new Object());
+                      /* `Whitebox.getInternalState` cannot be migrated, as the runtime class of a Mockito mock or spy does not declare the member it accesses; migrate it manually to replace PowerMock */
                       Object value = Whitebox.getInternalState(target, "field");
                   }
               }

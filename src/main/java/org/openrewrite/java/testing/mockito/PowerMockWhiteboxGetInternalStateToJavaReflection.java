@@ -98,6 +98,12 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         }
 
         @Override
+        boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
+            Expression target = mi.getArguments().get(0);
+            return isSuperclassOf(fieldDeclaringType(target, extractStringLiteral(mi.getArguments().get(1))), target);
+        }
+
+        @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
             return new Object[]{
