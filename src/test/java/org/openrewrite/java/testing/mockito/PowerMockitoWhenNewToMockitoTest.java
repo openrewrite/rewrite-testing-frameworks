@@ -127,4 +127,179 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void sameTypeStubbedAgainInNestedBlockIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+
+              import org.junit.Test;
+
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  boolean other;
+
+                  @Test
+                  public void test() throws Exception {
+                      whenNew(File.class).withArguments("a.txt").thenReturn(mock(File.class));
+                      if (other) {
+                          whenNew(File.class).withArguments("b.txt").thenReturn(mock(File.class));
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void restubbingInTestClosesMockFromSetUp() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+
+              import org.junit.Before;
+              import org.junit.Test;
+
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Before
+                  public void setUp() throws Exception {
+                      whenNew(File.class).withAnyArguments().thenReturn(mock(File.class));
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      whenNew(File.class).withAnyArguments().thenReturn(mock(File.class));
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mock;
+
+              public class MyTest {
+                  private MockedConstruction<File> mockedConstructionFile;
+                  @Before
+                  public void setUp() throws Exception {
+                      mockedConstructionFile = Mockito.mockConstructionWithAnswer(File.class, AdditionalAnswers.delegatesTo(mock(File.class)));
+                  }
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedConstructionFile != null) {
+                          mockedConstructionFile.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      mockedConstructionFile.closeOnDemand();
+                      mockedConstructionFile = Mockito.mockConstructionWithAnswer(File.class, AdditionalAnswers.delegatesTo(mock(File.class)));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenNewInLoopClosesPreviousIteration() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+
+              import org.junit.Test;
+
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      for (String name : new String[]{"a.txt", "b.txt"}) {
+                          whenNew(File.class).withArguments(name).thenReturn(mock(File.class));
+                      }
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mock;
+
+              public class MyTest {
+                  private MockedConstruction<File> mockedConstructionFile;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedConstructionFile != null) {
+                          mockedConstructionFile.closeOnDemand();
+                      }
+                  }
+                  @Test
+                  public void test() throws Exception {
+                      for (String name : new String[]{"a.txt", "b.txt"}) {
+                          if (mockedConstructionFile != null) {
+                              mockedConstructionFile.closeOnDemand();
+                          }
+                          mockedConstructionFile = Mockito.mockConstructionWithAnswer(File.class, AdditionalAnswers.delegatesTo(mock(File.class)));
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void sameTypeAlsoStubbedToThrowIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+              import java.io.IOException;
+
+              import org.junit.Test;
+
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      whenNew(File.class).withArguments("bad.txt").thenThrow(new IOException());
+                      whenNew(File.class).withArguments("good.txt").thenReturn(mock(File.class));
+                  }
+              }
+              """
+          )
+        );
+    }
 }

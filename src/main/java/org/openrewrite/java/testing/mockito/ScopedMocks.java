@@ -211,7 +211,7 @@ final class ScopedMocks {
     /// refuses to create a second scoped mock for the same type on the same thread. The field is only known to be
     /// set where the mock was assigned in the set-up method or unconditionally earlier in the same method.
     @Nullable
-    Statement closeIfOpen(ScopedMock mock, Cursor site, J.MethodInvocation replaced, ExecutionContext ctx) {
+    Statement closeIfOpen(ScopedMock mock, Cursor site, Statement replaced, ExecutionContext ctx) {
         J.MethodDeclaration method = site.firstEnclosing(J.MethodDeclaration.class);
         if (method == null) {
             return null;
@@ -226,7 +226,7 @@ final class ScopedMocks {
         String any = "#{any(" + mock.scopedMockType + ")}";
         return JavaTemplate.builder(guarded ?
                         "if (" + any + " != null) {\n" + any + ".closeOnDemand();\n}" :
-                        any + ".closeOnDemand()")
+                        any + ".closeOnDemand();")
                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                 .build()
                 .apply(site, replaced.getCoordinates().replace(),
