@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -26,7 +27,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.trait.Comments;
 
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -64,16 +65,17 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
             @Override
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.Block b = super.visitBlock(block, ctx);
-                return b.withStatements(ListUtils.map(b.getStatements(), statement -> flag(statement, statement)));
+                return b.withStatements(ListUtils.map(b.getStatements(), statement -> flag(getCursor(), statement, statement)));
             }
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                cd = flag(cd, cd.getExtends());
+                Cursor parent = getCursor().getParentOrThrow();
+                cd = flag(parent, cd, cd.getExtends());
                 if (cd.getImplements() != null) {
                     for (TypeTree implemented : cd.getImplements()) {
-                        cd = flag(cd, implemented);
+                        cd = flag(parent, cd, implemented);
                     }
                 }
                 return cd;
@@ -81,10 +83,10 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
-                return flag(annotation, annotation);
+                return flag(getCursor().getParentOrThrow(), annotation, annotation);
             }
 
-            private <T extends J> T flag(T tree, @Nullable J searched) {
+            private <T extends J> T flag(Cursor parent, T tree, @Nullable J searched) {
                 if (searched == null) {
                     return tree;
                 }
@@ -109,25 +111,18 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
                 }.visit(searched, usages, getCursor());
                 T flagged = tree;
                 for (String usage : usages) {
-                    flagged = withComment(flagged, usage);
+                    flagged = Comments.of(new Cursor(parent, flagged)).multilineComment(
+                            " " + usage + "; migrate it manually to replace PowerMock ",
+                            Comments.Placement.BEFORE, lastLineOf(flagged.getPrefix()));
                 }
                 return flagged;
             }
 
-            private <T extends J> T withComment(T tree, String usage) {
-                String comment = " " + usage + "; migrate it manually to replace PowerMock ";
-                Space prefix = tree.getPrefix();
-                for (Comment existing : prefix.getComments()) {
-                    if (existing instanceof TextComment && ((TextComment) existing).getText().equals(comment)) {
-                        return tree;
-                    }
-                }
-                String precedingWhitespace = prefix.getComments().isEmpty() ? prefix.getWhitespace() :
+            private String lastLineOf(Space prefix) {
+                String whitespace = prefix.getComments().isEmpty() ? prefix.getWhitespace() :
                         prefix.getComments().get(prefix.getComments().size() - 1).getSuffix();
-                int lineStart = precedingWhitespace.lastIndexOf('\n');
-                String suffix = lineStart < 0 ? " " : precedingWhitespace.substring(lineStart);
-                return tree.withPrefix(prefix.withComments(ListUtils.concat(prefix.getComments(),
-                        new TextComment(true, comment, suffix, Markers.EMPTY))));
+                int lineStart = whitespace.lastIndexOf('\n');
+                return lineStart < 0 ? " " : whitespace.substring(lineStart);
             }
         });
     }

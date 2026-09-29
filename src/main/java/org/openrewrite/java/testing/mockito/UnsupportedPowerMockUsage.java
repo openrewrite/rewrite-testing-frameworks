@@ -149,8 +149,7 @@ final class UnsupportedPowerMockUsage {
     }
 
     private static Set<JavaType.Variable> mocksAndSpies(JavaSourceFile sourceFile) {
-        Set<JavaType.Variable> mocksAndSpies = new HashSet<>();
-        new JavaIsoVisitor<Set<JavaType.Variable>>() {
+        return new JavaIsoVisitor<Set<JavaType.Variable>>() {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, Set<JavaType.Variable> p) {
                 for (J.Annotation annotation : multiVariable.getLeadingAnnotations()) {
@@ -180,8 +179,7 @@ final class UnsupportedPowerMockUsage {
                 }
                 return super.visitAssignment(assignment, p);
             }
-        }.visit(sourceFile, mocksAndSpies);
-        return mocksAndSpies;
+        }.reduce(sourceFile, new HashSet<>());
     }
 
     private static boolean createsMockOrSpy(@Nullable Expression expression) {
@@ -213,8 +211,7 @@ final class UnsupportedPowerMockUsage {
     }
 
     private static Set<String> staticallyMockedTypes(JavaSourceFile sourceFile) {
-        Set<String> staticallyMocked = new HashSet<>();
-        new JavaIsoVisitor<Set<String>>() {
+        return new JavaIsoVisitor<Set<String>>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<String> p) {
                 if (MOCK_STATIC.matches(method) || SPY_CLASS.matches(method)) {
@@ -227,8 +224,7 @@ final class UnsupportedPowerMockUsage {
                 }
                 return super.visitMethodInvocation(method, p);
             }
-        }.visit(sourceFile, staticallyMocked);
-        return staticallyMocked;
+        }.reduce(sourceFile, new HashSet<>());
     }
 
     private static @Nullable String mockStaticRefusedByMockito(J.MethodInvocation mi) {
@@ -285,14 +281,13 @@ final class UnsupportedPowerMockUsage {
     }
 
     private static void findRemainingUsage(JavaSourceFile original, JavaSourceFile migrated, Map<UUID, String> unsupported) {
-        Set<UUID> originalIds = new HashSet<>();
-        new JavaIsoVisitor<Set<UUID>>() {
+        Set<UUID> originalIds = new JavaIsoVisitor<Set<UUID>>() {
             @Override
             public @Nullable J preVisit(J tree, Set<UUID> p) {
                 p.add(tree.getId());
                 return tree;
             }
-        }.visit(original, originalIds);
+        }.reduce(original, new HashSet<>());
 
         new JavaIsoVisitor<Map<UUID, String>>() {
             @Override
