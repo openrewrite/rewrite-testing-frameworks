@@ -333,6 +333,41 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
+    void annotationOnNestedClassIsFlaggedOnce() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.MockPolicy;
+
+              public class MyTest {
+                  @MockPolicy({})
+                  public static class Nested {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.MockPolicy;
+
+              public class MyTest {
+                  /* `@MockPolicy` could not be migrated automatically; migrate it manually to replace PowerMock */ @MockPolicy({})
+                  public static class Nested {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void commentIsPlacedOnTheLineBeforeTheStatement() {
         //language=java
         rewriteRun(

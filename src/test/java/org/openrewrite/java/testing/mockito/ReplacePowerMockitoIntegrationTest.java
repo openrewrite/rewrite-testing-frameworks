@@ -2156,8 +2156,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
-    @Test
-    void repositoryCompilingToJavaBefore8IsLeftOnPowerMock() {
+    @ParameterizedTest
+    @ValueSource(strings = {"1.7", "7"})
+    void repositoryCompilingToJavaBefore8IsLeftOnPowerMock(String javaVersion) {
         rewriteRun(
           //language=xml
           pomXml(
@@ -2167,8 +2168,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 <artifactId>legacy</artifactId>
                 <version>1.0-SNAPSHOT</version>
                 <properties>
-                  <maven.compiler.source>1.7</maven.compiler.source>
-                  <maven.compiler.target>1.7</maven.compiler.target>
+                  <maven.compiler.source>%1$s</maven.compiler.source>
+                  <maven.compiler.target>%1$s</maven.compiler.target>
                 </properties>
                 <dependencies>
                     <dependency>
@@ -2178,7 +2179,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                     </dependency>
                 </dependencies>
               </project>
-              """
+              """.formatted(javaVersion)
           ),
           srcTestJava(
             //language=java

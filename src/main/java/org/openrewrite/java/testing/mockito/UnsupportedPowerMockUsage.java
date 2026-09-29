@@ -21,10 +21,16 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.config.Environment;
+import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.*;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.net.URI;
 import java.util.*;
 
 import static java.util.Arrays.asList;
@@ -50,6 +56,10 @@ final class UnsupportedPowerMockUsage {
     private static final MethodMatcher MOCKITO_SPY = new MethodMatcher("org.mockito.Mockito spy(..)");
     private static final MethodMatcher MOCKITO_MOCK_STATIC = new MethodMatcher("org.mockito.Mockito mockStatic(..)");
 
+    private static final String POWERMOCKITO_YML = "/META-INF/rewrite/powermockito.yml";
+
+    private static @Nullable List<Recipe> migrationSteps;
+
     private UnsupportedPowerMockUsage() {
     }
 
@@ -64,7 +74,7 @@ final class UnsupportedPowerMockUsage {
 
     private static JavaSourceFile migrate(JavaSourceFile sourceFile, ExecutionContext ctx) {
         Tree migrated = sourceFile;
-        for (Recipe step : new ReplacePowerMockitoUsages().getRecipeList()) {
+        for (Recipe step : migrationSteps()) {
             TreeVisitor<?, ExecutionContext> visitor = step.getVisitor();
             if (!visitor.isAcceptable((JavaSourceFile) migrated, ctx)) {
                 continue;
@@ -79,6 +89,32 @@ final class UnsupportedPowerMockUsage {
             }
         }
         return (JavaSourceFile) migrated;
+    }
+
+    private static synchronized List<Recipe> migrationSteps() {
+        if (migrationSteps == null) {
+            try (InputStream yaml = UnsupportedPowerMockUsage.class.getResourceAsStream(POWERMOCKITO_YML)) {
+                Recipe replaceUsages = Environment.builder()
+                        .load(new YamlResourceLoader(Objects.requireNonNull(yaml), URI.create(POWERMOCKITO_YML), null))
+                        .build()
+                        .activateRecipes("org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages");
+                List<Recipe> steps = new ArrayList<>();
+                addLeafRecipes(replaceUsages, steps);
+                migrationSteps = steps;
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        return migrationSteps;
+    }
+
+    private static void addLeafRecipes(Recipe recipe, List<Recipe> leaves) {
+        if (recipe.getRecipeList().isEmpty()) {
+            leaves.add(recipe);
+        }
+        for (Recipe child : recipe.getRecipeList()) {
+            addLeafRecipes(child, leaves);
+        }
     }
 
     private static void findChangedBehavior(JavaSourceFile sourceFile, Map<UUID, String> unsupported) {
@@ -263,7 +299,7 @@ final class UnsupportedPowerMockUsage {
                powerMockOverloadRetargetedToMockito(mi) != null;
     }
 
-    private static boolean isPowerMock(JavaType.@Nullable FullyQualified type) {
+    static boolean isPowerMock(JavaType.@Nullable FullyQualified type) {
         return type != null && type.getFullyQualifiedName().startsWith("org.powermock.");
     }
 

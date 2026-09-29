@@ -52,6 +52,58 @@ recipeList:
       artifactId: powermock*
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages
+displayName: Replace PowerMock usages with Mockito
+description: >-
+  Replaces the PowerMock API, runners, rules and annotations used in Java sources with their Mockito counterparts, and
+  PowerMock `Whitebox` with Java reflection. Build files are left unchanged.
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.SuppressStaticInitializationFor"
+  - org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
+  - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+      returnType: org.mockito.MockedStatic
+  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito do*(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito mock(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito spy(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito when(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito verifyNoMoreInteractions(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito verifyZeroInteractions(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.testing.mockito.RemovePowerMockRule
+  - org.openrewrite.java.testing.mockito.RemovePowerMockClassExtensions
+  # Removes what PowerMockitoMockStaticToMockito leaves, such as `@PrepareForTest(fullyQualifiedNames = ...)`
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareForTest"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareOnlyThisForTest"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareEverythingForTest"
+  - org.openrewrite.java.testing.mockito.PowerMockitoWhenNewToMockito
+  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
+  - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
 displayName: Replace PowerMock `Whitebox` with Java reflection
 description: >-

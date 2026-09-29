@@ -81,8 +81,7 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
-                String usage = unsupported.get(annotation.getId());
-                return usage == null ? annotation : withComment(annotation, usage);
+                return flag(annotation, annotation);
             }
 
             private <T extends J> T flag(T tree, @Nullable J searched) {
@@ -92,20 +91,18 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
                 Set<String> usages = new LinkedHashSet<>();
                 new JavaIsoVisitor<Set<String>>() {
                     @Override
-                    public J.Block visitBlock(J.Block nested, Set<String> p) {
-                        return nested;
-                    }
-
-                    @Override
-                    public J.Annotation visitAnnotation(J.Annotation annotation, Set<String> p) {
-                        return annotation;
-                    }
-
-                    @Override
                     public @Nullable J preVisit(J tree, Set<String> p) {
+                        // Annotations are flagged on themselves, and nested blocks on their own statements
+                        if (tree instanceof J.Annotation && !(searched instanceof J.Annotation)) {
+                            stopAfterPreVisit();
+                            return tree;
+                        }
                         String usage = unsupported.get(tree.getId());
                         if (usage != null) {
                             p.add(usage);
+                        }
+                        if (tree instanceof J.Block) {
+                            stopAfterPreVisit();
                         }
                         return tree;
                     }

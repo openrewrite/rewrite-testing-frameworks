@@ -22,6 +22,7 @@ import org.openrewrite.*;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
 import org.openrewrite.maven.tree.MavenResolutionResult;
 import org.openrewrite.maven.tree.Plugin;
@@ -86,8 +87,7 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
 
     private static boolean usesPowerMock(JavaSourceFile sourceFile) {
         for (JavaType type : sourceFile.getTypesInUse().getTypesInUse()) {
-            if (type instanceof JavaType.FullyQualified &&
-                ((JavaType.FullyQualified) type).getFullyQualifiedName().startsWith("org.powermock.")) {
+            if (UnsupportedPowerMockUsage.isPowerMock(TypeUtils.asFullyQualified(type))) {
                 return true;
             }
         }
@@ -96,7 +96,7 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
 
     private static boolean compilesToJavaBefore8(JavaSourceFile sourceFile) {
         return sourceFile.getMarkers().findFirst(JavaVersion.class)
-                .map(version -> version.getMajorVersion() < 8)
+                .map(version -> isBefore8(version.getMajorVersion()))
                 .orElse(false);
     }
 
@@ -124,10 +124,18 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
         if (resolved == null) {
             return false;
         }
+        String major = resolved.trim();
+        if (major.startsWith("1.")) {
+            major = major.substring(2);
+        }
         try {
-            return Double.parseDouble(resolved.trim()) < 1.8;
+            return isBefore8(Integer.parseInt(major));
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    private static boolean isBefore8(int majorVersion) {
+        return 0 < majorVersion && majorVersion < 8;
     }
 }
