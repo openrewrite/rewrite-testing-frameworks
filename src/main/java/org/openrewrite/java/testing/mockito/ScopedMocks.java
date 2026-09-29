@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.AnnotationMatcher;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -27,7 +28,6 @@ import org.openrewrite.marker.Markers;
 
 import java.util.*;
 
-import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
@@ -52,6 +52,7 @@ final class ScopedMocks {
         boolean isStatic;
         boolean alwaysAssigned = true;
         boolean assignedInSetUp;
+        boolean assigned;
 
         ScopedMock(String scopedMockType, JavaType.FullyQualified mockedType, String className, String fieldName) {
             this.scopedMockType = scopedMockType;
@@ -67,7 +68,8 @@ final class ScopedMocks {
 
     private final Map<String, ScopedMock> mocks = new LinkedHashMap<>();
     private final Set<String> fieldNames = new HashSet<>();
-    private final Map<J.MethodDeclaration, Set<ScopedMock>> assignedPerMethod = new IdentityHashMap<>();
+    private final Map<J.MethodDeclaration, Map<ScopedMock, Boolean>> openedUnconditionallyPerMethod = new IdentityHashMap<>();
+    private final Map<String, Boolean> reassignmentMayFindNull = new HashMap<>();
     private final TestFramework framework;
     private final AnnotationMatcher setUpMatcher;
     private final J.ClassDeclaration classDecl;
@@ -77,10 +79,16 @@ final class ScopedMocks {
         this.classDecl = classDecl;
         this.framework = framework;
         this.setUpMatcher = new AnnotationMatcher(framework.setUpAnnotationSignature);
+        new JavaIsoVisitor<Set<String>>() {
+            @Override
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> names) {
+                names.add(variable.getSimpleName());
+                return super.visitVariable(variable, names);
+            }
+        }.visit(classDecl, fieldNames);
         for (Statement statement : classDecl.getBody().getStatements()) {
             if (statement instanceof J.VariableDeclarations) {
                 for (J.VariableDeclarations.NamedVariable variable : ((J.VariableDeclarations) statement).getVariables()) {
-                    fieldNames.add(variable.getSimpleName());
                     JavaType.Parameterized type = TypeUtils.asParameterized(variable.getType());
                     if (type == null || type.getTypeParameters().size() != 1) {
                         continue;
@@ -90,6 +98,7 @@ final class ScopedMocks {
                         if (mocked != null && TypeUtils.isOfClassType(type, scopedMockType)) {
                             ScopedMock mock = new ScopedMock(scopedMockType, mocked, mocked.getClassName(), variable.getSimpleName());
                             mock.declare = false;
+                            mock.alwaysAssigned = false;
                             mock.field = variable.getName();
                             mocks.put(key(scopedMockType, mocked), mock);
                         }
@@ -112,10 +121,7 @@ final class ScopedMocks {
     /// Registers a mock created at the statement the cursor points to, reusing an existing field where possible.
     ScopedMock register(String scopedMockType, JavaType.FullyQualified mockedType, String fieldPrefix, Cursor site) {
         J.MethodDeclaration method = site.firstEnclosing(J.MethodDeclaration.class);
-        J.Block initializer = site.firstEnclosing(J.Block.class);
-        boolean isStatic = method == null ?
-                initializer != null && initializer.isStatic() :
-                method.hasModifier(J.Modifier.Type.Static);
+        boolean isStatic = isStaticContext(site);
         boolean inSetUp = method != null && method.getLeadingAnnotations().stream().anyMatch(setUpMatcher::matches);
 
         ScopedMock mock = mocks.get(key(scopedMockType, mockedType));
@@ -131,15 +137,51 @@ final class ScopedMocks {
             mock.alwaysAssigned = inSetUp;
             mock.assignedInSetUp = inSetUp;
             mocks.put(key(scopedMockType, mockedType), mock);
-        } else if (mock.declare) {
+        } else {
             mock.isStatic |= isStatic;
             mock.alwaysAssigned &= inSetUp;
             mock.assignedInSetUp |= inSetUp;
+        }
+        mock.assigned = true;
+        if (method != null) {
+            Map<ScopedMock, Boolean> opened = openedUnconditionallyPerMethod.computeIfAbsent(method, m -> new HashMap<>());
+            Boolean openedUnconditionally = opened.get(mock);
+            if (openedUnconditionally != null || isInLoop(site)) {
+                reassignmentMayFindNull.put(siteKey(site.getValue(), mock), !Boolean.TRUE.equals(openedUnconditionally));
+            }
+            opened.merge(mock, site.getParentTreeCursor().getValue() == method.getBody(), Boolean::logicalOr);
         }
         if (testGroups == null && method != null && framework == TestFramework.TESTNG) {
             testGroups = testNgGroups(method);
         }
         return mock;
+    }
+
+    void requireStatic(String scopedMockType, JavaType.FullyQualified mockedType) {
+        ScopedMock mock = mocks.get(key(scopedMockType, mockedType));
+        if (mock != null) {
+            mock.isStatic = true;
+        }
+    }
+
+    static boolean isStaticContext(Cursor site) {
+        J.MethodDeclaration method = site.firstEnclosing(J.MethodDeclaration.class);
+        if (method != null) {
+            return method.hasModifier(J.Modifier.Type.Static);
+        }
+        J.Block initializer = site.firstEnclosing(J.Block.class);
+        return initializer != null && initializer.isStatic();
+    }
+
+    private static boolean isInLoop(Cursor site) {
+        for (Cursor c = site.getParent(); c != null && !(c.getValue() instanceof J.MethodDeclaration); c = c.getParent()) {
+            Object value = c.getValue();
+            if (value instanceof J.ForLoop || value instanceof J.ForEachLoop ||
+                value instanceof J.WhileLoop || value instanceof J.DoWhileLoop) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// The class name as referenced from within the test class, which can omit the test class itself as the
@@ -165,16 +207,30 @@ final class ScopedMocks {
         return null;
     }
 
-    /// Whether the mock may still be open when it is (re)assigned at the site the cursor points to, as Mockito
-    /// refuses to create a second scoped mock for the same type on the same thread.
-    boolean mayAlreadyBeOpen(ScopedMock mock, Cursor site) {
+    /// Closes the mock where it may still be open when it is (re)assigned at the `replaced` statement, as Mockito
+    /// refuses to create a second scoped mock for the same type on the same thread. The field is only known to be
+    /// set where the mock was assigned in the set-up method or unconditionally earlier in the same method.
+    @Nullable
+    Statement closeIfOpen(ScopedMock mock, Cursor site, J.MethodInvocation replaced, ExecutionContext ctx) {
         J.MethodDeclaration method = site.firstEnclosing(J.MethodDeclaration.class);
         if (method == null) {
-            return false;
+            return null;
         }
         boolean inSetUp = method.getLeadingAnnotations().stream().anyMatch(setUpMatcher::matches);
-        boolean assignedBefore = !assignedPerMethod.computeIfAbsent(method, m -> new HashSet<>()).add(mock);
-        return assignedBefore || (mock.assignedInSetUp && !inSetUp);
+        boolean openedInSetUp = mock.assignedInSetUp && !inSetUp;
+        Boolean mayFindNull = reassignmentMayFindNull.get(siteKey(replaced, mock));
+        if (!openedInSetUp && mayFindNull == null) {
+            return null;
+        }
+        boolean guarded = !openedInSetUp && mayFindNull;
+        String any = "#{any(" + mock.scopedMockType + ")}";
+        return JavaTemplate.builder(guarded ?
+                        "if (" + any + " != null) {\n" + any + ".closeOnDemand();\n}" :
+                        any + ".closeOnDemand()")
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                .build()
+                .apply(site, replaced.getCoordinates().replace(),
+                        guarded ? new Object[]{mock.field(), mock.field()} : new Object[]{mock.field()});
     }
 
     J.Assignment assign(ScopedMock mock, Expression scopedMock, Space prefix) {
@@ -182,14 +238,6 @@ final class ScopedMocks {
         return new J.Assignment(randomId(), prefix, Markers.EMPTY, field,
                 JLeftPadded.<Expression>build(scopedMock.withPrefix(Space.SINGLE_SPACE)).withBefore(Space.SINGLE_SPACE),
                 field.getType());
-    }
-
-    J.MethodInvocation closeOnDemand(ScopedMock mock, Cursor site, J.MethodInvocation replaced, ExecutionContext ctx) {
-        return JavaTemplate.builder("#{any(" + mock.scopedMockType + ")}.closeOnDemand()")
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                .build()
-                .<J.MethodInvocation>apply(site, replaced.getCoordinates().replace(), mock.field())
-                .withPrefix(replaced.getPrefix().withComments(emptyList()));
     }
 
     J.ClassDeclaration declareFields(JavaVisitor<ExecutionContext> visitor, J.ClassDeclaration cd, ExecutionContext ctx) {
@@ -229,7 +277,7 @@ final class ScopedMocks {
         StringBuilder closing = new StringBuilder();
         List<J.Identifier> fields = new ArrayList<>();
         for (ScopedMock mock : mocks.values()) {
-            if (!mock.declare || mock.field == null) {
+            if (!mock.assigned || mock.field == null) {
                 continue;
             }
             String any = "#{any(" + mock.scopedMockType + ")}";
@@ -274,6 +322,10 @@ final class ScopedMocks {
             }
         }
         return cd;
+    }
+
+    private static String siteKey(J site, ScopedMock mock) {
+        return site.getId() + key(mock.scopedMockType, mock.mockedType);
     }
 
     private static String key(String scopedMockType, JavaType.FullyQualified mockedType) {

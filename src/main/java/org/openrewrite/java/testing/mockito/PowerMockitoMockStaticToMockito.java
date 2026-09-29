@@ -109,6 +109,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
 
     private static ScopedMocks collectStaticMocks(J.ClassDeclaration cd, TestFramework framework) {
         ScopedMocks mocks = new ScopedMocks(cd, framework);
+        List<JavaType.FullyQualified> usedStatically = new ArrayList<>();
         new JavaIsoVisitor<Integer>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, Integer p) {
@@ -125,10 +126,21 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                             mocks.register(MOCKED_STATIC, type, "mocked", getCursor());
                         }
                     }
+                } else if (ScopedMocks.isStaticContext(getCursor())) {
+                    if (mi.getMethodType() != null && mi.getMethodType().hasFlags(Flag.Static)) {
+                        usedStatically.add(mi.getMethodType().getDeclaringType());
+                    }
+                    for (Expression argument : mi.getArguments()) {
+                        JavaType.FullyQualified type = classLiteral(argument);
+                        if (type != null) {
+                            usedStatically.add(type);
+                        }
+                    }
                 }
                 return mi;
             }
         }.visit(cd, 0);
+        usedStatically.forEach(type -> mocks.requireStatic(MOCKED_STATIC, type));
         return mocks;
     }
 
@@ -233,6 +245,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             boolean spy = SPY_CLASS.matches(mi);
             spiedStatically |= spy;
             Cursor site = new Cursor(getCursor(), mi);
+            Space prefix = mi.getPrefix().withComments(emptyList());
             List<Statement> assignments = new ArrayList<>(assigned.size());
             for (int i = 0; i < assigned.size(); i++) {
                 ScopedMocks.ScopedMock mock = assigned.get(i);
@@ -247,12 +260,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                             .build()
                             .apply(site, mi.getCoordinates().replace(), classArguments.get(i));
                 }
-                if (mocks.mayAlreadyBeOpen(mock, getCursor())) {
-                    assignments.add(mocks.closeOnDemand(mock, site, mi, ctx));
+                Statement close = mocks.closeIfOpen(mock, site, mi, ctx);
+                if (close != null) {
+                    assignments.add(close.withPrefix(prefix));
                 }
-                assignments.add(mocks.assign(mock, mockStatic,
-                        i == 0 && assignments.isEmpty() ? mi.getPrefix() : mi.getPrefix().withComments(emptyList())));
+                assignments.add(mocks.assign(mock, mockStatic, prefix));
             }
+            assignments.set(0, assignments.get(0).withPrefix(mi.getPrefix()));
             return assignments;
         }
 
@@ -306,7 +320,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             }
             J.MethodInvocation call = (J.MethodInvocation) mi.getArguments().get(0);
             if (MOCKITO_METHOD.matches(call) || call.getMethodType() == null || !call.getMethodType().hasFlags(Flag.Static) ||
-                throwsCheckedException(call.getMethodType())) {
+                MockitoUtils.throwsCheckedException(call.getMethodType())) {
                 return mi;
             }
             ScopedMocks.ScopedMock mock = mocks.get(MOCKED_STATIC, call.getMethodType().getDeclaringType());
@@ -322,18 +336,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), ListUtils.concat(mock.field(), rest).toArray());
-        }
-
-        /// Wrapping such a call in a lambda would leave a surrounding `catch` of that exception unreachable;
-        /// `Mockito.when(Type.method())` also stubs a static mock, so these calls are left as they are.
-        private static boolean throwsCheckedException(JavaType.Method method) {
-            for (JavaType thrown : method.getThrownExceptions()) {
-                if (!TypeUtils.isAssignableTo("java.lang.RuntimeException", thrown) &&
-                    !TypeUtils.isAssignableTo("java.lang.Error", thrown)) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         private J.MethodInvocation dynamicWhen(J.MethodInvocation mi, ExecutionContext ctx) {

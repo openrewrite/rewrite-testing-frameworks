@@ -1305,4 +1305,290 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void remockingAfterConditionalMockClosesWhenSet() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              import java.util.Locale;
+
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Locale.class)
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      if (Locale.getDefault() == null) {
+                          PowerMockito.mockStatic(Locale.class);
+                      }
+                      // mock again
+                      PowerMockito.mockStatic(Locale.class);
+                  }
+              }
+              """,
+            """
+              import java.util.Locale;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<Locale> mockedLocale;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedLocale != null) {
+                          mockedLocale.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() {
+                      if (Locale.getDefault() == null) {
+                          mockedLocale = Mockito.mockStatic(Locale.class);
+                      }
+                      // mock again
+                      if (mockedLocale != null) {
+                          mockedLocale.closeOnDemand();
+                      }
+                      mockedLocale = Mockito.mockStatic(Locale.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void remockingKeepsLeadingComment() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              import java.util.Locale;
+
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Locale.class)
+              public class MyTest {
+                  @Before
+                  public void setUp() {
+                      PowerMockito.mockStatic(Locale.class);
+                  }
+
+                  @Test
+                  public void test() {
+                      // mock again
+                      PowerMockito.mockStatic(Locale.class);
+                  }
+              }
+              """,
+            """
+              import java.util.Locale;
+
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<Locale> mockedLocale;
+
+                  @Before
+                  public void setUp() {
+                      mockedLocale = Mockito.mockStatic(Locale.class);
+                  }
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedLocale != null) {
+                          mockedLocale.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() {
+                      // mock again
+                      mockedLocale.closeOnDemand();
+                      mockedLocale = Mockito.mockStatic(Locale.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void existingFieldAssignedByMigrationIsClosedAfterEachTest() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              import java.util.Locale;
+
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Locale.class)
+              public class MyTest {
+                  private MockedStatic<Locale> mockedLocale;
+
+                  @Test
+                  public void test() {
+                      PowerMockito.mockStatic(Locale.class);
+                  }
+              }
+              """,
+            """
+              import java.util.Locale;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<Locale> mockedLocale;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedLocale != null) {
+                          mockedLocale.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() {
+                      mockedLocale = Mockito.mockStatic(Locale.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void stubbingFromStaticHelperUsesStaticField() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              import java.util.Locale;
+
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Locale.class)
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      PowerMockito.mockStatic(Locale.class);
+                      stubLocale();
+                  }
+
+                  private static void stubLocale() {
+                      PowerMockito.when(Locale.getDefault()).thenReturn(Locale.ENGLISH);
+                  }
+              }
+              """,
+            """
+              import java.util.Locale;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private static MockedStatic<Locale> mockedLocale;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedLocale != null) {
+                          mockedLocale.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() {
+                      mockedLocale = Mockito.mockStatic(Locale.class);
+                      stubLocale();
+                  }
+
+                  private static void stubLocale() {
+                      mockedLocale.when(Locale::getDefault).thenReturn(Locale.ENGLISH);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldNameAvoidsLocalVariable() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              import java.util.Locale;
+
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Locale.class)
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      String mockedLocale = "en";
+                      PowerMockito.mockStatic(Locale.class);
+                  }
+              }
+              """,
+            """
+              import java.util.Locale;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<Locale> mockedLocale_;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedLocale_ != null) {
+                          mockedLocale_.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() {
+                      String mockedLocale = "en";
+                      mockedLocale_ = Mockito.mockStatic(Locale.class);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
