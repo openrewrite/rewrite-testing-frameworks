@@ -23,7 +23,9 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -64,6 +66,21 @@ public class MockitoUtils {
                                 firstTestMethod.getCoordinates().before() :
                                 classDecl.getBody().getCoordinates().lastStatement()
                 );
+    }
+
+    /// Wrapping a call to such a method in a lambda would leave a surrounding `catch` of that exception
+    /// unreachable, whereas `Mockito.when(Type.method())` also stubs an active static mock.
+    public static boolean throwsCheckedException(JavaType.@Nullable Method method) {
+        if (method == null) {
+            return false;
+        }
+        for (JavaType thrown : method.getThrownExceptions()) {
+            if (!TypeUtils.isAssignableTo("java.lang.RuntimeException", thrown) &&
+                !TypeUtils.isAssignableTo("java.lang.Error", thrown)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasMethodWithAnnotation(J.ClassDeclaration classDecl, AnnotationMatcher annotationMatcher) {

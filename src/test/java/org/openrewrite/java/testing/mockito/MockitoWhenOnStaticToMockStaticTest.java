@@ -2494,4 +2494,73 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepsWhenOnExistingStaticMockOfMethodThrowingCheckedException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  static class Files {
+                      static String read() throws IOException {
+                          return "";
+                      }
+                  }
+
+                  private MockedStatic<Files> mockedFiles;
+
+                  void test() {
+                      try {
+                          when(Files.read()).thenThrow(new IOException());
+                      } catch (IOException e) {
+                          throw new AssertionError(e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsWhenInsideTryWithResourcesStaticMockOfMethodThrowingCheckedException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  static class Files {
+                      static String read() throws IOException {
+                          return "";
+                      }
+                  }
+
+                  void test() {
+                      try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
+                          try {
+                              when(Files.read()).thenThrow(new IOException());
+                          } catch (IOException e) {
+                              throw new AssertionError(e);
+                          }
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }

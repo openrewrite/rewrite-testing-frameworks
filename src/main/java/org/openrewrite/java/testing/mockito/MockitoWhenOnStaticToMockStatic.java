@@ -131,15 +131,21 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         JavaType.@Nullable Class invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
                             String pending = pendingResources.get(invokedType.getFullyQualifiedName());
+                            Optional<J.VariableDeclarations.NamedVariable> wrappingMockedStatic = pending == null ?
+                                    tryGetMatchedWrappingResource(getCursor(), invokedType, generatedMocks) : Optional.empty();
+                            J.VariableDeclarations.NamedVariable staticMockedVariable = pending == null && !wrappingMockedStatic.isPresent() ?
+                                    findMockedStaticVariable(getCursor(), invokedType) : null;
+                            if ((pending != null || wrappingMockedStatic.isPresent() || staticMockedVariable != null) &&
+                                MockitoUtils.throwsCheckedException(whenArg.getMethodType())) {
+                                return statement;
+                            }
                             if (pending != null) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, pending, whenArg, ctx);
                             }
-                            Optional<J.VariableDeclarations.NamedVariable> wrappingMockedStatic = tryGetMatchedWrappingResource(getCursor(), invokedType, generatedMocks);
                             if (wrappingMockedStatic.isPresent()) {
                                 Object name = nameForReuse(block, invokedType.getClassName(), wrappingMockedStatic.get());
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
                             }
-                            J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable != null) {
                                 Object name = nameForReuse(block, invokedType.getClassName(), staticMockedVariable);
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
