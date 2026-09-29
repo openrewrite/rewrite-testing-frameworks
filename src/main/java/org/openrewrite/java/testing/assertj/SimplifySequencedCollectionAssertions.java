@@ -21,6 +21,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -28,16 +29,24 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class SimplifySequencedCollectionAssertions extends Recipe {
 
-    // Object-equality assertions come from AbstractAssert, so they do not depend on CharSequence behavior
-    private static final Set<String> OBJECT_EQUALITY_ASSERTIONS = new HashSet<>(Arrays.asList("isEqualTo", "isNotEqualTo"));
+    // `first()` and `last()` return an `ObjectAssert`, so only assertions inherited from these types remain available
+    private static final Set<String> OBJECT_ASSERT_TYPES = new HashSet<>(Arrays.asList(
+            "org.assertj.core.api.ObjectAssert",
+            "org.assertj.core.api.AbstractObjectAssert",
+            "org.assertj.core.api.AbstractAssert",
+            "org.assertj.core.api.Assert",
+            "org.assertj.core.api.Descriptable",
+            "org.assertj.core.api.ExtensionPoints"));
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
     private static final MethodMatcher GET_FIRST_MATCHER = new MethodMatcher("java.util.* getFirst()");
@@ -62,59 +71,76 @@ public class SimplifySequencedCollectionAssertions extends Recipe {
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
-                        // Check if this is an assertThat call
                         if (!ASSERT_THAT_MATCHER.matches(mi) || mi.getArguments().size() != 1) {
                             return mi;
                         }
 
-                        // Check if the argument is a method invocation
                         Expression arg = mi.getArguments().get(0);
-                        if (arg instanceof J.MethodInvocation) {
-                            // Check if the method is getFirst() or getLast() on a SequencedCollection
-                            if (GET_FIRST_MATCHER.matches(arg)) {
-                                if (usesCharSequenceSpecificAssertion((J.MethodInvocation) arg)) {
-                                    return mi;
-                                }
-                                return assertThat(mi, (J.MethodInvocation) arg, "first", ctx);
-                            }
-                            if (GET_LAST_MATCHER.matches(arg)) {
-                                if (usesCharSequenceSpecificAssertion((J.MethodInvocation) arg)) {
-                                    return mi;
-                                }
-                                return assertThat(mi, (J.MethodInvocation) arg, "last", ctx);
-                            }
+                        if (!(arg instanceof J.MethodInvocation)) {
+                            return mi;
                         }
-
-                        return mi;
+                        String dedicatedAssertion = GET_FIRST_MATCHER.matches(arg) ? "first" :
+                                GET_LAST_MATCHER.matches(arg) ? "last" : null;
+                        if (dedicatedAssertion == null || !chainedAssertionsAvailableOnObjectAssert()) {
+                            return mi;
+                        }
+                        return assertThat(mi, (J.MethodInvocation) arg, dedicatedAssertion, ctx);
                     }
 
-                    private boolean usesCharSequenceSpecificAssertion(J.MethodInvocation elementAccess) {
-                        if (!TypeUtils.isAssignableTo("java.lang.CharSequence", elementAccess.getType())) {
-                            return false;
-                        }
+                    private boolean chainedAssertionsAvailableOnObjectAssert() {
                         J.MethodInvocation selected = getCursor().getValue();
-                        Cursor assertionCursor = getCursor().getParentTreeCursor();
-                        while (assertionCursor != null && assertionCursor.getValue() instanceof J.MethodInvocation) {
-                            J.MethodInvocation assertion = assertionCursor.getValue();
-                            if (!(assertion.getSelect() instanceof J.MethodInvocation) ||
-                                    !selected.getId().equals(((J.MethodInvocation) assertion.getSelect()).getId())) {
+                        for (Cursor parent = getCursor().getParentTreeCursor();
+                             parent.getValue() instanceof J.MethodInvocation;
+                             parent = parent.getParentTreeCursor()) {
+                            J.MethodInvocation chained = parent.getValue();
+                            if (chained.getSelect() != selected) {
                                 break;
                             }
-                            if (isCharSequenceSpecificAssertion(assertion)) {
+                            if (!isAvailableOnObjectAssert(chained)) {
+                                return false;
+                            }
+                            selected = chained;
+                        }
+                        return true;
+                    }
+
+                    private boolean isAvailableOnObjectAssert(J.MethodInvocation assertion) {
+                        JavaType.Method methodType = assertion.getMethodType();
+                        if (methodType == null) {
+                            return false;
+                        }
+                        JavaType.FullyQualified declaringType = methodType.getDeclaringType();
+                        if (OBJECT_ASSERT_TYPES.contains(declaringType.getFullyQualifiedName())) {
+                            return true;
+                        }
+                        List<Expression> arguments = ListUtils.filter(assertion.getArguments(), arg -> !(arg instanceof J.Empty));
+                        for (JavaType.FullyQualified type = declaringType.getSupertype(); type != null; type = type.getSupertype()) {
+                            if (OBJECT_ASSERT_TYPES.contains(type.getFullyQualifiedName()) &&
+                                    type.getMethods().stream().anyMatch(inherited ->
+                                            inherited.getName().equals(methodType.getName()) && acceptsArguments(inherited, arguments))) {
                                 return true;
                             }
-                            selected = assertion;
-                            assertionCursor = assertionCursor.getParentTreeCursor();
                         }
                         return false;
                     }
 
-                    private boolean isCharSequenceSpecificAssertion(J.MethodInvocation assertion) {
-                        if (OBJECT_EQUALITY_ASSERTIONS.contains(assertion.getSimpleName())) {
+                    private boolean acceptsArguments(JavaType.Method method, List<Expression> arguments) {
+                        List<JavaType> parameterTypes = method.getParameterTypes();
+                        if (parameterTypes.size() != arguments.size()) {
                             return false;
                         }
-                        return assertion.getMethodType() != null && TypeUtils.isAssignableTo(
-                                "org.assertj.core.api.AbstractCharSequenceAssert", assertion.getMethodType().getDeclaringType());
+                        for (int i = 0; i < parameterTypes.size(); i++) {
+                            JavaType parameterType = parameterTypes.get(i);
+                            if (parameterType instanceof JavaType.GenericTypeVariable) {
+                                continue;
+                            }
+                            JavaType.FullyQualified erasedParameterType = TypeUtils.asFullyQualified(parameterType);
+                            if (erasedParameterType == null ||
+                                    !TypeUtils.isAssignableTo(erasedParameterType.getFullyQualifiedName(), arguments.get(i).getType())) {
+                                return false;
+                            }
+                        }
+                        return true;
                     }
 
                     private J.MethodInvocation assertThat(J.MethodInvocation mi, J.MethodInvocation argMethod, String dedicatedAssertion, ExecutionContext ctx) {
