@@ -65,31 +65,20 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
             @Override
             public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                 J.Block b = super.visitBlock(block, ctx);
-                return b.withStatements(ListUtils.map(b.getStatements(), statement -> flag(getCursor(), statement, statement)));
+                return b.withStatements(ListUtils.map(b.getStatements(), statement -> flag(getCursor(), statement)));
             }
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                Cursor parent = getCursor().getParentOrThrow();
-                cd = flag(parent, cd, cd.getExtends());
-                if (cd.getImplements() != null) {
-                    for (TypeTree implemented : cd.getImplements()) {
-                        cd = flag(parent, cd, implemented);
-                    }
-                }
-                return cd;
+                return flag(getCursor().getParentOrThrow(), super.visitClassDeclaration(classDecl, ctx));
             }
 
             @Override
             public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
-                return flag(getCursor().getParentOrThrow(), annotation, annotation);
+                return flag(getCursor().getParentOrThrow(), annotation);
             }
 
-            private <T extends J> T flag(Cursor parent, T tree, @Nullable J searched) {
-                if (searched == null) {
-                    return tree;
-                }
+            private <T extends J> T flag(Cursor parent, T searched) {
                 Set<String> usages = new LinkedHashSet<>();
                 new JavaIsoVisitor<Set<String>>() {
                     @Override
@@ -108,11 +97,11 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
                         }
                         return tree;
                     }
-                }.visit(searched, usages, getCursor());
-                T flagged = tree;
+                }.visit(searched, usages, parent);
+                T flagged = searched;
                 for (String usage : usages) {
                     flagged = Comments.of(new Cursor(parent, flagged)).multilineComment(
-                            " " + usage + "; migrate it manually to replace PowerMock ",
+                            " TODO " + usage + "; migrate it manually to replace PowerMock ",
                             Comments.Placement.BEFORE, lastLineOf(flagged.getPrefix()));
                 }
                 return flagged;

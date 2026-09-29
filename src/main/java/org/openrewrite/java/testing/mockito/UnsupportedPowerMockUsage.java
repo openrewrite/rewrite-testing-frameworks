@@ -101,7 +101,8 @@ final class UnsupportedPowerMockUsage {
         if (migrationSteps == null) {
             try (InputStream yaml = UnsupportedPowerMockUsage.class.getResourceAsStream(POWERMOCKITO_YML)) {
                 Recipe replaceUsages = Environment.builder()
-                        .load(new YamlResourceLoader(Objects.requireNonNull(yaml), URI.create(POWERMOCKITO_YML), null))
+                        .load(new YamlResourceLoader(Objects.requireNonNull(yaml), URI.create(POWERMOCKITO_YML), null,
+                                UnsupportedPowerMockUsage.class.getClassLoader()))
                         .build()
                         .activateRecipes("org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages");
                 List<Recipe> steps = new ArrayList<>();
@@ -125,7 +126,7 @@ final class UnsupportedPowerMockUsage {
 
     private static void findChangedBehavior(JavaSourceFile sourceFile, Map<UUID, String> unsupported) {
         Set<String> staticallyMocked = staticallyMockedTypes(sourceFile);
-        Set<JavaType.Variable> mocksAndSpies = mocksAndSpies(sourceFile);
+        List<JavaType.Variable> mocksAndSpies = mocksAndSpies(sourceFile);
         List<WhiteboxToReflectionVisitor> whiteboxMigrations = asList(
                 new PowerMockWhiteboxGetInternalStateToJavaReflection.GetInternalStateVisitor(),
                 new PowerMockWhiteboxSetInternalStateToJavaReflection.SetInternalStateVisitor(),
@@ -148,10 +149,11 @@ final class UnsupportedPowerMockUsage {
         }.visit(sourceFile, unsupported);
     }
 
-    private static Set<JavaType.Variable> mocksAndSpies(JavaSourceFile sourceFile) {
-        return new JavaIsoVisitor<Set<JavaType.Variable>>() {
+    // A list rather than a set, as JavaType.Variable overrides equals but not hashCode
+    private static List<JavaType.Variable> mocksAndSpies(JavaSourceFile sourceFile) {
+        return new JavaIsoVisitor<List<JavaType.Variable>>() {
             @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, Set<JavaType.Variable> p) {
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, List<JavaType.Variable> p) {
                 for (J.Annotation annotation : multiVariable.getLeadingAnnotations()) {
                     for (String mockOrSpy : MOCK_OR_SPY_ANNOTATIONS) {
                         if (TypeUtils.isOfClassType(annotation.getType(), mockOrSpy)) {
@@ -165,7 +167,7 @@ final class UnsupportedPowerMockUsage {
             }
 
             @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<JavaType.Variable> p) {
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, List<JavaType.Variable> p) {
                 if (createsMockOrSpy(variable.getInitializer())) {
                     addIfNotNull(p, variable.getVariableType());
                 }
@@ -173,13 +175,13 @@ final class UnsupportedPowerMockUsage {
             }
 
             @Override
-            public J.Assignment visitAssignment(J.Assignment assignment, Set<JavaType.Variable> p) {
+            public J.Assignment visitAssignment(J.Assignment assignment, List<JavaType.Variable> p) {
                 if (createsMockOrSpy(assignment.getAssignment())) {
                     addIfNotNull(p, variableOf(assignment.getVariable()));
                 }
                 return super.visitAssignment(assignment, p);
             }
-        }.reduce(sourceFile, new HashSet<>());
+        }.reduce(sourceFile, new ArrayList<>());
     }
 
     private static boolean createsMockOrSpy(@Nullable Expression expression) {
@@ -204,9 +206,9 @@ final class UnsupportedPowerMockUsage {
         return null;
     }
 
-    private static <T> void addIfNotNull(Set<T> set, @Nullable T element) {
+    private static <T> void addIfNotNull(Collection<T> collection, @Nullable T element) {
         if (element != null) {
-            set.add(element);
+            collection.add(element);
         }
     }
 
@@ -250,7 +252,7 @@ final class UnsupportedPowerMockUsage {
         }
         JavaType.FullyQualified receiver = TypeUtils.asFullyQualified(mi.getSelect().getType());
         if (receiver == null || !staticallyMocked.contains(receiver.getFullyQualifiedName()) ||
-            receiver.getFullyQualifiedName().equals(type.getDeclaringType().getFullyQualifiedName())) {
+            staticallyMocked.contains(type.getDeclaringType().getFullyQualifiedName())) {
             return null;
         }
         return "Static mocking of `" + receiver.getClassName() + "." + mi.getSimpleName() + "()` cannot be migrated, as " +
@@ -259,7 +261,7 @@ final class UnsupportedPowerMockUsage {
 
     private static @Nullable String whiteboxOnRuntimeClass(J.MethodInvocation mi, Cursor cursor,
                                                            List<WhiteboxToReflectionVisitor> whiteboxMigrations,
-                                                           Set<JavaType.Variable> mocksAndSpies) {
+                                                           List<JavaType.Variable> mocksAndSpies) {
         for (WhiteboxToReflectionVisitor visitor : whiteboxMigrations) {
             if (visitor.matches(mi)) {
                 visitor.setCursor(cursor);
@@ -375,7 +377,7 @@ final class UnsupportedPowerMockUsage {
                powerMockOverloadRetargetedToMockito(mi) != null;
     }
 
-    static boolean isPowerMock(JavaType.@Nullable FullyQualified type) {
+    private static boolean isPowerMock(JavaType.@Nullable FullyQualified type) {
         return type != null && type.getFullyQualifiedName().startsWith("org.powermock.");
     }
 

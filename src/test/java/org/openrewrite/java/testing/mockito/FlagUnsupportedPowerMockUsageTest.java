@@ -85,10 +85,10 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               public class ServiceTest {
                   @Test
                   public void test() throws Exception {
-                      /* `MemberModifier.suppress` could not be migrated automatically; migrate it manually to replace PowerMock */
+                      /* TODO `MemberModifier.suppress` could not be migrated automatically; migrate it manually to replace PowerMock */
                       suppress(method(Service.class, "init"));
                       Service service = PowerMockito.spy(new Service());
-                      /* `PowerMockito.when` with more than one argument could not be migrated automatically; migrate it manually to replace PowerMock */
+                      /* TODO `PowerMockito.when` with more than one argument could not be migrated automatically; migrate it manually to replace PowerMock */
                       PowerMockito.when(service, "secret").thenReturn("mock");
                   }
               }
@@ -179,7 +179,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() throws Exception {
-                      /* `PowerMockito.verifyNew` could not be migrated automatically; migrate it manually to replace PowerMock */
+                      /* TODO `PowerMockito.verifyNew` could not be migrated automatically; migrate it manually to replace PowerMock */
                       PowerMockito.verifyNew(File.class).withArguments("a.txt");
                   }
               }
@@ -217,7 +217,32 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                   @Test
                   public void test() throws Exception {
                       PowerMockito.mockStatic(Inet4Address.class);
-                      /* Static mocking of `Inet4Address.getLocalHost()` cannot be migrated, as `Mockito.mockStatic` does not intercept static methods inherited from `InetAddress`; migrate it manually to replace PowerMock */
+                      /* TODO Static mocking of `Inet4Address.getLocalHost()` cannot be migrated, as `Mockito.mockStatic` does not intercept static methods inherited from `InetAddress`; migrate it manually to replace PowerMock */
+                      PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void staticMethodInheritedFromClassThatIsAlsoMocked() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.net.Inet4Address;
+              import java.net.InetAddress;
+
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      PowerMockito.mockStatic(Inet4Address.class);
+                      PowerMockito.mockStatic(InetAddress.class);
                       PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
                   }
               }
@@ -250,7 +275,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() {
-                      /* `mockStatic(System.class)` cannot be migrated, as Mockito does not mock the static methods of `System`; migrate it manually to replace PowerMock */
+                      /* TODO `mockStatic(System.class)` cannot be migrated, as Mockito does not mock the static methods of `System`; migrate it manually to replace PowerMock */
                       PowerMockito.mockStatic(System.class);
                       PowerMockito.when(System.currentTimeMillis()).thenReturn(1L);
                   }
@@ -333,7 +358,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                   @Test
                   public void test() {
                       Sub target = new Sub();
-                      /* `Whitebox.getInternalState` cannot be migrated, as the member it accesses is declared in a superclass that the test cannot reference; migrate it manually to replace PowerMock */
+                      /* TODO `Whitebox.getInternalState` cannot be migrated, as the member it accesses is declared in a superclass that the test cannot reference; migrate it manually to replace PowerMock */
                       Object value = Whitebox.getInternalState(target, "count");
                   }
               }
@@ -369,7 +394,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                   @Test
                   public void test() {
                       Object target = Mockito.spy(new Object());
-                      /* `Whitebox.getInternalState` cannot be migrated, as the runtime class of a Mockito mock or spy does not declare the member it accesses; migrate it manually to replace PowerMock */
+                      /* TODO `Whitebox.getInternalState` cannot be migrated, as the runtime class of a Mockito mock or spy does not declare the member it accesses; migrate it manually to replace PowerMock */
                       Object value = Whitebox.getInternalState(target, "field");
                   }
               }
@@ -404,7 +429,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               import org.powermock.modules.junit4.PowerMockRunner;
 
               @RunWith(PowerMockRunner.class)
-              /* `@MockPolicy` could not be migrated automatically; migrate it manually to replace PowerMock */
+              /* TODO `@MockPolicy` could not be migrated automatically; migrate it manually to replace PowerMock */
               @MockPolicy({})
               public class MyTest {
                   @Test
@@ -439,7 +464,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               import org.powermock.core.classloader.annotations.MockPolicy;
 
               public class MyTest {
-                  /* `@MockPolicy` could not be migrated automatically; migrate it manually to replace PowerMock */ @MockPolicy({})
+                  /* TODO `@MockPolicy` could not be migrated automatically; migrate it manually to replace PowerMock */ @MockPolicy({})
                   public static class Nested {
                       @Test
                       public void test() {
@@ -493,7 +518,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                       Service service = PowerMockito.spy(new Service());
 
                       // Given
-                      /* `PowerMockito.when` with more than one argument could not be migrated automatically; migrate it manually to replace PowerMock */
+                      /* TODO `PowerMockito.when` with more than one argument could not be migrated automatically; migrate it manually to replace PowerMock */
                       PowerMockito.when(service, method(Service.class, "secret")).withArguments("in").thenReturn("out");
                   }
               }

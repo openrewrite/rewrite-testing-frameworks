@@ -17,9 +17,8 @@ package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
 import org.openrewrite.*;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,7 +50,8 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
                 }
                 if (tree instanceof JavaSourceFile) {
                     JavaSourceFile sourceFile = (JavaSourceFile) tree;
-                    if (usesPowerMock(sourceFile) && !UnsupportedPowerMockUsage.find(sourceFile, ctx).isEmpty()) {
+                    if (new UsesType<>("org.powermock..*", false).visit(sourceFile, ctx) != sourceFile &&
+                        !UnsupportedPowerMockUsage.find(sourceFile, ctx).isEmpty()) {
                         unsupported.set(true);
                     }
                 }
@@ -69,14 +69,5 @@ public class HasOnlySupportedPowerMockUsage extends ScanningRecipe<AtomicBoolean
                 return unsupported.get() ? tree : SearchResult.found(tree);
             }
         };
-    }
-
-    private static boolean usesPowerMock(JavaSourceFile sourceFile) {
-        for (JavaType type : sourceFile.getTypesInUse().getTypesInUse()) {
-            if (UnsupportedPowerMockUsage.isPowerMock(TypeUtils.asFullyQualified(type))) {
-                return true;
-            }
-        }
-        return false;
     }
 }

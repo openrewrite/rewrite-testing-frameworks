@@ -1918,7 +1918,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   void test() {
                       MyService service = new MyService();
                       Whitebox.setInternalState(service, "name", "value");
-                      /* `Whitebox.newInstance` could not be migrated automatically; migrate it manually to replace PowerMock */
+                      /* TODO `Whitebox.newInstance` could not be migrated automatically; migrate it manually to replace PowerMock */
                       MyService other = Whitebox.newInstance(MyService.class);
                   }
               }
@@ -2112,7 +2112,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   class StaticMockTest {
                       void test() {
                           PowerMockito.mockStatic(Calendar.class);
-                          /* `PowerMockito.verifyNew` could not be migrated automatically; migrate it manually to replace PowerMock */
+                          /* TODO `PowerMockito.verifyNew` could not be migrated automatically; migrate it manually to replace PowerMock */
                           PowerMockito.verifyNew(Calendar.class);
                       }
                   }
