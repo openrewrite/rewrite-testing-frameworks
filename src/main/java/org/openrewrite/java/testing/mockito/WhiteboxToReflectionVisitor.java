@@ -212,7 +212,16 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return Preconditions.check(precondition, this);
     }
 
-    private boolean matches(J.MethodInvocation mi) {
+    /**
+     * Whether migrating the call has to look the member up on {@code target.getClass()}, as its declaring
+     * class cannot be determined. That misses members declared in a superclass and those of Mockito spies
+     * and mocks, so the migrated test may fail where the PowerMock one passed.
+     */
+    boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+        return false;
+    }
+
+    boolean matches(J.MethodInvocation mi) {
         for (MethodMatcher matcher : matchers) {
             if (matcher.matches(mi)) {
                 return true;

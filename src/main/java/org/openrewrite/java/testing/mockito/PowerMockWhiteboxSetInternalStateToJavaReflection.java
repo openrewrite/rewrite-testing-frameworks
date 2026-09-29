@@ -53,7 +53,7 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
         return new SetInternalStateVisitor().withPrecondition();
     }
 
-    private static class SetInternalStateVisitor extends WhiteboxToReflectionVisitor {
+    static class SetInternalStateVisitor extends WhiteboxToReflectionVisitor {
 
         SetInternalStateVisitor() {
             super("java.lang.reflect.Field", SET_INTERNAL_STATE, SET_INTERNAL_STATE_WHERE);
@@ -78,6 +78,11 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
         JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             return mi.getArguments().size() == 4 ? null :
                     fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
+        }
+
+        @Override
+        boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+            return mi.getArguments().size() == 3 && lookupOwner(mi, null) == null;
         }
 
         @Override

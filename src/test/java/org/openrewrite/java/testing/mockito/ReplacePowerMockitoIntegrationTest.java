@@ -1889,7 +1889,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
     @Issue("https://github.com/moderneinc/customer-requests/issues/2358")
     @Test
-    void whiteboxIsMigratedAndUnmigratableUsageIsFlagged() {
+    void moduleWithUnsupportedUsageIsLeftOnPowerMockAndFlagged() {
         //language=java
         rewriteRun(
           java(
@@ -1914,15 +1914,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             """
               import org.powermock.reflect.Whitebox;
 
-              import java.lang.reflect.Field;
-
               class MyServiceTest {
-                  void test() throws Exception {
+                  void test() {
                       MyService service = new MyService();
-                      Field nameField = MyService.class.getDeclaredField("name");
-                      nameField.setAccessible(true);
-                      nameField.set(service, "value");
-                      MyService other = /* PowerMock `Whitebox` call could not be automatically migrated to reflection; migrate manually */ Whitebox.newInstance(MyService.class);
+                      Whitebox.setInternalState(service, "name", "value");
+                      /* `Whitebox.newInstance` could not be migrated automatically; migrate it manually to replace PowerMock */
+                      MyService other = Whitebox.newInstance(MyService.class);
                   }
               }
               """
@@ -2068,6 +2065,134 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   """,
                 spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
               )
+            )
+          )
+        );
+    }
+
+    @Test
+    void repositoryWithUnsupportedUsageKeepsItsPowerMockDependencies() {
+        rewriteRun(
+          mavenProject("unsupported",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>unsupported</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                          PowerMockito.verifyNew(Calendar.class);
+                      }
+                  }
+                  """,
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                          /* `PowerMockito.verifyNew` could not be migrated automatically; migrate it manually to replace PowerMock */
+                          PowerMockito.verifyNew(Calendar.class);
+                      }
+                  }
+                  """
+              )
+            )
+          ),
+          mavenProject("supported",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>supported</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+
+                  class MockTest {
+                      void test() {
+                          PowerMockito.mock(Object.class);
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void repositoryCompilingToJavaBefore8IsLeftOnPowerMock() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>legacy</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <properties>
+                  <maven.compiler.source>1.7</maven.compiler.source>
+                  <maven.compiler.target>1.7</maven.compiler.target>
+                </properties>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-api-mockito</artifactId>
+                        <version>1.6.5</version>
+                    </dependency>
+                </dependencies>
+              </project>
+              """
+          ),
+          srcTestJava(
+            //language=java
+            java(
+              """
+                import org.powermock.api.mockito.PowerMockito;
+                import java.util.Calendar;
+
+                class StaticMockTest {
+                    void test() {
+                        PowerMockito.mockStatic(Calendar.class);
+                    }
+                }
+                """
             )
           )
         );

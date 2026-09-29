@@ -18,60 +18,32 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
 displayName: Replace PowerMock with raw Mockito
-description: PowerMockito with raw Mockito; best executed as part of a Mockito upgrade.
+description: >-
+  PowerMockito with raw Mockito; best executed as part of a Mockito upgrade. Repositories that use PowerMock features
+  without a Mockito equivalent are left on PowerMock, with a comment on each such usage, rather than partially migrated.
 preconditions:
   - org.openrewrite.Singleton
 tags:
   - testing
   - mockito
 recipeList:
+  - org.openrewrite.java.testing.mockito.ReplacePowerMockitoIfFullySupported
+  - org.openrewrite.java.testing.mockito.FlagUnsupportedPowerMockUsage
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.ReplacePowerMockitoIfFullySupported
+displayName: Replace PowerMock with raw Mockito when all PowerMock usage can be migrated
+description: >-
+  Replaces PowerMock with raw Mockito, including the PowerMock dependencies, in repositories whose PowerMock usage can
+  be migrated in full.
+preconditions:
+  - org.openrewrite.java.testing.mockito.HasOnlySupportedPowerMockUsage
+tags:
+  - testing
+  - mockito
+recipeList:
   - org.openrewrite.java.testing.mockito.ReplacePowerMockDependencies
-  - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
-  - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "@org.powermock.core.classloader.annotations.SuppressStaticInitializationFor"
-  - org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
-  - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
-      fullyQualifiedTargetTypeName: org.mockito.Mockito
-      returnType: org.mockito.MockedStatic
-  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.powermock.api.mockito.PowerMockito do*(..)
-      fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.powermock.api.mockito.PowerMockito mock(..)
-      fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.powermock.api.mockito.PowerMockito spy(..)
-      fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.powermock.api.mockito.PowerMockito when(..)
-      fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.powermock.api.mockito.PowerMockito verifyNoMoreInteractions(..)
-      fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.powermock.api.mockito.PowerMockito verifyZeroInteractions(..)
-      fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.testing.mockito.RemovePowerMockRule
-  - org.openrewrite.java.testing.mockito.RemovePowerMockClassExtensions
-  # Removes what PowerMockitoMockStaticToMockito leaves, such as `@PrepareForTest(fullyQualifiedNames = ...)`
-  - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareForTest"
-  - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareOnlyThisForTest"
-  - org.openrewrite.java.RemoveAnnotation:
-      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareEverythingForTest"
-  - org.openrewrite.java.testing.mockito.PowerMockitoWhenNewToMockito
-  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
-  # Flag any remaining powermock-reflect usage that has no faithful reflection equivalent, so the
-  # dependency removal below does not silently leave uncompilable code without a trace.
-  - org.openrewrite.java.AddCommentToMethodInvocations:
-      methodPattern: org.powermock.reflect.Whitebox *(..)
-      comment: " PowerMock `Whitebox` call could not be automatically migrated to reflection; migrate manually "
-  - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
+  - org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
       artifactId: powermock*
