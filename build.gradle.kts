@@ -57,7 +57,11 @@ recipeDependencies {
     testParserClasspath("io.grpc:grpc-testing:1.+")
     testParserClasspath("org.easymock:easymock:5.6.0")
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")
+    testParserClasspath("org.powermock:powermock-api-mockito2:2.0.9")
+    testParserClasspath("org.powermock:powermock-api-support:2.0.9")
+    testParserClasspath("org.powermock:powermock-core:2.0.9")
     testParserClasspath("org.powermock:powermock-module-junit4:1.6.5")
+    testParserClasspath("org.powermock:powermock-reflect:2.0.9")
     testParserClasspath("org.springframework.boot:spring-boot-test:3.2.+")
 
     testParserClasspath("org.testcontainers:nginx:1.+")

@@ -21,6 +21,7 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinParser;
@@ -66,7 +67,11 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(MOCKITO_WHEN), new TreeVisitor<Tree, ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(
+                new UsesMethod<>(MOCKITO_WHEN),
+                // Static stubbing in tests that are still on PowerMock is backed by PowerMock's own static mocks
+                Preconditions.not(new UsesType<>("org.powermock..*", false))
+        ), new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree preVisit(Tree tree, ExecutionContext ctx) {
                 stopAfterPreVisit();
@@ -126,15 +131,21 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         JavaType.@Nullable Class invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
                             String pending = pendingResources.get(invokedType.getFullyQualifiedName());
+                            Optional<J.VariableDeclarations.NamedVariable> wrappingMockedStatic = pending == null ?
+                                    tryGetMatchedWrappingResource(getCursor(), invokedType, generatedMocks) : Optional.empty();
+                            J.VariableDeclarations.NamedVariable staticMockedVariable = pending == null && !wrappingMockedStatic.isPresent() ?
+                                    findMockedStaticVariable(getCursor(), invokedType) : null;
+                            if ((pending != null || wrappingMockedStatic.isPresent() || staticMockedVariable != null) &&
+                                MockitoUtils.throwsCheckedException(whenArg.getMethodType())) {
+                                return statement;
+                            }
                             if (pending != null) {
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, pending, whenArg, ctx);
                             }
-                            Optional<J.VariableDeclarations.NamedVariable> wrappingMockedStatic = tryGetMatchedWrappingResource(getCursor(), invokedType, generatedMocks);
                             if (wrappingMockedStatic.isPresent()) {
                                 Object name = nameForReuse(block, invokedType.getClassName(), wrappingMockedStatic.get());
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);
                             }
-                            J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable != null) {
                                 Object name = nameForReuse(block, invokedType.getClassName(), staticMockedVariable);
                                 return reuseMockedStatic(block, (J.MethodInvocation) statement, name, whenArg, ctx);

@@ -30,6 +30,8 @@ recipeList:
       annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.SuppressStaticInitializationFor"
+  - org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
+  - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
@@ -47,9 +49,21 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito when(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
-  - org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito verifyNoMoreInteractions(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.powermock.api.mockito.PowerMockito verifyZeroInteractions(..)
+      fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.testing.mockito.RemovePowerMockRule
   - org.openrewrite.java.testing.mockito.RemovePowerMockClassExtensions
-  - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
+  # Removes what PowerMockitoMockStaticToMockito leaves, such as `@PrepareForTest(fullyQualifiedNames = ...)`
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareForTest"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareOnlyThisForTest"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@org.powermock.core.classloader.annotations.PrepareEverythingForTest"
   - org.openrewrite.java.testing.mockito.PowerMockitoWhenNewToMockito
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
   # Flag any remaining powermock-reflect usage that has no faithful reflection equivalent, so the

@@ -52,7 +52,7 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
     @Getter
     final String description = "Replaces `@RunWith(PowerMockRunner.class)`. If `@PowerMockRunnerDelegate(X.class)` " +
             "is present, promotes the delegate runner to `@RunWith(X.class)`. Otherwise, replaces it with " +
-            "`@RunWith(MockitoJUnitRunner.class)` when the class uses Mockito annotations like `@Mock`, or removes " +
+            "`@RunWith(MockitoJUnitRunner.Silent.class)` when the class uses Mockito annotations like `@Mock`, or removes " +
             "the `@RunWith(PowerMockRunner.class)` annotation entirely.";
 
     @Override
@@ -97,7 +97,7 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                                 @Override
                                 public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
                                     if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
-                                        return JavaTemplate.builder("@RunWith(MockitoJUnitRunner.class)")
+                                        return JavaTemplate.builder("@RunWith(MockitoJUnitRunner.Silent.class)")
                                                 .imports("org.junit.runner.RunWith", MOCKITO_JUNIT_RUNNER)
                                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-4", "mockito-core"))
                                                 .build()

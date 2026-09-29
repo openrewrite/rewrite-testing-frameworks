@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.Tree;
@@ -25,9 +26,12 @@ import org.openrewrite.java.dependencies.ChangeDependency;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.maven.tree.MavenResolutionResult;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMockDependencies.Accumulator> {
 
@@ -42,6 +46,7 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
 
     static class Accumulator {
         Map<JavaProject, Boolean> needsInlineMocking = new HashMap<>();
+        Set<JavaProject> withJavaSources = new HashSet<>();
     }
 
     @Override
@@ -61,6 +66,7 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
                 stopAfterPreVisit();
                 if (tree instanceof JavaSourceFile) {
                     JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
+                    acc.withJavaSources.add(project);
                     if (Boolean.TRUE.equals(acc.needsInlineMocking.get(project))) {
                         return tree;
                     }
@@ -91,8 +97,7 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
             public Tree preVisit(Tree tree, ExecutionContext ctx) {
                 stopAfterPreVisit();
                 JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
-                String targetArtifact = Boolean.TRUE.equals(acc.needsInlineMocking.get(project)) ?
-                        "mockito-inline" : "mockito-core";
+                String targetArtifact = needsInlineMocking(tree, project, acc) ? "mockito-inline" : "mockito-core";
                 doAfterVisit(new ChangeDependency(
                         "org.powermock", "powermock-api-mockito",
                         "org.mockito", targetArtifact, "3.x",
@@ -104,5 +109,20 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
                 return tree;
             }
         };
+    }
+
+    /// Parent and aggregator poms typically manage the version of PowerMock for their modules, so these have to
+    /// agree with their modules on the Mockito artifact that replaces it; otherwise modules end up with a Mockito
+    /// dependency that has no managed version.
+    private static boolean needsInlineMocking(Tree tree, @Nullable JavaProject project, Accumulator acc) {
+        if (Boolean.TRUE.equals(acc.needsInlineMocking.get(project))) {
+            return true;
+        }
+        if (!acc.needsInlineMocking.containsValue(true)) {
+            return false;
+        }
+        MavenResolutionResult mrr = tree.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+        return !acc.withJavaSources.contains(project) ||
+               mrr != null && (mrr.getParent() != null || !mrr.getModules().isEmpty());
     }
 }

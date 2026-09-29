@@ -25,6 +25,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
@@ -111,11 +112,11 @@ public class CleanupMockitoImports extends Recipe {
                             if (mockitoMethodsUsed.contains(staticName)) {
                                 continue;
                             }
+                            String owner = staticImportOwner(_import);
                             if ("*".equals(staticName)) {
-                                maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
+                                maybeRemoveImport(owner);
                             } else if (!unknownTypeMethodInvocationNames.contains(staticName)) {
-                                String fullyQualifiedName = _import.getPackageName() + "." + _import.getClassName() + "." + staticName;
-                                maybeRemoveImport(fullyQualifiedName);
+                                maybeRemoveImport(owner + "." + staticName);
                             }
                         } else if (qualifiedMethodInvocationNames.isEmpty()) {
                             maybeRemoveImport(_import.getPackageName() + "." + _import.getClassName());
@@ -124,6 +125,13 @@ public class CleanupMockitoImports extends Recipe {
                 }
             }
             return tree;
+        }
+
+        // `J.Import#getTypeName()` looks the member up among the owner's visible methods, which misses methods
+        // inherited from a changed supertype, as with `Mockito` once `Matchers` is changed to `ArgumentMatchers`
+        private static String staticImportOwner(J.Import _import) {
+            JavaType.FullyQualified owner = TypeUtils.asFullyQualified(_import.getQualid().getTarget().getType());
+            return owner != null ? owner.getFullyQualifiedName() : _import.getTypeName();
         }
 
         private static class MockitoMethodTypeVisitor extends JavaIsoVisitor<List<String>> {
