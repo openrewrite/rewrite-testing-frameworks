@@ -90,6 +90,14 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
         };
     }
 
+    /// A cycle scans every source file before it edits any, so `RemoveUnusedProperties` cannot see the
+    /// `${powermock.version}` references vanish until the cycle after this recipe removes the dependencies that
+    /// held them. Only a leaf recipe's flag is consulted, so this cannot be declared on the enclosing YAML.
+    @Override
+    public boolean causesAnotherCycle() {
+        return true;
+    }
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         return new TreeVisitor<Tree, ExecutionContext>() {
