@@ -43,19 +43,15 @@ tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.testing.mockito.FlagUnsupportedPowerMockUsage
   - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.java.testing.mockito.Mockito4to5Only
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito4to5Only
 displayName: Mockito 4 to 5.x upgrade only
-description: >-
-  Upgrade Mockito from 4.x to 5.x. Does not include 1.x to 4.x migration. Repositories using PowerMock features
-  that cannot be migrated to Mockito are left unchanged, as PowerMock pins the Mockito version.
+description: Upgrade Mockito from 4.x to 5.x. Does not include 1.x to 4.x migration.
 preconditions:
   - org.openrewrite.Singleton
-  - org.openrewrite.java.testing.mockito.HasOnlySupportedPowerMockUsage
 tags:
   - testing
   - mockito
@@ -78,12 +74,9 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to4Migration
 displayName: Mockito 4.x upgrade
-description: >-
-  Upgrade Mockito from 1.x to 4.x. Repositories using PowerMock features that cannot be migrated to Mockito are
-  left unchanged, as PowerMock pins the Mockito version.
+description: Upgrade Mockito from 1.x to 4.x.
 preconditions:
   - org.openrewrite.Singleton
-  - org.openrewrite.java.testing.mockito.HasOnlySupportedPowerMockUsage
 tags:
   - testing
   - mockito
@@ -104,12 +97,9 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
 displayName: Mockito 3.x migration from 1.x
-description: >-
-  Upgrade Mockito from 1.x to 3.x. Repositories using PowerMock features that cannot be migrated to Mockito are
-  left unchanged, as PowerMock pins the Mockito version.
+description: Upgrade Mockito from 1.x to 3.x.
 preconditions:
   - org.openrewrite.Singleton
-  - org.openrewrite.java.testing.mockito.HasOnlySupportedPowerMockUsage
 tags:
   - testing
   - mockito
