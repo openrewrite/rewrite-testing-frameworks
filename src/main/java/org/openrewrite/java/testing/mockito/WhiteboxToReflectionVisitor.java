@@ -135,18 +135,16 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
              type != null; type = type.getSupertype()) {
-            for (JavaType.Variable member : type.getMembers()) {
-                if (member.getName().equals(fieldName)) {
-                    return type;
-                }
+            if (declaresField(type, fieldName)) {
+                return type;
             }
         }
         return null;
     }
 
-    static boolean isSuperclassOf(JavaType.@Nullable FullyQualified declaringType, Expression target) {
+    static boolean isSuperclassOf(JavaType.FullyQualified declaringType, Expression target) {
         JavaType.FullyQualified targetType = TypeUtils.asFullyQualified(target.getType());
-        return declaringType != null && targetType != null &&
+        return targetType != null &&
                !declaringType.getFullyQualifiedName().equals(targetType.getFullyQualifiedName());
     }
 

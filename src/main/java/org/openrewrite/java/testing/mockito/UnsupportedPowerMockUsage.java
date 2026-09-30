@@ -215,7 +215,8 @@ final class UnsupportedPowerMockUsage {
             if (variable.equals(assignment.getKey())) {
                 Expression value = assignment.getValue().unwrap();
                 JavaType.FullyQualified instantiated = value instanceof J.NewClass ? instantiatedClass((J.NewClass) value) : null;
-                if (instantiated == null || runtimeClass != null && !TypeUtils.isOfType(runtimeClass, instantiated)) {
+                if (instantiated == null || runtimeClass != null &&
+                                            !runtimeClass.getFullyQualifiedName().equals(instantiated.getFullyQualifiedName())) {
                     return null;
                 }
                 runtimeClass = instantiated;
@@ -321,9 +322,13 @@ final class UnsupportedPowerMockUsage {
                 JavaType.FullyQualified declaringType = visitor.memberDeclaringType(mi);
                 if (declaringType == null) {
                     JavaType.FullyQualified runtimeClass = runtimeClass(target, assignments);
-                    return runtimeClass != null && visitor.declaresMember(runtimeClass, mi) ? null :
-                            "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the class declaring the " +
-                            "member it accesses is unknown";
+                    if (runtimeClass == null) {
+                        return "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the class declaring the " +
+                               "member it accesses is unknown";
+                    }
+                    return visitor.declaresMember(runtimeClass, mi) ? null :
+                            "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the runtime class `" +
+                            runtimeClass.getClassName() + "` of the target does not declare the member it accesses";
                 }
                 if (WhiteboxToReflectionVisitor.isSuperclassOf(declaringType, target)) {
                     return "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the member it accesses is " +

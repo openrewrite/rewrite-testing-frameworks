@@ -25,7 +25,6 @@ tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.testing.mockito.FlagUnsupportedPowerMockUsage
   - org.openrewrite.java.testing.mockito.Mockito1to5Migration
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.mockito.junit.jupiter.MockitoSettings(strictness=org.mockito.quality.Strictness.WARN)"

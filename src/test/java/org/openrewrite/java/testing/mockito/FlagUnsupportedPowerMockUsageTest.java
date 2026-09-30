@@ -400,6 +400,97 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
+    void whiteboxOnFieldInheritedByRuntimeClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              interface Service {
+              }
+              """
+          ),
+          java(
+            """
+              class BaseService implements Service {
+                  private Object repository;
+              }
+              """
+          ),
+          java(
+            """
+              class ServiceImpl extends BaseService {
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = new ServiceImpl();
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = new ServiceImpl();
+                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the runtime class `ServiceImpl` of the target does not declare the member it accesses; migrate it manually to replace PowerMock */
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxInvokingOverloadedMethodOfDeclaredTypeIsNotFlagged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Service {
+                  static Service create() {
+                      return new Service();
+                  }
+
+                  private int compute(int value) {
+                      return value;
+                  }
+
+                  private int compute(String value) {
+                      return value.length();
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      Service service = Service.create();
+                      Whitebox.invokeMethod(service, "compute", 1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void whiteboxOnFieldOfUnreferenceableSuperclass() {
         //language=java
         rewriteRun(
