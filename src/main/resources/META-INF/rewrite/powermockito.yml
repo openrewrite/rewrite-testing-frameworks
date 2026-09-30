@@ -42,8 +42,8 @@ tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.testing.mockito.ReplacePowerMockDependencies
   - org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
+  - org.openrewrite.java.testing.mockito.ReplacePowerMockDependencies
   - org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
