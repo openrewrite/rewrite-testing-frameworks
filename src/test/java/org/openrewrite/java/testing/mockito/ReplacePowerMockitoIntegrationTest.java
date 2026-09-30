@@ -2256,4 +2256,108 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void explicitMockitoCoreIsUpgradedAlongWithMockitoInline() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <properties>
+                    <mockito.version>2.28.2</mockito.version>
+                  </properties>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>${mockito.version}</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito2</artifactId>
+                          <version>2.0.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <properties>
+                    <mockito.version>3.12.4</mockito.version>
+                  </properties>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>${mockito.version}</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-inline</artifactId>
+                          <version>3.12.4</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> {
+                    assertThat(actual).contains("Mockito.mockStatic(Calendar.class)");
+                    return actual;
+                })
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoCoreIsNotUpgradedWithoutPowerMock() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>2.28.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
 }
