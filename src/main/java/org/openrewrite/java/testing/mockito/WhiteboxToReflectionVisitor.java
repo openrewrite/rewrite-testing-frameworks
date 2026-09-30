@@ -22,6 +22,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -32,6 +33,8 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.emptyList;
@@ -54,6 +57,12 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     static final String WHITEBOX_FQN = "org.powermock.reflect.Whitebox";
 
     private static final String WHITEBOX_REPLACED = "whiteboxReplaced";
+
+    private static final String HIERARCHY_LOOKUP_NEEDED = "whiteboxHierarchyLookupNeeded";
+
+    static final String FIELD_LOOKUP_HELPER = "declaredFieldInHierarchy";
+
+    static final String METHOD_LOOKUP_HELPER = "declaredMethodInHierarchy";
 
     private static final Map<String, String> BOXED_TYPES = new HashMap<>();
 
@@ -144,12 +153,6 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return null;
     }
 
-    static boolean isSuperclassOf(JavaType.@Nullable FullyQualified declaringType, Expression target) {
-        JavaType.FullyQualified targetType = TypeUtils.asFullyQualified(target.getType());
-        return declaringType != null && targetType != null &&
-               !declaringType.getFullyQualifiedName().equals(targetType.getFullyQualifiedName());
-    }
-
     boolean isAccessible(JavaType.FullyQualified type) {
         if (type instanceof JavaType.Parameterized) {
             type = ((JavaType.Parameterized) type).getType();
@@ -174,6 +177,19 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     String lookupReceiverTemplate(JavaType.@Nullable FullyQualified owner) {
         return owner == null ? "#{any(java.lang.Object)}.getClass()" : "#{any(java.lang.Class)}";
+    }
+
+    /**
+     * True when the member has to be looked up on the target's runtime class, which for a member declared
+     * in a superclass, or for the generated subclass of a Mockito mock or spy, does not declare it. The
+     * generated code then walks the hierarchy the way {@code Whitebox} does, via a helper method.
+     */
+    boolean usesHierarchyLookup(JavaType.@Nullable FullyQualified owner) {
+        return owner == null;
+    }
+
+    void recordHierarchyLookup() {
+        getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, HIERARCHY_LOOKUP_NEEDED, true);
     }
 
     Object lookupReceiverArg(Expression target, JavaType.@Nullable FullyQualified owner) {
@@ -232,14 +248,6 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return false;
     }
 
-    /**
-     * Whether the member the call accesses is known to be declared in a superclass of the target's type,
-     * where {@code target.getClass().getDeclared*} does not find it.
-     */
-    boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
-        return false;
-    }
-
     boolean matches(J.MethodInvocation mi) {
         for (MethodMatcher matcher : matchers) {
             if (matcher.matches(mi)) {
@@ -250,10 +258,98 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     @Override
+    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+        // The helper has to exist before the call sites are templated, or the generated call to it
+        // cannot be type-attributed.
+        if (!needsHierarchyLookup(classDecl) || hasHelper(classDecl)) {
+            return super.visitClassDeclaration(classDecl, ctx);
+        }
+        maybeAddImport(reflectiveImport, false);
+        J.ClassDeclaration withHelper = JavaTemplate.builder(helperSource())
+                .contextSensitive()
+                .javaParser(JavaParser.fromJavaVersion())
+                .imports(reflectiveImport)
+                .build()
+                .apply(getCursor(), classDecl.getBody().getCoordinates().lastStatement());
+        updateCursor(withHelper);
+        return super.visitClassDeclaration(withHelper, ctx);
+    }
+
+    /** Whether any call in this class has to look the member up on the target's runtime class. */
+    private boolean needsHierarchyLookup(J.ClassDeclaration classDecl) {
+        Cursor classCursor = getCursor();
+        return new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                if (!found.get() && matches(method)) {
+                    Cursor outer = WhiteboxToReflectionVisitor.this.getCursor();
+                    WhiteboxToReflectionVisitor.this.setCursor(classCursor);
+                    try {
+                        if (fallsBackToRuntimeClass(method)) {
+                            found.set(true);
+                        }
+                    } finally {
+                        WhiteboxToReflectionVisitor.this.setCursor(outer);
+                    }
+                }
+                return super.visitMethodInvocation(method, found);
+            }
+        }.reduce(classDecl, new AtomicBoolean()).get();
+    }
+
+    private boolean hasHelper(J.ClassDeclaration classDecl) {
+        for (Statement statement : classDecl.getBody().getStatements()) {
+            if (statement instanceof J.MethodDeclaration &&
+                    helperName().equals(((J.MethodDeclaration) statement).getSimpleName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * `Whitebox` searches the whole class hierarchy for a member, which `getDeclaredField` and
+     * `getDeclaredMethod` do not. One helper per test class keeps the call sites as short as the
+     * direct lookup they replace.
+     */
+    private String helperSource() {
+        if ("java.lang.reflect.Field".equals(reflectiveImport)) {
+            return "private static Field " + FIELD_LOOKUP_HELPER + "(Class<?> type, String name) throws NoSuchFieldException {\n" +
+                    "    for (Class<?> c = type; c != null; c = c.getSuperclass()) {\n" +
+                    "        try {\n" +
+                    "            return c.getDeclaredField(name);\n" +
+                    "        } catch (NoSuchFieldException e) {\n" +
+                    "            // declared further up the hierarchy\n" +
+                    "        }\n" +
+                    "    }\n" +
+                    "    throw new NoSuchFieldException(name);\n" +
+                    "}";
+        }
+        return "private static Method " + METHOD_LOOKUP_HELPER + "(Class<?> type, String name, Class<?>... parameterTypes) throws NoSuchMethodException {\n" +
+                "    for (Class<?> c = type; c != null; c = c.getSuperclass()) {\n" +
+                "        try {\n" +
+                "            return c.getDeclaredMethod(name, parameterTypes);\n" +
+                "        } catch (NoSuchMethodException e) {\n" +
+                "            // declared further up the hierarchy\n" +
+                "        }\n" +
+                "    }\n" +
+                "    throw new NoSuchMethodException(name);\n" +
+                "}";
+    }
+
+    private String helperName() {
+        return "java.lang.reflect.Field".equals(reflectiveImport) ? FIELD_LOOKUP_HELPER : METHOD_LOOKUP_HELPER;
+    }
+
+    @Override
     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
         J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
         if (getCursor().getMessage(WHITEBOX_REPLACED, false)) {
-            md = addThrowsExceptionIfAbsent(md);
+            // Declaring `throws` is the readable option and is what a test method would do anyway, but it is
+            // only safe where nothing depends on the signature: a caller elsewhere in the file would stop
+            // compiling, and an override such as `Runnable.run()` could not legally widen at all. Those get the
+            // reflection wrapped instead.
+            md = canWidenSignature(md) ? addThrowsExceptionIfAbsent(md) : wrapBodyInTryCatch(md, ctx);
             maybeRemoveImport(WHITEBOX_FQN);
             maybeAddImport(reflectiveImport, false);
             return maybeAutoFormat(method, md, ctx);
@@ -434,12 +530,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private void recordReplacement(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, WHITEBOX_REPLACED, true);
+        // onlyIfReferenced=false: the class literals were only just templated in, so the type
+        // attribution `maybeAddImport` looks for is not there yet.
         for (String paramImport : resolvedParamImports(resolvedMethod)) {
-            maybeAddImport(paramImport);
+            maybeAddImport(paramImport, false);
         }
         String ownerImport = topLevelImport(lookupOwner(mi, resolvedMethod));
         if (ownerImport != null) {
-            maybeAddImport(ownerImport);
+            maybeAddImport(ownerImport, false);
         }
     }
 
@@ -450,17 +548,18 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return imports;
     }
 
-    // Non-java.lang fully-qualified parameter types of the resolved method that the generated class
-    // literals (e.g. `List.class`) need imported.
+    // Non-java.lang parameter types of the resolved method that the generated class literals
+    // (e.g. `List.class`) need imported. A nested type is written `Map.Entry.class`, so it is the
+    // enclosing type that has to be imported.
     private List<String> resolvedParamImports(JavaType.@Nullable Method resolvedMethod) {
         if (resolvedMethod == null) {
             return emptyList();
         }
         List<String> imports = new ArrayList<>();
         for (JavaType paramType : resolvedMethod.getParameterTypes()) {
-            JavaType.FullyQualified fq = TypeUtils.asFullyQualified(paramType);
-            if (fq != null && !"java.lang".equals(fq.getPackageName())) {
-                imports.add(fq.getFullyQualifiedName());
+            String paramImport = topLevelImport(TypeUtils.asFullyQualified(paramType));
+            if (paramImport != null) {
+                imports.add(paramImport);
             }
         }
         return imports;
@@ -504,8 +603,57 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     // `Field <var> = <Owner>.class.getDeclaredField(<name>); <var>.setAccessible(true);`, falling back to
     // `<target>.getClass()` as the owner when it is unknown — shared by the get/set field variants.
     String fieldLookupPrefix(String varName, JavaType.@Nullable FullyQualified owner) {
+        if (usesHierarchyLookup(owner)) {
+            recordHierarchyLookup();
+            return "Field " + varName + " = " + FIELD_LOOKUP_HELPER +
+                    "(#{any(java.lang.Object)}.getClass(), #{any(java.lang.String)});\n" +
+                    varName + ".setAccessible(true);\n";
+        }
         return "Field " + varName + " = " + lookupReceiverTemplate(owner) + ".getDeclaredField(#{any(java.lang.String)});\n" +
                 varName + ".setAccessible(true);\n";
+    }
+
+    // `Field <var> = <Owner>.class.getDeclaredField("<name>"); <var>.setAccessible(true);` — used where the
+    // field was identified by its type, so the name is resolved here rather than passed through.
+    String fieldLookupPrefixNamed(String varName, String fieldName) {
+        return "Field " + varName + " = #{any(java.lang.Class)}.getDeclaredField(\"" + fieldName + "\");\n" +
+                varName + ".setAccessible(true);\n";
+    }
+
+    /** The type a `Foo.class` argument denotes, or null when the argument is not a class literal. */
+    JavaType.@Nullable FullyQualified classLiteralType(Expression expression) {
+        if (!(expression instanceof J.FieldAccess) || !"class".equals(((J.FieldAccess) expression).getSimpleName())) {
+            return null;
+        }
+        JavaType type = expression.getType();
+        if (type instanceof JavaType.Parameterized && !((JavaType.Parameterized) type).getTypeParameters().isEmpty()) {
+            return TypeUtils.asFullyQualified(((JavaType.Parameterized) type).getTypeParameters().get(0));
+        }
+        return null;
+    }
+
+    /**
+     * The single field of {@code fieldType} declared by {@code owner} or one of its supertypes. `Whitebox`
+     * picks a field by type at runtime; resolving it here keeps the generated lookup by name, and declining
+     * when more than one field matches keeps the migration from guessing.
+     */
+    JavaType.@Nullable Variable uniqueFieldOfType(JavaType.@Nullable FullyQualified owner,
+                                                  JavaType.@Nullable FullyQualified fieldType) {
+        if (owner == null || fieldType == null) {
+            return null;
+        }
+        JavaType.Variable match = null;
+        for (JavaType.FullyQualified type = owner; type != null; type = type.getSupertype()) {
+            for (JavaType.Variable member : type.getMembers()) {
+                if (TypeUtils.isOfType(member.getType(), fieldType)) {
+                    if (match != null) {
+                        return null;
+                    }
+                    match = member;
+                }
+            }
+        }
+        return match;
     }
 
     // `Field <var> = <whereClass>.getDeclaredField(<name>); <var>.setAccessible(true);` —
@@ -631,10 +779,123 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
 
-    private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
-        if (md.getThrows() != null && md.getThrows().stream()
+    private static final List<AnnotationMatcher> TEST_OR_FIXTURE = Arrays.asList(
+            new AnnotationMatcher("@org.junit.Test"),
+            new AnnotationMatcher("@org.junit.Before"),
+            new AnnotationMatcher("@org.junit.After"),
+            new AnnotationMatcher("@org.junit.BeforeClass"),
+            new AnnotationMatcher("@org.junit.AfterClass"),
+            new AnnotationMatcher("@org.junit.jupiter.api.Test"),
+            new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach"),
+            new AnnotationMatcher("@org.junit.jupiter.api.AfterEach"),
+            new AnnotationMatcher("@org.junit.jupiter.api.BeforeAll"),
+            new AnnotationMatcher("@org.junit.jupiter.api.AfterAll"),
+            new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"),
+            new AnnotationMatcher("@org.testng.annotations.Test"),
+            new AnnotationMatcher("@org.testng.annotations.BeforeMethod"),
+            new AnnotationMatcher("@org.testng.annotations.AfterMethod"),
+            new AnnotationMatcher("@org.testng.annotations.BeforeClass"),
+            new AnnotationMatcher("@org.testng.annotations.AfterClass"));
+
+    private static boolean isTestOrFixtureMethod(J.MethodDeclaration md) {
+        for (J.Annotation annotation : md.getLeadingAnnotations()) {
+            for (AnnotationMatcher matcher : TEST_OR_FIXTURE) {
+                if (matcher.matches(annotation)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** A test or fixture method is invoked reflectively by the framework, so widening it is always safe. */
+    private boolean canWidenSignature(J.MethodDeclaration md) {
+        return isTestOrFixtureMethod(md) || (!overridesASupertypeMethod(md) && !hasCallerInFile(md));
+    }
+
+    private static boolean overridesASupertypeMethod(J.MethodDeclaration md) {
+        JavaType.Method type = md.getMethodType();
+        if (type == null) {
+            return true; // unknown type: assume the signature is load-bearing
+        }
+        for (J.Annotation annotation : md.getLeadingAnnotations()) {
+            if ("Override".equals(annotation.getSimpleName())) {
+                return true;
+            }
+        }
+        JavaType.FullyQualified declaring = type.getDeclaringType();
+        for (JavaType.FullyQualified supertype : supertypesOf(declaring)) {
+            for (JavaType.Method candidate : supertype.getMethods()) {
+                if (candidate.getName().equals(type.getName()) &&
+                        candidate.getParameterTypes().size() == type.getParameterTypes().size()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<JavaType.FullyQualified> supertypesOf(JavaType.@Nullable FullyQualified type) {
+        List<JavaType.FullyQualified> supertypes = new ArrayList<>();
+        for (JavaType.FullyQualified current = type == null ? null : type.getSupertype();
+             current != null; current = current.getSupertype()) {
+            supertypes.add(current);
+            supertypes.addAll(current.getInterfaces());
+        }
+        if (type != null) {
+            supertypes.addAll(type.getInterfaces());
+        }
+        return supertypes;
+    }
+
+    private boolean hasCallerInFile(J.MethodDeclaration md) {
+        JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+        if (sourceFile == null) {
+            return true;
+        }
+        String name = md.getSimpleName();
+        int arity = (int) md.getParameters().stream().filter(p -> !(p instanceof J.Empty)).count();
+        return new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, AtomicBoolean found) {
+                if (name.equals(mi.getSimpleName()) && mi.getArguments().stream()
+                        .filter(a -> !(a instanceof J.Empty)).count() == arity) {
+                    found.set(true);
+                }
+                return super.visitMethodInvocation(mi, found);
+            }
+        }.reduce(sourceFile, new AtomicBoolean()).get();
+    }
+
+    /**
+     * Wraps the whole body rather than the generated statements alone, so a local the reflection declares stays
+     * in scope for the rest of the method. Everything `java.lang.reflect` throws is a
+     * {@link ReflectiveOperationException}.
+     */
+    private J.MethodDeclaration wrapBodyInTryCatch(J.MethodDeclaration md, ExecutionContext ctx) {
+        J.Block body = md.getBody();
+        if (body == null || body.getStatements().isEmpty() || declaresThrowsException(md)) {
+            return md;
+        }
+        J.MethodDeclaration templated = JavaTemplate
+                .builder("try {\n} catch (ReflectiveOperationException e) {\n    throw new RuntimeException(e);\n}")
+                .contextSensitive()
+                .javaParser(JavaParser.fromJavaVersion())
+                .build()
+                .apply(updateCursor(md), md.getCoordinates().replaceBody());
+        J.Try tryStatement = (J.Try) templated.getBody().getStatements().get(0);
+        return templated.withBody(templated.getBody()
+                .withStatements(singletonList(tryStatement.withBody(body))));
+    }
+
+    private static boolean declaresThrowsException(J.MethodDeclaration md) {
+        return md.getThrows() != null && md.getThrows().stream()
                 .anyMatch(j -> TypeUtils.isOfClassType(j.getType(), "java.lang.Exception") ||
-                        TypeUtils.isOfClassType(j.getType(), "java.lang.Throwable"))) {
+                        TypeUtils.isOfClassType(j.getType(), "java.lang.Throwable"));
+    }
+
+    private J.MethodDeclaration addThrowsExceptionIfAbsent(J.MethodDeclaration md) {
+        if (declaresThrowsException(md)) {
             return md;
         }
         JavaType.Class exceptionType = JavaType.ShallowClass.build("java.lang.Exception");

@@ -88,8 +88,10 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
                 String classLiteral = getParamClassLiteral(args, i, resolvedMethod);
                 parameterTypes.add(classLiteral != null ? classLiteral : "#{any(java.lang.Object)}.getClass()");
             }
-            StringBuilder sb = new StringBuilder(methodLookupPrefix(varName,
-                    lookupReceiverTemplate(lookupOwner(mi, resolvedMethod)), parameterTypes));
+            JavaType.FullyQualified lookupOwner = lookupOwner(mi, resolvedMethod);
+            StringBuilder sb = new StringBuilder(usesHierarchyLookup(lookupOwner) ?
+                    hierarchyMethodLookupPrefix(varName, parameterTypes) :
+                    methodLookupPrefix(varName, lookupReceiverTemplate(lookupOwner), parameterTypes));
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
                     sb.append(sink.castType).append(" ").append(sink.varName).append(" = (").append(boxedCastType(sink.castType)).append(") ");
@@ -120,6 +122,19 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
                     castPrefix(mi) + invocation("#{any(java.lang.reflect.Method)}", parameterTypes.size()));
         }
 
+        // `Whitebox` searches the hierarchy, so a lookup on the target's runtime class goes through the
+        // helper this visitor adds to the test class instead of `getDeclaredMethod` directly.
+        private String hierarchyMethodLookupPrefix(String varName, List<String> parameterTypes) {
+            recordHierarchyLookup();
+            StringBuilder sb = new StringBuilder("Method ").append(varName).append(" = ")
+                    .append(METHOD_LOOKUP_HELPER)
+                    .append("(#{any(java.lang.Object)}.getClass(), #{any(java.lang.String)}");
+            for (String parameterType : parameterTypes) {
+                sb.append(", ").append(parameterType);
+            }
+            return sb.append(");\n").append(varName).append(".setAccessible(true);\n").toString();
+        }
+
         private String methodLookupPrefix(String varName, String receiver, List<String> parameterTypes) {
             StringBuilder sb = new StringBuilder("Method ").append(varName).append(" = ").append(receiver)
                     .append(".getDeclaredMethod(#{any(java.lang.String)}");
@@ -140,12 +155,6 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         @Override
         boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
             return lookupOwner(mi, resolve(mi)) == null;
-        }
-
-        @Override
-        boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
-            JavaType.Method resolvedMethod = resolve(mi);
-            return resolvedMethod != null && isSuperclassOf(resolvedMethod.getDeclaringType(), mi.getArguments().get(0));
         }
 
         @Override

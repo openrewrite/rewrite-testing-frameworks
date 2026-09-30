@@ -229,4 +229,60 @@ class PowerMockitoDoStubbingToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void leavesTheDoStubbingTargetAloneWhenAMemberIsStubbedByName() {
+        //language=java
+        rewriteRun(
+          spec -> spec.recipe(new PowerMockitoDoStubbingTargetToMockito()),
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class MyTest {
+                  private static final String UPDATE_TIME = "updateTime";
+
+                  void setUp() throws Exception {
+                      Calendar spy = PowerMockito.spy(Calendar.getInstance());
+                      PowerMockito.doNothing().when(spy, UPDATE_TIME);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retargetsTheDoStubbingWhenNoMemberIsStubbedByName() {
+        //language=java
+        rewriteRun(
+          spec -> spec.recipe(new PowerMockitoDoStubbingTargetToMockito()),
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class MyTest {
+                  void setUp() {
+                      Calendar spy = PowerMockito.spy(Calendar.getInstance());
+                      PowerMockito.doNothing().when(spy).clear();
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class MyTest {
+                  void setUp() {
+                      Calendar spy = PowerMockito.spy(Calendar.getInstance());
+                      Mockito.doNothing().when(spy).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

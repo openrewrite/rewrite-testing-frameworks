@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
@@ -60,8 +59,6 @@ final class UnsupportedPowerMockUsage {
             MOCKITO_SPY,
             new MethodMatcher(POWER_MOCKITO + " mock(..)"),
             new MethodMatcher(POWER_MOCKITO + " spy(..)"));
-    private static final List<String> MOCK_OR_SPY_ANNOTATIONS = asList("org.mockito.Mock", "org.mockito.Spy");
-
     private static final String POWERMOCKITO_YML = "/META-INF/rewrite/powermockito.yml";
 
     private static @Nullable List<Recipe> migrationSteps;
@@ -126,20 +123,12 @@ final class UnsupportedPowerMockUsage {
 
     private static void findChangedBehavior(JavaSourceFile sourceFile, Map<UUID, String> unsupported) {
         Set<String> staticallyMocked = staticallyMockedTypes(sourceFile);
-        List<JavaType.Variable> mocksAndSpies = mocksAndSpies(sourceFile);
-        List<WhiteboxToReflectionVisitor> whiteboxMigrations = asList(
-                new PowerMockWhiteboxGetInternalStateToJavaReflection.GetInternalStateVisitor(),
-                new PowerMockWhiteboxSetInternalStateToJavaReflection.SetInternalStateVisitor(),
-                new PowerMockWhiteboxInvokeMethodToJavaReflection.InvokeMethodVisitor());
         new JavaIsoVisitor<Map<UUID, String>>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Map<UUID, String> p) {
                 String reason = mockStaticRefusedByMockito(method);
                 if (reason == null) {
                     reason = inheritedStaticMethodOfMockedClass(method, staticallyMocked);
-                }
-                if (reason == null) {
-                    reason = whiteboxOnRuntimeClass(method, getCursor(), whiteboxMigrations, mocksAndSpies);
                 }
                 if (reason != null) {
                     p.put(method.getId(), reason);
@@ -150,40 +139,6 @@ final class UnsupportedPowerMockUsage {
     }
 
     // A list rather than a set, as JavaType.Variable overrides equals but not hashCode
-    private static List<JavaType.Variable> mocksAndSpies(JavaSourceFile sourceFile) {
-        return new JavaIsoVisitor<List<JavaType.Variable>>() {
-            @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, List<JavaType.Variable> p) {
-                for (J.Annotation annotation : multiVariable.getLeadingAnnotations()) {
-                    for (String mockOrSpy : MOCK_OR_SPY_ANNOTATIONS) {
-                        if (TypeUtils.isOfClassType(annotation.getType(), mockOrSpy)) {
-                            for (J.VariableDeclarations.NamedVariable variable : multiVariable.getVariables()) {
-                                addIfNotNull(p, variable.getVariableType());
-                            }
-                        }
-                    }
-                }
-                return super.visitVariableDeclarations(multiVariable, p);
-            }
-
-            @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, List<JavaType.Variable> p) {
-                if (createsMockOrSpy(variable.getInitializer())) {
-                    addIfNotNull(p, variable.getVariableType());
-                }
-                return super.visitVariable(variable, p);
-            }
-
-            @Override
-            public J.Assignment visitAssignment(J.Assignment assignment, List<JavaType.Variable> p) {
-                if (createsMockOrSpy(assignment.getAssignment())) {
-                    addIfNotNull(p, variableOf(assignment.getVariable()));
-                }
-                return super.visitAssignment(assignment, p);
-            }
-        }.reduce(sourceFile, new ArrayList<>());
-    }
-
     private static boolean createsMockOrSpy(@Nullable Expression expression) {
         if (expression instanceof J.MethodInvocation) {
             for (MethodMatcher matcher : CREATES_MOCK_OR_SPY) {
@@ -193,17 +148,6 @@ final class UnsupportedPowerMockUsage {
             }
         }
         return false;
-    }
-
-    private static JavaType.@Nullable Variable variableOf(Expression expression) {
-        Expression unwrapped = expression.unwrap();
-        if (unwrapped instanceof J.Identifier) {
-            return ((J.Identifier) unwrapped).getFieldType();
-        }
-        if (unwrapped instanceof J.FieldAccess) {
-            return ((J.FieldAccess) unwrapped).getName().getFieldType();
-        }
-        return null;
     }
 
     private static <T> void addIfNotNull(Collection<T> collection, @Nullable T element) {
@@ -257,29 +201,6 @@ final class UnsupportedPowerMockUsage {
         }
         return "Static mocking of `" + receiver.getClassName() + "." + mi.getSimpleName() + "()` cannot be migrated, as " +
                "`Mockito.mockStatic` does not intercept static methods inherited from `" + type.getDeclaringType().getClassName() + "`";
-    }
-
-    private static @Nullable String whiteboxOnRuntimeClass(J.MethodInvocation mi, Cursor cursor,
-                                                           List<WhiteboxToReflectionVisitor> whiteboxMigrations,
-                                                           List<JavaType.Variable> mocksAndSpies) {
-        for (WhiteboxToReflectionVisitor visitor : whiteboxMigrations) {
-            if (visitor.matches(mi)) {
-                visitor.setCursor(cursor);
-                if (!visitor.fallsBackToRuntimeClass(mi)) {
-                    return null;
-                }
-                if (mocksAndSpies.contains(variableOf(mi.getArguments().get(0)))) {
-                    return "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the runtime class of a " +
-                           "Mockito mock or spy does not declare the member it accesses";
-                }
-                if (visitor.declaredInSuperclassOfTarget(mi)) {
-                    return "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the member it accesses is " +
-                           "declared in a superclass that the test cannot reference";
-                }
-                return null;
-            }
-        }
-        return null;
     }
 
     private static void findRemainingUsage(JavaSourceFile original, JavaSourceFile migrated, Map<UUID, String> unsupported) {
