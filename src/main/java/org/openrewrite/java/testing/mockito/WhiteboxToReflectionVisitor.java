@@ -233,10 +233,27 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     /**
-     * Whether the member the call accesses is known to be declared in a superclass of the target's type,
-     * where {@code target.getClass().getDeclared*} does not find it.
+     * The class declaring the member the call accesses, as found from the declared type of the target, or null
+     * when that type neither declares nor inherits it, such as when the target is declared as an interface.
      */
-    boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
+    JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
+        return null;
+    }
+
+    /**
+     * Whether {@code type} itself declares the member the call accesses, so that
+     * {@code target.getClass().getDeclared*} finds it when {@code type} is the runtime class of the target.
+     */
+    boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
+        return false;
+    }
+
+    static boolean declaresField(JavaType.FullyQualified type, @Nullable String fieldName) {
+        for (JavaType.Variable member : type.getMembers()) {
+            if (member.getName().equals(fieldName)) {
+                return true;
+            }
+        }
         return false;
     }
 

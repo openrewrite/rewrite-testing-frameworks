@@ -126,7 +126,8 @@ final class UnsupportedPowerMockUsage {
 
     private static void findChangedBehavior(JavaSourceFile sourceFile, Map<UUID, String> unsupported) {
         Set<String> staticallyMocked = staticallyMockedTypes(sourceFile);
-        List<JavaType.Variable> mocksAndSpies = mocksAndSpies(sourceFile);
+        List<Map.Entry<JavaType.Variable, Expression>> assignments = assignments(sourceFile);
+        List<JavaType.Variable> mocksAndSpies = mocksAndSpies(sourceFile, assignments);
         List<WhiteboxToReflectionVisitor> whiteboxMigrations = asList(
                 new PowerMockWhiteboxGetInternalStateToJavaReflection.GetInternalStateVisitor(),
                 new PowerMockWhiteboxSetInternalStateToJavaReflection.SetInternalStateVisitor(),
@@ -139,7 +140,7 @@ final class UnsupportedPowerMockUsage {
                     reason = inheritedStaticMethodOfMockedClass(method, staticallyMocked);
                 }
                 if (reason == null) {
-                    reason = whiteboxOnRuntimeClass(method, getCursor(), whiteboxMigrations, mocksAndSpies);
+                    reason = whiteboxOnRuntimeClass(method, getCursor(), whiteboxMigrations, mocksAndSpies, assignments);
                 }
                 if (reason != null) {
                     p.put(method.getId(), reason);
@@ -149,9 +150,32 @@ final class UnsupportedPowerMockUsage {
         }.visit(sourceFile, unsupported);
     }
 
-    // A list rather than a set, as JavaType.Variable overrides equals but not hashCode
-    private static List<JavaType.Variable> mocksAndSpies(JavaSourceFile sourceFile) {
-        return new JavaIsoVisitor<List<JavaType.Variable>>() {
+    // Lists rather than maps and sets, as JavaType.Variable overrides equals but not hashCode
+    private static List<Map.Entry<JavaType.Variable, Expression>> assignments(JavaSourceFile sourceFile) {
+        return new JavaIsoVisitor<List<Map.Entry<JavaType.Variable, Expression>>>() {
+            @Override
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable,
+                                                                      List<Map.Entry<JavaType.Variable, Expression>> p) {
+                if (variable.getVariableType() != null && variable.getInitializer() != null) {
+                    p.add(new AbstractMap.SimpleEntry<>(variable.getVariableType(), variable.getInitializer()));
+                }
+                return super.visitVariable(variable, p);
+            }
+
+            @Override
+            public J.Assignment visitAssignment(J.Assignment assignment, List<Map.Entry<JavaType.Variable, Expression>> p) {
+                JavaType.Variable variable = variableOf(assignment.getVariable());
+                if (variable != null) {
+                    p.add(new AbstractMap.SimpleEntry<>(variable, assignment.getAssignment()));
+                }
+                return super.visitAssignment(assignment, p);
+            }
+        }.reduce(sourceFile, new ArrayList<>());
+    }
+
+    private static List<JavaType.Variable> mocksAndSpies(JavaSourceFile sourceFile,
+                                                         List<Map.Entry<JavaType.Variable, Expression>> assignments) {
+        List<JavaType.Variable> mocksAndSpies = new JavaIsoVisitor<List<JavaType.Variable>>() {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, List<JavaType.Variable> p) {
                 for (J.Annotation annotation : multiVariable.getLeadingAnnotations()) {
@@ -165,23 +189,43 @@ final class UnsupportedPowerMockUsage {
                 }
                 return super.visitVariableDeclarations(multiVariable, p);
             }
-
-            @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, List<JavaType.Variable> p) {
-                if (createsMockOrSpy(variable.getInitializer())) {
-                    addIfNotNull(p, variable.getVariableType());
-                }
-                return super.visitVariable(variable, p);
-            }
-
-            @Override
-            public J.Assignment visitAssignment(J.Assignment assignment, List<JavaType.Variable> p) {
-                if (createsMockOrSpy(assignment.getAssignment())) {
-                    addIfNotNull(p, variableOf(assignment.getVariable()));
-                }
-                return super.visitAssignment(assignment, p);
-            }
         }.reduce(sourceFile, new ArrayList<>());
+        for (Map.Entry<JavaType.Variable, Expression> assignment : assignments) {
+            if (createsMockOrSpy(assignment.getValue())) {
+                mocksAndSpies.add(assignment.getKey());
+            }
+        }
+        return mocksAndSpies;
+    }
+
+    /// The runtime class of the target, when the target is created with `new` rather than by a factory or builder,
+    /// or is a variable to which only such instances of one class are assigned.
+    private static JavaType.@Nullable FullyQualified runtimeClass(Expression target,
+                                                                  List<Map.Entry<JavaType.Variable, Expression>> assignments) {
+        Expression unwrapped = target.unwrap();
+        if (unwrapped instanceof J.NewClass) {
+            return instantiatedClass((J.NewClass) unwrapped);
+        }
+        JavaType.Variable variable = variableOf(unwrapped);
+        if (variable == null) {
+            return null;
+        }
+        JavaType.FullyQualified runtimeClass = null;
+        for (Map.Entry<JavaType.Variable, Expression> assignment : assignments) {
+            if (variable.equals(assignment.getKey())) {
+                Expression value = assignment.getValue().unwrap();
+                JavaType.FullyQualified instantiated = value instanceof J.NewClass ? instantiatedClass((J.NewClass) value) : null;
+                if (instantiated == null || runtimeClass != null && !TypeUtils.isOfType(runtimeClass, instantiated)) {
+                    return null;
+                }
+                runtimeClass = instantiated;
+            }
+        }
+        return runtimeClass;
+    }
+
+    private static JavaType.@Nullable FullyQualified instantiatedClass(J.NewClass newClass) {
+        return newClass.getBody() == null ? TypeUtils.asFullyQualified(newClass.getType()) : null;
     }
 
     private static boolean createsMockOrSpy(@Nullable Expression expression) {
@@ -261,18 +305,27 @@ final class UnsupportedPowerMockUsage {
 
     private static @Nullable String whiteboxOnRuntimeClass(J.MethodInvocation mi, Cursor cursor,
                                                            List<WhiteboxToReflectionVisitor> whiteboxMigrations,
-                                                           List<JavaType.Variable> mocksAndSpies) {
+                                                           List<JavaType.Variable> mocksAndSpies,
+                                                           List<Map.Entry<JavaType.Variable, Expression>> assignments) {
         for (WhiteboxToReflectionVisitor visitor : whiteboxMigrations) {
             if (visitor.matches(mi)) {
                 visitor.setCursor(cursor);
                 if (!visitor.fallsBackToRuntimeClass(mi)) {
                     return null;
                 }
-                if (mocksAndSpies.contains(variableOf(mi.getArguments().get(0)))) {
+                Expression target = mi.getArguments().get(0);
+                if (mocksAndSpies.contains(variableOf(target))) {
                     return "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the runtime class of a " +
                            "Mockito mock or spy does not declare the member it accesses";
                 }
-                if (visitor.declaredInSuperclassOfTarget(mi)) {
+                JavaType.FullyQualified declaringType = visitor.memberDeclaringType(mi);
+                if (declaringType == null) {
+                    JavaType.FullyQualified runtimeClass = runtimeClass(target, assignments);
+                    return runtimeClass != null && visitor.declaresMember(runtimeClass, mi) ? null :
+                            "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the class declaring the " +
+                            "member it accesses is unknown";
+                }
+                if (WhiteboxToReflectionVisitor.isSuperclassOf(declaringType, target)) {
                     return "`Whitebox." + mi.getSimpleName() + "` cannot be migrated, as the member it accesses is " +
                            "declared in a superclass that the test cannot reference";
                 }

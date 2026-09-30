@@ -143,9 +143,20 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         }
 
         @Override
-        boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
+        JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
             JavaType.Method resolvedMethod = resolve(mi);
-            return resolvedMethod != null && isSuperclassOf(resolvedMethod.getDeclaringType(), mi.getArguments().get(0));
+            return resolvedMethod == null ? null : resolvedMethod.getDeclaringType();
+        }
+
+        @Override
+        boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
+            String methodName = extractStringLiteral(mi.getArguments().get(1));
+            for (JavaType.Method method : type.getMethods()) {
+                if (method.getName().equals(methodName)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override

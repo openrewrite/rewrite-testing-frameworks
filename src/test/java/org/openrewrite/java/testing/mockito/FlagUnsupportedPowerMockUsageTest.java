@@ -320,6 +320,86 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
+    void whiteboxOnTargetOfUnknownClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private void inject(Object client, Object httpClient) {
+                      Whitebox.setInternalState(client, "client", httpClient);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private void inject(Object client, Object httpClient) {
+                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the class declaring the member it accesses is unknown; migrate it manually to replace PowerMock */
+                      Whitebox.setInternalState(client, "client", httpClient);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxOnTargetCreatedByFactory() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              interface Service {
+                  static Service create() {
+                      return new ServiceImpl();
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class ServiceImpl implements Service {
+                  private Object repository;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = Service.create();
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = Service.create();
+                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the class declaring the member it accesses is unknown; migrate it manually to replace PowerMock */
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void whiteboxOnFieldOfUnreferenceableSuperclass() {
         //language=java
         rewriteRun(
