@@ -320,6 +320,261 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
+    void whiteboxOnTargetOfUnknownClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private void inject(Object client, Object httpClient) {
+                      Whitebox.setInternalState(client, "client", httpClient);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private void inject(Object client, Object httpClient) {
+                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the class declaring the member it accesses is unknown; migrate it manually to replace PowerMock */
+                      Whitebox.setInternalState(client, "client", httpClient);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxOnTargetCreatedByFactory() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              interface Service {
+                  static Service create() {
+                      return new ServiceImpl();
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class ServiceImpl implements Service {
+                  private Object repository;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = Service.create();
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = Service.create();
+                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the class declaring the member it accesses is unknown; migrate it manually to replace PowerMock */
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxOnFieldInheritedByRuntimeClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              interface Service {
+              }
+              """
+          ),
+          java(
+            """
+              class BaseService implements Service {
+                  private Object repository;
+              }
+              """
+          ),
+          java(
+            """
+              class ServiceImpl extends BaseService {
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = new ServiceImpl();
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Service service = new ServiceImpl();
+                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the runtime class `ServiceImpl` of the target does not declare the member it accesses; migrate it manually to replace PowerMock */
+                      Whitebox.setInternalState(service, "repository", new Object());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxInvokingOverloadedMethodOfDeclaredTypeIsNotFlagged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Service {
+                  static Service create() {
+                      return new Service();
+                  }
+
+                  private int compute(int value) {
+                      return value;
+                  }
+
+                  private int compute(String value) {
+                      return value.length();
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      Service service = Service.create();
+                      Whitebox.invokeMethod(service, "compute", 1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxOnFieldOfUnreferenceableSuperclass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private static class Base {
+                      private int count;
+                  }
+
+                  private static class Sub extends Base {
+                  }
+
+                  @Test
+                  public void test() {
+                      Sub target = new Sub();
+                      Object value = Whitebox.getInternalState(target, "count");
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private static class Base {
+                      private int count;
+                  }
+
+                  private static class Sub extends Base {
+                  }
+
+                  @Test
+                  public void test() {
+                      Sub target = new Sub();
+                      /* TODO `Whitebox.getInternalState` cannot be migrated, as the member it accesses is declared in a superclass that the test cannot reference; migrate it manually to replace PowerMock */
+                      Object value = Whitebox.getInternalState(target, "count");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whiteboxOnSpyOfUnknownClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.mockito.Mockito;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Object target = Mockito.spy(new Object());
+                      Object value = Whitebox.getInternalState(target, "field");
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.mockito.Mockito;
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Object target = Mockito.spy(new Object());
+                      /* TODO `Whitebox.getInternalState` cannot be migrated, as the runtime class of a Mockito mock or spy does not declare the member it accesses; migrate it manually to replace PowerMock */
+                      Object value = Whitebox.getInternalState(target, "field");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void annotationWithoutMockitoEquivalent() {
         //language=java
         rewriteRun(

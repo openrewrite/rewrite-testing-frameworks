@@ -2164,58 +2164,60 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Test
     void anOlderMockitoDeclarationIsBroughtUpToTheVersionMockitoInlineNeeds() {
         rewriteRun(
-          //language=xml
-          pomXml(
-            """
-              <project>
-                <groupId>org.example</groupId>
-                <artifactId>legacy-mockito</artifactId>
-                <version>1.0</version>
-                <properties>
-                  <powermock.version>1.6.5</powermock.version>
-                  <mockito.version>1.10.19</mockito.version>
-                </properties>
-                <dependencies>
-                  <dependency>
-                    <groupId>org.powermock</groupId>
-                    <artifactId>powermock-api-mockito</artifactId>
-                    <version>${powermock.version}</version>
-                    <scope>test</scope>
-                  </dependency>
-                  <dependency>
-                    <groupId>org.mockito</groupId>
-                    <artifactId>mockito-all</artifactId>
-                    <version>${mockito.version}</version>
-                    <scope>test</scope>
-                  </dependency>
-                </dependencies>
-              </project>
-              """,
-            // `mockito-inline` only selects the mock maker; a stale `mockito-core` declaration would win
-            // dependency mediation and leave `MockedStatic` off the compile classpath entirely. `mockito-all`
-            // has no 3.x release at all, so it has to become `mockito-core` before it can be upgraded.
-            spec -> spec.after(actual -> assertThat(actual)
-              .doesNotContain("org.powermock")
-              .doesNotContain("mockito-all")
-              .contains("<artifactId>mockito-inline</artifactId>")
-              .contains("<artifactId>mockito-core</artifactId>")
-              .contains("<mockito.version>3.12.4</mockito.version>")
-              .actual())
-          ),
-          srcTestJava(
-            //language=java
-            java(
+          mavenProject("legacy-mockito",
+            //language=xml
+            pomXml(
               """
-                import org.powermock.api.mockito.PowerMockito;
-                import java.util.Calendar;
-
-                class StaticMockTest {
-                    void test() {
-                        PowerMockito.mockStatic(Calendar.class);
-                    }
-                }
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>legacy-mockito</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <powermock.version>1.6.5</powermock.version>
+                    <mockito.version>1.10.19</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-all</artifactId>
+                      <version>${mockito.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
                 """,
-              spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              // `mockito-inline` only selects the mock maker; a stale `mockito-core` declaration would win
+              // dependency mediation and leave `MockedStatic` off the compile classpath entirely. `mockito-all`
+              // has no 3.x release at all, so it has to become `mockito-core` before it can be upgraded.
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("org.powermock")
+                .doesNotContain("mockito-all")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .contains("<artifactId>mockito-core</artifactId>")
+                .contains("<mockito.version>3.12.4</mockito.version>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
             )
           )
         );
@@ -2226,51 +2228,158 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           // A cycle scans before it edits, so the property only looks unreferenced on the cycle after the
           // dependencies that used it are gone; `ReplacePowerMockDependencies` asks for that cycle.
           spec -> spec.expectedCyclesThatMakeChanges(2),
-          //language=xml
-          pomXml(
-            """
-              <project>
-                <groupId>org.example</groupId>
-                <artifactId>versioned-by-property</artifactId>
-                <version>1.0</version>
-                <properties>
-                  <powermock.version>1.6.5</powermock.version>
-                </properties>
-                <dependencies>
-                  <dependency>
-                    <groupId>org.powermock</groupId>
-                    <artifactId>powermock-module-junit4</artifactId>
-                    <version>${powermock.version}</version>
-                    <scope>test</scope>
-                  </dependency>
-                  <dependency>
-                    <groupId>org.powermock</groupId>
-                    <artifactId>powermock-api-mockito</artifactId>
-                    <version>${powermock.version}</version>
-                    <scope>test</scope>
-                  </dependency>
-                </dependencies>
-              </project>
-              """,
-            spec -> spec.after(actual -> assertThat(actual)
-              .doesNotContain("powermock")
-              .contains("<artifactId>mockito-inline</artifactId>")
-              .actual())
-          ),
-          srcTestJava(
-            //language=java
-            java(
+          mavenProject("versioned-by-property",
+            //language=xml
+            pomXml(
               """
-                import org.powermock.api.mockito.PowerMockito;
-                import java.util.Calendar;
-
-                class StaticMockTest {
-                    void test() {
-                        PowerMockito.mockStatic(Calendar.class);
-                    }
-                }
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>versioned-by-property</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <powermock.version>1.6.5</powermock.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
                 """,
-              spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+
+    @Test
+    void explicitMockitoCoreIsUpgradedAlongWithMockitoInline() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <properties>
+                    <mockito.version>2.28.2</mockito.version>
+                  </properties>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>${mockito.version}</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito2</artifactId>
+                          <version>2.0.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <properties>
+                    <mockito.version>3.12.4</mockito.version>
+                  </properties>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>${mockito.version}</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-inline</artifactId>
+                          <version>3.12.4</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> {
+                    assertThat(actual).contains("Mockito.mockStatic(Calendar.class)");
+                    return actual;
+                })
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoCoreIsNotUpgradedWithoutPowerMock() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>2.28.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
             )
           )
         );

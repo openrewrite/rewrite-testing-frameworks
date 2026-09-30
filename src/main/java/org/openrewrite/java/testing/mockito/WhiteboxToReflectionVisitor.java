@@ -144,13 +144,17 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
              type != null; type = type.getSupertype()) {
-            for (JavaType.Variable member : type.getMembers()) {
-                if (member.getName().equals(fieldName)) {
-                    return type;
-                }
+            if (declaresField(type, fieldName)) {
+                return type;
             }
         }
         return null;
+    }
+
+    static boolean isSuperclassOf(JavaType.FullyQualified declaringType, Expression target) {
+        JavaType.FullyQualified targetType = TypeUtils.asFullyQualified(target.getType());
+        return targetType != null &&
+               !declaringType.getFullyQualifiedName().equals(targetType.getFullyQualifiedName());
     }
 
     boolean isAccessible(JavaType.FullyQualified type) {
@@ -245,6 +249,31 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
      * and mocks, so the migrated test may fail where the PowerMock one passed.
      */
     boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+        return false;
+    }
+
+    /**
+     * The class declaring the member the call accesses, as found from the declared type of the target, or null
+     * when that type neither declares nor inherits it, such as when the target is declared as an interface.
+     */
+    JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
+        return null;
+    }
+
+    /**
+     * Whether {@code type} itself declares the member the call accesses, so that
+     * {@code target.getClass().getDeclared*} finds it when {@code type} is the runtime class of the target.
+     */
+    boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
+        return false;
+    }
+
+    static boolean declaresField(JavaType.FullyQualified type, @Nullable String fieldName) {
+        for (JavaType.Variable member : type.getMembers()) {
+            if (member.getName().equals(fieldName)) {
+                return true;
+            }
+        }
         return false;
     }
 

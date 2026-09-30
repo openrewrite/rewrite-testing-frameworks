@@ -98,6 +98,16 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         }
 
         @Override
+        JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
+            return fieldDeclaringType(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
+        }
+
+        @Override
+        boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
+            return declaresField(type, extractStringLiteral(mi.getArguments().get(1)));
+        }
+
+        @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
             return new Object[]{

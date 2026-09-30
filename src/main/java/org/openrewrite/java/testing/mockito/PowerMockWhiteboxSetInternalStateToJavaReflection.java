@@ -37,8 +37,6 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
 
     private static final MethodMatcher SET_INTERNAL_STATE =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object)");
-    private static final MethodMatcher SET_INTERNAL_STATE_WHERE =
-            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object, java.lang.Class)");
     // `Whitebox` also identifies a field by its type rather than its name.
     private static final MethodMatcher SET_INTERNAL_STATE_BY_TYPE =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.Class, java.lang.Object)");
@@ -47,6 +45,8 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
     // An array value selects a distinct `Object[]` overload, which `Field.set` handles identically.
     private static final MethodMatcher SET_INTERNAL_STATE_ARRAY =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object[])");
+    private static final MethodMatcher SET_INTERNAL_STATE_WHERE =
+            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object, java.lang.Class)");
 
     @Getter
     final String displayName = "Replace PowerMock `Whitebox.setInternalState()` with Java reflection";
@@ -131,6 +131,16 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
         @Override
         boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
             return !isByType(mi) && mi.getArguments().size() == 3 && lookupOwner(mi, null) == null;
+        }
+
+        @Override
+        JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
+            return fieldDeclaringType(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
+        }
+
+        @Override
+        boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
+            return declaresField(type, extractStringLiteral(mi.getArguments().get(1)));
         }
 
         @Override

@@ -56,6 +56,7 @@ tags:
   - testing
   - mockito
 recipeList:
+  - org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
   - org.openrewrite.java.testing.mockito.ReplacePowerMockDependencies
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
@@ -63,20 +64,34 @@ recipeList:
   - org.openrewrite.maven.RemoveManagedDependency:
       groupId: org.powermock
       artifactId: powermock*
-  # `mockito-inline` only selects the inline mock maker; the classes come from `mockito-core`. A Mockito
-  # declaration already in the pom wins dependency mediation over the one `mockito-inline` brings in, so an
-  # older one has to be brought up to the same major version or `MockedStatic` is simply absent at compile time.
+  # Removing the dependencies orphans the `<powermock.version>` style properties that supplied their versions.
+  - org.openrewrite.maven.RemoveUnusedProperties:
+      propertyPattern: .*powermock.*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
+displayName: Upgrade `mockito-core` along with the Mockito that replaces PowerMock
+description: >-
+  Upgrades an explicitly declared `mockito-core` to at least the Mockito 3.x that replaces the PowerMock Mockito API.
+  An older `mockito-core` would otherwise take precedence over the one `mockito-inline` depends on, so that
+  `Mockito.mockStatic` and `MockedStatic` do not resolve. `mockito-all` is a 1.x-only uber jar with no 3.x release,
+  so it becomes `mockito-core` first.
+preconditions:
+  - org.openrewrite.java.dependencies.search.RepositoryHasDependency:
+      groupIdPattern: org.powermock
+      artifactIdPattern: powermock-api-mockito*
+tags:
+  - testing
+  - mockito
+recipeList:
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.mockito
       oldArtifactId: mockito-all
       newArtifactId: mockito-core
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
-      artifactId: "*"
+      artifactId: mockito-core
       newVersion: 3.x
-  # Removing the dependencies orphans the `<powermock.version>` style properties that supplied their versions.
-  - org.openrewrite.maven.RemoveUnusedProperties:
-      propertyPattern: .*powermock.*
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages
