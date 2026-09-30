@@ -26,6 +26,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -143,9 +144,36 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         }
 
         @Override
-        boolean declaredInSuperclassOfTarget(J.MethodInvocation mi) {
+        JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
             JavaType.Method resolvedMethod = resolve(mi);
-            return resolvedMethod != null && isSuperclassOf(resolvedMethod.getDeclaringType(), mi.getArguments().get(0));
+            if (resolvedMethod != null) {
+                return resolvedMethod.getDeclaringType();
+            }
+            // Overloads that cannot be told apart: the topmost class declaring the name, so that the call is only
+            // left unflagged when the target's declared type alone declares it
+            String methodName = extractStringLiteral(mi.getArguments().get(1));
+            JavaType.FullyQualified declaringType = null;
+            for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(mi.getArguments().get(0).getType());
+                 type != null; type = type.getSupertype()) {
+                if (declaresMethod(type, methodName)) {
+                    declaringType = type;
+                }
+            }
+            return declaringType;
+        }
+
+        @Override
+        boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
+            return declaresMethod(type, extractStringLiteral(mi.getArguments().get(1)));
+        }
+
+        private boolean declaresMethod(JavaType.FullyQualified type, @Nullable String methodName) {
+            for (JavaType.Method method : type.getMethods()) {
+                if (method.getName().equals(methodName)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
