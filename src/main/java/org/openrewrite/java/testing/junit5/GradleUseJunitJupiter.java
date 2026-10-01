@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -147,7 +148,7 @@ public class GradleUseJunitJupiter extends Recipe {
     private static class AddUseJUnitPlatform extends GroovyIsoVisitor<ExecutionContext> {
         @Override
         public G.CompilationUnit visitCompilationUnit(G.CompilationUnit cu, ExecutionContext ctx) {
-            J.MethodInvocation task = createTaskUseJUnitPlatform(ctx, true).orElse(null);
+            J.MethodInvocation task = createTaskUseJUnitPlatform(getCursor(), ctx, true).orElse(null);
             return cu.withStatements(concat(cu.getStatements(), task));
         }
     }
@@ -228,7 +229,7 @@ public class GradleUseJunitJupiter extends Recipe {
             if (!(l.getBody() instanceof J.Block)) {
                 return l;
             }
-            return createTaskUseJUnitPlatform(ctx, false)
+            return createTaskUseJUnitPlatform(getCursor(), ctx, false)
                     .map(it -> (J.Lambda) it.getArguments().get(1))
                     .map(it -> (J.Block) it.getBody())
                     .map(it -> (J.Return) it.getStatements().get(0))
@@ -244,13 +245,9 @@ public class GradleUseJunitJupiter extends Recipe {
 
     private static final String TEMPLATE_KEY = GradleUseJunitJupiter.class.getName() + ".template.";
 
-    private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(ExecutionContext ctx, boolean forEachInvocation) {
-        // Parsing a Gradle snippet spins up the Groovy compiler and resolves the Gradle classpath, which is expensive.
-        // The result depends only on `forEachInvocation`, so cache the parsed template on the (run-scoped) context to
-        // pay that cost once per run rather than once per modified build script. Caching on the context rather than
-        // statically keeps the type-attributed LST (and the Gradle type graph it references) from being retained
-        // beyond the lifetime of the run.
-        J.MethodInvocation template = ctx.computeMessageIfAbsent(TEMPLATE_KEY + forEachInvocation,
+    private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(Cursor cursor, ExecutionContext ctx, boolean forEachInvocation) {
+        // Parsing is expensive, so cache once per cycle on the root cursor; not statically, to avoid retaining the LST.
+        J.MethodInvocation template = cursor.getRoot().computeMessageIfAbsent(TEMPLATE_KEY + forEachInvocation,
                 k -> parseTemplate(ctx, forEachInvocation));
         // Hand back a copy with fresh ids so reusing the cached template (across files, or across multiple matching
         // test blocks within one script) never produces colliding ids in the resulting tree.
