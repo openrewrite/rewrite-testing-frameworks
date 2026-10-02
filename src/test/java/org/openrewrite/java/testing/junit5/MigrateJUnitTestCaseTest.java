@@ -26,12 +26,368 @@ import static org.openrewrite.java.Assertions.java;
 
 class MigrateJUnitTestCaseTest implements RewriteTest {
 
+    @Test
+    void updatesConstructorCallInSameFile() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  MathTest(String name) {
+                      super(name);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest("FOO");
+                  }
+              }
+              """,
+            """
+              class MathTest {
+
+                  static MathTest create() {
+                      return new MathTest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void updatesConstructorCallsAcrossHierarchyAndFiles() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              abstract class BaseTest extends TestCase {
+                  BaseTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              abstract class BaseTest {
+              }
+              """
+          ),
+          java(
+            """
+              class MathTest extends BaseTest {
+                  MathTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              class MathTest extends BaseTest {
+              }
+              """
+          ),
+          java(
+            """
+              class Caller {
+                  MathTest create() {
+                      return new MathTest("FOO");
+                  }
+              }
+              """,
+            """
+              class Caller {
+                  MathTest create() {
+                      return new MathTest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"))
           .recipe(new MigrateJUnitTestCase());
+    }
+
+    @Test
+    void keepsConstructorWhenArgumentHasSideEffects() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  MathTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              class MathTest {
+                  MathTest(String name) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class Caller {
+                  MathTest create() {
+                      return new MathTest(name());
+                  }
+
+                  String name() {
+                      System.out.println("side effect");
+                      return "FOO";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsReferencedConstructorAndSubclassDelegation() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+              import java.util.function.Function;
+
+              class BaseTest extends TestCase {
+                  BaseTest(String name) {
+                      super(name);
+                  }
+
+                  static Function<String, BaseTest> factory = BaseTest::new;
+              }
+
+              class ChildTest extends BaseTest {
+                  ChildTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              import java.util.function.Function;
+
+              class BaseTest {
+                  BaseTest(String name) {
+                  }
+
+                  static Function<String, BaseTest> factory = BaseTest::new;
+              }
+
+              class ChildTest extends BaseTest {
+                  ChildTest(String name) {
+                      super(name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservesFieldReadInConstructorArgument() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  static volatile String name = "FOO";
+
+                  MathTest(String name) {
+                      super(name);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest(name);
+                  }
+              }
+              """,
+            """
+              class MathTest {
+                  static volatile String name = "FOO";
+
+                  MathTest(String name) {
+                  }
+
+                  static MathTest create() {
+                      return new MathTest(name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsOverloadsWhenOneConstructorHasAdditionalStatements() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  MathTest(String name) {
+                      super(name);
+                  }
+
+                  MathTest(String name, int value) {
+                      super(name);
+                      System.out.println(value);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest("FOO");
+                  }
+              }
+              """,
+            """
+              class MathTest {
+                  MathTest(String name) {
+                  }
+
+                  MathTest(String name, int value) {
+                      System.out.println(value);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest("FOO");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesThisDelegationAndPreservesUnrelatedConstructors() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  MathTest() {
+                      this("default");
+                  }
+
+                  MathTest(String name) {
+                      super(name);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest("FOO");
+                  }
+              }
+              """,
+            """
+              class MathTest {
+
+                  static MathTest create() {
+                      return new MathTest();
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class Unrelated {
+                  Unrelated(String name) {
+                  }
+
+                  static Unrelated create() {
+                      return new Unrelated("FOO");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesSuperCallFromConstructorWithAdditionalStatements() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class BaseTest extends TestCase {
+                  BaseTest(String name) {
+                      super(name);
+                  }
+              }
+
+              class ChildTest extends BaseTest {
+                  String name;
+
+                  ChildTest(String name) {
+                      super(name);
+                      this.name = name;
+                  }
+              }
+              """,
+            """
+              class BaseTest {
+              }
+
+              class ChildTest extends BaseTest {
+                  String name;
+
+                  ChildTest(String name) {
+                      this.name = name;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservesDeclaredCheckedException() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+              import java.io.IOException;
+
+              class MathTest extends TestCase {
+                  MathTest(String name) throws IOException {
+                      super(name);
+                  }
+
+                  static void create() {
+                      try {
+                          new MathTest("FOO");
+                      } catch (IOException ignored) {
+                      }
+                  }
+              }
+              """,
+            """
+              import java.io.IOException;
+
+              class MathTest {
+                  MathTest(String name) throws IOException {
+                  }
+
+                  static void create() {
+                      try {
+                          new MathTest("FOO");
+                      } catch (IOException ignored) {
+                      }
+                  }
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample
