@@ -2349,10 +2349,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       }
                   }
                   """,
-                spec -> spec.after(actual -> {
-                    assertThat(actual).contains("Mockito.mockStatic(Calendar.class)");
-                    return actual;
-                })
+                spec -> spec.after(actual -> assertThat(actual).contains("Mockito.mockStatic(Calendar.class)"))
               )
             )
           )
@@ -2422,12 +2419,11 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
               }
               """,
-            spec -> spec.after(actual -> {
+            spec -> spec.after(actual ->
                 assertThat(actual)
                   .contains("mockedRequests.when(() -> buildRequest(\"users\"))")
-                  .contains("import static com.example.Requests.buildRequest;");
-                return actual;
-            })
+                  .contains("import static com.example.Requests.buildRequest;")
+             )
           )
         );
     }
