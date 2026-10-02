@@ -2384,4 +2384,86 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void testMockingStaticMethodsOfSystemIsDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(System.class)
+              public class MyTest {
+                  @Test
+                  public void readsTheEnvironment() {
+                      PowerMockito.mockStatic(System.class);
+                      PowerMockito.when(System.getenv("HOME")).thenReturn("/tmp");
+                  }
+              }
+              """,
+            """
+              import org.junit.Ignore;
+              import org.junit.Test;
+
+              public class MyTest {
+                  @Test
+                  @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+                  public void readsTheEnvironment() {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // PowerMockito.mockStatic(System.class);
+                      // PowerMockito.when(System.getenv("HOME")).thenReturn("/tmp");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void testMockingInheritedStaticMethodIsDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.net.Inet4Address;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Inet4Address.class)
+              public class MyTest {
+                  @Test
+                  public void resolvesTheLocalHost() throws Exception {
+                      PowerMockito.mockStatic(Inet4Address.class);
+                      PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                  }
+              }
+              """,
+            """
+              import org.junit.Ignore;
+              import org.junit.Test;
+
+              public class MyTest {
+                  @Test
+                  @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+                  public void resolvesTheLocalHost() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // PowerMockito.mockStatic(Inet4Address.class);
+                      // PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

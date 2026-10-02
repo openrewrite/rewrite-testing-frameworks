@@ -159,39 +159,6 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         }
 
         @Override
-        JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
-            JavaType.Method resolvedMethod = resolve(mi);
-            if (resolvedMethod != null) {
-                return resolvedMethod.getDeclaringType();
-            }
-            // Overloads that cannot be told apart: the topmost class declaring the name, so that the call is only
-            // left unflagged when the target's declared type alone declares it
-            String methodName = extractStringLiteral(mi.getArguments().get(1));
-            JavaType.FullyQualified declaringType = null;
-            for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(mi.getArguments().get(0).getType());
-                 type != null; type = type.getSupertype()) {
-                if (declaresMethod(type, methodName)) {
-                    declaringType = type;
-                }
-            }
-            return declaringType;
-        }
-
-        @Override
-        boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
-            return declaresMethod(type, extractStringLiteral(mi.getArguments().get(1)));
-        }
-
-        private boolean declaresMethod(JavaType.FullyQualified type, @Nullable String methodName) {
-            for (JavaType.Method method : type.getMethods()) {
-                if (method.getName().equals(methodName)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
             List<Object> result = new ArrayList<>();
