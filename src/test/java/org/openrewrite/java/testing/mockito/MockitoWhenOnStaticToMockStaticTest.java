@@ -678,16 +678,74 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                       }
 
                       void test1() {
-                          assertEquals(A.getNumber(), -1);
-                      }
+                      assertEquals(A.getNumber(), -1);
                   }
-                  """
-              )
-            );
-        }
+              }
+              """
+          )
+        );
+    }
 
-        @Test
-        void handlesStaticMocks_inBefore_withExistingAfter() {
+    @Test
+    void handlesConsecutiveStaticMocksOfSameClass_inBefore() {
+        // https://github.com/openrewrite/rewrite-testing-frameworks/issues/1123
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.example.A;
+              import org.junit.Before;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  @Before
+                  public void setUp() {
+                      when(A.getNumber()).thenReturn(1);
+                      when(A.getNumber()).thenReturn(2);
+                  }
+
+                  void test1() {
+                      assertEquals(A.getNumber(), 2);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.junit.After;
+              import org.junit.Before;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  private MockedStatic<A> mockA1;
+
+                  @Before
+                  public void setUp() {
+                      mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> A.getNumber()).thenReturn(1);
+                      mockA1.when(() -> A.getNumber()).thenReturn(2);
+                  }
+
+                  @After
+                  public void tearDown() {
+                      mockA1.close();
+                  }
+
+                  void test1() {
+                      assertEquals(A.getNumber(), 2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void handlesStaticMocks_inBefore_withExistingAfter() {
             //language=java
             rewriteRun(
               java(
