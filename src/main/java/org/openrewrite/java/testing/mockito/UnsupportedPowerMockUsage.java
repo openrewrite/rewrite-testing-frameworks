@@ -37,8 +37,8 @@ import static java.util.Arrays.asList;
 import static org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito.classLiteral;
 
 /// Finds PowerMock usages that `ReplacePowerMockitoUsages` leaves in place or migrates into code that behaves
-/// differently. Migrating the other usages while the dependencies are replaced would break such tests, so the
-/// repository is left on PowerMock instead.
+/// differently. Tests with such usage are disabled by `DisableUnsupportedPowerMockTests` instead, so that the
+/// PowerMock dependencies can be removed.
 ///
 /// Rather than restating which shapes each migration step supports, the steps are run on the source file, and the
 /// PowerMock usages that remain are reported on the corresponding nodes of the original source file.
