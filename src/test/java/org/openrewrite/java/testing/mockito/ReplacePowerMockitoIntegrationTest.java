@@ -2429,12 +2429,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   }
               }
               """,
-            spec -> spec.after(actual -> {
-                assertThat(actual)
-                  .containsOnlyOnce("mockStatic(Keys.class)")
-                  .contains("Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn(\"key\");");
-                return actual;
-            })
+            spec -> spec.after(actual -> assertThat(actual)
+              .containsOnlyOnce("mockStatic(Keys.class)")
+              .contains("Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn(\"key\");")
+              .actual())
           )
         );
     }
