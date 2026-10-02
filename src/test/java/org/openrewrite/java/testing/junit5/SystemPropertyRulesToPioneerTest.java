@@ -30,7 +30,11 @@ class SystemPropertyRulesToPioneerTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5", "system-rules", "junit-pioneer-2"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "junit-jupiter-api-5",
+              "system-rules-1",
+              "junit-pioneer-2"))
           .recipe(new SystemPropertyRulesToPioneer());
     }
 

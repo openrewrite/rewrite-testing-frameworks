@@ -39,8 +39,7 @@ final class SystemRules {
     static final String PACKAGE = "org.junit.contrib.java.lang.system";
     static final String RULE = "org.junit.Rule";
     static final String CLASS_RULE = "org.junit.ClassRule";
-    static final String MAY_BE_USED_ELSEWHERE_COMMENT = " TODO Migrate by hand: other classes, such as subclasses, " +
-            "may use this rule, which this migration does not see.";
+    static final String MAY_BE_USED_ELSEWHERE_COMMENT = " TODO Migrate by hand: other classes, such as subclasses, may use this rule, which this migration does not see.";
 
     private static final AnnotationMatcher RULE_ANNOTATION = new AnnotationMatcher("@org.junit.*Rule");
     private static final String[] JUNIT4_TYPES = {

@@ -46,7 +46,12 @@ class MigrateSystemRulesTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-4", "junit-jupiter-api-5", "system-rules", "system-stubs-core", "system-stubs-jupiter", "junit-pioneer-2"))
+              "junit-4",
+              "junit-jupiter-api-5",
+              "system-rules-1",
+              "system-stubs-core-2",
+              "system-stubs-jupiter-2",
+              "junit-pioneer-2"))
           .recipeFromResources("org.openrewrite.java.testing.junit5.MigrateSystemRules");
     }
 

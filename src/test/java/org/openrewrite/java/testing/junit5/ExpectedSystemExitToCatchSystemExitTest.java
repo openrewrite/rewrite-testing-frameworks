@@ -31,7 +31,10 @@ class ExpectedSystemExitToCatchSystemExitTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-4", "junit-jupiter-api-5", "system-rules", "system-stubs-core"))
+              "junit-4",
+              "junit-jupiter-api-5",
+              "system-rules-1",
+              "system-stubs-core-2"))
           .recipe(new ExpectedSystemExitToCatchSystemExit());
     }
 

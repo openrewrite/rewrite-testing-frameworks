@@ -37,8 +37,7 @@ public class EnvironmentVariables extends Recipe {
     private static final String SYSTEM_STUB = "uk.org.webcompere.systemstubs.jupiter.SystemStub";
     private static final String SYSTEM_STUBS_EXTENSION = "uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension";
     private static final String HAS_ENV_VAR_RULE = "hasEnvVarRule";
-    private static final MethodMatcher ENV_VAR_CLEAR =
-            new MethodMatcher(ENVIRONMENT_VARIABLES + " clear(String[])");
+    private static final MethodMatcher ENV_VAR_CLEAR = new MethodMatcher(ENVIRONMENT_VARIABLES + " clear(String[])");
 
     @Getter
     final String displayName = "Migrate JUnit 4 environmentVariables rule to JUnit 5 system stubs extension";
@@ -139,14 +138,14 @@ public class EnvironmentVariables extends Recipe {
         return JavaTemplate.builder("@ExtendWith(SystemStubsExtension.class)")
                 .imports(EXTEND_WITH, SYSTEM_STUBS_EXTENSION)
                 .javaParser(
-                        JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter", "junit-jupiter-api"))
+                        JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "junit-jupiter-api-5"))
                 .build();
     }
 
     private static JavaTemplate systemStubsTemplate(ExecutionContext ctx) {
         return JavaTemplate.builder("@SystemStub")
                 .imports(SYSTEM_STUB)
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter"))
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2"))
                 .build();
     }
 
@@ -156,7 +155,7 @@ public class EnvironmentVariables extends Recipe {
             template.append(".remove(#{any(java.lang.String)})");
         }
         return JavaTemplate.builder(template.toString())
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter", "system-stubs-core"))
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "system-stubs-core-2"))
                 .build();
     }
 

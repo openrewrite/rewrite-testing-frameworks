@@ -53,8 +53,7 @@ public class SystemRulesToSystemStubs extends Recipe {
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
     private static final String LOG_MODE = PACKAGE + ".LogMode";
 
-    private static final AnnotationMatcher EXTEND_WITH_SYSTEM_STUBS =
-            new AnnotationMatcher("@" + EXTEND_WITH + "(" + SYSTEM_STUBS_EXTENSION + ".class)");
+    private static final AnnotationMatcher EXTEND_WITH_SYSTEM_STUBS = new AnnotationMatcher("@" + EXTEND_WITH + "(" + SYSTEM_STUBS_EXTENSION + ".class)");
     private static final String ADD_EXTENSION = "addSystemStubsExtension";
     private static final String CANNOT_MIGRATE_COMMENT = " TODO Migrate by hand to System Stubs: this rule is used in a way that has no direct System Stubs equivalent.";
 
@@ -62,11 +61,7 @@ public class SystemRulesToSystemStubs extends Recipe {
     final String displayName = "Migrate System Rules to System Stubs";
 
     @Getter
-    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties`, " +
-            "`RestoreSystemProperties`, `SystemOutRule`, `SystemErrRule`, `StandardOutputStreamLog`, " +
-            "`StandardErrorStreamLog`, `DisallowWriteToSystemOut`, `DisallowWriteToSystemErr` and " +
-            "`TextFromStandardInputStream` rules with `@SystemStub` fields of the System Stubs JUnit Jupiter extension. " +
-            "A rule is only migrated when every use of it has a System Stubs equivalent; other rules get a `TODO` comment.";
+    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties`, `RestoreSystemProperties`, `SystemOutRule`, `SystemErrRule`, `StandardOutputStreamLog`, `StandardErrorStreamLog`, `DisallowWriteToSystemOut`, `DisallowWriteToSystemErr` and `TextFromStandardInputStream` rules with `@SystemStub` fields of the System Stubs JUnit Jupiter extension. A rule is only migrated when every use of it has a System Stubs equivalent; other rules get a `TODO` comment.";
 
     @RequiredArgsConstructor
     private enum Kind {
@@ -178,7 +173,7 @@ public class SystemRulesToSystemStubs extends Recipe {
                 maybeAddImport(SYSTEM_STUBS_EXTENSION);
                 return JavaTemplate.builder("@ExtendWith(SystemStubsExtension.class)")
                         .imports(EXTEND_WITH, SYSTEM_STUBS_EXTENSION)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter", "junit-jupiter-api-5"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "junit-jupiter-api-5"))
                         .build()
                         .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }
@@ -215,7 +210,7 @@ public class SystemRulesToSystemStubs extends Recipe {
                     }
                     return JavaTemplate.builder("@SystemStub")
                             .imports(SYSTEM_STUB)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2"))
                             .build()
                             .apply(new Cursor(getCursor(), annotation), annotation.getCoordinates().replace());
                 }));
@@ -338,7 +333,7 @@ public class SystemRulesToSystemStubs extends Recipe {
     }
 
     private static JavaParser.Builder<?, ?> stubsParser(ExecutionContext ctx) {
-        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core");
+        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2");
     }
 
     private static String placeholders(List<Expression> arguments) {

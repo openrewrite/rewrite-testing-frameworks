@@ -41,18 +41,13 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
     private static final MethodMatcher EXPECT_EXIT_WITH_STATUS = new MethodMatcher(EXPECTED_SYSTEM_EXIT + " expectSystemExitWithStatus(int)");
     private static final MethodMatcher CHECK_ASSERTION_AFTERWARDS = new MethodMatcher(EXPECTED_SYSTEM_EXIT + " checkAssertionAfterwards(..)");
 
-    private static final String CANNOT_MIGRATE_COMMENT = " TODO Migrate by hand to System Stubs' `catchSystemExit(..)`: " +
-            "an expectation is set outside of the test method body, or the code after it can not move into a lambda.";
+    private static final String CANNOT_MIGRATE_COMMENT = " TODO Migrate by hand to System Stubs' `catchSystemExit(..)`: an expectation is set outside of the test method body, or the code after it can not move into a lambda.";
 
     @Getter
     final String displayName = "Migrate System Rules `ExpectedSystemExit` to System Stubs `catchSystemExit(..)`";
 
     @Getter
-    final String description = "Replaces System Rules' `ExpectedSystemExit` rule with System Stubs' `catchSystemExit(..)`, " +
-            "which runs the rest of the test in a lambda and returns the exit status for an `assertEquals(..)`. " +
-            "Assertions registered through `checkAssertionAfterwards(..)` are inlined after it. " +
-            "Rules that other classes may use, or that set expectations outside of the test method body, " +
-            "get a `TODO` comment instead.";
+    final String description = "Replaces System Rules' `ExpectedSystemExit` rule with System Stubs' `catchSystemExit(..)`, which runs the rest of the test in a lambda and returns the exit status for an `assertEquals(..)`. Assertions registered through `checkAssertionAfterwards(..)` are inlined after it. Rules that other classes may use, or that set expectations outside of the test method body, get a `TODO` comment instead.";
 
     // Dependencies are only added once a later cycle scans the migrated code
     @Override
@@ -370,6 +365,6 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
     }
 
     private static JavaParser.Builder<?, ?> parser(ExecutionContext ctx) {
-        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core", "junit-jupiter-api-5");
+        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2", "junit-jupiter-api-5");
     }
 }
