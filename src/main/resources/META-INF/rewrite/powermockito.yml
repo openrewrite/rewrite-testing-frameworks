@@ -58,6 +58,7 @@ tags:
 recipeList:
   - org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
   - org.openrewrite.java.testing.mockito.ReplacePowerMockDependencies
+  - org.openrewrite.java.testing.mockito.AddJUnit4ReplacingPowerMockModule
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
       artifactId: powermock*
@@ -67,6 +68,28 @@ recipeList:
   # Removing the dependencies orphans the `<powermock.version>` style properties that supplied their versions.
   - org.openrewrite.maven.RemoveUnusedProperties:
       propertyPattern: .*powermock.*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.AddJUnit4ReplacingPowerMockModule
+displayName: Add JUnit 4 where the PowerMock JUnit 4 module provided it
+description: >-
+  Adds `junit:junit` to modules that use JUnit 4 and depend on `powermock-module-junit4`, which brings JUnit 4 in
+  transitively, so that their tests still compile once the PowerMock dependencies are removed.
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.powermock
+      artifactIdPattern: powermock-module-junit4*
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: junit
+      artifactId: junit
+      version: 4.13.2
+      onlyIfUsing: org.junit.*
+      scope: test
+      configuration: testImplementation
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
