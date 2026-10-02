@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -31,8 +32,11 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TextComment;
+import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.java.testing.mockito.table.PowerMockTestsDisabled;
 
@@ -121,7 +125,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 J.ClassDeclaration enclosing = getCursor().firstEnclosing(J.ClassDeclaration.class);
                 disabledTests.insertRow(ctx, new PowerMockTestsDisabled.Row(sourcePath,
                         enclosing == null ? "" : enclosing.getSimpleName(), method.getSimpleName(), "METHOD", reason));
-                return commentOutBody(disable(method, framework, ctx));
+                return commentOutBody(disable(method, framework, ctx), getCursor().getParentOrThrow());
             }
 
             private <T extends J> T disable(T target, Framework framework, ExecutionContext ctx) {
@@ -139,7 +143,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
              * Keeps the body as line comments rather than deleting it: the test cannot run, but whoever reworks
              * it still needs to see what it did, and with no PowerMock left in code the dependency can go.
              */
-            private J.MethodDeclaration commentOutBody(J.MethodDeclaration method) {
+            private J.MethodDeclaration commentOutBody(J.MethodDeclaration method, Cursor parent) {
                 J.Block body = method.getBody();
                 if (body == null || body.getStatements().isEmpty()) {
                     return method;
@@ -153,13 +157,26 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 for (String line : dedent(innerSourceOf(body))) {
                     comments.add(new TextComment(false, " " + line, "\n" + indent, Markers.EMPTY));
                 }
-                // A comment's suffix precedes whatever follows it, so the last one carries the closing brace
-                // back out to the method's own indentation.
-                comments.set(comments.size() - 1,
-                        ((TextComment) comments.get(comments.size() - 1)).withSuffix("\n" + closingIndent));
-                return method.withBody(body
-                        .withStatements(emptyList())
-                        .withEnd(body.getEnd().withWhitespace("\n" + indent).withComments(comments)));
+                TextComment last = (TextComment) comments.get(comments.size() - 1);
+                J.MethodDeclaration emptied = method.withBody(body.withStatements(emptyList()));
+                TypeTree returnType = method.getReturnTypeExpression();
+                if (returnType == null || returnType.getType() == JavaType.Primitive.Void) {
+                    // A comment's suffix precedes whatever follows it, so the last one carries the closing brace
+                    // back out to the method's own indentation.
+                    comments.set(comments.size() - 1, last.withSuffix("\n" + closingIndent));
+                    return emptied.withBody(emptied.getBody().withEnd(
+                            body.getEnd().withWhitespace("\n" + indent).withComments(comments)));
+                }
+                // A method that returns a value no longer compiles without a body, so it throws instead
+                comments.set(comments.size() - 1, last.withSuffix("\n" + indent));
+                J.MethodDeclaration throwing = JavaTemplate.apply(
+                        "throw new UnsupportedOperationException(\"Disabled by the PowerMock migration\");",
+                        new Cursor(parent, emptied), body.getCoordinates().lastStatement());
+                J.Block throwingBody = throwing.getBody();
+                return throwing.withBody(throwingBody
+                        .withStatements(ListUtils.mapFirst(throwingBody.getStatements(),
+                                statement -> statement.withPrefix(Space.build("\n" + indent, comments))))
+                        .withEnd(Space.format("\n" + closingIndent)));
             }
 
             private String innerSourceOf(J.Block body) {
@@ -192,10 +209,11 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
             }
 
             private J.ClassDeclaration commentOutBodiesHoldingUsage(J.ClassDeclaration classDecl) {
+                Cursor bodyCursor = new Cursor(getCursor(), classDecl.getBody());
                 return classDecl.withBody(classDecl.getBody().withStatements(
                         ListUtils.map(classDecl.getBody().getStatements(), statement ->
                                 statement instanceof J.MethodDeclaration && !reasonsIn(statement).isEmpty() ?
-                                        commentOutBody((J.MethodDeclaration) statement) : statement)));
+                                        commentOutBody((J.MethodDeclaration) statement, bodyCursor) : statement)));
             }
 
             private org.openrewrite.java.tree.@Nullable JavaCoordinates annotationCoordinates(J target) {
