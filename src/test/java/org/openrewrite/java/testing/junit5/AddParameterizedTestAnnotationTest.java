@@ -500,4 +500,73 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doesNotAddParameterizedTestToComposedTestTemplates() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              package direct;
+
+              import java.lang.annotation.Retention;
+              import java.lang.annotation.Target;
+
+              import org.junit.jupiter.api.TestTemplate;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              import static java.lang.annotation.ElementType.METHOD;
+              import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+              @Retention(RUNTIME)
+              @Target(METHOD)
+              @TestTemplate
+              @interface FuzzTest {
+              }
+
+              class Test {
+                  @FuzzTest
+                  @ValueSource(strings = "input")
+                  void fuzz(String input) {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              package transitive;
+
+              import java.lang.annotation.Retention;
+              import java.lang.annotation.Target;
+
+              import org.junit.jupiter.api.TestTemplate;
+              import org.junit.jupiter.params.provider.ValueSource;
+
+              import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
+              import static java.lang.annotation.ElementType.METHOD;
+              import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+              @Retention(RUNTIME)
+              @Target(ANNOTATION_TYPE)
+              @TestTemplate
+              @interface ComposedTestTemplate {
+              }
+
+              @Retention(RUNTIME)
+              @Target(METHOD)
+              @ComposedTestTemplate
+              @interface FuzzTest {
+              }
+
+              class Test {
+                  @FuzzTest
+                  @ValueSource(strings = "input")
+                  void fuzz(String input) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
