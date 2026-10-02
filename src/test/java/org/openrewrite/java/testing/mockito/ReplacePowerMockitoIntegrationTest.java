@@ -2384,4 +2384,51 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void staticImportOfStubbedMethodIsKept() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.example;
+
+              public class Requests {
+                  public static String buildRequest(String path) {
+                      return path;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static com.example.Requests.buildRequest;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Requests.class)
+              public class RequestsTest {
+                  @Test
+                  public void stubsTheRequest() {
+                      PowerMockito.mockStatic(Requests.class);
+                      PowerMockito.when(buildRequest("users")).thenReturn("stubbed");
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> {
+                assertThat(actual)
+                  .contains("mockedRequests.when(() -> buildRequest(\"users\"))")
+                  .contains("import static com.example.Requests.buildRequest;");
+                return actual;
+            })
+          )
+        );
+    }
 }
