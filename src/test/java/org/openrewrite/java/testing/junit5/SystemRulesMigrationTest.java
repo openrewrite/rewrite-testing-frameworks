@@ -31,7 +31,7 @@ import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-class MigrateSystemRulesTest implements RewriteTest {
+class SystemRulesMigrationTest implements RewriteTest {
 
     // Runs only as many cycles as the Moderne CLI and platform would, rather than as many as the test expects
     private static final RewriteRunner PRODUCTION_CYCLES = new RewriteRunner() {
@@ -52,7 +52,7 @@ class MigrateSystemRulesTest implements RewriteTest {
               "system-stubs-core-2",
               "system-stubs-jupiter-2",
               "junit-pioneer-2"))
-          .recipeFromResources("org.openrewrite.java.testing.junit5.MigrateSystemRules");
+          .recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration");
     }
 
     //language=xml
@@ -247,9 +247,8 @@ class MigrateSystemRulesTest implements RewriteTest {
     }
 
     @Test
-    void partOfJUnit4to5Migration() {
+    void junit4Test() {
         rewriteRun(
-          spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration"),
           //language=java
           java(
             """

@@ -204,30 +204,6 @@ class EnvironmentVariablesTest implements RewriteTest {
     }
 
     @Test
-    void keepJUnit4Tests() {
-        rewriteRun(
-          // language=java
-          java(
-            """
-              import org.junit.Rule;
-              import org.junit.Test;
-              import org.junit.contrib.java.lang.system.EnvironmentVariables;
-
-              public class RuleTest {
-                  @Rule
-                  public EnvironmentVariables environmentVariables = new EnvironmentVariables();
-
-                  @Test
-                  public void test() {
-                      environmentVariables.set("testSet", "valueSet");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void keepJava8Sources() {
         rewriteRun(
           // language=java

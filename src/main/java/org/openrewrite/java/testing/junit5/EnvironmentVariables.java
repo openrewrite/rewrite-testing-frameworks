@@ -55,7 +55,7 @@ public class EnvironmentVariables extends Recipe {
 
     @Override
     public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(SystemRules.jupiterClassesUsing(ENVIRONMENT_VARIABLES), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(SystemRules.usesTypeOnJava11(ENVIRONMENT_VARIABLES), new JavaVisitor<ExecutionContext>() {
             @Override
             public @NonNull J visitCompilationUnit(
                     J.@NonNull CompilationUnit cu, @NonNull ExecutionContext ctx) {

@@ -183,29 +183,6 @@ class SystemPropertyRulesToPioneerTest implements RewriteTest {
     }
 
     @Test
-    void keepJUnit4Tests() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Rule;
-              import org.junit.Test;
-              import org.junit.contrib.java.lang.system.ProvideSystemProperty;
-
-              public class ConfigTest {
-                  @Rule
-                  public final ProvideSystemProperty properties = new ProvideSystemProperty("a", "1");
-
-                  @Test
-                  public void readsProperties() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void ruleDeclaredAsTestRule() {
         rewriteRun(
           //language=java
@@ -225,33 +202,6 @@ class SystemPropertyRulesToPioneerTest implements RewriteTest {
 
               @RestoreSystemProperties
               class ConfigTest {
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void keepJUnit4BaseClass() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Before;
-              import org.junit.Rule;
-              import org.junit.contrib.java.lang.system.RestoreSystemProperties;
-              import org.junit.runner.RunWith;
-              import org.junit.runners.JUnit4;
-
-              @RunWith(JUnit4.class)
-              public class QueryTestBase {
-                  @Rule
-                  public RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
-
-                  @Before
-                  public void setUp() {
-                      System.setProperty("verbose", "true");
-                  }
               }
               """
           )

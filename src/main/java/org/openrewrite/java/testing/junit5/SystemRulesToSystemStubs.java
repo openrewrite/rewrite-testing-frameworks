@@ -124,7 +124,7 @@ public class SystemRulesToSystemStubs extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(jupiterClassesUsing(PACKAGE + ".*"), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(usesTypeOnJava11(PACKAGE + ".*"), new JavaVisitor<ExecutionContext>() {
             private final Map<JavaType.Variable, Migration> migrations = new HashMap<>();
             private final Map<JavaType.Variable, String> todos = new HashMap<>();
 

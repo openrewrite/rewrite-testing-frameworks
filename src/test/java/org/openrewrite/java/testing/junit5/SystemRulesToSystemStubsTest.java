@@ -519,30 +519,6 @@ class SystemRulesToSystemStubsTest implements RewriteTest {
     }
 
     @Test
-    void keepJUnit4Tests() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Rule;
-              import org.junit.Test;
-              import org.junit.contrib.java.lang.system.SystemOutRule;
-
-              public class GreeterTest {
-                  @Rule
-                  public final SystemOutRule out = new SystemOutRule().enableLog();
-
-                  @Test
-                  public void greets() {
-                      System.out.println(out.getLog());
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void ruleDeclaredAsTestRule() {
         rewriteRun(
           //language=java
@@ -633,30 +609,6 @@ class SystemRulesToSystemStubsTest implements RewriteTest {
                   // TODO Migrate by hand: other classes, such as subclasses, may use this rule, which this migration does not see.
                   @Rule
                   public final SystemOutRule out = new SystemOutRule().enableLog();
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void keepJUnit4ClassWithoutTests() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Before;
-              import org.junit.Rule;
-              import org.junit.contrib.java.lang.system.SystemOutRule;
-
-              public class CliTestSupport {
-                  @Rule
-                  public final SystemOutRule out = new SystemOutRule().enableLog();
-
-                  @Before
-                  public void clear() {
-                      out.clearLog();
-                  }
               }
               """
           )

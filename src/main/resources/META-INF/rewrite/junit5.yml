@@ -56,6 +56,7 @@ preconditions:
       artifactIdPattern: testng*
       invertMarking: true
 recipeList:
+  - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
@@ -91,9 +92,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
   - org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
-  # System Rules recipes only touch classes that no longer use JUnit 4's @Test
-  - org.openrewrite.java.testing.junit5.EnvironmentVariables
-  - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.UpdateMockWebServer
   - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
   - org.openrewrite.java.testing.junit5.EnclosedToNested
@@ -484,3 +482,62 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.gradle.internal.impldep.org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver.Builder addResourceContainerSelectorResolver(java.util.function.Predicate)"
       newMethodName: addResourceContainerSelectorResolver
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.MigrateSystemRules
+displayName: Migrate System Rules to System Stubs and JUnit Pioneer
+description: >-
+  Migrates the JUnit 4 rules of System Rules (`com.github.stefanbirkner:system-rules`) as part of the JUnit 4 to 5
+  migration. System property rules that only take string literals become JUnit Pioneer annotations; the other system
+  property, environment variable, standard stream and standard input rules become System Stubs `@SystemStub` fields,
+  and `ExpectedSystemExit` becomes System Stubs' `catchSystemExit(..)`. Rules that can not be migrated get a `TODO`
+  comment, and System Rules is only removed once nothing uses it. As System Stubs 2.x and JUnit Pioneer 2.x require
+  Java 11, sources compiled for an older Java version are left as is.
+tags:
+  - testing
+  - junit
+  - jupiter
+  - system-rules
+  - system-stubs
+  - junit-pioneer
+recipeList:
+  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.SystemPropertyRulesToPioneer
+  - org.openrewrite.java.testing.junit5.SystemRulesToSystemStubs
+  - org.openrewrite.java.testing.junit5.ExpectedSystemExitToCatchSystemExit
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: uk.org.webcompere
+      artifactId: system-stubs-jupiter
+      version: 2.x
+      onlyIfUsing: uk.org.webcompere.systemstubs..*
+      acceptTransitive: true
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.junit-pioneer
+      artifactId: junit-pioneer
+      version: 2.x
+      onlyIfUsing: org.junitpioneer..*
+      acceptTransitive: true
+  - org.openrewrite.java.testing.junit5.UpgradeJUnitPioneerForRestoreSystemProperties
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: com.github.stefanbirkner
+      artifactId: system-rules
+      unlessUsing: org.junit.contrib.java.lang.system..*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.UpgradeJUnitPioneerForRestoreSystemProperties
+displayName: Upgrade JUnit Pioneer for `@RestoreSystemProperties`
+description: >-
+  Upgrades JUnit Pioneer to 2.x in modules that use its `@RestoreSystemProperties`, which only exists from JUnit
+  Pioneer 2.x on, as migrating System Rules' `RestoreSystemProperties` can introduce it into a module that is still
+  on JUnit Pioneer 1.x.
+tags:
+  - testing
+  - junit-pioneer
+preconditions:
+  - org.openrewrite.java.search.ModuleUsesType:
+      fullyQualifiedTypeName: org.junitpioneer.jupiter.RestoreSystemProperties
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit-pioneer
+      artifactId: junit-pioneer
+      newVersion: 2.x

@@ -358,29 +358,4 @@ class ExpectedSystemExitToCatchSystemExitTest implements RewriteTest {
           )
         );
     }
-
-    @Test
-    void keepJUnit4Tests() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Rule;
-              import org.junit.Test;
-              import org.junit.contrib.java.lang.system.ExpectedSystemExit;
-
-              public class CliTest {
-                  @Rule
-                  public final ExpectedSystemExit exit = ExpectedSystemExit.none();
-
-                  @Test
-                  public void exits() {
-                      exit.expectSystemExit();
-                      System.exit(1);
-                  }
-              }
-              """
-          )
-        );
-    }
 }

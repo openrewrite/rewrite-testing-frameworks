@@ -68,7 +68,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(jupiterClassesUsing(PACKAGE + ".*"), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(usesTypeOnJava11(PACKAGE + ".*"), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
                 return sourceFile instanceof J.CompilationUnit;

@@ -33,7 +33,6 @@ import java.util.List;
 
 import static org.openrewrite.Preconditions.and;
 import static org.openrewrite.Preconditions.not;
-import static org.openrewrite.Preconditions.or;
 
 final class SystemRules {
     static final String PACKAGE = "org.junit.contrib.java.lang.system";
@@ -42,23 +41,13 @@ final class SystemRules {
     static final String MAY_BE_USED_ELSEWHERE_COMMENT = " TODO Migrate by hand: other classes, such as subclasses, may use this rule, which this migration does not see.";
 
     private static final AnnotationMatcher RULE_ANNOTATION = new AnnotationMatcher("@org.junit.*Rule");
-    private static final String[] JUNIT4_TYPES = {
-            "org.junit.Test", "org.junit.Before", "org.junit.After", "org.junit.BeforeClass", "org.junit.AfterClass",
-            "org.junit.runner.RunWith"};
 
     private SystemRules() {
     }
 
-    // System Stubs and JUnit Pioneer 2.x are JUnit Jupiter extensions that require Java 11
-    static TreeVisitor<?, ExecutionContext> jupiterClassesUsing(String typePattern) {
-        List<TreeVisitor<?, ExecutionContext>> junit4 = new ArrayList<>();
-        for (String type : JUNIT4_TYPES) {
-            junit4.add(new UsesType<>(type, false));
-        }
-        return and(
-                new UsesType<>(typePattern, false),
-                not(or(junit4.toArray(new TreeVisitor[0]))),
-                not(new UsesJavaVersion<>(1, 10)));
+    // System Stubs 2.x and JUnit Pioneer 2.x require Java 11
+    static TreeVisitor<?, ExecutionContext> usesTypeOnJava11(String typePattern) {
+        return and(new UsesType<>(typePattern, false), not(new UsesJavaVersion<>(1, 10)));
     }
 
     static boolean isRuleField(J.VariableDeclarations field) {

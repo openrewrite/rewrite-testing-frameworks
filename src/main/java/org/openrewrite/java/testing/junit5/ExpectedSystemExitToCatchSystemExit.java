@@ -57,7 +57,7 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(jupiterClassesUsing(EXPECTED_SYSTEM_EXIT), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(usesTypeOnJava11(EXPECTED_SYSTEM_EXIT), new JavaVisitor<ExecutionContext>() {
             private final Set<JavaType.Variable> migrated = new HashSet<>();
             private final Map<JavaType.Variable, String> todos = new HashMap<>();
             private final Map<UUID, ExitPlan> plans = new HashMap<>();
