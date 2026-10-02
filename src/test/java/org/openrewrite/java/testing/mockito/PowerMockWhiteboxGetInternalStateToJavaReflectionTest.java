@@ -264,6 +264,57 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
     }
 
     @Test
+    void castInsertedForNestedCallIsImported() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.HashMap;
+
+              class MyService {
+                  private HashMap<String, String> params = new HashMap<>();
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.Map;
+
+              class Checks {
+                  static void check(Map<?, ?> value) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      MyService service = new MyService();
+                      Checks.check(Whitebox.getInternalState(service, "params"));
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+              import java.util.Map;
+
+              class MyServiceTest {
+                  void testGetField() throws Exception {
+                      MyService service = new MyService();
+                      Field paramsField = MyService.class.getDeclaredField("params");
+                      paramsField.setAccessible(true);
+                      Checks.check((Map) paramsField.get(service));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void getInternalStateInLambdaIsLeftAlone() {
         //language=java
         rewriteRun(

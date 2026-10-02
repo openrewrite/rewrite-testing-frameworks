@@ -82,6 +82,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private @Nullable JavaSourceFile stringConstantsSource;
     private List<J.VariableDeclarations.NamedVariable> stringConstants = emptyList();
+    private final Set<String> castImports = new LinkedHashSet<>();
 
     WhiteboxToReflectionVisitor(String reflectiveImport, MethodMatcher... matchers) {
         this.reflectiveImport = reflectiveImport;
@@ -421,6 +422,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         String typeImport = topLevelImport(TypeUtils.asFullyQualified(returnType));
         if (typeImport != null) {
+            castImports.add(typeImport);
             maybeAddImport(typeImport);
         }
         return "(" + boxedCastType(castType) + ") ";
@@ -545,6 +547,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         List<String> imports = new ArrayList<>();
         imports.add(reflectiveImport);
         imports.addAll(resolvedParamImports(resolvedMethod));
+        imports.addAll(castImports);
         return imports;
     }
 

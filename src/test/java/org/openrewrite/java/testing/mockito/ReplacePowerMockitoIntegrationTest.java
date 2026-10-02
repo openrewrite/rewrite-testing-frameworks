@@ -2349,10 +2349,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       }
                   }
                   """,
-                spec -> spec.after(actual -> {
-                    assertThat(actual).contains("Mockito.mockStatic(Calendar.class)");
-                    return actual;
-                })
+                spec -> spec.after(actual -> assertThat(actual).contains("Mockito.mockStatic(Calendar.class)").actual())
               )
             )
           )
@@ -2380,6 +2377,197 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """
+            )
+          )
+        );
+    }
+
+    @Test
+    void staticMockMigratedFromPowerMockIsReusedForStubbingThatThrowsCheckedException() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to4Migration"),
+          //language=java
+          java(
+            """
+              package com.example;
+
+              public class Keys {
+                  public static String build(char[] key) throws Exception {
+                      return new String(key);
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              package com.example;
+
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static org.powermock.api.mockito.PowerMockito.mockStatic;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Keys.class)
+              public class SignerTest {
+                  @Before
+                  public void setUp() throws Exception {
+                      mockStatic(Keys.class);
+                      Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn("key");
+                  }
+
+                  @Test
+                  public void signs() {
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> assertThat(actual)
+              .containsOnlyOnce("mockStatic(Keys.class)")
+              .contains("Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn(\"key\");")
+              .actual())
+          )
+        );
+    }
+
+    @Test
+    void staticImportOfStubbedMethodIsKept() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.example;
+
+              public class Requests {
+                  public static String buildRequest(String path) {
+                      return path;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static com.example.Requests.buildRequest;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Requests.class)
+              public class RequestsTest {
+                  @Test
+                  public void stubsTheRequest() {
+                      PowerMockito.mockStatic(Requests.class);
+                      PowerMockito.when(buildRequest("users")).thenReturn("stubbed");
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> assertThat(actual)
+              .contains("mockedRequests.when(() -> buildRequest(\"users\"))")
+              .contains("import static com.example.Requests.buildRequest;")
+              .actual())
+          )
+        );
+    }
+
+    @Test
+    void junit4IsKeptWhenOnlyPowerMockBroughtItIn() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-module-junit4</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .containsPattern("<groupId>junit</groupId>\\s*<artifactId>junit</artifactId>\\s*<version>4\\.13\\.2</version>\\s*<scope>test</scope>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.junit.runner.RunWith;
+                  import org.powermock.modules.junit4.PowerMockRunner;
+
+                  @RunWith(PowerMockRunner.class)
+                  public class MyTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void junit4IsNotAddedWithoutPowerMock() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>3.12.4</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """
+              )
             )
           )
         );

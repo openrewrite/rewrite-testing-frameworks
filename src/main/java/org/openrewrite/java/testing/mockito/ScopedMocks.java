@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.mockito;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -28,6 +29,7 @@ import org.openrewrite.marker.Markers;
 
 import java.util.*;
 
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.mockito.MockitoUtils.maybeAddMethodWithAnnotation;
@@ -241,6 +243,27 @@ final class ScopedMocks {
                 field.getType());
     }
 
+    /// The template declaring a field does not see the mocked type when it is declared in another source file, so
+    /// its type parameter is attributed here, for recipes that look for an existing `MockedStatic` of that type.
+    private static J.VariableDeclarations withMockedType(J.VariableDeclarations declarations, JavaType.FullyQualified mockedType) {
+        JavaType.Parameterized declaredType = TypeUtils.asParameterized(declarations.getType());
+        if (declaredType == null) {
+            return declarations;
+        }
+        JavaType.Parameterized fieldType = declaredType.withTypeParameters(singletonList(mockedType));
+        TypeTree typeExpression = declarations.getTypeExpression();
+        if (typeExpression instanceof J.ParameterizedType) {
+            J.ParameterizedType parameterized = (J.ParameterizedType) typeExpression;
+            typeExpression = parameterized.withType(fieldType).withTypeParameters(ListUtils.map(parameterized.getTypeParameters(),
+                    typeParameter -> typeParameter instanceof J.Identifier ? ((J.Identifier) typeParameter).withType(mockedType) : typeParameter));
+        }
+        return declarations.withTypeExpression(typeExpression).withVariables(ListUtils.map(declarations.getVariables(),
+                variable -> variable
+                        .withName(variable.getName().withType(fieldType).withFieldType(
+                                variable.getName().getFieldType() == null ? null : variable.getName().getFieldType().withType(fieldType)))
+                        .withVariableType(variable.getVariableType() == null ? null : variable.getVariableType().withType(fieldType))));
+    }
+
     J.ClassDeclaration declareFields(JavaVisitor<ExecutionContext> visitor, J.ClassDeclaration cd, ExecutionContext ctx) {
         List<ScopedMock> toDeclare = new ArrayList<>();
         for (ScopedMock mock : mocks.values()) {
@@ -261,18 +284,20 @@ final class ScopedMocks {
             visitor.maybeAddImport(mock.scopedMockType);
         }
         cd = separateAddedMembers(original, cd);
-        for (Statement statement : cd.getBody().getStatements()) {
-            if (statement instanceof J.VariableDeclarations) {
-                for (J.VariableDeclarations.NamedVariable variable : ((J.VariableDeclarations) statement).getVariables()) {
-                    for (ScopedMock mock : mocks.values()) {
-                        if (mock.field == null && mock.fieldName.equals(variable.getSimpleName())) {
-                            mock.field = variable.getName();
-                        }
-                    }
+        return cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+            if (!(statement instanceof J.VariableDeclarations)) {
+                return statement;
+            }
+            J.VariableDeclarations declarations = (J.VariableDeclarations) statement;
+            for (ScopedMock mock : mocks.values()) {
+                if (mock.field == null && declarations.getVariables().size() == 1 &&
+                    mock.fieldName.equals(declarations.getVariables().get(0).getSimpleName())) {
+                    declarations = withMockedType(declarations, mock.mockedType);
+                    mock.field = declarations.getVariables().get(0).getName();
                 }
             }
-        }
-        return cd;
+            return declarations;
+        })));
     }
 
     J.ClassDeclaration closeAfterEachTest(JavaVisitor<ExecutionContext> visitor, J.ClassDeclaration cd,
