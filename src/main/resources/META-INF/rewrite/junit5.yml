@@ -56,7 +56,6 @@ preconditions:
       artifactIdPattern: testng*
       invertMarking: true
 recipeList:
-  - org.openrewrite.java.testing.junit5.EnvironmentVariables
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
@@ -92,6 +91,9 @@ recipeList:
   - org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized
   - org.openrewrite.java.testing.junit5.JUnitParamsRunnerToParameterized
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
+  # System Rules recipes only touch classes that no longer use JUnit 4's @Test
+  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.UpdateMockWebServer
   - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
   - org.openrewrite.java.testing.junit5.EnclosedToNested
