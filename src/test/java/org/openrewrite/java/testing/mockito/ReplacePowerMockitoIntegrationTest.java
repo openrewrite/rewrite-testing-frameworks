@@ -2384,4 +2384,98 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void junit4IsKeptWhenOnlyPowerMockBroughtItIn() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-module-junit4</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .containsPattern("<groupId>junit</groupId>\\s*<artifactId>junit</artifactId>\\s*<version>4\\.13\\.2</version>\\s*<scope>test</scope>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.junit.runner.RunWith;
+                  import org.powermock.modules.junit4.PowerMockRunner;
+
+                  @RunWith(PowerMockRunner.class)
+                  public class MyTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void junit4IsNotAddedWithoutPowerMock() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>3.12.4</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
 }
