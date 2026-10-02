@@ -2384,4 +2384,58 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void staticMockMigratedFromPowerMockIsReusedForStubbingThatThrowsCheckedException() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to4Migration"),
+          //language=java
+          java(
+            """
+              package com.example;
+
+              public class Keys {
+                  public static String build(char[] key) throws Exception {
+                      return new String(key);
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              package com.example;
+
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static org.powermock.api.mockito.PowerMockito.mockStatic;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Keys.class)
+              public class SignerTest {
+                  @Before
+                  public void setUp() throws Exception {
+                      mockStatic(Keys.class);
+                      Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn("key");
+                  }
+
+                  @Test
+                  public void signs() {
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> {
+                assertThat(actual)
+                  .containsOnlyOnce("mockStatic(Keys.class)")
+                  .contains("Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn(\"key\");");
+                return actual;
+            })
+          )
+        );
+    }
 }
