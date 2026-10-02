@@ -36,11 +36,11 @@ tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages
+  # Runs before the migration, as some of the usage it disables, such as `mockStatic(System.class)`, migrates into
+  # Mockito code that fails at runtime, and is only recognized as PowerMock usage. The migration then also tidies the
+  # PowerMock imports that commenting out a test body leaves unused.
   - org.openrewrite.java.testing.mockito.DisableUnsupportedPowerMockTests
-  # Commenting a body out is what makes its PowerMock imports unused, so imports have to be tidied after the
-  # disabling pass as well as at the end of the migration pass.
-  - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
+  - org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages
   - org.openrewrite.java.testing.mockito.FlagUnsupportedPowerMockUsage
   - org.openrewrite.java.testing.mockito.RemovePowerMockDependencies
 ---
