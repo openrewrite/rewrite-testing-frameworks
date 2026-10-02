@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.javaVersion;
 
 class EnvironmentVariablesTest implements RewriteTest {
     @Override
@@ -31,8 +32,8 @@ class EnvironmentVariablesTest implements RewriteTest {
           .parser(
             JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
-              "junit-jupiter-api",
-              "system-rules"));
+              "junit-jupiter-api-5",
+              "system-rules-1"));
     }
 
     @DocumentExample
@@ -198,6 +199,31 @@ class EnvironmentVariablesTest implements RewriteTest {
                   public SystemOutRule systemOutRule = new SystemOutRule().mute().enableLog();
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void keepJava8Sources() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.contrib.java.lang.system.EnvironmentVariables;
+              import org.junit.jupiter.api.Test;
+
+              class RuleTest {
+                  @Rule
+                  public EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
+                  @Test
+                  void test() {
+                      environmentVariables.set("testSet", "valueSet");
+                  }
+              }
+              """,
+            spec -> spec.markers(javaVersion(8))
           )
         );
     }
