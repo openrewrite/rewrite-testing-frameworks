@@ -198,7 +198,7 @@ public class SystemRulesToSystemStubs extends Recipe {
                 Expression initializer = JavaTemplate.builder(migration.initializer)
                         .imports(migration.imports.toArray(new String[0]))
                         .staticImports(OUTPUT_FACTORIES + ".tapAndOutput")
-                        .javaParser(stubsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2"))
                         .build()
                         .apply(new Cursor(new Cursor(getCursor(), namedVariable), oldInitializer),
                                 oldInitializer.getCoordinates().replace(), migration.initializerArguments.toArray());
@@ -325,15 +325,11 @@ public class SystemRulesToSystemStubs extends Recipe {
                 }
                 return JavaTemplate.builder(template)
                         .imports(LINES_ALT_STREAM, TEXT_ALT_STREAM)
-                        .javaParser(stubsParser(ctx))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2"))
                         .build()
                         .apply(getCursor(), m.getCoordinates().replace(), parameters.toArray());
             }
         });
-    }
-
-    private static JavaParser.Builder<?, ?> stubsParser(ExecutionContext ctx) {
-        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2");
     }
 
     private static String placeholders(List<Expression> arguments) {

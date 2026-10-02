@@ -146,20 +146,20 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
                 if (plan.status == null) {
                     body = JavaTemplate.builder("catchSystemExit(() -> #{any()});")
                             .staticImports(SYSTEM_STUBS + ".catchSystemExit")
-                            .javaParser(parser(ctx))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2", "junit-jupiter-api-5"))
                             .build()
                             .apply(bodyCursor, expectation.getCoordinates().replace(), lambdaBody);
                 } else {
                     maybeAddImport(ASSERTIONS, "assertEquals");
                     body = JavaTemplate.builder("int " + status + " = catchSystemExit(() -> #{any()});")
                             .staticImports(SYSTEM_STUBS + ".catchSystemExit")
-                            .javaParser(parser(ctx))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2", "junit-jupiter-api-5"))
                             .build()
                             .apply(bodyCursor, expectation.getCoordinates().replace(), lambdaBody);
                     J.VariableDeclarations caught = (J.VariableDeclarations) body.getStatements().get(body.getStatements().size() - 1);
                     body = JavaTemplate.builder("assertEquals(#{any(int)}, #{any(int)});")
                             .staticImports(ASSERTIONS + ".assertEquals")
-                            .javaParser(parser(ctx))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2", "junit-jupiter-api-5"))
                             .build()
                             .apply(new Cursor(getCursor(), body), caught.getCoordinates().after(),
                                     plan.status, caught.getVariables().get(0).getName().withPrefix(Space.EMPTY));
@@ -362,9 +362,5 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
                 return super.visitUnary(unary, found);
             }
         }.reduce(method, new AtomicBoolean()).get();
-    }
-
-    private static JavaParser.Builder<?, ?> parser(ExecutionContext ctx) {
-        return JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2", "junit-jupiter-api-5");
     }
 }
