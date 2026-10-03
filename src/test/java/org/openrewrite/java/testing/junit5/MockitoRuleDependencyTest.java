@@ -102,6 +102,140 @@ class MockitoRuleDependencyTest implements RewriteTest {
         );
     }
     @Test
+    void addsMatchingJupiterDependencyForModernMockitoRunner() {
+        rewriteRun(
+          mavenProject("test",
+            srcTestJava(
+              java(
+                """
+                  import org.junit.runner.RunWith;
+                  import org.mockito.junit.MockitoJUnitRunner;
+                  @RunWith(MockitoJUnitRunner.class)
+                  class Example {}
+                  """,
+                spec -> spec.after(source -> assertThat(source)
+                  .contains("@ExtendWith(MockitoExtension.class)")
+                  .doesNotContain("public MockitoRule mocks").actual())
+              )
+            ),
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>example</groupId>
+                    <artifactId>test</artifactId>
+                    <version>1</version>
+                    <properties>
+                        <mockito.version>5.23.0</mockito.version>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>${mockito.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>example</groupId>
+                    <artifactId>test</artifactId>
+                    <version>1</version>
+                    <properties>
+                        <mockito.version>5.23.0</mockito.version>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>${mockito.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-junit-jupiter</artifactId>
+                            <version>${mockito.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+    @Test
+    void upgradesLegacyMockitoBeforeAligningJupiter() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-4", "mockito-all-1.10", "mockito-core-3.12", "mockito-junit-jupiter-3.12", "junit-jupiter-api-5")),
+          mavenProject("test",
+            srcTestJava(
+              java(
+                """
+                  import org.junit.runner.RunWith;
+                  import org.mockito.runners.MockitoJUnitRunner;
+                  @RunWith(MockitoJUnitRunner.class)
+                  class Example {}
+                  """,
+                spec -> spec.after(source -> assertThat(source)
+                  .contains("@ExtendWith(MockitoExtension.class)")
+                  .doesNotContain("public MockitoRule mocks").actual())
+              )
+            ),
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>example</groupId>
+                    <artifactId>test</artifactId>
+                    <version>1</version>
+                    <properties>
+                        <mockito.version>1.10.19</mockito.version>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>${mockito.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>example</groupId>
+                    <artifactId>test</artifactId>
+                    <version>1</version>
+                    <properties>
+                        <mockito.version>4.11.0</mockito.version>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>${mockito.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-junit-jupiter</artifactId>
+                            <version>${mockito.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+    @Test
     void doesNotAddJupiterForAnUnannotatedDelegate() {
         rewriteRun(
           mavenProject("adapter",
