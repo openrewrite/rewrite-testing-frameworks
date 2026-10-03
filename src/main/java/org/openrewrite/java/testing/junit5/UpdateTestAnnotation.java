@@ -34,6 +34,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 
@@ -58,6 +59,21 @@ public class UpdateTestAnnotation extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            AtomicBoolean missingTestType = new AtomicBoolean();
+            new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.Annotation visitAnnotation(J.Annotation annotation, AtomicBoolean missing) {
+                    if ("Test".equals(annotation.getSimpleName()) &&
+                        (annotation.getType() == null || annotation.getType() instanceof JavaType.Unknown)) {
+                        missing.set(true);
+                    }
+                    return super.visitAnnotation(annotation, missing);
+                }
+            }.visit(cu, missingTestType);
+            if (missingTestType.get()) {
+                // Partially migrating the file can introduce conflicting JUnit 4 and Jupiter imports.
+                return cu;
+            }
             J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
             Set<NameTree> nameTreeSet = c.findType("org.junit.Test");
             if (!nameTreeSet.isEmpty()) {

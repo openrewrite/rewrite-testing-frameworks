@@ -19,10 +19,14 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -37,6 +41,56 @@ class UpdateTestAnnotationTest implements RewriteTest {
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new UpdateTestAnnotation());
+    }
+
+    @Test
+    void preserveImportWhenTestAnnotationTypeIsMissing() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion())
+            .typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Test;
+
+              class ExampleTest {
+                  @Test
+                  public void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveImportWhenOnlySomeTestAnnotationTypesAreMissing() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Test;
+
+              class ExampleTest {
+                  @Test
+                  public void attributed() {
+                  }
+
+                  @Test
+                  public void unattributed() {
+                  }
+              }
+              """,
+            spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new JavaIsoVisitor<Integer>() {
+                @Override
+                public J.Annotation visitAnnotation(J.Annotation annotation, Integer p) {
+                    if ("unattributed".equals(getCursor().firstEnclosingOrThrow(J.MethodDeclaration.class).getSimpleName())) {
+                        return annotation.withType(JavaType.Unknown.getInstance());
+                    }
+                    return annotation;
+                }
+            }.visitNonNull(cu, 0))
+          )
+        );
     }
 
     @DocumentExample
