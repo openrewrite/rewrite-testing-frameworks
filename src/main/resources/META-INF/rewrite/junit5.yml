@@ -219,6 +219,7 @@ recipeList:
       groupId: org.mockito
       artifactId: mockito-junit-jupiter
       version: 4.x
+      familyPattern: org.mockito
       onlyIfUsing: org.mockito..MockitoJUnit*Runner
       acceptTransitive: true
       scope: test
