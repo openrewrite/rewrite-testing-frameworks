@@ -24,6 +24,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.RemoveUnusedImports;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -158,7 +159,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                             if (value instanceof J.Lambda || value instanceof J.Case && ((J.Case) value).getStatements().isEmpty()) {
                                 return mi;
                             }
-                            maybeRemoveImport("org.mockito.Mockito.doNothing");
+                            doAfterVisit(new RemoveUnusedImports().getVisitor());
                             return null;
                         }
                         return mi;
