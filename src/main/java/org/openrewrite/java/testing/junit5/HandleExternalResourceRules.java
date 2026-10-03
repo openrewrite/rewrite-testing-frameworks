@@ -42,8 +42,7 @@ import static java.util.Comparator.comparing;
  */
 public class HandleExternalResourceRules extends Recipe {
 
-    private static final AnnotationMatcher ANY_RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*Rule", true);
-    private static final String CLASS_RULE = "org.junit.ClassRule";
+    private static final AnnotationMatcher ANY_RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Rule", true);
     private static final String EXTERNAL_RESOURCE_RULE = "org.junit.rules.ExternalResource";
     private static final String EXTERNAL_RESOURCE_SUPPORT = "org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport";
     private static final String EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith";
@@ -59,7 +58,7 @@ public class HandleExternalResourceRules extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                Preconditions.or(new UsesType<>(CLASS_RULE, true), new UsesType<>(RULE, true)),
+                new UsesType<>(RULE, true),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {

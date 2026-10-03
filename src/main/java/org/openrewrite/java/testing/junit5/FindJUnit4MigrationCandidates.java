@@ -92,11 +92,19 @@ public class FindJUnit4MigrationCandidates extends ScanningRecipe<Set<JavaProjec
                         .getMarkers().findFirst(JavaProject.class).orElse(null));
             }
 
+            private boolean unsupportedRule(J.Annotation annotation, @Nullable JavaType type) {
+                if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.ClassRule")) {
+                    // ExternalResourceSupport only finds @Rule members, not @ClassRule.
+                    return !TypeUtils.isOfClassType(type, "org.junit.rules.TemporaryFolder");
+                }
+                return TypeUtils.isOfClassType(annotation.getType(), "org.junit.Rule") &&
+                        SUPPORTED_RULES.stream().noneMatch(supported -> TypeUtils.isOfClassType(type, supported));
+            }
+
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations variables, ExecutionContext ctx) {
                 if (variables.getLeadingAnnotations().stream().anyMatch(a ->
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.Rule")) &&
-                        SUPPORTED_RULES.stream().noneMatch(type -> TypeUtils.isOfClassType(variables.getType(), type))) {
+                        unsupportedRule(a, variables.getType()))) {
                     retainModule();
                 }
                 return super.visitVariableDeclarations(variables, ctx);

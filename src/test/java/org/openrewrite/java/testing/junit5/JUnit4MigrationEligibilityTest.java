@@ -170,4 +170,21 @@ class JUnit4MigrationEligibilityTest implements RewriteTest {
         );
     }
 
+    @Test
+    void preservesClassRuleExternalResource() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.ClassRule;
+              import org.junit.Test;
+              import org.junit.rules.ExternalResource;
+              class Example {
+                  @ClassRule public static ExternalResource server = new ExternalResource() {};
+                  @Test public void test() {}
+              }
+              """
+          )
+        );
+    }
+
 }
