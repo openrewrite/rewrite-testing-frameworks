@@ -95,7 +95,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UpdateMockWebServer
   - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
   - org.openrewrite.java.testing.junit5.EnclosedToNested
-  - org.openrewrite.java.testing.junit5.AddMissingNested
   - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
