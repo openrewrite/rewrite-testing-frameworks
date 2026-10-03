@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -27,7 +28,9 @@ import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindFieldsOfType;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -72,6 +75,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
     public static class MockitoRuleToMockitoExtensionVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final String MOCKITO_RULE_INVOCATION_KEY = "mockitoRuleInvocation";
         private static final String MOCKITO_TEST_RULE_INVOCATION_KEY = "mockitoTestRuleInvocation";
+        private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
         private static final String STRICTNESS_KEY = "strictness";
 
         private static final String EXTEND_WITH_MOCKITO_EXTENSION = "@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)";
@@ -82,6 +86,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<J.VariableDeclarations> mockitoFields = FindFieldsOfType.find(cd, "org.mockito.junit.MockitoRule");
             mockitoFields.addAll(FindFieldsOfType.find(cd, "org.mockito.junit.MockitoTestRule"));
+
+            mockitoFields.removeIf(field -> field.getLeadingAnnotations().stream().noneMatch(RULE::matches));
 
             if (!mockitoFields.isEmpty()) {
                 List<Statement> statements = new ArrayList<>(cd.getBody().getStatements());
@@ -135,7 +141,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-            if (method.getMethodType() != null) {
+            if (method.getMethodType() != null && isRuleInvocation(method)) {
                 String key = null;
                 if (TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), "org.mockito.junit.MockitoRule")) {
                     key = MOCKITO_RULE_INVOCATION_KEY;
@@ -182,12 +188,39 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
             return m;
         }
 
-        private static boolean isTargetMethodInvocation(Statement statement) {
+        private boolean isRuleInvocation(J.MethodInvocation method) {
+            J.VariableDeclarations declaration = getCursor().firstEnclosing(J.VariableDeclarations.class);
+            if (declaration != null && declaration.getLeadingAnnotations().stream().anyMatch(RULE::matches)) {
+                return true;
+            }
+            Expression select = method.getSelect();
+            while (select instanceof J.MethodInvocation) {
+                select = ((J.MethodInvocation) select).getSelect();
+            }
+            JavaType.Variable field = select instanceof J.Identifier ? ((J.Identifier) select).getFieldType() :
+                    select instanceof J.FieldAccess ? ((J.FieldAccess) select).getName().getFieldType() : null;
+            J.ClassDeclaration enclosing = getCursor().firstEnclosing(J.ClassDeclaration.class);
+            if (field == null || enclosing == null) {
+                return false;
+            }
+            for (Statement statement : enclosing.getBody().getStatements()) {
+                if (statement instanceof J.VariableDeclarations) {
+                    J.VariableDeclarations variables = (J.VariableDeclarations) statement;
+                    if (variables.getLeadingAnnotations().stream().anyMatch(RULE::matches) &&
+                            variables.getVariables().stream().anyMatch(v -> field.equals(v.getVariableType()))) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean isTargetMethodInvocation(Statement statement) {
             if (!(statement instanceof J.MethodInvocation)) {
                 return false;
             }
             final J.MethodInvocation m = (J.MethodInvocation) statement;
-            if (m.getMethodType() == null) {
+            if (m.getMethodType() == null || !isRuleInvocation(m)) {
                 return false;
             }
 
