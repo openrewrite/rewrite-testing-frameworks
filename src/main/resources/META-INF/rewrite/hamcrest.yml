@@ -30,7 +30,7 @@ recipeList:
       groupId: org.hamcrest
       artifactId: hamcrest
       version: 2.x
-      onlyIfUsing: org.hamcrest.Matchers
+      onlyIfUsing: org.hamcrest..*
       acceptTransitive: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
