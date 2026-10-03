@@ -224,6 +224,7 @@ recipeList:
       scope: test
   - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.java.testing.mockito.MockitoJUnitRunnerToExtension
+  - org.openrewrite.java.testing.junit5.AddMockitoJupiterForRules
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.IgnoreToDisabled
