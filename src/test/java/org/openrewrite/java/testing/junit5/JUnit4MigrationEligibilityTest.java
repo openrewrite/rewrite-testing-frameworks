@@ -23,6 +23,7 @@ import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -106,6 +107,48 @@ class JUnit4MigrationEligibilityTest implements RewriteTest {
               class ModernTest { @Test public void test() {} }
               """,
             spec -> spec.markers(modern)
+          )
+        );
+    }
+
+    @Test
+    void preservesRuleChainAndItsLifecycle() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.RuleChain;
+              class Example {
+                  @Rule public RuleChain rules = RuleChain.emptyRuleChain();
+                  @Before public void setUp() {}
+                  @Test public void test() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migratesSupportedRunnerAndRule() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.Timeout;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.JUnit4;
+              @RunWith(JUnit4.class)
+              class Example {
+                  @Rule public Timeout timeout = Timeout.seconds(5);
+                  @Test public void test() {}
+              }
+              """,
+            spec -> spec.after(source -> assertThat(source)
+              .contains("import org.junit.jupiter.api.Test;", "@Timeout")
+              .doesNotContain("org.junit.Rule", "@RunWith").actual())
           )
         );
     }

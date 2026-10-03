@@ -57,12 +57,27 @@ public class FindJUnit4MigrationCandidates extends ScanningRecipe<Set<JavaProjec
             "org.jboss.byteman.contrib.bmunit.BMUnitRunner"
     ));
 
+    private static final Set<String> SUPPORTED_RULES = new HashSet<>(Arrays.asList(
+            "org.junit.rules.TemporaryFolder",
+            "org.junit.rules.ExpectedException",
+            "org.junit.rules.TestName",
+            "org.junit.rules.Timeout",
+            "org.mockito.junit.MockitoRule",
+            "org.mockito.junit.MockitoTestRule",
+            "org.assertj.core.api.JUnitSoftAssertions",
+            "org.assertj.core.api.JUnitBDDSoftAssertions",
+            "com.github.tomakehurst.wiremock.junit.WireMockRule",
+            "org.junit.contrib.java.lang.system.EnvironmentVariables",
+            "okhttp3.mockwebserver.MockWebServer",
+            "com.squareup.okhttp.mockwebserver.MockWebServer"
+    ));
+
     @Getter
     final String displayName = "Find modules eligible for JUnit Jupiter migration";
 
     @Getter
     final String description = "Find modules whose JUnit 4 integrations have replacements in the migration, " +
-            "preserving unsupported runner lifecycles and their dependencies.";
+            "preserving unsupported runner and rule lifecycles and their dependencies.";
 
     @Override
     public Set<JavaProject> getInitialValue(ExecutionContext ctx) {
@@ -72,6 +87,32 @@ public class FindJUnit4MigrationCandidates extends ScanningRecipe<Set<JavaProjec
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Set<JavaProject> unsupported) {
         return new JavaIsoVisitor<ExecutionContext>() {
+            private void retainModule() {
+                unsupported.add(getCursor().firstEnclosingOrThrow(J.CompilationUnit.class)
+                        .getMarkers().findFirst(JavaProject.class).orElse(null));
+            }
+
+            @Override
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations variables, ExecutionContext ctx) {
+                if (variables.getLeadingAnnotations().stream().anyMatch(a ->
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.Rule")) &&
+                        SUPPORTED_RULES.stream().noneMatch(type -> TypeUtils.isOfClassType(variables.getType(), type))) {
+                    retainModule();
+                }
+                return super.visitVariableDeclarations(variables, ctx);
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                if (method.getLeadingAnnotations().stream().anyMatch(a ->
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.Rule")) &&
+                        (method.getMethodType() == null || SUPPORTED_RULES.stream().noneMatch(type ->
+                                TypeUtils.isOfClassType(method.getMethodType().getReturnType(), type)))) {
+                    retainModule();
+                }
+                return super.visitMethodDeclaration(method, ctx);
+            }
+
             @Override
             public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
                 if (TypeUtils.isOfClassType(annotation.getType(), "org.junit.runner.RunWith") &&
@@ -82,8 +123,7 @@ public class FindJUnit4MigrationCandidates extends ScanningRecipe<Set<JavaProjec
                             JavaType.FullyQualified runner =
                                     TypeUtils.asFullyQualified(((J.FieldAccess) value).getTarget().getType());
                             if (runner == null || !SUPPORTED_RUNNERS.contains(runner.getFullyQualifiedName())) {
-                                unsupported.add(getCursor().firstEnclosingOrThrow(J.CompilationUnit.class)
-                                        .getMarkers().findFirst(JavaProject.class).orElse(null));
+                                retainModule();
                             }
                         }
                     }
