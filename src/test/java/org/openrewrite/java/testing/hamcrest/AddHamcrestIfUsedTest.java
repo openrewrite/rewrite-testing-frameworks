@@ -56,8 +56,8 @@ class AddHamcrestIfUsedTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipeFromResources("org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed")
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest"));
+        spec.recipe(new AddHamcrestIfUsed())
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest", "junit-4"));
     }
 
     @Test
@@ -85,7 +85,7 @@ class AddHamcrestIfUsedTest implements RewriteTest {
     void migrationAddsDependencyForExpectedExceptionMessage() {
         rewriteRun(
           spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
-            .cycles(3).expectedCyclesThatMakeChanges(2)
+            .cycles(1).expectedCyclesThatMakeChanges(1)
             .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest")),
           mavenProject("example",
             pomXml(
@@ -137,6 +137,49 @@ class AddHamcrestIfUsedTest implements RewriteTest {
                     .doesNotContain("ExpectedException");
                   return source;
               })
+            ))
+          )
+        );
+    }
+
+    @Test
+    void anticipatesExpectedMessageWithoutAddingToUnrelatedModules() {
+        rewriteRun(
+          spec -> spec.cycles(1).expectedCyclesThatMakeChanges(1),
+          mavenProject("example",
+            pomXml(BEFORE, AFTER),
+            srcTestJava(java(
+              """
+                class T {
+                    org.junit.rules.ExpectedException thrown = org.junit.rules.ExpectedException.none();
+                    void test() {
+                        thrown.expectMessage("bad");
+                    }
+                }
+                """
+            ))
+          ),
+          mavenProject("other",
+            pomXml(BEFORE),
+            srcTestJava(java("class Other {}"))
+          )
+        );
+    }
+
+    @Test
+    void doesNotAddForClassOnlyExpectedException() {
+        rewriteRun(
+          mavenProject("example",
+            pomXml(BEFORE),
+            srcTestJava(java(
+              """
+                class T {
+                    org.junit.rules.ExpectedException thrown = org.junit.rules.ExpectedException.none();
+                    void test() {
+                        thrown.expect(IllegalArgumentException.class);
+                    }
+                }
+                """
             ))
           )
         );

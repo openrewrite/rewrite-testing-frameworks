@@ -16,24 +16,6 @@
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
-displayName: Add `org.hamcrest:hamcrest` if it is used
-description: JUnit Jupiter does not include hamcrest as a transitive dependency. If needed, add a direct dependency.
-preconditions:
-  - org.openrewrite.Singleton
-tags:
-  - testing
-  - hamcrest
-  - junit
-recipeList:
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.hamcrest
-      artifactId: hamcrest
-      version: 2.x
-      onlyIfUsing: org.hamcrest..*
-      acceptTransitive: true
----
-type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
 displayName: Use consistent Hamcrest matcher imports
 description: Use consistent imports for Hamcrest matchers, and remove wrapping `is(Matcher)` calls ahead of further changes.
