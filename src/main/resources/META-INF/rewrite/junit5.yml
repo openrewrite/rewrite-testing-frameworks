@@ -51,6 +51,7 @@ tags:
   - junit
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.java.testing.junit5.FindJUnit4MigrationCandidates
   - org.openrewrite.java.dependencies.search.ModuleHasDependency:
       groupIdPattern: org.testng
       artifactIdPattern: testng*
