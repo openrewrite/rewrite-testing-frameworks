@@ -25,6 +25,7 @@ import org.openrewrite.groovy.GroovyIsoVisitor;
 import org.openrewrite.groovy.tree.G;
 import org.openrewrite.java.dependencies.AddDependency;
 import org.openrewrite.maven.MavenIsoVisitor;
+import org.openrewrite.maven.RemoveDependency;
 import org.openrewrite.maven.tree.ResolvedDependency;
 import org.openrewrite.xml.tree.Xml;
 
@@ -174,7 +175,7 @@ public class AddJupiterDependencies extends ScanningRecipe<AddJupiterDependencie
             d = (Xml.Document) explicitJupiterDependency("junit-jupiter-params", "org.junit.jupiter.params..*", parameterVersion, null)
                     .getVisitor(acc.parameters).visitNonNull(d, ctx);
             if (replaceAggregate && declaresDependency(d, "junit-jupiter-api") && declaresDependency(d, "junit-jupiter-engine")) {
-                d = (Xml.Document) new org.openrewrite.maven.RemoveDependency("org.junit.jupiter", "junit-jupiter", null)
+                d = (Xml.Document) new RemoveDependency("org.junit.jupiter", "junit-jupiter", null)
                         .getVisitor().visitNonNull(d, ctx);
             }
             return d;

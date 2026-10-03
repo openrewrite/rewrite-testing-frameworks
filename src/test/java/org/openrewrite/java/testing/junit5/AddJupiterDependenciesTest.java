@@ -264,6 +264,41 @@ class AddJupiterDependenciesTest implements RewriteTest {
     }
 
     @Test
+    void retainsAggregateForDependencyPluginWithoutExecutions() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(java(SOME_TEST)),
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>5.10.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                    <build>
+                        <plugins>
+                            <plugin>
+                                <artifactId>maven-dependency-plugin</artifactId>
+                                <version>3.8.1</version>
+                            </plugin>
+                        </plugins>
+                    </build>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
     void declaresDirectApiDuringJUnit4Migration() {
         rewriteRun(
           spec -> spec.cycles(1).expectedCyclesThatMakeChanges(1).recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
