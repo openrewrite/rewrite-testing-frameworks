@@ -96,6 +96,53 @@ class AddJupiterDependenciesTest implements RewriteTest {
     }
 
     @Test
+    void retainsAggregateWhenApiIsAlreadyDeclared() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(java(SOME_TEST)),
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>6.0.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-api</artifactId>
+                            <version>6.0.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                    <build>
+                        <plugins>
+                            <plugin>
+                                <artifactId>maven-dependency-plugin</artifactId>
+                                <version>3.8.1</version>
+                                <executions>
+                                    <execution>
+                                        <goals><goal>analyze-only</goal></goals>
+                                        <configuration><failOnWarning>true</failOnWarning></configuration>
+                                    </execution>
+                                </executions>
+                            </plugin>
+                        </plugins>
+                    </build>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
     void inheritsDependencyAnalysisAndDeclaresParameterizedApi() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()

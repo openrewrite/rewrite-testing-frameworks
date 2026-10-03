@@ -159,7 +159,10 @@ public class AddJupiterDependencies extends ScanningRecipe<AddJupiterDependencie
 
             // The aggregate supplies these transitively, which dependency:analyze reports as undeclared.
             String version = jupiterApi.isEmpty() ? "5.x" : jupiterApi.get(0).getVersion();
-            boolean replaceAggregate = declaresDependency(d, "junit-jupiter");
+            // A project may intentionally keep the aggregate alongside direct APIs for its analyzer.
+            boolean apiDeclared = declaresDependency(d, "junit-jupiter-api") ||
+                    jupiterApi.stream().anyMatch(dependency -> dependency.getDepth() == 0);
+            boolean replaceAggregate = !apiDeclared && declaresDependency(d, "junit-jupiter");
             d = (Xml.Document) explicitJupiterDependency("junit-jupiter-api", "org.junit..*", version, null)
                     .getVisitor(acc.jupiter).visitNonNull(d, ctx);
             if (replaceAggregate || jupiterApi.isEmpty()) {
