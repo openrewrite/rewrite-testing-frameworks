@@ -23,6 +23,8 @@ import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.marker.JavaProject;
+import org.openrewrite.java.marker.JavaSourceSet;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -77,7 +79,7 @@ public class FindJUnit4MigrationCandidates extends ScanningRecipe<Set<JavaProjec
 
     @Getter
     final String description = "Find modules whose JUnit 4 integrations have replacements in the migration, " +
-            "preserving unsupported runner and rule lifecycles and their dependencies.";
+            "preserving production JUnit APIs, unsupported runner and rule lifecycles, and their dependencies.";
 
     @Override
     public Set<JavaProject> getInitialValue(ExecutionContext ctx) {
@@ -87,6 +89,22 @@ public class FindJUnit4MigrationCandidates extends ScanningRecipe<Set<JavaProjec
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Set<JavaProject> unsupported) {
         return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                String path = cu.getSourcePath().toString().replace('\\', '/');
+                boolean production = cu.getMarkers().findFirst(JavaSourceSet.class)
+                        .map(sourceSet -> "main".equals(sourceSet.getName()))
+                        .orElse(path.startsWith("src/main/") || path.contains("/src/main/"));
+                if (production && Arrays.asList("org.junit.*", "org.junit.rules..*", "org.junit.runner..*",
+                        "org.junit.runners..*", "junit.framework..*").stream().anyMatch(type ->
+                        new UsesType<>(type, false).visit(cu, ctx) != cu)) {
+                    // Test libraries expose JUnit 4 contracts to consumers. Removing their
+                    // compile dependency is not a test-framework migration.
+                    unsupported.add(cu.getMarkers().findFirst(JavaProject.class).orElse(null));
+                }
+                return super.visitCompilationUnit(cu, ctx);
+            }
+
             private void retainModule() {
                 unsupported.add(getCursor().firstEnclosingOrThrow(J.CompilationUnit.class)
                         .getMarkers().findFirst(JavaProject.class).orElse(null));
