@@ -104,10 +104,11 @@ public class FindJUnit4MigrationCandidates extends ScanningRecipe<Set<JavaProjec
 
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                // The native rule migrations operate on fields. A supported return type alone
+                // does not make a method-form rule safe to migrate.
                 if (method.getLeadingAnnotations().stream().anyMatch(a ->
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.Rule")) &&
-                        (method.getMethodType() == null || SUPPORTED_RULES.stream().noneMatch(type ->
-                                TypeUtils.isOfClassType(method.getMethodType().getReturnType(), type)))) {
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.Rule") ||
+                        TypeUtils.isOfClassType(a.getType(), "org.junit.ClassRule"))) {
                     retainModule();
                 }
                 return super.visitMethodDeclaration(method, ctx);

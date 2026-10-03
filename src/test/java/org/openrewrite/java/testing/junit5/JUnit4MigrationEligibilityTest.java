@@ -153,4 +153,21 @@ class JUnit4MigrationEligibilityTest implements RewriteTest {
         );
     }
 
+    @Test
+    void preservesMethodRulesWithoutAnAdapter() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.Timeout;
+              class Example {
+                  @Rule public Timeout timeout() { return Timeout.seconds(5); }
+                  @Test public void test() {}
+              }
+              """
+          )
+        );
+    }
+
 }
