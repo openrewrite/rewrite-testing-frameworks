@@ -52,7 +52,7 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         return new GetInternalStateVisitor().withPrecondition();
     }
 
-    private static class GetInternalStateVisitor extends WhiteboxToReflectionVisitor {
+    static class GetInternalStateVisitor extends WhiteboxToReflectionVisitor {
 
         GetInternalStateVisitor() {
             super("java.lang.reflect.Field", GET_INTERNAL_STATE);
@@ -90,6 +90,11 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
             String varName = fieldVarName(mi.getArguments().get(1), scope);
             return new Hoisted(mi, varName, fieldLookupPrefix(varName, owner),
                     castPrefix(mi) + "#{any(java.lang.reflect.Field)}.get(#{any(java.lang.Object)})");
+        }
+
+        @Override
+        boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+            return lookupOwner(mi, null) == null;
         }
 
         @Override

@@ -159,7 +159,7 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
     }
 
     @Test
-    void fieldDeclaredInClassNestedInPrivateClassFallsBackToRuntimeClass() {
+    void fieldDeclaredInClassNestedInPrivateClassWalksTheHierarchy() {
         //language=java
         rewriteRun(
           java(
@@ -193,9 +193,20 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testGetField() throws Exception {
                       Outer.MyService service = new Outer.MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = declaredFieldInHierarchy(service.getClass(), "name");
                       nameField.setAccessible(true);
                       String result = (String) nameField.get(service);
+                  }
+
+                  private static Field declaredFieldInHierarchy(Class<?> type, String name) throws NoSuchFieldException {
+                      for (Class<?> c = type; c != null; c = c.getSuperclass()) {
+                          try {
+                              return c.getDeclaredField(name);
+                          } catch (NoSuchFieldException e) {
+                              // declared further up the hierarchy
+                          }
+                      }
+                      throw new NoSuchFieldException(name);
                   }
               }
               """
@@ -245,6 +256,57 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
                   }
 
                   void check(String value) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void castInsertedForNestedCallIsImported() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.HashMap;
+
+              class MyService {
+                  private HashMap<String, String> params = new HashMap<>();
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.Map;
+
+              class Checks {
+                  static void check(Map<?, ?> value) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testGetField() {
+                      MyService service = new MyService();
+                      Checks.check(Whitebox.getInternalState(service, "params"));
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+              import java.util.Map;
+
+              class MyServiceTest {
+                  void testGetField() throws Exception {
+                      MyService service = new MyService();
+                      Field paramsField = MyService.class.getDeclaredField("params");
+                      paramsField.setAccessible(true);
+                      Checks.check((Map) paramsField.get(service));
                   }
               }
               """
@@ -344,6 +406,112 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
                           System.out.println(Whitebox.getInternalState(service, "name"));
                           return null;
                       };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldOfASuperclassTheTestCannotReferenceWalksTheHierarchy() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              public class MyTest {
+                  private static class Base {
+                      private int count;
+                  }
+
+                  private static class Sub extends Base {
+                  }
+
+                  public void test() throws Exception {
+                      Sub target = new Sub();
+                      Object value = Whitebox.getInternalState(target, "count");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              public class MyTest {
+                  private static class Base {
+                      private int count;
+                  }
+
+                  private static class Sub extends Base {
+                  }
+
+                  public void test() throws Exception {
+                      Sub target = new Sub();
+                      Field countField = declaredFieldInHierarchy(target.getClass(), "count");
+                      countField.setAccessible(true);
+                      Object value = countField.get(target);
+                  }
+
+                  private static Field declaredFieldInHierarchy(Class<?> type, String name) throws NoSuchFieldException {
+                      for (Class<?> c = type; c != null; c = c.getSuperclass()) {
+                          try {
+                              return c.getDeclaredField(name);
+                          } catch (NoSuchFieldException e) {
+                              // declared further up the hierarchy
+                          }
+                      }
+                      throw new NoSuchFieldException(name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aHelperWithCallersWrapsInsteadOfWideningItsSignature() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+
+                  void test() {
+                      readName(new MyService());
+                  }
+
+                  private String readName(MyService service) {
+                      return Whitebox.getInternalState(service, "name");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+
+                  void test() {
+                      readName(new MyService());
+                  }
+
+                  private String readName(MyService service) {
+                      try {
+                          Field nameField = MyService.class.getDeclaredField("name");
+                          nameField.setAccessible(true);
+                          return (String) nameField.get(service);
+                      } catch (ReflectiveOperationException e) {
+                          throw new RuntimeException(e);
+                      }
                   }
               }
               """

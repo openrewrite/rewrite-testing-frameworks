@@ -25,9 +25,11 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
@@ -35,6 +37,14 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
 
     private static final MethodMatcher SET_INTERNAL_STATE =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object)");
+    // `Whitebox` also identifies a field by its type rather than its name.
+    private static final MethodMatcher SET_INTERNAL_STATE_BY_TYPE =
+            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.Class, java.lang.Object)");
+    private static final MethodMatcher SET_INTERNAL_STATE_BY_TYPE_WHERE =
+            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.Class, java.lang.Object, java.lang.Class)");
+    // An array value selects a distinct `Object[]` overload, which `Field.set` handles identically.
+    private static final MethodMatcher SET_INTERNAL_STATE_ARRAY =
+            new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object[])");
     private static final MethodMatcher SET_INTERNAL_STATE_WHERE =
             new MethodMatcher("org.powermock.reflect.Whitebox setInternalState(java.lang.Object, java.lang.String, java.lang.Object, java.lang.Class)");
 
@@ -43,7 +53,8 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
 
     @Getter
     final String description = "Replace `Whitebox.setInternalState(Object, String, Object)` and " +
-            "`Whitebox.setInternalState(Object, String, Object, Class)` with `java.lang.reflect.Field` access. " +
+            "`Whitebox.setInternalState(Object, String, Object, Class)` (and their `Object[]` overloads) " +
+            "with `java.lang.reflect.Field` access. " +
             "The 3-arg overload looks up the field on the class declaring it, found through the target's declared " +
             "type and its superclasses, falling back to the target's runtime class; the 4-arg where-overload uses " +
             "the supplied Class.";
@@ -53,15 +64,20 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
         return new SetInternalStateVisitor().withPrecondition();
     }
 
-    private static class SetInternalStateVisitor extends WhiteboxToReflectionVisitor {
+    static class SetInternalStateVisitor extends WhiteboxToReflectionVisitor {
 
         SetInternalStateVisitor() {
-            super("java.lang.reflect.Field", SET_INTERNAL_STATE, SET_INTERNAL_STATE_WHERE);
+            super("java.lang.reflect.Field", SET_INTERNAL_STATE, SET_INTERNAL_STATE_WHERE,
+                    SET_INTERNAL_STATE_ARRAY,
+                    SET_INTERNAL_STATE_BY_TYPE, SET_INTERNAL_STATE_BY_TYPE_WHERE);
         }
 
         @Override
         @Nullable String buildTemplate(J.MethodInvocation mi, ResultSink sink, Cursor scope,
                                        JavaType.@Nullable Method resolvedMethod) {
+            if (isByType(mi)) {
+                return byTypeTemplate(mi, scope);
+            }
             String fieldName = extractStringLiteral(mi.getArguments().get(1));
             if (fieldName == null) {
                 return null;
@@ -74,15 +90,58 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
                     varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
         }
 
+        /** True for the overloads that name the field by its type rather than by a string. */
+        private boolean isByType(J.MethodInvocation mi) {
+            return SET_INTERNAL_STATE_BY_TYPE.matches(mi) || SET_INTERNAL_STATE_BY_TYPE_WHERE.matches(mi);
+        }
+
+        /** The class whose field is being set: the `where` argument, a class literal target, or the target's type. */
+        private JavaType.@Nullable FullyQualified byTypeOwner(J.MethodInvocation mi) {
+            List<Expression> args = mi.getArguments();
+            if (args.size() == 4) {
+                return classLiteralType(args.get(3));
+            }
+            JavaType.FullyQualified staticTarget = classLiteralType(args.get(0));
+            return staticTarget != null ? staticTarget : TypeUtils.asFullyQualified(args.get(0).getType());
+        }
+
+        private @Nullable String byTypeTemplate(J.MethodInvocation mi, Cursor scope) {
+            JavaType.FullyQualified owner = byTypeOwner(mi);
+            JavaType.Variable field = uniqueFieldOfType(owner, classLiteralType(mi.getArguments().get(1)));
+            if (owner == null || field == null || !isAccessible(owner)) {
+                return null;
+            }
+            String varName = generateVariableName(field.getName() + "Field", scope, INCREMENT_NUMBER);
+            // A class literal target means a static field, which `Field.set` takes a null instance for.
+            String instance = classLiteralType(mi.getArguments().get(0)) == null ?
+                    "#{any(java.lang.Object)}" : "null";
+            return fieldLookupPrefixNamed(varName, field.getName()) +
+                    varName + ".set(" + instance + ", #{any(java.lang.Object)});";
+        }
+
         @Override
         JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+            if (isByType(mi)) {
+                return byTypeOwner(mi);
+            }
             return mi.getArguments().size() == 4 ? null :
                     fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
         }
 
         @Override
+        boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+            return !isByType(mi) && mi.getArguments().size() == 3 && lookupOwner(mi, null) == null;
+        }
+
+        @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
+            if (isByType(mi)) {
+                J.FieldAccess owner = classLiteral(requireNonNull(byTypeOwner(mi)));
+                return classLiteralType(args.get(0)) == null ?
+                        new Object[]{owner, args.get(0), args.get(2)} :
+                        new Object[]{owner, args.get(2)};
+            }
             if (args.size() == 4) {
                 // whereClass, fieldName, target, value
                 return new Object[]{args.get(3), args.get(1), args.get(0), args.get(2)};

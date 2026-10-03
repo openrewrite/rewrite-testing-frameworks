@@ -428,4 +428,55 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void importsParameterTypesTheTestDidNotAlreadyUse() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package svc;
+
+              import java.util.Map;
+
+              public class MyService {
+                  private void store(Map.Entry<String, String> entry) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.AbstractMap;
+
+              import org.powermock.reflect.Whitebox;
+
+              import svc.MyService;
+
+              class MyServiceTest {
+                  void testStore() throws Exception {
+                      MyService service = new MyService();
+                      Whitebox.invokeMethod(service, "store", new AbstractMap.SimpleEntry<>("a", "b"));
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+              import java.util.AbstractMap;
+              import java.util.Map;
+
+              import svc.MyService;
+
+              class MyServiceTest {
+                  void testStore() throws Exception {
+                      MyService service = new MyService();
+                      Method storeMethod = MyService.class.getDeclaredMethod("store", Map.Entry.class);
+                      storeMethod.setAccessible(true);
+                      storeMethod.invoke(service, new AbstractMap.SimpleEntry<>("a", "b"));
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -26,6 +26,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +55,7 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
         return new InvokeMethodVisitor().withPrecondition();
     }
 
-    private static class InvokeMethodVisitor extends WhiteboxToReflectionVisitor {
+    static class InvokeMethodVisitor extends WhiteboxToReflectionVisitor {
 
         InvokeMethodVisitor() {
             super("java.lang.reflect.Method", INVOKE_METHOD);
@@ -88,8 +89,10 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
                 String classLiteral = getParamClassLiteral(args, i, resolvedMethod);
                 parameterTypes.add(classLiteral != null ? classLiteral : "#{any(java.lang.Object)}.getClass()");
             }
-            StringBuilder sb = new StringBuilder(methodLookupPrefix(varName,
-                    lookupReceiverTemplate(lookupOwner(mi, resolvedMethod)), parameterTypes));
+            JavaType.FullyQualified lookupOwner = lookupOwner(mi, resolvedMethod);
+            StringBuilder sb = new StringBuilder(usesHierarchyLookup(lookupOwner) ?
+                    hierarchyMethodLookupPrefix(varName, parameterTypes) :
+                    methodLookupPrefix(varName, lookupReceiverTemplate(lookupOwner), parameterTypes));
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
                     sb.append(sink.castType).append(" ").append(sink.varName).append(" = (").append(boxedCastType(sink.castType)).append(") ");
@@ -135,6 +138,24 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
                 sb.append(", #{any(java.lang.Object)}");
             }
             return sb.append(")").toString();
+        }
+
+        @Override
+        boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
+            return lookupOwner(mi, resolve(mi)) == null;
+        }
+
+        // `Whitebox` searches the hierarchy, so a lookup on the target's runtime class goes through the
+        // helper this visitor adds to the test class instead of `getDeclaredMethod` directly.
+        private String hierarchyMethodLookupPrefix(String varName, List<String> parameterTypes) {
+            recordHierarchyLookup();
+            StringBuilder sb = new StringBuilder("Method ").append(varName).append(" = ")
+                    .append(METHOD_LOOKUP_HELPER)
+                    .append("(#{any(java.lang.Object)}.getClass(), #{any(java.lang.String)}");
+            for (String parameterType : parameterTypes) {
+                sb.append(", ").append(parameterType);
+            }
+            return sb.append(");\n").append(varName).append(".setAccessible(true);\n").toString();
         }
 
         @Override

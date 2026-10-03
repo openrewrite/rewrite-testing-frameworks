@@ -18,133 +18,180 @@ package org.openrewrite.java.testing.mockito;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.internal.ListUtils;
-import org.openrewrite.java.*;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.Expression;
-import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.*;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toSet;
-import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
-import static org.openrewrite.java.VariableNameUtils.generateVariableName;
+import static java.util.Objects.requireNonNull;
+import static org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito.classLiteral;
+import static org.openrewrite.java.testing.mockito.ScopedMocks.MOCKED_CONSTRUCTION;
 
 public class PowerMockitoWhenNewToMockito extends Recipe {
 
-    private static final MethodMatcher PM_WHEN_NEW = new MethodMatcher("org.powermock.api.mockito.PowerMockito whenNew(..)");
-    private static final MethodMatcher WITH_NO_ARGUMENTS = new MethodMatcher("*..* withNoArguments()");
-    private static final MethodMatcher WITH_ARGUMENTS = new MethodMatcher("*..* withArguments(..)");
-    private static final MethodMatcher WITH_ANY_ARGUMENTS = new MethodMatcher("*..* withAnyArguments()");
+    private static final MethodMatcher WHEN_NEW = new MethodMatcher("org.powermock.api.mockito.PowerMockito whenNew(java.lang.Class)");
+    private static final MethodMatcher WITH_ARGUMENTS = new MethodMatcher("org.powermock.api.mockito.expectation..* with*(..)");
     private static final MethodMatcher THEN_RETURN = new MethodMatcher("org.mockito.stubbing.OngoingStubbing thenReturn(..)");
-    private static final MethodMatcher MOCKITO_MOCK = new MethodMatcher("org.mockito.Mockito mock(..)");
-    private static final MethodMatcher PM_MOCK = new MethodMatcher("org.powermock.api.mockito.PowerMockito mock(..)");
 
     @Getter
     final String displayName = "Replace `PowerMockito.whenNew` with Mockito counterpart";
 
     @Getter
-    final String description = "Replaces `PowerMockito.whenNew` calls with respective `Mockito.whenConstructed` calls.";
-
-    private static String extractClassName(J.FieldAccess fieldAccess) {
-        Expression target = fieldAccess.getTarget();
-        if (target instanceof J.FieldAccess) {
-            return ((J.FieldAccess) target).getSimpleName();
-        }
-        if (target instanceof J.Identifier) {
-            return ((J.Identifier) target).getSimpleName();
-        }
-        return fieldAccess.getSimpleName();
-    }
+    final String description = "Replaces `PowerMockito.whenNew(Type.class).with...().thenReturn(instance)` with " +
+            "`Mockito.mockConstructionWithAnswer(Type.class, delegatesTo(instance))`, assigned to a field that is closed " +
+            "after each test. Every `Type` constructed while the mock is active delegates to `instance`, so stubbing and " +
+            "verification on `instance` keep working. Constructor argument matchers are not retained, and when the same " +
+            "type is stubbed more than once in a method, the calls are left unchanged.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(PM_WHEN_NEW), new JavaVisitor<ExecutionContext>() {
-            @Override
-            public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (THEN_RETURN.matches(method) && method.getSelect() instanceof J.MethodInvocation) {
-                    J.MethodInvocation select1 = (J.MethodInvocation) method.getSelect();
-                    boolean withArgumentsMethodMatch = WITH_ANY_ARGUMENTS.matches(select1) || WITH_ARGUMENTS.matches(select1) || WITH_NO_ARGUMENTS.matches(select1);
-                    if (withArgumentsMethodMatch && select1.getSelect() instanceof J.MethodInvocation) {
-                        J.MethodInvocation select2 = (J.MethodInvocation) select1.getSelect();
-                        if (PM_WHEN_NEW.matches(select2) && select2.getArguments().size() == 1) {
-                            maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
-
-                            Cursor containingMethod = getCursor().dropParentUntil(x -> x instanceof J.MethodDeclaration);
-                            Expression argument = select2.getArguments().get(0);
-                            if (argument instanceof J.FieldAccess) {
-                                List<J.FieldAccess> listOfMocks = containingMethod.getMessage("POWERMOCKITO_WHEN_NEW_REPLACED", new ArrayList<J.FieldAccess>());
-                                listOfMocks.add((J.FieldAccess) argument);
-                                containingMethod.putMessage("POWERMOCKITO_WHEN_NEW_REPLACED", listOfMocks);
-                                return null;
-                            }
-                        }
-                    }
-                }
-                return super.visitMethodInvocation(method, ctx);
-            }
-
-            @Override
-            public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J ret = super.visitMethodDeclaration(method, ctx);
-                List<J.FieldAccess> mockArguments = getCursor().getMessage("POWERMOCKITO_WHEN_NEW_REPLACED");
-                if (mockArguments != null && ret instanceof J.MethodDeclaration) {
-                    doAfterVisit(removeMockUsagesVisitor(mockArguments, method));
-
-                    J.MethodDeclaration retM = (J.MethodDeclaration) ret;
-
-                    // onlyIfReferenced=false as `maybeAddImport` doesn't seem to find the type referred to in a try statement
-                    // see https://github.com/openrewrite/rewrite/issues/5187
-                    maybeAddImport("org.mockito.MockedConstruction", false);
-                    maybeAddImport("org.mockito.Mockito", false);
-
-                    for (J.FieldAccess mockArgument: mockArguments) {
-                        String mockedClassName = extractClassName(mockArgument);
-                        String variableNameForMock = generateVariableName("mock" + mockedClassName, updateCursor(ret), INCREMENT_NUMBER);
-                        J.MethodDeclaration appliedTemplate = JavaTemplate.builder(String.format("try (MockedConstruction<%s> %s = Mockito.mockConstruction(%s.class)) { } ", mockedClassName, variableNameForMock, mockedClassName))
-                                .contextSensitive()
-                                .imports("org.mockito.MockedConstruction")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core"))
-                                .build()
-                                .apply(getCursor(), method.getCoordinates().replaceBody());
-                        J.Try try_ = (J.Try) appliedTemplate.getBody().getStatements().get(0);
-                        retM = appliedTemplate.withBody(appliedTemplate.getBody().withStatements(singletonList(try_.withBody(retM.getBody()))));
-                    }
-                    return autoFormat(retM, ctx);
-                }
-                return ret;
-            }
-
-            private JavaIsoVisitor<ExecutionContext> removeMockUsagesVisitor(List<J.FieldAccess> mockArguments, J.MethodDeclaration inMethod) {
-                Set<String> mockedClassNames = mockArguments.stream().map(PowerMockitoWhenNewToMockito::extractClassName).collect(toSet());
-                return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(
+                Preconditions.and(new UsesMethod<>(WHEN_NEW), Preconditions.not(new KotlinFileChecker<>())),
+                new JavaIsoVisitor<ExecutionContext>() {
                     @Override
-                    public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
-                        J.VariableDeclarations ret = super.visitVariableDeclarations(multiVariable, ctx);
-                        if (!inMethod.equals(getCursor().firstEnclosing(J.MethodDeclaration.class))) {
-                            return ret;
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+
+                        TestFramework framework = TestFramework.detect(getCursor().firstEnclosingOrThrow(JavaSourceFile.class));
+                        Set<UUID> migratable = new HashSet<>();
+                        ScopedMocks mocks = collectConstructionMocks(cd, framework, migratable);
+                        if (migratable.isEmpty()) {
+                            return cd;
                         }
-                        List<J.VariableDeclarations.NamedVariable> variables = ListUtils.filter(ret.getVariables(), varr -> {
-                            // The original code likely contains PowerMockito.mock(), but that gets converted to Mockito.mock() by other subrecipes of
-                            // org.openrewrite.java.testing.mockito.ReplacePowerMockito, so we need to check both.
-                            if (varr.getInitializer() instanceof J.MethodInvocation && (MOCKITO_MOCK.matches(varr.getInitializer()) || PM_MOCK.matches(varr.getInitializer()))) {
-                                J.MethodInvocation initializer = (J.MethodInvocation) varr.getInitializer();
-                                if (initializer.getArguments().size() == 1 && initializer.getArguments().get(0) instanceof J.FieldAccess) {
-                                    J.FieldAccess classReference = (J.FieldAccess) initializer.getArguments().get(0);
-                                    if (mockedClassNames.contains(extractClassName(classReference))) {
-                                        return false;
-                                    }
-                                }
-                            }
-                            return true;
-                        });
-                        return variables.isEmpty() ? null : ret.withVariables(variables);
+
+                        cd = mocks.declareFields(this, cd, ctx);
+                        cd = (J.ClassDeclaration) new WhenNewVisitor(cd, mocks, migratable).visitNonNull(cd, ctx, getCursor().getParentOrThrow());
+                        cd = mocks.closeAfterEachTest(this, cd, "tearDownStaticMocks", ctx);
+                        maybeAddImport("org.mockito.AdditionalAnswers");
+                        maybeAddImport("org.mockito.Mockito");
+                        maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
+                        maybeRemoveImport("org.powermock.api.mockito.PowerMockito.whenNew");
+                        return cd;
                     }
-                };
+                });
+    }
+
+    private static final class WhenNew {
+        final JavaType.FullyQualified mockedType;
+        final Expression type;
+        final Expression instance;
+
+        WhenNew(JavaType.FullyQualified mockedType, Expression type, Expression instance) {
+            this.mockedType = mockedType;
+            this.type = type;
+            this.instance = instance;
+        }
+    }
+
+    private static @Nullable WhenNew whenNew(J tree) {
+        if (!(tree instanceof J.MethodInvocation) || !THEN_RETURN.matches((J.MethodInvocation) tree) ||
+            ((J.MethodInvocation) tree).getArguments().size() != 1) {
+            return null;
+        }
+        J.MethodInvocation thenReturn = (J.MethodInvocation) tree;
+        Expression select = thenReturn.getSelect();
+        while (select instanceof J.MethodInvocation && WITH_ARGUMENTS.matches(select)) {
+            select = ((J.MethodInvocation) select).getSelect();
+        }
+        if (select == thenReturn.getSelect() || !(select instanceof J.MethodInvocation) || !WHEN_NEW.matches(select)) {
+            return null;
+        }
+        Expression type = ((J.MethodInvocation) select).getArguments().get(0);
+        JavaType.FullyQualified mockedType = classLiteral(type);
+        return mockedType == null ? null : new WhenNew(mockedType, type, thenReturn.getArguments().get(0));
+    }
+
+    private static ScopedMocks collectConstructionMocks(J.ClassDeclaration cd, TestFramework framework, Set<UUID> migratable) {
+        Map<String, Integer> stubbingsPerMethodAndType = new HashMap<>();
+        List<Cursor> candidates = new ArrayList<>();
+        new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, Integer p) {
+                return classDecl == cd ? super.visitClassDeclaration(classDecl, p) : classDecl;
             }
-        });
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                if (WHEN_NEW.matches(method)) {
+                    JavaType.FullyQualified mockedType = classLiteral(method.getArguments().get(0));
+                    if (mockedType != null) {
+                        stubbingsPerMethodAndType.merge(methodAndType(getCursor(), mockedType), 1, Integer::sum);
+                    }
+                } else if (getCursor().getParentTreeCursor().getValue() instanceof J.Block && whenNew(method) != null) {
+                    candidates.add(getCursor());
+                }
+                return super.visitMethodInvocation(method, p);
+            }
+        }.visit(cd, 0);
+
+        ScopedMocks mocks = new ScopedMocks(cd, framework);
+        for (Cursor candidate : candidates) {
+            JavaType.FullyQualified mockedType = requireNonNull(whenNew(candidate.getValue())).mockedType;
+            // A single MockedConstruction cannot tell apart stubbings that differ in their constructor arguments
+            if (stubbingsPerMethodAndType.get(methodAndType(candidate, mockedType)) == 1) {
+                mocks.register(MOCKED_CONSTRUCTION, mockedType, "mockedConstruction", candidate);
+                migratable.add(candidate.<J>getValue().getId());
+            }
+        }
+        return mocks;
+    }
+
+    private static String methodAndType(Cursor cursor, JavaType.FullyQualified mockedType) {
+        J.MethodDeclaration method = cursor.firstEnclosing(J.MethodDeclaration.class);
+        return (method == null ? "" : method.getId() + ":") + mockedType.getFullyQualifiedName();
+    }
+
+    private static class WhenNewVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private final J.ClassDeclaration classDecl;
+        private final ScopedMocks mocks;
+        private final Set<UUID> migratable;
+
+        WhenNewVisitor(J.ClassDeclaration classDecl, ScopedMocks mocks, Set<UUID> migratable) {
+            this.classDecl = classDecl;
+            this.mocks = mocks;
+            this.migratable = migratable;
+        }
+
+        @Override
+        public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, ExecutionContext ctx) {
+            return cd == classDecl ? super.visitClassDeclaration(cd, ctx) : cd;
+        }
+
+        @Override
+        public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+            J.Block b = super.visitBlock(block, ctx);
+            List<Statement> rewritten = new ArrayList<>(b.getStatements().size());
+            for (Statement statement : b.getStatements()) {
+                if (migratable.contains(statement.getId())) {
+                    rewritten.addAll(mockConstruction((J.MethodInvocation) statement, ctx));
+                } else {
+                    rewritten.add(statement);
+                }
+            }
+            return b.withStatements(rewritten);
+        }
+
+        private List<Statement> mockConstruction(J.MethodInvocation stubbing, ExecutionContext ctx) {
+            WhenNew whenNew = requireNonNull(whenNew(stubbing));
+            ScopedMocks.ScopedMock mock = requireNonNull(mocks.get(MOCKED_CONSTRUCTION, whenNew.mockedType));
+            J.MethodInvocation mockConstruction = JavaTemplate.builder(
+                            "Mockito.mockConstructionWithAnswer(#{any(java.lang.Class)}, AdditionalAnswers.delegatesTo(#{any()}))")
+                    .imports("org.mockito.AdditionalAnswers", "org.mockito.Mockito")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
+                    .build()
+                    .apply(new Cursor(getCursor(), stubbing), stubbing.getCoordinates().replace(), whenNew.type, whenNew.instance);
+            J.Assignment assignment = mocks.assign(mock, mockConstruction, stubbing.getPrefix()).withId(stubbing.getId());
+            Statement close = mocks.closeIfOpen(mock, new Cursor(getCursor(), assignment), assignment, ctx);
+            return close == null ?
+                    singletonList(assignment) :
+                    Arrays.asList(close.withPrefix(stubbing.getPrefix().withComments(emptyList())), assignment);
+        }
     }
 }
