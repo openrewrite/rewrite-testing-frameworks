@@ -82,6 +82,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private @Nullable JavaSourceFile stringConstantsSource;
     private List<J.VariableDeclarations.NamedVariable> stringConstants = emptyList();
+    private final Set<String> castImports = new LinkedHashSet<>();
 
     WhiteboxToReflectionVisitor(String reflectiveImport, MethodMatcher... matchers) {
         this.reflectiveImport = reflectiveImport;
@@ -144,17 +145,13 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
              type != null; type = type.getSupertype()) {
-            if (declaresField(type, fieldName)) {
-                return type;
+            for (JavaType.Variable member : type.getMembers()) {
+                if (member.getName().equals(fieldName)) {
+                    return type;
+                }
             }
         }
         return null;
-    }
-
-    static boolean isSuperclassOf(JavaType.FullyQualified declaringType, Expression target) {
-        JavaType.FullyQualified targetType = TypeUtils.asFullyQualified(target.getType());
-        return targetType != null &&
-               !declaringType.getFullyQualifiedName().equals(targetType.getFullyQualifiedName());
     }
 
     boolean isAccessible(JavaType.FullyQualified type) {
@@ -244,36 +241,11 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     /**
-     * Whether migrating the call has to look the member up on {@code target.getClass()}, as its declaring
-     * class cannot be referenced. That misses members declared in a superclass and those of Mockito spies
-     * and mocks, so the migrated test may fail where the PowerMock one passed.
+     * Whether migrating the call has to look the member up from {@code target.getClass()}, as its declaring
+     * class cannot be referenced. The lookup then searches the class hierarchy like {@code Whitebox} does, so
+     * that it also finds members declared in a superclass, and those of Mockito spies and mocks.
      */
     boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
-        return false;
-    }
-
-    /**
-     * The class declaring the member the call accesses, as found from the declared type of the target, or null
-     * when that type neither declares nor inherits it, such as when the target is declared as an interface.
-     */
-    JavaType.@Nullable FullyQualified memberDeclaringType(J.MethodInvocation mi) {
-        return null;
-    }
-
-    /**
-     * Whether {@code type} itself declares the member the call accesses, so that
-     * {@code target.getClass().getDeclared*} finds it when {@code type} is the runtime class of the target.
-     */
-    boolean declaresMember(JavaType.FullyQualified type, J.MethodInvocation mi) {
-        return false;
-    }
-
-    static boolean declaresField(JavaType.FullyQualified type, @Nullable String fieldName) {
-        for (JavaType.Variable member : type.getMembers()) {
-            if (member.getName().equals(fieldName)) {
-                return true;
-            }
-        }
         return false;
     }
 
@@ -450,6 +422,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         String typeImport = topLevelImport(TypeUtils.asFullyQualified(returnType));
         if (typeImport != null) {
+            castImports.add(typeImport);
             maybeAddImport(typeImport);
         }
         return "(" + boxedCastType(castType) + ") ";
@@ -574,6 +547,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         List<String> imports = new ArrayList<>();
         imports.add(reflectiveImport);
         imports.addAll(resolvedParamImports(resolvedMethod));
+        imports.addAll(castImports);
         return imports;
     }
 

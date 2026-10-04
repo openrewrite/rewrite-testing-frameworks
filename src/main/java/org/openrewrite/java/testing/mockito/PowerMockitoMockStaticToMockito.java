@@ -28,6 +28,7 @@ import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.mockito.ScopedMocks.MOCKED_STATIC;
@@ -298,7 +299,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .build()
                     .apply(new Cursor(blockCursor, verifyStatic), verifyStatic.getCoordinates().replace(),
-                            mode == null ? new Object[]{mock.field()} : new Object[]{mock.field(), mode});
+                            templateArguments(mock.field(), call, mode == null ? emptyList() : singletonList(mode)).toArray());
             return replaced.withPrefix(verifyStatic.getPrefix());
         }
 
@@ -335,7 +336,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .build()
-                    .apply(getCursor(), mi.getCoordinates().replace(), ListUtils.concat(mock.field(), rest).toArray());
+                    .apply(getCursor(), mi.getCoordinates().replace(), templateArguments(mock.field(), call, rest).toArray());
         }
 
         private J.MethodInvocation dynamicWhen(J.MethodInvocation mi, ExecutionContext ctx) {
@@ -360,12 +361,27 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     .apply(getCursor(), mi.getCoordinates().replace(), ListUtils.concat(mock.field(), methodArguments).toArray());
         }
 
+        private static boolean isMethodReference(J.MethodInvocation call) {
+            return call.getArguments().stream().allMatch(J.Empty.class::isInstance) && call.getSelect() instanceof TypeTree &&
+                   call.getTypeParameters() == null;
+        }
+
+        // The call is passed to the template rather than printed into it, so that it keeps its type attribution,
+        // and a static import it relies on is not removed as unused.
         private static String staticCallAsVerification(J.MethodInvocation call, Cursor cursor) {
-            if (call.getArguments().stream().allMatch(J.Empty.class::isInstance) && call.getSelect() instanceof TypeTree &&
-                call.getTypeParameters() == null) {
-                return call.getSelect().printTrimmed(cursor) + "::" + call.getSimpleName();
+            return isMethodReference(call) ?
+                    requireNonNull(call.getSelect()).printTrimmed(cursor) + "::" + call.getSimpleName() :
+                    "() -> #{any()}";
+        }
+
+        private static List<Object> templateArguments(Expression mockField, J.MethodInvocation call, List<?> rest) {
+            List<Object> arguments = new ArrayList<>();
+            arguments.add(mockField);
+            if (!isMethodReference(call)) {
+                arguments.add(call);
             }
-            return "() -> " + call.printTrimmed(cursor);
+            arguments.addAll(rest);
+            return arguments;
         }
     }
 }

@@ -237,4 +237,55 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void helperReturningAValueStillCompilesOnceItsBodyIsCommentedOut() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+
+                  @Test
+                  void aTest() throws Exception {
+                      verified();
+                  }
+
+                  static Object verified() throws Exception {
+                      Object target = Mockito.mock(Object.class);
+                      PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                      return target;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Disabled;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              @Disabled("PowerMock test disabled by migration: rework it not to rely on private members")
+              class MyTest {
+
+                  @Test
+                  void aTest() throws Exception {
+                      verified();
+                  }
+
+                  static Object verified() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Object target = Mockito.mock(Object.class);
+                      // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                      // return target;
+                      throw new UnsupportedOperationException("Disabled by the PowerMock migration");
+                  }
+              }
+              """
+          )
+        );
+    }
 }

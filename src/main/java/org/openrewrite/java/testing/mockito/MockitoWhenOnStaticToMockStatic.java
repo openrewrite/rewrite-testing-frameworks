@@ -108,7 +108,15 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     if (whenArg != null) {
                         JavaType.@Nullable Class invokedType = getTypeFromInvocation(whenArg);
                         if (invokedType != null) {
-                            list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx));
+                            J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
+                            if (staticMockedVariable == null) {
+                                list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx));
+                            } else if (MockitoUtils.throwsCheckedException(whenArg.getMethodType())) {
+                                list.add(statement);
+                            } else {
+                                Object name = nameForReuse(m, invokedType.getClassName(), staticMockedVariable);
+                                list.add(reuseMockedStatic(m, (J.MethodInvocation) statement, name, whenArg, ctx));
+                            }
                         }
                     } else {
                         list.add(statement);

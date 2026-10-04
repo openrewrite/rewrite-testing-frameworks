@@ -320,7 +320,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
-    void whiteboxOnTargetOfUnknownClass() {
+    void whiteboxOnTargetOfUnknownClassIsNotFlagged() {
         //language=java
         rewriteRun(
           java(
@@ -333,24 +333,13 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                       Whitebox.setInternalState(client, "client", httpClient);
                   }
               }
-              """,
-            """
-              import org.junit.Test;
-              import org.powermock.reflect.Whitebox;
-
-              public class MyTest {
-                  private void inject(Object client, Object httpClient) {
-                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the class declaring the member it accesses is unknown; migrate it manually to replace PowerMock */
-                      Whitebox.setInternalState(client, "client", httpClient);
-                  }
-              }
               """
           )
         );
     }
 
     @Test
-    void whiteboxOnTargetCreatedByFactory() {
+    void whiteboxOnTargetCreatedByFactoryIsNotFlagged() {
         //language=java
         rewriteRun(
           java(
@@ -381,26 +370,13 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                       Whitebox.setInternalState(service, "repository", new Object());
                   }
               }
-              """,
-            """
-              import org.junit.Test;
-              import org.powermock.reflect.Whitebox;
-
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      Service service = Service.create();
-                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the class declaring the member it accesses is unknown; migrate it manually to replace PowerMock */
-                      Whitebox.setInternalState(service, "repository", new Object());
-                  }
-              }
               """
           )
         );
     }
 
     @Test
-    void whiteboxOnFieldInheritedByRuntimeClass() {
+    void whiteboxOnFieldInheritedByRuntimeClassIsNotFlagged() {
         //language=java
         rewriteRun(
           java(
@@ -431,19 +407,6 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                   @Test
                   public void test() {
                       Service service = new ServiceImpl();
-                      Whitebox.setInternalState(service, "repository", new Object());
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-              import org.powermock.reflect.Whitebox;
-
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      Service service = new ServiceImpl();
-                      /* TODO `Whitebox.setInternalState` cannot be migrated, as the runtime class `ServiceImpl` of the target does not declare the member it accesses; migrate it manually to replace PowerMock */
                       Whitebox.setInternalState(service, "repository", new Object());
                   }
               }
@@ -491,7 +454,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
-    void whiteboxOnFieldOfUnreferenceableSuperclass() {
+    void whiteboxOnFieldOfUnreferenceableSuperclassIsNotFlagged() {
         //language=java
         rewriteRun(
           java(
@@ -510,26 +473,6 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                   @Test
                   public void test() {
                       Sub target = new Sub();
-                      Object value = Whitebox.getInternalState(target, "count");
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-              import org.powermock.reflect.Whitebox;
-
-              public class MyTest {
-                  private static class Base {
-                      private int count;
-                  }
-
-                  private static class Sub extends Base {
-                  }
-
-                  @Test
-                  public void test() {
-                      Sub target = new Sub();
-                      /* TODO `Whitebox.getInternalState` cannot be migrated, as the member it accesses is declared in a superclass that the test cannot reference; migrate it manually to replace PowerMock */
                       Object value = Whitebox.getInternalState(target, "count");
                   }
               }
@@ -539,7 +482,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
     }
 
     @Test
-    void whiteboxOnSpyOfUnknownClass() {
+    void whiteboxOnSpyOfUnknownClassIsNotFlagged() {
         //language=java
         rewriteRun(
           java(
@@ -552,20 +495,6 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                   @Test
                   public void test() {
                       Object target = Mockito.spy(new Object());
-                      Object value = Whitebox.getInternalState(target, "field");
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-              import org.mockito.Mockito;
-              import org.powermock.reflect.Whitebox;
-
-              public class MyTest {
-                  @Test
-                  public void test() {
-                      Object target = Mockito.spy(new Object());
-                      /* TODO `Whitebox.getInternalState` cannot be migrated, as the runtime class of a Mockito mock or spy does not declare the member it accesses; migrate it manually to replace PowerMock */
                       Object value = Whitebox.getInternalState(target, "field");
                   }
               }
