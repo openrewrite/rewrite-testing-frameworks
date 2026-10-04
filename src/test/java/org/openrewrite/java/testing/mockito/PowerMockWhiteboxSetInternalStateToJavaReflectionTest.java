@@ -66,7 +66,7 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testSetField() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "expectedValue");
                   }
@@ -194,7 +194,7 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testSetField() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "expectedValue");
                   }
@@ -235,7 +235,7 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
                   void testSetFieldConditionally(boolean condition) throws Exception {
                       MyService service = new MyService();
                       if (condition) {
-                          Field nameField = service.getClass().getDeclaredField("name");
+                          Field nameField = MyService.class.getDeclaredField("name");
                           nameField.setAccessible(true);
                           nameField.set(service, "expectedValue");
                       }
@@ -277,10 +277,10 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
                   void testSetFieldTwice() throws Exception {
                       MyService svc1 = new MyService();
                       MyService svc2 = new MyService();
-                      Field nameField1 = svc1.getClass().getDeclaredField("name");
+                      Field nameField1 = MyService.class.getDeclaredField("name");
                       nameField1.setAccessible(true);
                       nameField1.set(svc1, "first");
-                      Field nameField = svc2.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(svc2, "second");
                   }
@@ -318,9 +318,159 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
               class MyServiceTest {
                   void testSetField() throws Throwable {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "expectedValue");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void arrayValueSelectsTheObjectArrayOverload() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String[] names;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void testSetField() {
+                      MyService service = new MyService();
+                      Whitebox.setInternalState(service, "names", new String[]{"a", "b"});
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void testSetField() throws Exception {
+                      MyService service = new MyService();
+                      Field namesField = MyService.class.getDeclaredField("names");
+                      namesField.setAccessible(true);
+                      namesField.set(service, new String[]{"a", "b"});
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void staticFieldIdentifiedByItsType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Logger {
+              }
+
+              class Writer {
+                  private static Logger log;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class WriterTest {
+                  void testInjectLogger() {
+                      Logger mockLog = new Logger();
+                      Whitebox.setInternalState(Writer.class, Logger.class, mockLog);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class WriterTest {
+                  void testInjectLogger() throws Exception {
+                      Logger mockLog = new Logger();
+                      Field logField = Writer.class.getDeclaredField("log");
+                      logField.setAccessible(true);
+                      logField.set(null, mockLog);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void instanceFieldIdentifiedByItsType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Collaborator {
+              }
+
+              class Service {
+                  private Collaborator collaborator;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class ServiceTest {
+                  void testInject() {
+                      Service service = new Service();
+                      Whitebox.setInternalState(service, Collaborator.class, new Collaborator());
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class ServiceTest {
+                  void testInject() throws Exception {
+                      Service service = new Service();
+                      Field collaboratorField = Service.class.getDeclaredField("collaborator");
+                      collaboratorField.setAccessible(true);
+                      collaboratorField.set(service, new Collaborator());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void declinesWhenMoreThanOneFieldHasThatType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Collaborator {
+              }
+
+              class Service {
+                  private Collaborator first;
+                  private Collaborator second;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class ServiceTest {
+                  void testInject() {
+                      Service service = new Service();
+                      Whitebox.setInternalState(service, Collaborator.class, new Collaborator());
                   }
               }
               """

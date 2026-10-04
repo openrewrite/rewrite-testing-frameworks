@@ -127,8 +127,72 @@ class SimplifySequencedCollectionAssertionsTest implements RewriteTest {
                   void testMethod() {
                       List<String> list = List.of("a", "b", "c");
                       assertThat(list).last().isNotNull();
-                      assertThat(list).first().isNotEmpty();
-                      assertThat(list).last().contains("c");
+                      assertThat(list.getFirst()).isNotEmpty();
+                      assertThat(list.getLast()).contains("c");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void simplifiesAssertionsInheritedByObjectAssert() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void verify(List<String> strings, List<Integer> numbers) {
+                      assertThat(strings.getFirst()).usingComparator(String.CASE_INSENSITIVE_ORDER).isNull();
+                      assertThat(strings.getFirst()).as("value").isNotEqualTo("b");
+                      assertThat(numbers.getLast()).isEqualTo(1);
+                      assertThat(numbers.getLast()).isNotNull().isInstanceOf(Integer.class);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void verify(List<String> strings, List<Integer> numbers) {
+                      assertThat(strings).first().usingComparator(String.CASE_INSENSITIVE_ORDER).isNull();
+                      assertThat(strings).first().as("value").isNotEqualTo("b");
+                      assertThat(numbers).last().isEqualTo(1);
+                      assertThat(numbers).last().isNotNull().isInstanceOf(Integer.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsElementSpecificAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void verify(List<String> strings, List<StringBuilder> builders, List<Integer> numbers, List<Boolean> flags, List<List<String>> lists) {
+                      assertThat(strings.getFirst()).endsWith("setsid");
+                      assertThat(strings.getFirst()).as("value").startsWith("a");
+                      assertThat(strings.getFirst()).matches("a.*");
+                      assertThat(strings.getFirst()).isEqualTo("%s", "a");
+                      assertThat(builders.getFirst()).startsWith("a");
+                      assertThat(numbers.getFirst()).isGreaterThan(1);
+                      assertThat(flags.getLast()).isTrue();
+                      assertThat(lists.getLast()).hasSize(1);
                   }
               }
               """
