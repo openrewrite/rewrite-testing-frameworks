@@ -92,28 +92,17 @@ final class SystemRules {
     }
 
     static List<Expression> arguments(J.MethodInvocation method) {
-        return withoutEmpty(method.getArguments());
+        return ListUtils.filter(method.getArguments(), argument -> !(argument instanceof J.Empty));
     }
 
     static List<Expression> arguments(J.NewClass newClass) {
-        return withoutEmpty(newClass.getArguments());
-    }
-
-    private static List<Expression> withoutEmpty(List<Expression> arguments) {
-        List<Expression> result = new ArrayList<>(arguments.size());
-        for (Expression argument : arguments) {
-            if (!(argument instanceof J.Empty)) {
-                result.add(argument);
-            }
-        }
-        return result;
+        return ListUtils.filter(newClass.getArguments(), argument -> !(argument instanceof J.Empty));
     }
 
     static List<Cursor> references(J tree, Cursor parent, JavaType.Variable field) {
-        List<Cursor> references = new ArrayList<>();
-        new JavaIsoVisitor<Integer>() {
+        return new JavaIsoVisitor<List<Cursor>>() {
             @Override
-            public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+            public J.Identifier visitIdentifier(J.Identifier identifier, List<Cursor> references) {
                 if (field.equals(identifier.getFieldType())) {
                     Cursor parentCursor = getCursor().getParentTreeCursor();
                     Object parentTree = parentCursor.getValue();
@@ -129,8 +118,7 @@ final class SystemRules {
                 }
                 return identifier;
             }
-        }.visit(tree, 0, parent);
-        return references;
+        }.reduce(tree, new ArrayList<>(), parent);
     }
 
     static J.@Nullable MethodInvocation invokedOn(Cursor reference) {
