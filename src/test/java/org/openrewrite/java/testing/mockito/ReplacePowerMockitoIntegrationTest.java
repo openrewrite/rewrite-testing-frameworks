@@ -2222,6 +2222,108 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void mockitoAllBroughtInByAnotherDependencyIsExcluded() {
+        rewriteRun(
+          mavenProject("transitive-mockito-all",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>transitive-mockito-all</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.kubek2k</groupId>
+                      <artifactId>springockito</artifactId>
+                      <version>1.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              // Declared first, `springockito` puts the Mockito 1.x of `mockito-all` ahead of Mockito 3.x on the
+              // classpath, where `Mockito.mockStatic` does not resolve.
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>transitive-mockito-all</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.kubek2k</groupId>
+                      <artifactId>springockito</artifactId>
+                      <version>1.0.9</version>
+                      <scope>test</scope>
+                      <exclusions>
+                        <exclusion>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-all</artifactId>
+                        </exclusion>
+                      </exclusions>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
     @Test
     void thePowerMockVersionPropertyIsRemovedOnceNothingReferencesIt() {
         rewriteRun(
