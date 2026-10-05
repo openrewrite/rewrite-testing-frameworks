@@ -81,6 +81,8 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                               .withFailMessage("Fails because child has a stale reference to its parent");
                       assertThat(startupFailure).hasRootCauseInstanceOf(IllegalStateException.class)
                               .withFailMessage("SSL bundle name 'test-bundle' is not valid");
+                      assertThat(entries).isNotNull().hasSize(2).contains("a")
+                              .as("only the last call wrapped");
                   }
               }
               """,
@@ -101,6 +103,9 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThat(startupFailure)
                               .withFailMessage("SSL bundle name 'test-bundle' is not valid")
                               .hasRootCauseInstanceOf(IllegalStateException.class);
+                      assertThat(entries)
+                              .as("only the last call wrapped")
+                              .isNotNull().hasSize(2).contains("a");
                   }
               }
               """
@@ -158,12 +163,14 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
               import org.assertj.core.api.SoftAssertions;
 
               import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assumptions.assumeThat;
 
               class Test {
                   void test(String s, Object o, SoftAssertions softly) {
                       assertThat(s).isNotNull().startsWith("a").endsWith("z").as("description %s", s);
                       assertThat(o).isNotNull().as("a").withFailMessage("b");
                       softly.assertThat(s).isEqualTo("a").as("description");
+                      assumeThat(s).isNotEmpty().as("assumption");
                   }
               }
               """,
@@ -171,12 +178,14 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
               import org.assertj.core.api.SoftAssertions;
 
               import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assumptions.assumeThat;
 
               class Test {
                   void test(String s, Object o, SoftAssertions softly) {
                       assertThat(s).as("description %s", s).isNotNull().startsWith("a").endsWith("z");
                       assertThat(o).as("a").withFailMessage("b").isNotNull();
                       softly.assertThat(s).as("description").isEqualTo("a");
+                      assumeThat(s).as("assumption").isNotEmpty();
                   }
               }
               """
@@ -199,6 +208,7 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThat(s).isNotEmpty().as(() -> "supplied");
                       assertThat(s).isNotEmpty().describedAs(new TextDescription("description"));
                       assertThat(s).isNotEmpty().overridingErrorMessage("message %s", s);
+                      assertThat(s).contains("Started").withFailMessage(() -> s);
                   }
               }
               """,
@@ -212,6 +222,7 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThat(s).as(() -> "supplied").isNotEmpty();
                       assertThat(s).describedAs(new TextDescription("description")).isNotEmpty();
                       assertThat(s).overridingErrorMessage("message %s", s).isNotEmpty();
+                      assertThat(s).withFailMessage(() -> s).contains("Started");
                   }
               }
               """
@@ -309,6 +320,11 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThatExceptionOfType(IllegalStateException.class).isThrownBy(() -> {
                           throw new IllegalStateException("boom");
                       }).withMessage("boom").as("description");
+                      assertThatExceptionOfType(IllegalStateException.class)
+                              .isThrownBy(() -> {
+                                  throw new IllegalStateException("boom");
+                              })
+                              .describedAs("visitors should not visit documents without a marker");
                   }
               }
               """,
@@ -320,6 +336,11 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThatExceptionOfType(IllegalStateException.class).as("description").isThrownBy(() -> {
                           throw new IllegalStateException("boom");
                       }).withMessage("boom");
+                      assertThatExceptionOfType(IllegalStateException.class)
+                              .describedAs("visitors should not visit documents without a marker")
+                              .isThrownBy(() -> {
+                                  throw new IllegalStateException("boom");
+                              });
                   }
               }
               """
@@ -434,6 +455,7 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThat(list).singleElement().isEqualTo("a").as("single");
                       assertThat(o).extracting("name").isEqualTo("a").as("extracting");
                       assertThat(o).asString().contains("a").as("asString");
+                      assertThat("s").isNotNull().asString().endsWith("s").as("asString on a String");
                       assertThat(o).satisfies(it -> assertThat(it).isNotNull()).as("satisfies");
                       assertThat(t).cause().hasMessage("cause").as("cause");
                       assertThat(t).rootCause().hasMessage("root cause").as("root cause");
