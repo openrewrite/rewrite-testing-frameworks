@@ -83,7 +83,7 @@ class SystemRulesMigrationTest implements RewriteTest {
     @Test
     void migrateRulesAndDependencies() {
         rewriteRun(
-          spec -> spec.runner(PRODUCTION_CYCLES).expectedCyclesThatMakeChanges(2),
+          spec -> spec.runner(PRODUCTION_CYCLES),
           mavenProject("example",
             srcTestJava(
               //language=java
@@ -172,6 +172,7 @@ class SystemRulesMigrationTest implements RewriteTest {
     @Test
     void keepSystemRulesWhileStillUsed() {
         rewriteRun(
+          spec -> spec.runner(PRODUCTION_CYCLES),
           mavenProject("example",
             srcTestJava(
               //language=java
@@ -276,7 +277,7 @@ class SystemRulesMigrationTest implements RewriteTest {
     @Test
     void upgradeJUnitPioneerForRestoreSystemProperties() {
         rewriteRun(
-          spec -> spec.runner(PRODUCTION_CYCLES).expectedCyclesThatMakeChanges(2),
+          spec -> spec.runner(PRODUCTION_CYCLES),
           mavenProject("example",
             srcTestJava(
               //language=java
@@ -347,7 +348,7 @@ class SystemRulesMigrationTest implements RewriteTest {
     @Test
     void addDependencyToTheSourceSetThatUsesIt() {
         rewriteRun(
-          spec -> spec.beforeRecipe(withToolingApi()).runner(PRODUCTION_CYCLES).expectedCyclesThatMakeChanges(2),
+          spec -> spec.beforeRecipe(withToolingApi()).runner(PRODUCTION_CYCLES),
           mavenProject("example",
             srcSmokeTestJava(
               //language=java
@@ -407,6 +408,59 @@ class SystemRulesMigrationTest implements RewriteTest {
               spec -> spec.after(actual -> assertThat(actual)
                 .doesNotContain("system-rules")
                 .containsPattern("smokeTestImplementation \"uk\\.org\\.webcompere:system-stubs-jupiter:2\\.\\d+\\.\\d+\"")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void addSystemStubsForCatchSystemExitOnly() {
+        rewriteRun(
+          spec -> spec.runner(PRODUCTION_CYCLES),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.contrib.java.lang.system.ExpectedSystemExit;
+                  import org.junit.jupiter.api.Test;
+
+                  class CliTest {
+                      @Rule
+                      public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+
+                      @Test
+                      void exits() {
+                          exit.expectSystemExitWithStatus(1);
+                          System.exit(1);
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  import static org.junit.jupiter.api.Assertions.assertEquals;
+                  import static uk.org.webcompere.systemstubs.SystemStubs.catchSystemExit;
+
+                  class CliTest {
+
+                      @Test
+                      void exits() throws Exception {
+                          int status = catchSystemExit(() -> System.exit(1));
+                          assertEquals(1, status);
+                      }
+                  }
+                  """
+              )
+            ),
+            pomXml(
+              POM_BEFORE,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("system-rules")
+                .contains("<artifactId>system-stubs-jupiter</artifactId>")
+                .doesNotContain("junit-pioneer")
                 .actual())
             )
           )

@@ -48,12 +48,6 @@ public class EnvironmentVariables extends Recipe {
             "`SystemStubsExtension` and `@SystemStub EnvironmentVariables` from the System Stubs " +
             "library.";
 
-    // Dependencies are only added once a later cycle scans the migrated code
-    @Override
-    public boolean causesAnotherCycle() {
-        return true;
-    }
-
     @Override
     public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(ENVIRONMENT_VARIABLES, false), new JavaVisitor<ExecutionContext>() {

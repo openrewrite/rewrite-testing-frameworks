@@ -50,12 +50,6 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
     @Getter
     final String description = "Replaces System Rules' `ExpectedSystemExit` rule with System Stubs' `catchSystemExit(..)`, which runs the rest of the test in a lambda and returns the exit status for an `assertEquals(..)`. Assertions registered through `checkAssertionAfterwards(..)` are inlined after it. Rules that other classes may use, or that set expectations outside of the test method body, get a `TODO` comment instead.";
 
-    // Dependencies are only added once a later cycle scans the migrated code
-    @Override
-    public boolean causesAnotherCycle() {
-        return true;
-    }
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(EXPECTED_SYSTEM_EXIT, false), new JavaVisitor<ExecutionContext>() {

@@ -117,12 +117,6 @@ public class SystemRulesToSystemStubs extends Recipe {
         }
     }
 
-    // Dependencies are only added once a later cycle scans the migrated code
-    @Override
-    public boolean causesAnotherCycle() {
-        return true;
-    }
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(PACKAGE + ".*", false), new JavaVisitor<ExecutionContext>() {

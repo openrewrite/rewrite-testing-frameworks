@@ -61,12 +61,6 @@ public class SystemPropertyRulesToPioneer extends Recipe {
     @Getter
     final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations. Only rules that take string literals and are not used elsewhere in the test are migrated; `SystemRulesToSystemStubs` handles the rest.";
 
-    // Dependencies are only added once a later cycle scans the migrated code
-    @Override
-    public boolean causesAnotherCycle() {
-        return true;
-    }
-
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(PACKAGE + ".*", false), new JavaIsoVisitor<ExecutionContext>() {
