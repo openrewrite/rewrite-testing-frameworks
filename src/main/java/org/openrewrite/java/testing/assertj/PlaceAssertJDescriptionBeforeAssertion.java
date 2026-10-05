@@ -43,15 +43,11 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
     private static final MethodMatcher WITH_FAIL_MESSAGE = new MethodMatcher("org.assertj.core.api.AbstractAssert withFailMessage(..)", true);
     private static final MethodMatcher OVERRIDING_ERROR_MESSAGE = new MethodMatcher("org.assertj.core.api.AbstractAssert overridingErrorMessage(..)", true);
 
-    private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api..* assertThat*(..)");
-    private static final MethodMatcher THEN = new MethodMatcher("org.assertj.core.api..* then*(..)");
-    private static final MethodMatcher ASSUME_THAT = new MethodMatcher("org.assertj.core.api..* assumeThat*(..)");
-
     @Getter
     final String displayName = "Place AssertJ descriptions and failure messages before the assertion";
 
     @Getter
-    final String description = "AssertJ only applies `as(..)`, `describedAs(..)`, `withFailMessage(..)` and `overridingErrorMessage(..)` to assertions that run after them, so when they come last in a chain they are silently ignored. This moves them to directly after the `assertThat(..)`, `then(..)` or `assumeThat(..)` entry point. For `assertThatThrownBy(..)` the check that something was thrown has already run by then, so the moved message only applies to the chained checks such as `isInstanceOf(..)`. Note that a moved `withFailMessage(..)` or `overridingErrorMessage(..)` replaces AssertJ's entire failure message, including the expected and actual values.";
+    final String description = "AssertJ only applies `as(..)`, `describedAs(..)`, `withFailMessage(..)` and `overridingErrorMessage(..)` to assertions that run after them, so when they come last in a chain they are silently ignored. This moves them back past the assertions made on the same assert object, to directly after the call that created it, such as `assertThat(..)` or a navigation like `extracting(..)`. For `assertThatThrownBy(..)` the check that something was thrown has already run by then, so the moved message only applies to the chained checks such as `isInstanceOf(..)`. Note that a moved `withFailMessage(..)` or `overridingErrorMessage(..)` replaces AssertJ's entire failure message, including the expected and actual values.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -86,37 +82,49 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
                             return mi;
                         }
 
-                        List<J.MethodInvocation> assertions = new ArrayList<>();
-                        while (current instanceof J.MethodInvocation && !ASSERT_THAT.matches(current) && !THEN.matches(current) && !ASSUME_THAT.matches(current)) {
-                            // A description or failure message set earlier in the chain would override the moved one, so moving it achieves nothing
-                            if (movesDescription && isDescription(current) || movesFailMessage && isFailMessage(current)) {
+                        // A description or failure message set earlier in the chain would override the moved one, so moving it achieves nothing
+                        for (Expression earlier = current; earlier instanceof J.MethodInvocation; earlier = ((J.MethodInvocation) earlier).getSelect()) {
+                            if (movesDescription && isDescription(earlier) || movesFailMessage && isFailMessage(earlier)) {
                                 return mi;
                             }
+                        }
+
+                        List<J.MethodInvocation> assertions = new ArrayList<>();
+                        while (current instanceof J.MethodInvocation && keepsAssert((J.MethodInvocation) current)) {
                             assertions.add(0, (J.MethodInvocation) current);
                             current = ((J.MethodInvocation) current).getSelect();
                         }
-                        if (assertions.isEmpty() || !(current instanceof J.MethodInvocation)) {
+                        if (current == null) {
                             return mi;
                         }
-
-                        J.MethodInvocation entry = (J.MethodInvocation) current;
-                        if (TypeUtils.isOfClassType(entry.getType(), "org.assertj.core.api.ThrowableTypeAssert")) {
-                            if (!keepsAssertType(assertions.subList(1, assertions.size()), assertions.get(0).getType())) {
+                        if (TypeUtils.isOfClassType(current.getType(), "org.assertj.core.api.ThrowableAssertAlternative")) {
+                            // A failure message set here reaches none of the delegated `withMessage(..)` checks that follow
+                            if (movesFailMessage) {
                                 return mi;
                             }
-                            JavaType.FullyQualified typeAssert = (JavaType.FullyQualified) entry.getType();
-                            for (int i = 0; i < messages.size(); i++) {
-                                JavaType.Method methodType = messages.get(i).getMethodType();
-                                if (methodType == null || !TypeUtils.findDeclaredMethod(typeAssert, methodType.getName(), methodType.getParameterTypes()).isPresent()) {
-                                    return mi;
+                            // Describe the `isThrownBy(..)` check too, from the `ThrowableTypeAssert` it is called on
+                            Expression typeAssert = current instanceof J.MethodInvocation ? ((J.MethodInvocation) current).getSelect() : null;
+                            if (typeAssert != null && TypeUtils.isOfClassType(typeAssert.getType(), "org.assertj.core.api.ThrowableTypeAssert")) {
+                                JavaType.FullyQualified typeAssertType = (JavaType.FullyQualified) typeAssert.getType();
+                                List<J.MethodInvocation> retyped = new ArrayList<>();
+                                for (J.MethodInvocation message : messages) {
+                                    JavaType.Method methodType = message.getMethodType();
+                                    if (methodType != null && TypeUtils.findDeclaredMethod(typeAssertType, methodType.getName(), methodType.getParameterTypes()).isPresent()) {
+                                        retyped.add(message.withMethodType(methodType.withDeclaringType(typeAssertType).withReturnType(typeAssertType)));
+                                    }
                                 }
-                                messages.set(i, messages.get(i).withMethodType(methodType.withDeclaringType(typeAssert).withReturnType(typeAssert)));
+                                if (retyped.size() == messages.size()) {
+                                    messages = retyped;
+                                    assertions.add(0, (J.MethodInvocation) current);
+                                    current = typeAssert;
+                                }
                             }
-                        } else if (!keepsAssertType(assertions, entry.getType())) {
+                        }
+                        if (assertions.isEmpty()) {
                             return mi;
                         }
 
-                        J.MethodInvocation chain = entry;
+                        Expression chain = current;
                         for (J.MethodInvocation message : messages) {
                             chain = message.withPrefix(Space.EMPTY).withSelect(chain);
                         }
@@ -129,7 +137,7 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
                         for (J.MethodInvocation assertion : assertions) {
                             chain = assertion.withSelect(chain);
                         }
-                        return chain.withPrefix(mi.getPrefix());
+                        return ((J.MethodInvocation) chain).withPrefix(mi.getPrefix());
                     }
                 }
         );
@@ -160,27 +168,29 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
         return false;
     }
 
-    private static boolean keepsAssertType(List<J.MethodInvocation> calls, @Nullable JavaType assertType) {
-        JavaType.FullyQualified assertClass = TypeUtils.asFullyQualified(assertType);
-        if (assertClass == null) {
+    // Whether the call asserts on its receiver and returns that same assert, rather than navigating to a new one
+    private static boolean keepsAssert(J.MethodInvocation call) {
+        if (call.getSelect() == null || call.getMethodType() == null) {
             return false;
         }
-        // Calls returning `SELF` on a wildcard-typed entry like `AbstractStringAssert<?>` come back as a capture, so there an exact type match is a new assert, as from `assertThat(string).asString()`
-        boolean wildcardEntry = assertType instanceof JavaType.Parameterized && ((JavaType.Parameterized) assertType).getTypeParameters().stream().anyMatch(p -> p instanceof JavaType.GenericTypeVariable && "?".equals(((JavaType.GenericTypeVariable) p).getName()));
-        for (J.MethodInvocation call : calls) {
-            JavaType type = call.getType();
-            boolean sameAssert = type instanceof JavaType.GenericTypeVariable ? ((JavaType.GenericTypeVariable) type).getBounds().size() == 1 && TypeUtils.isOfClassType(((JavaType.GenericTypeVariable) type).getBounds().get(0), assertClass.getFullyQualifiedName()) : !wildcardEntry && TypeUtils.isOfType(type, assertType);
-            if (!sameAssert || call.getMethodType() == null) {
+        // `satisfies(..)` and friends return the same assert, but their lambdas run their own assertions
+        for (JavaType parameterType : call.getMethodType().getParameterTypes()) {
+            JavaType elementType = parameterType instanceof JavaType.Array ? ((JavaType.Array) parameterType).getElemType() : parameterType;
+            if (TypeUtils.isAssignableTo("java.util.function.Consumer", elementType) || TypeUtils.isAssignableTo("java.util.function.BiConsumer", elementType)) {
                 return false;
             }
-            // `satisfies(..)` and friends return the same assert, but their lambdas run their own assertions
-            for (JavaType parameterType : call.getMethodType().getParameterTypes()) {
-                JavaType elementType = parameterType instanceof JavaType.Array ? ((JavaType.Array) parameterType).getElemType() : parameterType;
-                if (TypeUtils.isAssignableTo("java.util.function.Consumer", elementType) || TypeUtils.isAssignableTo("java.util.function.BiConsumer", elementType)) {
-                    return false;
-                }
-            }
         }
-        return true;
+        JavaType type = call.getType();
+        JavaType receiver = call.getSelect().getType();
+        if (type instanceof JavaType.GenericTypeVariable) {
+            // A capture of `SELF`, returned on a receiver typed with a wildcard like `AbstractIntegerAssert<?>`
+            List<JavaType> bounds = ((JavaType.GenericTypeVariable) type).getBounds();
+            JavaType receiverClass = receiver instanceof JavaType.GenericTypeVariable && ((JavaType.GenericTypeVariable) receiver).getBounds().size() == 1 ? ((JavaType.GenericTypeVariable) receiver).getBounds().get(0) : receiver;
+            JavaType.FullyQualified receiverFq = TypeUtils.asFullyQualified(receiverClass);
+            return bounds.size() == 1 && receiverFq != null && TypeUtils.isOfClassType(bounds.get(0), receiverFq.getFullyQualifiedName()) && TypeUtils.isAssignableTo("org.assertj.core.api.Assert", receiverFq);
+        }
+        // On a receiver typed with a wildcard or capture, `SELF` comes back as a capture, so an exact match is a new assert, as from `assertThat(string).asString()`
+        boolean wildcardReceiver = receiver instanceof JavaType.GenericTypeVariable || receiver instanceof JavaType.Parameterized && ((JavaType.Parameterized) receiver).getTypeParameters().stream().anyMatch(p -> p instanceof JavaType.GenericTypeVariable && "?".equals(((JavaType.GenericTypeVariable) p).getName()));
+        return !wildcardReceiver && TypeUtils.isOfType(type, receiver) && TypeUtils.isAssignableTo("org.assertj.core.api.Assert", type);
     }
 }

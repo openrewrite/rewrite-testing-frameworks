@@ -438,7 +438,7 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
     }
 
     @Test
-    void keepNavigationInChain() {
+    void moveAfterNavigation() {
         rewriteRun(
           //language=java
           java(
@@ -456,10 +456,54 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThat(o).extracting("name").isEqualTo("a").as("extracting");
                       assertThat(o).asString().contains("a").as("asString");
                       assertThat("s").isNotNull().asString().endsWith("s").as("asString on a String");
-                      assertThat(o).satisfies(it -> assertThat(it).isNotNull()).as("satisfies");
                       assertThat(t).cause().hasMessage("cause").as("cause");
                       assertThat(t).rootCause().hasMessage("root cause").as("root cause");
                       assertThatThrownBy(() -> {}).cause().hasMessage("cause").as("cause");
+                      assertThat(o).satisfies(it -> assertThat(it).isNotNull()).as("satisfies");
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+              class Test {
+                  void test(List<String> list, Object o, Throwable t) {
+                      assertThat(list).hasSize(1).first().as("first").isEqualTo("a");
+                      assertThat(list).element(0).as("element").isEqualTo("a");
+                      assertThat(list).singleElement().as("single").isEqualTo("a");
+                      assertThat(o).extracting("name").as("extracting").isEqualTo("a");
+                      assertThat(o).asString().as("asString").contains("a");
+                      assertThat("s").isNotNull().asString().as("asString on a String").endsWith("s");
+                      assertThat(t).cause().as("cause").hasMessage("cause");
+                      assertThat(t).rootCause().as("root cause").hasMessage("root cause");
+                      assertThatThrownBy(() -> {}).cause().as("cause").hasMessage("cause");
+                      assertThat(o).satisfies(it -> assertThat(it).isNotNull()).as("satisfies");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepFailMessageOnThrowableAssertAlternative() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              class Test {
+                  void test() {
+                      assertThatExceptionOfType(IllegalStateException.class)
+                              .isThrownBy(() -> {
+                                  throw new IllegalStateException("boom");
+                              })
+                              .withMessage("boom")
+                              .withFailMessage("ignored by the delegated withMessage(..)");
                   }
               }
               """
@@ -513,18 +557,39 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
     }
 
     @Test
-    void keepCustomEntryPoint() {
+    void moveOnCustomEntryPointAndAssertInVariable() {
         rewriteRun(
           //language=java
           java(
             """
+              import org.assertj.core.api.AbstractIntegerAssert;
               import org.assertj.core.api.ObjectAssert;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
               class Test {
-                  void test(Object token) {
+                  void test(Object token, int i) {
                       assertThatToken(token).isNotNull().withFailMessage("token is populated");
+                      AbstractIntegerAssert<?> integerAssert = assertThat(i);
+                      integerAssert.isPositive().as("positive");
+                  }
+
+                  ObjectAssert<Object> assertThatToken(Object token) {
+                      return assertThat(token);
+                  }
+              }
+              """,
+            """
+              import org.assertj.core.api.AbstractIntegerAssert;
+              import org.assertj.core.api.ObjectAssert;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test(Object token, int i) {
+                      assertThatToken(token).withFailMessage("token is populated").isNotNull();
+                      AbstractIntegerAssert<?> integerAssert = assertThat(i);
+                      integerAssert.as("positive").isPositive();
                   }
 
                   ObjectAssert<Object> assertThatToken(Object token) {
@@ -534,5 +599,4 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
               """
           )
         );
-    }
-}
+    }}
