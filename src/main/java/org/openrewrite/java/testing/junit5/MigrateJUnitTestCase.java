@@ -23,6 +23,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -44,6 +45,7 @@ public class MigrateJUnitTestCase extends Recipe {
     private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
     private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*After*");
     private static final AnnotationMatcher JUNIT_BEFORE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*Before*");
+    private static final MethodMatcher TEST_CASE_RUN_MATCHER = new MethodMatcher("junit.framework.TestCase run(junit.framework.TestResult)", true);
 
     private static boolean isSupertypeTestCase(JavaType.@Nullable FullyQualified fullyQualified) {
         if (fullyQualified == null || fullyQualified.getSupertype() == null || "java.lang.Object".equals(fullyQualified.getFullyQualifiedName())) {
@@ -65,9 +67,14 @@ public class MigrateJUnitTestCase extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(
-                        new UsesType<>("junit.framework.TestCase", false),
-                        new UsesType<>("junit.framework.Assert", false)
+        return Preconditions.check(Preconditions.and(
+                        Preconditions.or(
+                                new UsesType<>("junit.framework.TestCase", false),
+                                new UsesType<>("junit.framework.Assert", false)
+                        ),
+                        // A TestCase overriding run(TestResult) participates in the JUnit 3 execution model,
+                        // which has no Jupiter equivalent, so leave it untouched rather than half-migrate it
+                        Preconditions.not(new DeclaresMethod<>(TEST_CASE_RUN_MATCHER))
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
