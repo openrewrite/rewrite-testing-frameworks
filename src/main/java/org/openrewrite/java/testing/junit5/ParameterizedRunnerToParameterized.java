@@ -28,6 +28,8 @@ import org.openrewrite.marker.Markers;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.*;
 import static org.openrewrite.Tree.randomId;
 
@@ -37,6 +39,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final AnnotationMatcher JUPITER_TEST = new AnnotationMatcher("@org.junit.jupiter.api.Test");
     private static final AnnotationMatcher PARAMETERS = new AnnotationMatcher("@org.junit.runners.Parameterized$Parameters");
     private static final AnnotationMatcher BEFORE = new AnnotationMatcher("@org.junit.Before");
+    // UpdateBeforeAfterAnnotations runs earlier in JUnit4to5Migration, so @Before may already be @BeforeEach
+    private static final AnnotationMatcher BEFORE_EACH = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
     private static final AnnotationMatcher PARAMETER = new AnnotationMatcher("@org.junit.runners.Parameterized$Parameter");
     private static final AnnotationMatcher PARAMETERIZED_TEST = new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest");
 
@@ -44,7 +48,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String CONSTRUCTOR_ARGUMENTS = "constructor-args";
     private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
-    private static final String BEFORE_METHOD_NAME = "before-method-name";
+    private static final String BEFORE_METHOD_NAMES = "before-method-names";
 
     @Getter
     final String displayName = "JUnit 4 `@RunWith(Parameterized.class)` to JUnit Jupiter parameterized tests";
@@ -55,6 +59,10 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.junit.runners.Parameterized", false), new ParameterizedRunnerVisitor());
+    }
+
+    private static boolean isBeforeEachAnnotation(J.Annotation annotation) {
+        return BEFORE.matches(annotation) || BEFORE_EACH.matches(annotation);
     }
 
     private static class ParameterizedRunnerVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -69,22 +77,23 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 List<Statement> constructorParams = (List<Statement>) params.get(CONSTRUCTOR_ARGUMENTS);
                 Map<Integer, Statement> fieldInjectionParams = (Map<Integer, Statement>) params.get(FIELD_INJECTION_ARGUMENTS);
                 String initMethodName = "init" + cd.getSimpleName();
-                String beforeMethodName = (String) params.getOrDefault(BEFORE_METHOD_NAME, null);
+                List<String> beforeMethodNames = (List<String>) params.getOrDefault(BEFORE_METHOD_NAMES, emptyList());
 
                 // Constructor Injected Test
                 if (parametersMethodName != null && constructorParams != null && constructorParams.stream().anyMatch(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)) {
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, beforeMethodName));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, beforeMethodNames));
                 }
 
                 // Field Injected Test
                 else if (parametersMethodName != null && fieldInjectionParams != null) {
                     List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false, beforeMethodName));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false, beforeMethodNames));
                 }
             }
             return cd;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
@@ -99,8 +108,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     params.put(PARAMETERS_METHOD_NAME, method.getSimpleName());
                     break;
                 }
-                if (BEFORE.matches(annotation)) {
-                    params.put(BEFORE_METHOD_NAME, method.getSimpleName());
+                if (isBeforeEachAnnotation(annotation) && method.getParameters().stream().allMatch(J.Empty.class::isInstance)) {
+                    ((List<String>) params.computeIfAbsent(BEFORE_METHOD_NAMES, k -> new ArrayList<String>())).add(method.getSimpleName());
                 }
             }
             return m;
@@ -153,8 +162,12 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
         private final String initStatementParamString;
 
-        @Nullable
-        private final String beforeMethodName;
+        /**
+         * Setup methods which, under the JUnit 4 runner, ran after the parameters were supplied. They are invoked from
+         * the init method instead, and lose their lifecycle annotation so Jupiter does not run them before the
+         * parameters are assigned.
+         */
+        private final List<String> beforeMethodNames;
 
         public ParameterizedRunnerToParameterizedTestsVisitor(J.ClassDeclaration scope,
                                                               String parametersMethodName,
@@ -162,12 +175,12 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                                                               @Nullable List<Expression> parameterizedTestAnnotationParameters,
                                                               List<Statement> parameterizedTestMethodParameters,
                                                               boolean isConstructorInjection,
-                                                              @Nullable String beforeMethodName) {
+                                                              List<String> beforeMethodNames) {
             this.scope = scope;
             this.parametersMethodName = parametersMethodName;
             this.initMethodName = initMethodName;
             this.isConstructorInjection = isConstructorInjection;
-            this.beforeMethodName = beforeMethodName;
+            this.beforeMethodNames = beforeMethodNames;
 
             this.parameterizedTestMethodParameters = parameterizedTestMethodParameters.stream()
                     .map(mp -> mp.withPrefix(Space.EMPTY).withComments(new ArrayList<>()))
@@ -197,7 +210,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             for (String p : initStatementParams) {
                 initMethodTemplate.append("    this.").append(p).append(" = ").append(p).append(";\n");
             }
-            if (beforeMethodName != null) {
+            for (String beforeMethodName : beforeMethodNames) {
                 initMethodTemplate.append("    this.").append(beforeMethodName).append("();\n");
             }
             initMethodTemplate.append("}");
@@ -222,6 +235,8 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 maybeRemoveImport("org.junit.runners.Parameterized.Parameters");
                 maybeRemoveImport("org.junit.runners.Parameterized.Parameter");
                 maybeRemoveImport("org.junit.jupiter.api.Test");
+                maybeRemoveImport("org.junit.Before");
+                maybeRemoveImport("org.junit.jupiter.api.BeforeEach");
                 maybeAddImport("org.junit.jupiter.params.ParameterizedTest");
                 maybeAddImport("org.junit.jupiter.params.provider.MethodSource");
             }
@@ -336,6 +351,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 return annotation;
             }));
 
+            // The init method invokes the setup methods once the parameters are assigned
+            if (!m.isConstructor() && beforeMethodNames.contains(m.getSimpleName()) &&
+                m.getLeadingAnnotations().stream().anyMatch(ParameterizedRunnerToParameterized::isBeforeEachAnnotation)) {
+                J.MethodDeclaration withoutBody = (J.MethodDeclaration) new RemoveAnnotationVisitor(BEFORE)
+                        .visitNonNull(m.withBody(null), ctx, getCursor().getParentOrThrow());
+                withoutBody = (J.MethodDeclaration) new RemoveAnnotationVisitor(BEFORE_EACH)
+                        .visitNonNull(withoutBody, ctx, getCursor().getParentOrThrow());
+                m = withoutBody.withBody(m.getBody());
+            }
+
             // Add @MethodSource, insert test init statement, add test method parameters
             if (m.getLeadingAnnotations().stream().anyMatch(PARAMETERIZED_TEST::matches)) {
                 m = JavaTemplate.builder("@MethodSource(\"" + parametersMethodName + "\")")
@@ -380,6 +405,14 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                             stmt -> stmt instanceof J.MethodInvocation &&
                                     "super".equals(((J.MethodInvocation) stmt).getSimpleName()) ?
                                     null : stmt)));
+
+                    // Run the setup methods once the constructor body has assigned the parameters
+                    for (String beforeMethodName : beforeMethodNames) {
+                        m = JavaTemplate.builder("this." + beforeMethodName + "();")
+                                .contextSensitive()
+                                .build()
+                                .apply(updateCursor(m), requireNonNull(m.getBody()).getCoordinates().lastStatement());
+                    }
                 }
             }
             return m;
