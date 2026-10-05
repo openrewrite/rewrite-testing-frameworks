@@ -271,7 +271,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Before;
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
 
@@ -289,7 +288,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                   }
 
-                  @Before
                   public void setUp() {}
 
                   @MethodSource("parameters")
@@ -784,6 +782,168 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                   public void test(String input) {
                       initMyTest(input);
                       assert input != null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1125")
+    @Test
+    void constructorInjectionInvokesBeforeMethodAfterAssigningParameters() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+              import org.junit.runners.Parameterized.Parameters;
+
+              import java.util.Arrays;
+              import java.util.Collection;
+
+              import static org.junit.Assert.assertEquals;
+
+              @RunWith(Parameterized.class)
+              public class ParamSetupTest {
+                  private final String name;
+                  private String upper;
+
+                  public ParamSetupTest(String name) {
+                      this.name = name;
+                  }
+
+                  @Parameters
+                  public static Collection<Object[]> testCases() {
+                      return Arrays.asList(new Object[][]{{"a"}, {"b"}});
+                  }
+
+                  @Before
+                  public void before() {
+                      upper = name.toUpperCase();
+                  }
+
+                  @Test
+                  public void nameIsUppercased() {
+                      assertEquals(name.toUpperCase(), upper);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import java.util.Arrays;
+              import java.util.Collection;
+
+              import static org.junit.Assert.assertEquals;
+
+              public class ParamSetupTest {
+                  private String name;
+                  private String upper;
+
+                  public void initParamSetupTest(String name) {
+                      this.name = name;
+                      this.before();
+                  }
+
+                  public static Collection<Object[]> testCases() {
+                      return Arrays.asList(new Object[][]{{"a"}, {"b"}});
+                  }
+
+                  public void before() {
+                      upper = name.toUpperCase();
+                  }
+
+                  @MethodSource("testCases")
+                  @ParameterizedTest
+                  public void nameIsUppercased(String name) {
+                      initParamSetupTest(name);
+                      assertEquals(name.toUpperCase(), upper);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1125")
+    @Test
+    void beforeAlreadyMigratedToBeforeEach() {
+        //language=java
+        rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5"))
+            .recipes(new UpdateBeforeAfterAnnotations(), new ParameterizedRunnerToParameterized())
+            .typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+              import org.junit.runners.Parameterized.Parameter;
+              import org.junit.runners.Parameterized.Parameters;
+
+              import java.util.Arrays;
+              import java.util.Collection;
+
+              @RunWith(Parameterized.class)
+              public class FieldParamTest {
+                  @Parameter(0)
+                  public String name;
+
+                  private String upper;
+
+                  @Parameters
+                  public static Collection<Object[]> testCases() {
+                      return Arrays.asList(new Object[][]{{"a"}, {"b"}});
+                  }
+
+                  @Before
+                  public void before() {
+                      upper = name.toUpperCase();
+                  }
+
+                  @Test
+                  public void nameIsUppercased() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import java.util.Arrays;
+              import java.util.Collection;
+
+              public class FieldParamTest {
+                  public String name;
+
+                  private String upper;
+
+                  public static Collection<Object[]> testCases() {
+                      return Arrays.asList(new Object[][]{{"a"}, {"b"}});
+                  }
+
+                  public void before() {
+                      upper = name.toUpperCase();
+                  }
+
+                  @MethodSource("testCases")
+                  @ParameterizedTest
+                  public void nameIsUppercased(String name) {
+                      initFieldParamTest(name);
+                  }
+
+                  public void initFieldParamTest(String name) {
+                      this.name = name;
+                      this.before();
                   }
               }
               """
