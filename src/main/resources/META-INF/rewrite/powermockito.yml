@@ -75,11 +75,13 @@ name: org.openrewrite.java.testing.mockito.AddJUnit4ReplacingPowerMockModule
 displayName: Add JUnit 4 where the PowerMock JUnit 4 module provided it
 description: >-
   Adds `junit:junit` to modules that use JUnit 4 and depend on `powermock-module-junit4`, which brings JUnit 4 in
-  transitively, so that their tests still compile once the PowerMock dependencies are removed.
+  transitively, so that their tests still compile once the PowerMock dependencies are removed. A module that declares
+  `junit:junit` itself is left as it is.
 preconditions:
   - org.openrewrite.java.dependencies.search.ModuleHasDependency:
       groupIdPattern: org.powermock
       artifactIdPattern: powermock-module-junit4*
+  - org.openrewrite.java.testing.mockito.ModuleDoesNotDeclareJUnit4
 tags:
   - testing
   - mockito
