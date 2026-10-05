@@ -495,8 +495,7 @@ description: >-
   migration. System property rules that only take string literals become JUnit Pioneer annotations; the other system
   property, environment variable, standard stream and standard input rules become System Stubs `@SystemStub` fields,
   and `ExpectedSystemExit` becomes System Stubs' `catchSystemExit(..)`. Rules that can not be migrated get a `TODO`
-  comment, and System Rules is only removed once nothing uses it. As System Stubs 2.x and JUnit Pioneer 2.x require
-  Java 11, sources compiled for an older Java version are left as is.
+  comment, and System Rules is only removed once nothing uses it.
 tags:
   - testing
   - junit

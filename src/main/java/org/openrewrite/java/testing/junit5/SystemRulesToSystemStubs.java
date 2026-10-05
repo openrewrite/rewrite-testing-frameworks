@@ -25,6 +25,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
@@ -124,7 +125,7 @@ public class SystemRulesToSystemStubs extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(usesTypeOnJava11(PACKAGE + ".*"), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(PACKAGE + ".*", false), new JavaVisitor<ExecutionContext>() {
             private final Map<JavaType.Variable, Migration> migrations = new HashMap<>();
             private final Map<JavaType.Variable, String> todos = new HashMap<>();
 

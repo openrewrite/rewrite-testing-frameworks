@@ -23,6 +23,7 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 
@@ -55,7 +56,7 @@ public class EnvironmentVariables extends Recipe {
 
     @Override
     public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(SystemRules.usesTypeOnJava11(ENVIRONMENT_VARIABLES), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(ENVIRONMENT_VARIABLES, false), new JavaVisitor<ExecutionContext>() {
             @Override
             public @NonNull J visitCompilationUnit(
                     J.@NonNull CompilationUnit cu, @NonNull ExecutionContext ctx) {

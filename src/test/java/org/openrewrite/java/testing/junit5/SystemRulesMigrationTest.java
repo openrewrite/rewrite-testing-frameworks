@@ -154,8 +154,7 @@ class SystemRulesMigrationTest implements RewriteTest {
                           assertEquals("usage", out.getText());
                       }
                   }
-                  """,
-                spec -> spec.markers(javaVersion(17))
+                  """
               )
             ),
             pomXml(
@@ -207,38 +206,7 @@ class SystemRulesMigrationTest implements RewriteTest {
                           out.mute();
                       }
                   }
-                  """,
-                spec -> spec.markers(javaVersion(17))
-              )
-            ),
-            pomXml(POM_BEFORE)
-          )
-        );
-    }
-
-    @Test
-    void skipJava8Projects() {
-        rewriteRun(
-          mavenProject("example",
-            srcTestJava(
-              //language=java
-              java(
-                """
-                  import org.junit.Rule;
-                  import org.junit.contrib.java.lang.system.SystemOutRule;
-                  import org.junit.jupiter.api.Test;
-
-                  class GreeterTest {
-                      @Rule
-                      public final SystemOutRule out = new SystemOutRule().enableLog();
-
-                      @Test
-                      void greets() {
-                          System.out.println(out.getLog());
-                      }
-                  }
-                  """,
-                spec -> spec.markers(javaVersion(8))
+                  """
               )
             ),
             pomXml(POM_BEFORE)
@@ -300,8 +268,7 @@ class SystemRulesMigrationTest implements RewriteTest {
                       assertEquals("usage", out.getText());
                   }
               }
-              """,
-            spec -> spec.markers(javaVersion(17))
+              """
           )
         );
     }
@@ -341,8 +308,7 @@ class SystemRulesMigrationTest implements RewriteTest {
                           System.setProperty("mode", "test");
                       }
                   }
-                  """,
-                spec -> spec.markers(javaVersion(17))
+                  """
               )
             ),
             //language=xml
@@ -418,8 +384,7 @@ class SystemRulesMigrationTest implements RewriteTest {
                           environment.set("HOME", "/tmp");
                       }
                   }
-                  """,
-                spec -> spec.markers(javaVersion(17))
+                  """
               )
             ),
             //language=groovy

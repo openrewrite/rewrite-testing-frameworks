@@ -21,6 +21,7 @@ import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.format.ShiftFormat;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -57,7 +58,7 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(usesTypeOnJava11(EXPECTED_SYSTEM_EXIT), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(EXPECTED_SYSTEM_EXIT, false), new JavaVisitor<ExecutionContext>() {
             private final Set<JavaType.Variable> migrated = new HashSet<>();
             private final Map<JavaType.Variable, String> todos = new HashMap<>();
             private final Map<UUID, ExitPlan> plans = new HashMap<>();

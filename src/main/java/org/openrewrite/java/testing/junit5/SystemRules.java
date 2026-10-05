@@ -17,22 +17,15 @@ package org.openrewrite.java.testing.junit5;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.marker.JavaSourceSet;
-import org.openrewrite.java.search.UsesJavaVersion;
-import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.openrewrite.Preconditions.and;
-import static org.openrewrite.Preconditions.not;
 
 final class SystemRules {
     static final String PACKAGE = "org.junit.contrib.java.lang.system";
@@ -43,11 +36,6 @@ final class SystemRules {
     private static final AnnotationMatcher RULE_ANNOTATION = new AnnotationMatcher("@org.junit.*Rule");
 
     private SystemRules() {
-    }
-
-    // System Stubs 2.x and JUnit Pioneer 2.x require Java 11
-    static TreeVisitor<?, ExecutionContext> usesTypeOnJava11(String typePattern) {
-        return and(new UsesType<>(typePattern, false), not(new UsesJavaVersion<>(1, 10)));
     }
 
     static boolean isRuleField(J.VariableDeclarations field) {

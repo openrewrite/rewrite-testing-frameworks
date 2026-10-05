@@ -30,6 +30,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.ShortenFullyQualifiedTypeReferences;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
@@ -68,7 +69,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(usesTypeOnJava11(PACKAGE + ".*"), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(PACKAGE + ".*", false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
                 return sourceFile instanceof J.CompilationUnit;
