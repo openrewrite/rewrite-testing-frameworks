@@ -67,9 +67,13 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
                         boolean movesDescription = false;
                         boolean movesFailMessage = false;
                         Expression current = mi;
-                        while (isDescription(current) || isFailMessage(current)) {
-                            movesDescription |= isDescription(current);
-                            movesFailMessage |= isFailMessage(current);
+                        while (current instanceof J.MethodInvocation) {
+                            boolean description = isDescription(current);
+                            if (!description && !isFailMessage(current)) {
+                                break;
+                            }
+                            movesDescription |= description;
+                            movesFailMessage |= !description;
                             messages.add(0, (J.MethodInvocation) current);
                             current = ((J.MethodInvocation) current).getSelect();
                         }
@@ -82,13 +86,6 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
                             return mi;
                         }
 
-                        // A description or failure message set earlier in the chain would override the moved one, so moving it achieves nothing
-                        for (Expression earlier = current; earlier instanceof J.MethodInvocation; earlier = ((J.MethodInvocation) earlier).getSelect()) {
-                            if (movesDescription && isDescription(earlier) || movesFailMessage && isFailMessage(earlier)) {
-                                return mi;
-                            }
-                        }
-
                         List<J.MethodInvocation> assertions = new ArrayList<>();
                         while (current instanceof J.MethodInvocation && keepsAssert((J.MethodInvocation) current)) {
                             assertions.add(0, (J.MethodInvocation) current);
@@ -96,6 +93,15 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
                         }
                         if (current == null) {
                             return mi;
+                        }
+                        // A description or failure message set earlier on the same assert would override the moved one, so moving it achieves nothing
+                        if (setsMovedMessage(current, movesDescription, movesFailMessage)) {
+                            return mi;
+                        }
+                        for (J.MethodInvocation assertion : assertions) {
+                            if (setsMovedMessage(assertion, movesDescription, movesFailMessage)) {
+                                return mi;
+                            }
                         }
                         if (TypeUtils.isOfClassType(current.getType(), "org.assertj.core.api.ThrowableAssertAlternative")) {
                             // A failure message set here reaches none of the delegated `withMessage(..)` checks that follow
@@ -111,6 +117,11 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
                                     JavaType.Method methodType = message.getMethodType();
                                     if (methodType != null && TypeUtils.findDeclaredMethod(typeAssertType, methodType.getName(), methodType.getParameterTypes()).isPresent()) {
                                         retyped.add(message.withMethodType(methodType.withDeclaringType(typeAssertType).withReturnType(typeAssertType)));
+                                    }
+                                }
+                                for (Expression earlier = typeAssert; earlier instanceof J.MethodInvocation; earlier = ((J.MethodInvocation) earlier).getSelect()) {
+                                    if (isDescription(earlier)) {
+                                        return mi;
                                     }
                                 }
                                 if (retyped.size() == messages.size()) {
@@ -149,6 +160,10 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
 
     private static boolean isFailMessage(@Nullable Expression expression) {
         return WITH_FAIL_MESSAGE.matches(expression) || OVERRIDING_ERROR_MESSAGE.matches(expression);
+    }
+
+    private static boolean setsMovedMessage(Expression call, boolean movesDescription, boolean movesFailMessage) {
+        return movesDescription && isDescription(call) || movesFailMessage && isFailMessage(call);
     }
 
     private static boolean returnsVoid(JavaType.@Nullable FullyQualified functionalInterface) {

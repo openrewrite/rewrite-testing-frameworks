@@ -599,4 +599,36 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
               """
           )
         );
-    }}
+    }
+
+    @Test
+    void moveDescriptionAfterNavigationFromDescribedAssert() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test(List<String> list) {
+                      assertThat(list).as("list").first().isEqualTo("a").as("first");
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Test {
+                  void test(List<String> list) {
+                      assertThat(list).as("list").first().as("first").isEqualTo("a");
+                  }
+              }
+              """
+          )
+        );
+    }
+}
