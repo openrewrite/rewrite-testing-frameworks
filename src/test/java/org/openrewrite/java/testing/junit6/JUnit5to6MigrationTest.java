@@ -82,4 +82,36 @@ class JUnit5to6MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void renamesStoreGetOrComputeIfAbsent() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtensionContext;
+
+              class FooExtension {
+                  void store(ExtensionContext.Store store) {
+                      store.getOrComputeIfAbsent(StringBuilder.class);
+                      store.getOrComputeIfAbsent("key", k -> new StringBuilder());
+                      store.getOrComputeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtensionContext;
+
+              class FooExtension {
+                  void store(ExtensionContext.Store store) {
+                      store.computeIfAbsent(StringBuilder.class);
+                      store.computeIfAbsent("key", k -> new StringBuilder());
+                      store.computeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
+                  }
+              }
+              """,
+            spec -> spec.markers(javaVersion(17))
+          )
+        );
+    }
 }
