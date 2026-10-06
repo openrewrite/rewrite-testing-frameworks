@@ -26,12 +26,21 @@ import org.openrewrite.java.dependencies.ChangeDependency;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.maven.MavenIsoVisitor;
+import org.openrewrite.maven.MavenTagInsertionComparator;
 import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.maven.tree.ResolvedPom;
+import org.openrewrite.maven.tree.Scope;
+import org.openrewrite.xml.AddToTagVisitor;
+import org.openrewrite.xml.tree.Xml;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import static org.openrewrite.internal.StringUtils.matchesGlob;
 
 public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMockDependencies.Accumulator> {
 
@@ -106,14 +115,39 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
                 stopAfterPreVisit();
                 JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
                 String targetArtifact = needsInlineMocking(tree, project, acc) ? "mockito-inline" : "mockito-core";
+                MavenResolutionResult mrr = tree.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+                // A child can still resolve against the parent's old coordinates during this cycle.
+                boolean overrideManagedVersion = mrr != null && mrr.getParent() != null;
+                doAfterVisit(new MavenIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public Xml.Tag visitTag(Xml.Tag tag, ExecutionContext ctx) {
+                        Xml.Tag t = super.visitTag(tag, ctx);
+                        ResolvedPom pom = getResolutionResult().getPom();
+                        String artifactId = pom.getValue(tag.getChildValue("artifactId").orElse(null));
+                        if (isDependencyTag() &&
+                                "org.powermock".equals(pom.getValue(tag.getChildValue("groupId").orElse(null))) &&
+                                matchesGlob(artifactId, "powermock*")) {
+                            Scope scope = pom.getManagedScope("org.powermock", artifactId,
+                                    tag.getChildValue("type").orElse(null), tag.getChildValue("classifier").orElse(null));
+                            if (!tag.getChild("scope").isPresent() && scope != null && scope != Scope.Compile) {
+                                // Preserve inherited scopes for coordinate changes and wildcard dependency removal.
+                                t = (Xml.Tag) new AddToTagVisitor<ExecutionContext>(t,
+                                        Xml.Tag.build("<scope>" + scope.name().toLowerCase(Locale.ROOT) + "</scope>"),
+                                        new MavenTagInsertionComparator(t.getChildren()))
+                                        .visitNonNull(t, ctx, getCursor().getParent());
+                            }
+                        }
+                        return t;
+                    }
+                });
                 doAfterVisit(new ChangeDependency(
                         "org.powermock", "powermock-api-mockito",
                         "org.mockito", targetArtifact, "3.x",
-                        null, null, null).getVisitor());
+                        null, overrideManagedVersion, null).getVisitor());
                 doAfterVisit(new ChangeDependency(
                         "org.powermock", "powermock-api-mockito2",
                         "org.mockito", targetArtifact, "3.x",
-                        null, null, null).getVisitor());
+                        null, overrideManagedVersion, null).getVisitor());
                 return tree;
             }
         };

@@ -86,6 +86,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import org.mockito.MockedStatic;
 
               public class MyTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @AfterEach
@@ -140,7 +141,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import org.mockito.MockedStatic;
 
               class MyTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
+
                   private MockedStatic<Currency> mockedCurrency;
 
                   @AfterEach
@@ -196,6 +199,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import org.mockito.MockedStatic;
 
               class MyTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @BeforeEach
@@ -329,6 +333,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               public class MyTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -590,6 +595,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import test.A;
 
               public class MyTest {
+
                   private MockedStatic<A.B> mockedA_B;
 
                   private static final String TEST_MESSAGE = "this is a test message";
@@ -774,6 +780,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import org.mockito.MockedStatic;
 
               public class MyTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @After
@@ -871,6 +878,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               import test.A;
 
               public class MyTest {
+
                   private MockedStatic<A.B> mockedA_B;
 
                   @Before
