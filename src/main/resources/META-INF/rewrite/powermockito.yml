@@ -98,7 +98,9 @@ description: >-
   Upgrades an explicitly declared `mockito-core` to at least the Mockito 3.x that replaces the PowerMock Mockito API.
   An older `mockito-core` would otherwise take precedence over the one `mockito-inline` depends on, so that
   `Mockito.mockStatic` and `MockedStatic` do not resolve. `mockito-all` is a 1.x-only uber jar with no 3.x release,
-  so it becomes `mockito-core` first.
+  so it becomes `mockito-core` first, and is excluded where another dependency brings it in, since its unshaded
+  1.x `org.mockito.Mockito` would otherwise shadow the one from `mockito-core`. A declared `mockito-inline` is
+  upgraded as well, as before 3.4 it depends on a `mockito-core` without `Mockito.mockStatic`.
 preconditions:
   - org.openrewrite.java.dependencies.search.RepositoryHasDependency:
       groupIdPattern: org.powermock
@@ -111,9 +113,16 @@ recipeList:
       oldGroupId: org.mockito
       oldArtifactId: mockito-all
       newArtifactId: mockito-core
+  - org.openrewrite.maven.ExcludeDependency:
+      groupId: org.mockito
+      artifactId: mockito-all
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: mockito-core
+      newVersion: 3.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.mockito
+      artifactId: mockito-inline
       newVersion: 3.x
 ---
 type: specs.openrewrite.org/v1beta/recipe
