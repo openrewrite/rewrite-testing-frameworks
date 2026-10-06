@@ -224,28 +224,26 @@ class JUnit5to6MigrationTest implements RewriteTest {
     }
 
     //language=java
-    private static final String JUNIT5_EXTENSION =
-      """
-        import org.junit.jupiter.api.extension.ExtensionContext;
+    private static final String JUNIT5_EXTENSION = """
+      import org.junit.jupiter.api.extension.ExtensionContext;
 
-        class FooExtension {
-            void store(ExtensionContext.Store store) {
-                store.getOrComputeIfAbsent(StringBuilder.class);
-            }
-        }
-        """;
+      class FooExtension {
+          void store(ExtensionContext.Store store) {
+              store.getOrComputeIfAbsent(StringBuilder.class);
+          }
+      }
+      """;
 
     //language=java
-    private static final String TESTNG_TEST =
-      """
-        import org.testng.annotations.Test;
+    private static final String TESTNG_TEST = """
+      import org.testng.annotations.Test;
 
-        class BarTest {
-            @Test
-            void bar() {
-            }
-        }
-        """;
+      class BarTest {
+          @Test
+          void bar() {
+          }
+      }
+      """;
 
     //language=xml
     private static String pomWithTestNg(String artifactId) {
