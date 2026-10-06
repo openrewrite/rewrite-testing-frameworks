@@ -113,7 +113,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
+
                   private MockedStatic<Currency> mockedCurrency;
 
                   private Calendar calendarMock;
@@ -257,7 +259,9 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
+
                   private MockedStatic<Currency> mockedCurrency;
 
                   private Calendar calendarMock = mock(Calendar.class);
@@ -338,6 +342,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -415,6 +420,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -582,6 +588,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class MyTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @AfterMethod(alwaysRun = true)
@@ -1081,6 +1088,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   private Calendar calendarMock;
@@ -1315,6 +1323,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
+
                   private MockedStatic<Calendar> mockedCalendar;
 
                   @BeforeMethod
@@ -2049,10 +2058,24 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                   </dependencies>
                 </project>
                 """,
-              spec -> spec.after(actual -> assertThat(actual)
-                .doesNotContain("powermock")
-                .contains("<artifactId>mockito-inline</artifactId>")
-                .actual())
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <scope>test</scope>
+                      <version>3.12.4</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
             ),
             srcTestJava(
               //language=java
