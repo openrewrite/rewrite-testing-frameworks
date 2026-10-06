@@ -266,6 +266,9 @@ tags:
   - junit
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.java.search.DoesNotUseType:
+      fullyQualifiedTypeName: junit.framework.TestResult
+      includeImplicit: true
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: junit.framework.AssertionFailedError
