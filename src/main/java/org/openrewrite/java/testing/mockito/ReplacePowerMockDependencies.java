@@ -21,17 +21,30 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.gradle.marker.GradleDependencyConfiguration;
+import org.openrewrite.gradle.marker.GradleProject;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.dependencies.ChangeDependency;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.maven.tree.Dependency;
+import org.openrewrite.maven.tree.ManagedDependency;
 import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.maven.tree.ResolvedDependency;
+import org.openrewrite.maven.tree.ResolvedPom;
+import org.openrewrite.maven.tree.Scope;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Collections.emptyList;
 
 public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMockDependencies.Accumulator> {
 
@@ -106,17 +119,109 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
                 stopAfterPreVisit();
                 JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
                 String targetArtifact = needsInlineMocking(tree, project, acc) ? "mockito-inline" : "mockito-core";
+                // Renaming onto an artifact the pom already declares or manages would list it twice, which Maven
+                // rejects whatever the scopes, so the existing entry is kept and a later step of the migration
+                // removes the PowerMock one. Mockito 5 mocks inline by default, so nothing needs adding to it.
+                if (declaresDependency(tree, targetArtifact) || resolvesMockito5(tree)) {
+                    return tree;
+                }
+                Boolean changeManagedDependency = managesDependency(tree, targetArtifact) ? false : null;
                 doAfterVisit(new ChangeDependency(
                         "org.powermock", "powermock-api-mockito",
                         "org.mockito", targetArtifact, "3.x",
-                        null, null, null).getVisitor());
+                        null, null, changeManagedDependency).getVisitor());
                 doAfterVisit(new ChangeDependency(
                         "org.powermock", "powermock-api-mockito2",
                         "org.mockito", targetArtifact, "3.x",
-                        null, null, null).getVisitor());
+                        null, null, changeManagedDependency).getVisitor());
                 return tree;
             }
         };
+    }
+
+    /// Only what stays once PowerMock is removed counts, so the tree is walked from the other direct dependencies.
+    /// PowerMock's own `mockito-core` can also win Maven's mediation over a newer one while it is still a dependency,
+    /// so any `org.mockito` artifact at 5 or later is taken as the sign, as all are released in step with `mockito-core`.
+    private static boolean resolvesMockito5(Tree tree) {
+        List<ResolvedDependency> direct = null;
+        MavenResolutionResult mrr = tree.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+        if (mrr != null) {
+            direct = new ArrayList<>();
+            for (ResolvedDependency dependency : mrr.getDependencies().getOrDefault(Scope.Test, emptyList())) {
+                if (dependency.isDirect()) {
+                    direct.add(dependency);
+                }
+            }
+        } else {
+            GradleProject gp = tree.getMarkers().findFirst(GradleProject.class).orElse(null);
+            GradleDependencyConfiguration testRuntime = gp == null ? null : gp.getConfiguration("testRuntimeClasspath");
+            if (testRuntime != null) {
+                direct = testRuntime.getDirectResolved();
+            }
+        }
+        if (direct != null) {
+            Set<ResolvedDependency> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ResolvedDependency dependency : direct) {
+                if (!"org.powermock".equals(dependency.getGroupId()) && reachesMockito5(dependency, seen)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean reachesMockito5(ResolvedDependency dependency, Set<ResolvedDependency> seen) {
+        if (!seen.add(dependency)) {
+            return false;
+        }
+        if ("org.mockito".equals(dependency.getGroupId()) && majorVersion(dependency.getVersion()) >= 5) {
+            return true;
+        }
+        for (ResolvedDependency transitive : dependency.getDependencies()) {
+            if (reachesMockito5(transitive, seen)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int majorVersion(String version) {
+        int end = 0;
+        while (end < version.length() && Character.isDigit(version.charAt(end))) {
+            end++;
+        }
+        return end == 0 ? 0 : Integer.parseInt(version.substring(0, end));
+    }
+
+    private static boolean declaresDependency(Tree tree, String mockitoArtifact) {
+        MavenResolutionResult mrr = tree.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+        if (mrr == null) {
+            return false;
+        }
+        ResolvedPom pom = mrr.getPom();
+        for (Dependency dependency : pom.getRequested().getDependencies()) {
+            if ("org.mockito".equals(pom.getValue(dependency.getGroupId())) &&
+                mockitoArtifact.equals(pom.getValue(dependency.getArtifactId()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean managesDependency(Tree tree, String mockitoArtifact) {
+        MavenResolutionResult mrr = tree.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+        if (mrr == null) {
+            return false;
+        }
+        ResolvedPom pom = mrr.getPom();
+        for (ManagedDependency managed : pom.getRequested().getDependencyManagement()) {
+            if (managed instanceof ManagedDependency.Defined &&
+                "org.mockito".equals(pom.getValue(((ManagedDependency.Defined) managed).getGroupId())) &&
+                mockitoArtifact.equals(pom.getValue(((ManagedDependency.Defined) managed).getArtifactId()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// Parent and aggregator poms typically manage the version of PowerMock for their modules, so these have to
