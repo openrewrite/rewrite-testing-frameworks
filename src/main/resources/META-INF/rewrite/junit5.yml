@@ -56,7 +56,7 @@ preconditions:
       artifactIdPattern: testng*
       invertMarking: true
 recipeList:
-  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
@@ -486,3 +486,26 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.gradle.internal.impldep.org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver.Builder addResourceContainerSelectorResolver(java.util.function.Predicate)"
       newMethodName: addResourceContainerSelectorResolver
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.MigrateSystemRules
+displayName: Migrate System Rules to System Stubs and JUnit Pioneer
+description: >-
+  Migrates the JUnit 4 rules of System Rules (`com.github.stefanbirkner:system-rules`) as part of the JUnit 4 to 5
+  migration. System property rules that only take string literals become JUnit Pioneer annotations; the other system
+  property, environment variable, standard stream and standard input rules become System Stubs `@SystemStub` fields,
+  and `ExpectedSystemExit` becomes System Stubs' `catchSystemExit(..)`. Rules that can not be migrated get a `TODO`
+  comment, and System Rules is only removed once nothing uses it.
+tags:
+  - testing
+  - junit
+  - jupiter
+  - system-rules
+  - system-stubs
+  - junit-pioneer
+recipeList:
+  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.SystemPropertyRulesToPioneer
+  - org.openrewrite.java.testing.junit5.SystemRulesToSystemStubs
+  - org.openrewrite.java.testing.junit5.ExpectedSystemExitToCatchSystemExit
+  - org.openrewrite.java.testing.junit5.SystemRulesDependencies
