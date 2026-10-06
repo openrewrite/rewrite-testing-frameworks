@@ -82,7 +82,7 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                       assertThat(startupFailure).hasRootCauseInstanceOf(IllegalStateException.class)
                               .withFailMessage("SSL bundle name 'test-bundle' is not valid");
                       assertThat(entries).isNotNull().hasSize(2).contains("a")
-                              .as("only the last call wrapped");
+                              .as("wrapped message after an unwrapped chain");
                   }
               }
               """,
@@ -104,7 +104,7 @@ class PlaceAssertJDescriptionBeforeAssertionTest implements RewriteTest {
                               .withFailMessage("SSL bundle name 'test-bundle' is not valid")
                               .hasRootCauseInstanceOf(IllegalStateException.class);
                       assertThat(entries)
-                              .as("only the last call wrapped")
+                              .as("wrapped message after an unwrapped chain")
                               .isNotNull().hasSize(2).contains("a");
                   }
               }

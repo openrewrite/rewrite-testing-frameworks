@@ -163,7 +163,7 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
     }
 
     private static boolean setsMovedMessage(Expression call, boolean movesDescription, boolean movesFailMessage) {
-        return movesDescription && isDescription(call) || movesFailMessage && isFailMessage(call);
+        return (movesDescription && isDescription(call)) || (movesFailMessage && isFailMessage(call));
     }
 
     private static boolean returnsVoid(JavaType.@Nullable FullyQualified functionalInterface) {
