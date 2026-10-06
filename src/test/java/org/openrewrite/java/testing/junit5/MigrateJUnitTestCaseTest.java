@@ -1066,4 +1066,68 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepConstructorsOfTestCaseOverridingRun() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+              import junit.framework.TestResult;
+
+              public class RunningTest extends TestCase {
+                  public RunningTest(String name) {
+                      super(name);
+                  }
+
+                  @Override
+                  public void run(TestResult result) {
+                      super.run(result);
+                  }
+
+                  public void testSomething() {
+                      assertEquals(2, 1 + 1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepConstructorsCalledFromTestCaseOverridingRun() {
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class MathTest extends TestCase {
+                  MathTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              class MathTest {
+                  MathTest(String name) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import junit.framework.TestCase;
+              import junit.framework.TestResult;
+
+              public class RunningTest extends TestCase {
+                  @Override
+                  public void run(TestResult result) {
+                      Object other = new MathTest("FOO");
+                      super.run(result);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

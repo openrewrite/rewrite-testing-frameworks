@@ -148,12 +148,22 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Constructors acc) {
         return new JavaIsoVisitor<ExecutionContext>() {
+            // A file overriding TestCase#run(TestResult) is left untouched, so the constructors
+            // it declares or calls must survive in every other file too.
+            private boolean untouched;
+
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                untouched = new DeclaresMethod<>(TEST_CASE_RUN_MATCHER).visit(cu, ctx) != cu;
+                return super.visitCompilationUnit(cu, ctx);
+            }
+
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 JavaType.Method type = method.getMethodType();
                 if (method.isConstructor() && type != null && isSupertypeTestCase(type.getDeclaringType())) {
                     acc.declarations.put(signature(type), method);
-                    if (method.getThrows() != null && !method.getThrows().isEmpty() ||
+                    if (untouched || method.getThrows() != null && !method.getThrows().isEmpty() ||
                             !method.getLeadingAnnotations().isEmpty()) {
                         acc.referencedUnsafely.add(signature(type));
                     }
@@ -163,7 +173,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
 
             @Override
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-                if (newClass.getConstructorType() != null && !safeToDiscard(newClass.getArguments())) {
+                if (newClass.getConstructorType() != null && (untouched || !safeToDiscard(newClass.getArguments()))) {
                     acc.referencedUnsafely.add(signature(newClass.getConstructorType()));
                 }
                 return super.visitNewClass(newClass, ctx);
@@ -171,7 +181,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if (method.getMethodType() != null && !safeToDiscard(method.getArguments())) {
+                if (method.getMethodType() != null && (untouched || !safeToDiscard(method.getArguments()))) {
                     acc.referencedUnsafely.add(signature(method.getMethodType()));
                 }
                 return super.visitMethodInvocation(method, ctx);
@@ -190,7 +200,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Constructors acc) {
         Set<String> removed = acc.removable();
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.not(new DeclaresMethod<>(TEST_CASE_RUN_MATCHER)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
@@ -222,7 +232,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
                 }
                 return super.visitMethodInvocation(method, ctx);
             }
-        };
+        });
     }
 
     private TreeVisitor<?, ExecutionContext> getMigrationVisitor() {
