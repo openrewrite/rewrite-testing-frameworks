@@ -64,6 +64,8 @@ recipeList:
       obsoleteRunners:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
+  # Before the lifecycle annotations are migrated, as it turns those of a runner into `@BeforeSuite` and `@AfterSuite`
+  - org.openrewrite.cucumber.jvm.CucumberToJunitPlatformSuite
   - org.openrewrite.maven.RemovePluginDependency:
       pluginGroupId: org.apache.maven.plugins
       pluginArtifactId: maven-surefire-plugin
@@ -94,7 +96,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
   - org.openrewrite.java.testing.junit5.UpdateMockWebServer
   - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
-  - org.openrewrite.cucumber.jvm.CucumberToJunitPlatformSuite
   - org.openrewrite.java.testing.junit5.EnclosedToNested
   - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
   - org.openrewrite.java.testing.junit5.UseMockitoExtension

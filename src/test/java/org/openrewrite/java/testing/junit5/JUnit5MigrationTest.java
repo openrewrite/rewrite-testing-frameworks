@@ -242,16 +242,27 @@ class JUnit5MigrationTest implements RewriteTest {
 
                   import io.cucumber.junit.Cucumber;
                   import io.cucumber.junit.CucumberOptions;
+                  import org.junit.AfterClass;
+                  import org.junit.BeforeClass;
                   import org.junit.runner.RunWith;
 
                   @RunWith(Cucumber.class)
                   @CucumberOptions(features = "src/test/resources/acceptance/", tags = "@component_tests")
                   public class AcceptanceTest {
+                      @BeforeClass
+                      public static void startServer() {
+                      }
+
+                      @AfterClass
+                      public static void stopServer() {
+                      }
                   }
                   """,
                 """
                   package com.example.acceptance;
 
+                  import org.junit.platform.suite.api.AfterSuite;
+                  import org.junit.platform.suite.api.BeforeSuite;
                   import org.junit.platform.suite.api.ConfigurationParameter;
                   import org.junit.platform.suite.api.IncludeEngines;
                   import org.junit.platform.suite.api.SelectClasspathResource;
@@ -266,6 +277,13 @@ class JUnit5MigrationTest implements RewriteTest {
                   @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@component_tests")
                   @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.acceptance")
                   public class AcceptanceTest {
+                      @BeforeSuite
+                      public static void startServer() {
+                      }
+
+                      @AfterSuite
+                      public static void stopServer() {
+                      }
                   }
                   """
               )
