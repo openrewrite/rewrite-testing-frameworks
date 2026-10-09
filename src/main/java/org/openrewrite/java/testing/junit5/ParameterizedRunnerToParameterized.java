@@ -24,6 +24,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,6 +46,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
     private static final String BEFORE_METHOD_NAME = "before-method-name";
+    private static final String CONSTRUCTOR_PASSES_ARGUMENTS_TO_SUPER = "constructor-passes-arguments-to-super";
 
     @Getter
     final String displayName = "JUnit 4 `@RunWith(Parameterized.class)` to JUnit Jupiter parameterized tests";
@@ -65,6 +67,20 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             Map<String, Object> params = getCursor().pollMessage(classDecl.getId().toString());
             if (params != null) {
                 String parametersMethodName = (String) params.get(PARAMETERS_METHOD_NAME);
+                String inheritedDisplayName = null;
+                if (parametersMethodName == null && cd.getLeadingAnnotations().stream().anyMatch(RUN_WITH_PARAMETERS::matches)) {
+                    InheritedParametersMethod inherited = findInheritedParametersMethod(cd.getType());
+                    if (inherited != null) {
+                        if (params.containsKey(CONSTRUCTOR_PASSES_ARGUMENTS_TO_SUPER)) {
+                            // The parameters would have to reach the superclass constructor, which a JUnit Jupiter
+                            // parameterized test method cannot do. Flag the class rather than leave it half migrated.
+                            return SearchResult.found(cd, "Not migrated to a JUnit Jupiter parameterized test: " +
+                                    "the @Parameters method is inherited and the constructor passes its arguments to the superclass constructor");
+                        }
+                        parametersMethodName = inherited.reference;
+                        inheritedDisplayName = inherited.displayName;
+                    }
+                }
                 List<Expression> parametersAnnotationArguments = (List<Expression>) params.get(PARAMETERS_ANNOTATION_ARGUMENTS);
                 List<Statement> constructorParams = (List<Statement>) params.get(CONSTRUCTOR_ARGUMENTS);
                 Map<Integer, Statement> fieldInjectionParams = (Map<Integer, Statement>) params.get(FIELD_INJECTION_ARGUMENTS);
@@ -73,16 +89,53 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
                 // Constructor Injected Test
                 if (parametersMethodName != null && constructorParams != null && constructorParams.stream().anyMatch(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)) {
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, constructorParams, true, beforeMethodName));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, inheritedDisplayName, constructorParams, true, beforeMethodName));
                 }
 
                 // Field Injected Test
                 else if (parametersMethodName != null && fieldInjectionParams != null) {
                     List<Statement> fieldParams = new ArrayList<>(fieldInjectionParams.values());
-                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, fieldParams, false, beforeMethodName));
+                    doAfterVisit(new ParameterizedRunnerToParameterizedTestsVisitor(classDecl, parametersMethodName, initMethodName, parametersAnnotationArguments, inheritedDisplayName, fieldParams, false, beforeMethodName));
                 }
             }
             return cd;
+        }
+
+        /**
+         * When the {@code @Parameters} factory is inherited rather than declared in the test class itself, find it on a
+         * supertype, to reference it the way {@code @MethodSource} accepts for a method outside the test class.
+         */
+        private @Nullable InheritedParametersMethod findInheritedParametersMethod(JavaType.@Nullable FullyQualified type) {
+            for (JavaType.FullyQualified supertype = type == null ? null : type.getSupertype();
+                 supertype != null;
+                 supertype = supertype.getSupertype()) {
+                for (JavaType.Method method : supertype.getMethods()) {
+                    if (!method.hasFlags(Flag.Static)) {
+                        continue;
+                    }
+                    for (JavaType.FullyQualified annotation : method.getAnnotations()) {
+                        if (TypeUtils.isOfClassType(annotation, "org.junit.runners.Parameterized.Parameters")) {
+                            return new InheritedParametersMethod(
+                                    supertype.getFullyQualifiedName() + "#" + method.getName(),
+                                    displayName(annotation));
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static @Nullable String displayName(JavaType.FullyQualified parametersAnnotation) {
+            if (parametersAnnotation instanceof JavaType.Annotation) {
+                for (JavaType.Annotation.ElementValue value : ((JavaType.Annotation) parametersAnnotation).getValues()) {
+                    if (value.getElement() instanceof JavaType.Method &&
+                            "name".equals(((JavaType.Method) value.getElement()).getName()) &&
+                            value.getValue() instanceof String) {
+                        return (String) value.getValue();
+                    }
+                }
+            }
+            return null;
         }
 
         @Override
@@ -92,6 +145,9 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             Map<String, Object> params = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
             if (m.isConstructor()) {
                 params.put(CONSTRUCTOR_ARGUMENTS, m.getParameters());
+                if (m.getBody() != null && m.getBody().getStatements().stream().anyMatch(ParameterizedRunnerVisitor::isSuperCallWithArguments)) {
+                    params.put(CONSTRUCTOR_PASSES_ARGUMENTS_TO_SUPER, true);
+                }
             }
             for (J.Annotation annotation : service(AnnotationService.class).getAllAnnotations(getCursor())) {
                 if (PARAMETERS.matches(annotation)) {
@@ -104,6 +160,12 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 }
             }
             return m;
+        }
+
+        private static boolean isSuperCallWithArguments(Statement statement) {
+            return statement instanceof J.MethodInvocation &&
+                    "super".equals(((J.MethodInvocation) statement).getSimpleName()) &&
+                    ((J.MethodInvocation) statement).getArguments().stream().noneMatch(J.Empty.class::isInstance);
         }
 
         @Override
@@ -140,6 +202,18 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         }
     }
 
+    private static class InheritedParametersMethod {
+        final String reference;
+
+        @Nullable
+        final String displayName;
+
+        InheritedParametersMethod(String reference, @Nullable String displayName) {
+            this.reference = reference;
+            this.displayName = displayName;
+        }
+    }
+
     private static class ParameterizedRunnerToParameterizedTestsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         private final J.ClassDeclaration scope;
@@ -151,6 +225,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         @Nullable
         private final List<Expression> parameterizedTestAnnotationParameters;
 
+        /**
+         * The display name of an inherited {@code @Parameters} method, whose annotation arguments are only known from
+         * its type attribution.
+         */
+        @Nullable
+        private final String inheritedDisplayName;
+
         private final String initStatementParamString;
 
         @Nullable
@@ -160,6 +241,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                                                               String parametersMethodName,
                                                               String initMethodName,
                                                               @Nullable List<Expression> parameterizedTestAnnotationParameters,
+                                                              @Nullable String inheritedDisplayName,
                                                               List<Statement> parameterizedTestMethodParameters,
                                                               boolean isConstructorInjection,
                                                               @Nullable String beforeMethodName) {
@@ -181,6 +263,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     .collect(joining(", "));
 
             this.parameterizedTestAnnotationParameters = parameterizedTestAnnotationParameters;
+            this.inheritedDisplayName = inheritedDisplayName;
         }
 
         private JavaTemplate buildInitMethodDeclarationTemplate(ExecutionContext ctx) {
@@ -308,7 +391,9 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             // Replace @Test with @ParameterizedTest
             String parameterizedTestAnnotationTemplate = parameterizedTestAnnotationParameters != null ?
                     "@ParameterizedTest(#{any()})" :
-                    "@ParameterizedTest";
+                    inheritedDisplayName != null ?
+                            "@ParameterizedTest(name = \"" + inheritedDisplayName.replace("\\", "\\\\").replace("\"", "\\\"") + "\")" :
+                            "@ParameterizedTest";
             JavaTemplate parameterizedTestTemplate = JavaTemplate.builder(parameterizedTestAnnotationTemplate)
                     .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))

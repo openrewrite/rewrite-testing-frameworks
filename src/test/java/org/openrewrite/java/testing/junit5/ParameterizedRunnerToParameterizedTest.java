@@ -790,4 +790,226 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1126")
+    @Test
+    void parametersMethodInheritedFromSuperclass() {
+        //language=java
+        rewriteRun(
+          // as in nestedRunners, the inserted init call is not attributed when the class extends a source-only type
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          java(
+            """
+              package com.example;
+
+              import java.util.Arrays;
+              import java.util.Collection;
+              import org.junit.runners.Parameterized.Parameters;
+
+              public class ParamBase {
+                  @Parameters(name = "{0}")
+                  public static Collection<Object[]> data() {
+                      return Arrays.asList(new Object[][] {{1}, {2}});
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+
+              import static org.junit.Assert.assertTrue;
+
+              @RunWith(Parameterized.class)
+              public class InheritedTest extends ParamBase {
+                  private final int value;
+
+                  public InheritedTest(int value) {
+                      this.value = value;
+                  }
+
+                  @Test
+                  public void isPositive() {
+                      assertTrue(value > 0);
+                  }
+              }
+              """,
+            """
+              package com.example;
+
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import static org.junit.Assert.assertTrue;
+
+              public class InheritedTest extends ParamBase {
+                  private int value;
+
+                  public void initInheritedTest(int value) {
+                      this.value = value;
+                  }
+
+                  @MethodSource("com.example.ParamBase#data")
+                  @ParameterizedTest(name = "{0}")
+                  public void isPositive(int value) {
+                      initInheritedTest(value);
+                      assertTrue(value > 0);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1126")
+    @Test
+    void fieldInjectedParametersMethodInheritedFromSuperclass() {
+        //language=java
+        rewriteRun(
+          // as in nestedRunners, the inserted init call is not attributed when the class extends a source-only type
+          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
+          java(
+            """
+              package com.example;
+
+              import java.util.Arrays;
+              import java.util.Collection;
+              import org.junit.runners.Parameterized.Parameters;
+
+              public class ParamBase {
+                  @Parameters(name = "{0}")
+                  public static Collection<Object[]> data() {
+                      return Arrays.asList(new Object[][] {{1}, {2}});
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+              import org.junit.runners.Parameterized.Parameter;
+
+              import static org.junit.Assert.assertTrue;
+
+              @RunWith(Parameterized.class)
+              public class InheritedTest extends ParamBase {
+                  @Parameter
+                  public int value;
+
+                  @Test
+                  public void isPositive() {
+                      assertTrue(value > 0);
+                  }
+              }
+              """,
+            """
+              package com.example;
+
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import static org.junit.Assert.assertTrue;
+
+              public class InheritedTest extends ParamBase {
+                  public int value;
+
+                  @MethodSource("com.example.ParamBase#data")
+                  @ParameterizedTest(name = "{0}")
+                  public void isPositive(int value) {
+                      initInheritedTest(value);
+                      assertTrue(value > 0);
+                  }
+
+                  public void initInheritedTest(int value) {
+                      this.value = value;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1126")
+    @Test
+    void flagInheritedParametersMethodWhenConstructorDelegatesToSuper() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.example;
+
+              import java.util.Arrays;
+              import java.util.Collection;
+              import org.junit.runners.Parameterized.Parameters;
+
+              public class ParamBase {
+                  protected final int value;
+
+                  @Parameters(name = "{0}")
+                  public static Collection<Object[]> data() {
+                      return Arrays.asList(new Object[][] {{1}, {2}});
+                  }
+
+                  protected ParamBase(int value) {
+                      this.value = value;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+
+              import static org.junit.Assert.assertTrue;
+
+              @RunWith(Parameterized.class)
+              public class InheritedTest extends ParamBase {
+
+                  public InheritedTest(int value) {
+                      super(value);
+                  }
+
+                  @Test
+                  public void isPositive() {
+                      assertTrue(value > 0);
+                  }
+              }
+              """,
+            """
+              package com.example;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+
+              import static org.junit.Assert.assertTrue;
+
+              /*~~(Not migrated to a JUnit Jupiter parameterized test: the @Parameters method is inherited and the constructor passes its arguments to the superclass constructor)~~>*/@RunWith(Parameterized.class)
+              public class InheritedTest extends ParamBase {
+
+                  public InheritedTest(int value) {
+                      super(value);
+                  }
+
+                  @Test
+                  public void isPositive() {
+                      assertTrue(value > 0);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
