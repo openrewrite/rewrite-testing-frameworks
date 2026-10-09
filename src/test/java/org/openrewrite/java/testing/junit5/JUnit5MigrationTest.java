@@ -1086,6 +1086,44 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1114")
+    @Test
+    void leaveTestCaseReportingToTestResultUntouched() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.AssertionFailedError;
+              import junit.framework.TestCase;
+              import junit.framework.TestResult;
+
+              public class MultiThreadedTest extends TestCase {
+
+                  private TestResult testResult = null;
+
+                  @Override
+                  public void run(TestResult result) {
+                      this.testResult = result;
+                      super.run(result);
+                  }
+
+                  public void handleException(Throwable t) {
+                      if (t instanceof AssertionFailedError) {
+                          testResult.addFailure(this, (AssertionFailedError) t);
+                      } else {
+                          testResult.addError(this, t);
+                      }
+                  }
+
+                  public void testSomething() {
+                      assertEquals(2, 1 + 1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     /// The bug this test is reproducing is likely not specific to the JUnit5 upgrade, it's just where it was first
     /// encountered and isolated. It would probably be reproducible using other recipes that reorder method parameters,
     /// provided that a Javadoc link refers to an affected method, and the link has a newline in between the parameters.
