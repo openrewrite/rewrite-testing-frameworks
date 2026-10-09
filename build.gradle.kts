@@ -54,6 +54,8 @@ recipeDependencies {
     testParserClasspath("com.github.database-rider:rider-spring:1.18.0")
     testParserClasspath("com.google.guava:guava:33.5.0-jre")
     testParserClasspath("com.google.truth:truth:1.4.5")
+    testParserClasspath("io.cucumber:cucumber-core:4.8.1")
+    testParserClasspath("io.cucumber:cucumber-junit:4.8.1")
     testParserClasspath("io.cucumber:cucumber-junit:7.34.8")
     testParserClasspath("io.grpc:grpc-testing:1.+")
     testParserClasspath("org.easymock:easymock:5.6.0")

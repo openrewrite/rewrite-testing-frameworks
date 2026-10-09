@@ -326,6 +326,83 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void cucumber4RunnerBecomesSuite() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "cucumber-core-4", "cucumber-junit-4"))
+            .beforeRecipe(sources -> sources.sort(comparing(source -> !(source instanceof Xml.Document)))),
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  package com.example.acceptance;
+
+                  import cucumber.api.CucumberOptions;
+                  import cucumber.api.junit.Cucumber;
+                  import org.junit.runner.RunWith;
+
+                  @RunWith(Cucumber.class)
+                  @CucumberOptions(features = "src/test/resources/acceptance/", tags = "@component_tests")
+                  public class AcceptanceTest {
+                  }
+                  """,
+                """
+                  package com.example.acceptance;
+
+                  import org.junit.platform.suite.api.ConfigurationParameter;
+                  import org.junit.platform.suite.api.IncludeEngines;
+                  import org.junit.platform.suite.api.SelectClasspathResource;
+                  import org.junit.platform.suite.api.Suite;
+
+                  import static io.cucumber.junit.platform.engine.Constants.FILTER_TAGS_PROPERTY_NAME;
+                  import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
+                  @Suite
+                  @IncludeEngines("cucumber")
+                  @SelectClasspathResource("acceptance")
+                  @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@component_tests")
+                  @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.acceptance")
+                  public class AcceptanceTest {
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>io.cucumber</groupId>
+                            <artifactId>cucumber-junit</artifactId>
+                            <version>4.8.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>cucumber-junit-platform-engine</artifactId>\\s*<version>7\\.")
+                .containsPattern("<artifactId>junit-platform-suite</artifactId>\\s*<version>1\\.")
+                .doesNotContain("<artifactId>cucumber-junit</artifactId>", "<artifactId>junit</artifactId>")
+                .actual())
+            )
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1113")
     @Test
     void addJupiterWhenOnlyTestCaseIsUsed() {

@@ -64,8 +64,9 @@ recipeList:
       obsoleteRunners:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
-  # Before the lifecycle annotations are migrated, as it turns those of a runner into `@BeforeSuite` and `@AfterSuite`
-  - org.openrewrite.cucumber.jvm.CucumberToJunitPlatformSuite
+  # Before the lifecycle annotations are migrated, as it turns those of a runner into `@BeforeSuite` and `@AfterSuite`;
+  # the full upgrade, as the runner of an older Cucumber-JVM release is only converted once it is on the 7.x types
+  - org.openrewrite.cucumber.jvm.UpgradeCucumber7x
   - org.openrewrite.maven.RemovePluginDependency:
       pluginGroupId: org.apache.maven.plugins
       pluginArtifactId: maven-surefire-plugin
