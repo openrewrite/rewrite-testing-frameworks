@@ -65,7 +65,7 @@ recipeList:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
   # Before the lifecycle annotations are migrated, as it turns those of a runner into `@BeforeSuite` and `@AfterSuite`;
-  # the full upgrade, as the runner of an older Cucumber-JVM release is only converted once it is on the 7.x types
+  # the full upgrade, as the suite migration moves all Cucumber-JVM dependencies to 7.x, which older code must follow
   - org.openrewrite.cucumber.jvm.UpgradeCucumber7x
   - org.openrewrite.maven.RemovePluginDependency:
       pluginGroupId: org.apache.maven.plugins
