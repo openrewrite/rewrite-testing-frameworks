@@ -24,11 +24,12 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.marker.SearchResult;
+import org.openrewrite.trait.Comments;
 
 public class TruthCustomSubjectsToAssertJ extends Recipe {
 
     private static final MethodMatcher ASSERT_ABOUT = new MethodMatcher("com.google.common.truth.Truth assertAbout(..)");
+    private static final String MANUAL_REVIEW = asCommentText("Truth's assertAbout() with custom subjects requires manual migration to AssertJ custom assertions");
 
     @Getter
     final String displayName = "Migrate Truth custom subjects to AssertJ";
@@ -44,14 +45,16 @@ public class TruthCustomSubjectsToAssertJ extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
 
                 if (ASSERT_ABOUT.matches(mi)) {
-                    // Truth's assertAbout() is used for custom subjects
-                    // AssertJ uses a different pattern with custom assertion classes
-                    // This requires manual migration to create custom AssertJ assertion classes
-                    return SearchResult.found(mi, "Truth's assertAbout() with custom subjects requires manual migration to AssertJ custom assertions");
+                    return Comments.of(updateCursor(mi)).multilineComment(MANUAL_REVIEW);
                 }
 
                 return mi;
             }
         });
+    }
+
+    // Pad the text so the comment renders as `/* text */` rather than `/*text*/`
+    private static String asCommentText(String message) {
+        return " " + message + " ";
     }
 }
