@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.mockito;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -91,6 +92,79 @@ class MockUtilsToStaticTest implements RewriteTest {
               public class MockitoMockUtils {
                   public void isMockExample() {
                       MockUtil.isMock("I am a real String");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("The single-file use analysis removes a MockUtil field still referenced from another source file, so that file no longer compiles")
+    @Test
+    void doNotRemoveFieldUsedInAnotherClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package mockito.example;
+
+              import org.mockito.internal.util.MockUtil;
+
+              public class MockitoMockUtils {
+                  public MockUtil util = new MockUtil();
+              }
+              """
+          ),
+          java(
+            """
+              package mockito.example;
+
+              public class MockitoMockUtilsUser {
+                  public boolean isMockUtilSet(MockitoMockUtils utils) {
+                      return utils.util != null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Disabled("A fully migrated MockUtil declaration directly under a case label is not removed because its parent is the case, not a block")
+    @Test
+    void mockUtilsVariableInSwitchCaseToStatic() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package mockito.example;
+
+              import org.mockito.internal.util.MockUtil;
+
+              public class MockitoMockUtils {
+                  public boolean isMockExample(int mode, Object value) {
+                      switch (mode) {
+                          case 1:
+                              MockUtil util = new MockUtil();
+                              return util.isMock(value);
+                          default:
+                              return false;
+                      }
+                  }
+              }
+              """,
+            """
+              package mockito.example;
+
+              import org.mockito.internal.util.MockUtil;
+
+              public class MockitoMockUtils {
+                  public boolean isMockExample(int mode, Object value) {
+                      switch (mode) {
+                          case 1:
+                              return MockUtil.isMock(value);
+                          default:
+                              return false;
+                      }
                   }
               }
               """
