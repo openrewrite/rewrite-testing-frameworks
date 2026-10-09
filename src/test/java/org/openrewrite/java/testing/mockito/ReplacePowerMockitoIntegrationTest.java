@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
@@ -26,6 +27,8 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
@@ -33,6 +36,7 @@ import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
+import static org.openrewrite.test.SourceSpecs.text;
 
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
@@ -2715,6 +2719,37 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void unusedPropertyScanStaysLinearOnLongTextLines() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.RemovePowerMockDependencies"),
+          mavenProject("long-lines",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>long-lines</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <powermock.version>1.6.5</powermock.version>
+                    <version.powermock>1.6.5</version.powermock>
+                  </properties>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>long-lines</artifactId>
+                  <version>1.0</version>
+                </project>
+                """
+            ),
+            text("@x".repeat(100_000), spec -> spec.path("assets/data.txt"))
+          )
+        );
+    }
 
     @Test
     void explicitMockitoCoreIsUpgradedAlongWithMockitoInline() {

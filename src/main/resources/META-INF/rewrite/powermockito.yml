@@ -68,7 +68,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.ExcludeMockitoAllReplacingPowerMock
   # Removing the dependencies orphans the `<powermock.version>` style properties that supplied their versions.
   - org.openrewrite.maven.RemoveUnusedProperties:
-      propertyPattern: .*powermock.*
+      propertyPattern: '[\w.-]*powermock[\w.-]*'
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.AddJUnit4ReplacingPowerMockModule
