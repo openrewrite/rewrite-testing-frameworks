@@ -439,5 +439,37 @@ class UseWiremockExtensionTest implements RewriteTest {
               )
             );
         }
+
+        @Test
+        void continueToWiremock3InJUnit5to6Migration() {
+            rewriteRun(
+              spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration", "org.openrewrite.java.testing.junit6.JUnit5to6Migration"),
+              mavenProject("project",
+                srcTestJava(
+                  java(RULE, EXTENSION, spec -> spec.markers(javaVersion(17)))
+                ),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>project</artifactId>
+                        <version>1</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.github.tomakehurst</groupId>
+                                <artifactId>wiremock</artifactId>
+                                <version>2.27.2</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """,
+                  spec -> spec.after(actual -> assertThat(actual).containsSubsequence("<groupId>org.wiremock</groupId>", "<artifactId>wiremock</artifactId>", "<version>3.").doesNotContain("com.github.tomakehurst", "jre8").actual())
+                )
+              )
+            );
+        }
     }
 }
