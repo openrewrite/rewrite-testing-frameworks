@@ -58,6 +58,22 @@ preconditions:
 recipeList:
   - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
+  # `WireMockExtension` needs WireMock 2.31.0; `wiremock` and `wiremock-standalone` end at 2.27.2, continuing on Java 8 as `-jre8`
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock
+      newArtifactId: wiremock-jre8
+      newVersion: 2.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock-standalone
+      newArtifactId: wiremock-jre8-standalone
+      newVersion: 2.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: com.github.tomakehurst
+      artifactId: wiremock*
+      newVersion: 2.x
+      overrideManagedVersion: true
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
   - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners:
