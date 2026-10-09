@@ -27,9 +27,11 @@ import org.openrewrite.marker.BuildTool;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
+import org.openrewrite.xml.tree.Xml;
 
 import java.util.regex.Pattern;
 
+import static java.util.Comparator.comparing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
@@ -232,7 +234,9 @@ class JUnit5MigrationTest implements RewriteTest {
     void cucumberRunnerBecomesSuite() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "cucumber-junit-7")),
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "cucumber-junit-7"))
+            // The pom changes mark the project dirty, which keeps the imports explicit, so edit it first as a Maven build would
+            .beforeRecipe(sources -> sources.sort(comparing(source -> !(source instanceof Xml.Document)))),
           mavenProject("project",
             srcTestJava(
               //language=java
