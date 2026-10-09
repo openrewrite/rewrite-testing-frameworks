@@ -228,7 +228,9 @@ class UseWiremockExtensionTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  spec -> spec.after(actual -> assertThat(actual).contains(WIREMOCK_JRE8_2_35).actual())
+                  spec -> spec.after(actual -> assertThat(actual)
+                    .contains(WIREMOCK_JRE8_2_35)
+                    .actual())
                 )
               )
             );
@@ -259,7 +261,10 @@ class UseWiremockExtensionTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  spec -> spec.after(actual -> assertThat(actual).contains(WIREMOCK_JRE8_2_35).doesNotContain("<artifactId>wiremock</artifactId>").actual())
+                  spec -> spec.after(actual -> assertThat(actual)
+                    .contains(WIREMOCK_JRE8_2_35)
+                    .doesNotContain("<artifactId>wiremock</artifactId>")
+                    .actual())
                 )
               )
             );
@@ -290,7 +295,10 @@ class UseWiremockExtensionTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  spec -> spec.after(actual -> assertThat(actual).containsSubsequence("<artifactId>wiremock-jre8-standalone</artifactId>", "<version>2.35.2</version>").doesNotContain("<artifactId>wiremock-standalone</artifactId>").actual())
+                  spec -> spec.after(actual -> assertThat(actual)
+                    .containsSubsequence("<artifactId>wiremock-jre8-standalone</artifactId>", "<version>2.35.2</version>")
+                    .doesNotContain("<artifactId>wiremock-standalone</artifactId>")
+                    .actual())
                 )
               )
             );
@@ -321,7 +329,9 @@ class UseWiremockExtensionTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  spec -> spec.after(actual -> assertThat(actual).contains(WIREMOCK_JRE8_2_35).actual())
+                  spec -> spec.after(actual -> assertThat(actual)
+                    .contains(WIREMOCK_JRE8_2_35)
+                    .actual())
                 )
               )
             );
@@ -399,7 +409,9 @@ class UseWiremockExtensionTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  spec -> spec.after(actual -> assertThat(actual).doesNotContain("<version>2.").actual())
+                  spec -> spec.after(actual -> assertThat(actual)
+                    .doesNotContain("<version>2.")
+                    .actual())
                 )
               )
             );
@@ -434,7 +446,9 @@ class UseWiremockExtensionTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  spec -> spec.after(actual -> assertThat(actual).contains("<wiremock.version>2.35.2</wiremock.version>").actual())
+                  spec -> spec.after(actual -> assertThat(actual)
+                    .contains("<wiremock.version>2.35.2</wiremock.version>")
+                    .actual())
                 )
               )
             );
@@ -466,7 +480,11 @@ class UseWiremockExtensionTest implements RewriteTest {
                         </dependencies>
                     </project>
                     """,
-                  spec -> spec.after(actual -> assertThat(actual).containsSubsequence("<groupId>org.wiremock</groupId>", "<artifactId>wiremock</artifactId>", "<version>3.").doesNotContain("com.github.tomakehurst", "jre8").actual())
+                  spec -> spec.after(actual -> assertThat(actual)
+                    .containsSubsequence("<groupId>org.wiremock</groupId>", "<artifactId>wiremock</artifactId>", "<version>3.")
+                    .doesNotContain("com.github.tomakehurst")
+                    .doesNotContain("jre8")
+                    .actual())
                 )
               )
             );
