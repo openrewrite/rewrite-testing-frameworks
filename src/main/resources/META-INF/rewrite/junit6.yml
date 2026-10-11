@@ -39,6 +39,10 @@ tags:
   - jupiter
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.testng
+      artifactIdPattern: testng*
+      invertMarking: true
   - org.openrewrite.java.search.DoesNotUseType:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true
@@ -89,7 +93,7 @@ recipeList:
   - org.openrewrite.java.testing.junit6.MinimumJreConditions:
       javaVersion: 17
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.junit.jupiter.api.extension.ExtensionContext.Store getOrComputeIfAbsent((..))
+      methodPattern: org.junit.jupiter.api.extension.ExtensionContext.Store getOrComputeIfAbsent(..)
       newMethodName: computeIfAbsent
       matchOverrides: true
       ignoreDefinition: true

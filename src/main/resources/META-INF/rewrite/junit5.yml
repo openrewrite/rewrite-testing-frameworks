@@ -56,14 +56,33 @@ preconditions:
       artifactIdPattern: testng*
       invertMarking: true
 recipeList:
-  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
+  # `WireMockExtension` needs WireMock 2.31.0; `wiremock` and `wiremock-standalone` end at 2.27.2, continuing on Java 8 as `-jre8`
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock
+      newArtifactId: wiremock-jre8
+      newVersion: 2.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock-standalone
+      newArtifactId: wiremock-jre8-standalone
+      newVersion: 2.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: com.github.tomakehurst
+      artifactId: wiremock*
+      newVersion: 2.x
+      overrideManagedVersion: true
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
   - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners:
       obsoleteRunners:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
+  # Before the lifecycle annotations are migrated, as it turns those of a runner into `@BeforeSuite` and `@AfterSuite`;
+  # the full upgrade, as the suite migration moves all Cucumber-JVM dependencies to 7.x, which older code must follow
+  - org.openrewrite.cucumber.jvm.UpgradeCucumber7x
   - org.openrewrite.maven.RemovePluginDependency:
       pluginGroupId: org.apache.maven.plugins
       pluginArtifactId: maven-surefire-plugin
@@ -486,3 +505,26 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.gradle.internal.impldep.org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver.Builder addResourceContainerSelectorResolver(java.util.function.Predicate)"
       newMethodName: addResourceContainerSelectorResolver
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.MigrateSystemRules
+displayName: Migrate System Rules to System Stubs and JUnit Pioneer
+description: >-
+  Migrates the JUnit 4 rules of System Rules (`com.github.stefanbirkner:system-rules`) as part of the JUnit 4 to 5
+  migration. System property rules that only take string literals become JUnit Pioneer annotations; the other system
+  property, environment variable, standard stream and standard input rules become System Stubs `@SystemStub` fields,
+  and `ExpectedSystemExit` becomes System Stubs' `catchSystemExit(..)`. Rules that can not be migrated get a `TODO`
+  comment, and System Rules is only removed once nothing uses it.
+tags:
+  - testing
+  - junit
+  - jupiter
+  - system-rules
+  - system-stubs
+  - junit-pioneer
+recipeList:
+  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.SystemPropertyRulesToPioneer
+  - org.openrewrite.java.testing.junit5.SystemRulesToSystemStubs
+  - org.openrewrite.java.testing.junit5.ExpectedSystemExitToCatchSystemExit
+  - org.openrewrite.java.testing.junit5.SystemRulesDependencies
