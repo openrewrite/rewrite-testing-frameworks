@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -665,6 +666,44 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                           public void run() {
                           }
                       };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1114")
+    @Test
+    void skipTestCaseOverridingRun() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.AssertionFailedError;
+              import junit.framework.TestCase;
+              import junit.framework.TestResult;
+
+              public class MultiThreadedTest extends TestCase {
+
+                  private TestResult testResult = null;
+
+                  @Override
+                  public void run(TestResult result) {
+                      this.testResult = result;
+                      super.run(result);
+                  }
+
+                  public void handleException(Throwable t) {
+                      if (t instanceof AssertionFailedError) {
+                          testResult.addFailure(this, (AssertionFailedError) t);
+                      } else {
+                          testResult.addError(this, t);
+                      }
+                  }
+
+                  public void testSomething() {
+                      assertEquals(2, 1 + 1);
                   }
               }
               """

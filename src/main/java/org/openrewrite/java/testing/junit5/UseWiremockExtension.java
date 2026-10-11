@@ -21,14 +21,8 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.*;
-import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
-
-import java.util.List;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 
 public class UseWiremockExtension extends Recipe {
 
@@ -149,11 +143,5 @@ public class UseWiremockExtension extends Recipe {
                 return n;
             }
         });
-    }
-
-    @Override
-    public List<Recipe> getRecipeList() {
-        return singletonList(new UpgradeDependencyVersion("com.github.tomakehurst", "wiremock*",
-                "2.x", null, true, emptyList()));
     }
 }

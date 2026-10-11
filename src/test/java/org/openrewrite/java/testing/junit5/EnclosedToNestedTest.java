@@ -35,6 +35,106 @@ class EnclosedToNestedTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration");
     }
 
+    @Test
+    void preservesIndependentJupiterFixture() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class Fixtures {
+                  static class Case {
+                      @Test
+                      void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservesIndependentJUnit4Fixture() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+
+              class Fixtures {
+                  public static class Case {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              class Fixtures {
+                  public static class Case {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservesIndependentFixtureAlongsideEnclosedSuite() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.experimental.runners.Enclosed;
+              import org.junit.runner.RunWith;
+
+              @RunWith(Enclosed.class)
+              class Suite {
+                  public static class Case {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              class Fixtures {
+                  public static class Case {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+
+              class Suite {
+                  @Nested
+                  public class Case {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              class Fixtures {
+                  public static class Case {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @DocumentExample
     @Test
     void oneInnerClass() {

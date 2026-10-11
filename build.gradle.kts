@@ -54,6 +54,9 @@ recipeDependencies {
     testParserClasspath("com.github.database-rider:rider-spring:1.18.0")
     testParserClasspath("com.google.guava:guava:33.5.0-jre")
     testParserClasspath("com.google.truth:truth:1.4.5")
+    testParserClasspath("io.cucumber:cucumber-core:4.8.1")
+    testParserClasspath("io.cucumber:cucumber-junit:4.8.1")
+    testParserClasspath("io.cucumber:cucumber-junit:7.34.8")
     testParserClasspath("io.grpc:grpc-testing:1.+")
     testParserClasspath("org.easymock:easymock:5.6.0")
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")
@@ -87,6 +90,7 @@ dependencies {
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
 
+    runtimeOnly("org.openrewrite.recipe:rewrite-cucumber-jvm:${rewriteVersion}")
     runtimeOnly("tech.picnic.error-prone-support:error-prone-contrib:${rewriteVersion}:recipes")
     compileOnly("org.junit.jupiter:junit-jupiter-engine:5.13.3")
     compileOnly("org.assertj:assertj-core:3.27.7")
