@@ -26,7 +26,8 @@ import org.openrewrite.java.tree.*;
 
 public class UseWiremockExtension extends Recipe {
 
-    private static final MethodMatcher newWiremockRule = new MethodMatcher("com.github.tomakehurst.wiremock.junit.WireMockRule <constructor>(..)");
+    private static final String WIREMOCK_RULE = "com.github.tomakehurst.wiremock.junit.WireMockRule";
+    private static final MethodMatcher newWiremockRule = new MethodMatcher(WIREMOCK_RULE + " <constructor>(..)");
 
     @Getter
     final String displayName = "Use wiremock extension";
@@ -36,13 +37,12 @@ public class UseWiremockExtension extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("com.github.tomakehurst.wiremock.junit.WireMockRule", false), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(WIREMOCK_RULE, false), new JavaVisitor<ExecutionContext>() {
 
             @Override
             public J preVisit(J tree, ExecutionContext ctx) {
                 if (tree instanceof JavaSourceFile) {
-                    doAfterVisit(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
-                            "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true).getVisitor());
+                    doAfterVisit(new ChangeType(WIREMOCK_RULE, "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true).getVisitor());
                 }
                 return tree;
             }
@@ -50,7 +50,7 @@ public class UseWiremockExtension extends Recipe {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "com.github.tomakehurst.wiremock.junit.WireMockRule") && ("port".equals(mi.getSimpleName()) || "httpsPort".equals(mi.getSimpleName()))) {
+                if (mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), WIREMOCK_RULE) && ("port".equals(mi.getSimpleName()) || "httpsPort".equals(mi.getSimpleName()))) {
                     String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "getHttpsPort";
                     return mi.withName(mi.getName().withSimpleName(getter))
                             .withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build("com.github.tomakehurst.wiremock.junit5.WireMockExtension")));
