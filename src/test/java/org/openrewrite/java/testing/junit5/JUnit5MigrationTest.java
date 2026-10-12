@@ -20,11 +20,14 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.Recipe;
+import org.openrewrite.RecipeRun;
 import org.openrewrite.Tree;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteRunner;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 import org.openrewrite.xml.tree.Xml;
@@ -40,6 +43,15 @@ import static org.openrewrite.maven.Assertions.pomXml;
 
 @SuppressWarnings({"NewClassNamingConvention", "EqualsWithItself", "deprecation", "LanguageMismatch"})
 class JUnit5MigrationTest implements RewriteTest {
+
+    // Runs only as many cycles as the Moderne CLI and platform would, rather than as many as the test expects
+    private static final RewriteRunner PRODUCTION_CYCLES = new RewriteRunner() {
+        @Override
+        public RecipeRun run(Recipe recipe, Context context) {
+            return recipe.run(context.getSources(), context.getExecutionContext(), 3, 1);
+        }
+    };
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -1005,6 +1017,124 @@ class JUnit5MigrationTest implements RewriteTest {
                             <version>4.12</version>
                             <scope>test</scope>
                         </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>4.11.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-junit-jupiter</artifactId>
+                            <version>4.11.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void addMockitoJupiterDependencyWhenPowerMockRunnerBecomesMockitoExtension() {
+        rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(),
+                "junit-4",
+                "mockito-core-3.12",
+                "powermock-module-junit4"))
+            .runner(PRODUCTION_CYCLES),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.junit.runner.RunWith;
+                  import org.mockito.Mock;
+                  import org.powermock.modules.junit4.PowerMockRunner;
+
+                  import java.util.List;
+
+                  @RunWith(PowerMockRunner.class)
+                  public class MyTest {
+                      @Mock
+                      List<String> list;
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.mockito.Mock;
+                  import org.mockito.junit.jupiter.MockitoExtension;
+                  import org.mockito.junit.jupiter.MockitoSettings;
+                  import org.mockito.quality.Strictness;
+
+                  import java.util.List;
+
+                  @MockitoSettings(strictness = Strictness.LENIENT)
+                  @ExtendWith(MockitoExtension.class)
+                  public class MyTest {
+                      @Mock
+                      List<String> list;
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>3.12.4</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.powermock</groupId>
+                            <artifactId>powermock-module-junit4</artifactId>
+                            <version>2.0.9</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.powermock</groupId>
+                            <artifactId>powermock-api-mockito2</artifactId>
+                            <version>2.0.9</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
                         <dependency>
                             <groupId>org.mockito</groupId>
                             <artifactId>mockito-core</artifactId>
