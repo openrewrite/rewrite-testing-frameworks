@@ -57,6 +57,7 @@ preconditions:
       invertMarking: true
 recipeList:
   - org.openrewrite.java.testing.junit5.MigrateSystemRules
+  - org.openrewrite.java.testing.junit5.WireMockRuleToWireMockServer
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
   # `WireMockExtension` needs WireMock 2.31.0; `wiremock` and `wiremock-standalone` end at 2.27.2, continuing on Java 8 as `-jre8`
   - org.openrewrite.java.dependencies.ChangeDependency:
