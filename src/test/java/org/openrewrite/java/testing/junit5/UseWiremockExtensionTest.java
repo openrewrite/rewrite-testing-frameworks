@@ -159,6 +159,53 @@ class UseWiremockExtensionTest implements RewriteTest {
         );
     }
 
+    @Test
+    void portToGetPort() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.Rule;
+
+              import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+              class Test {
+                  @Rule
+                  public WireMockRule wm = new WireMockRule(options().dynamicPort().dynamicHttpsPort());
+
+                  String baseUrl() {
+                      return "http://localhost:" + wm.port();
+                  }
+
+                  String secureBaseUrl() {
+                      return "https://localhost:" + wm.httpsPort();
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+              import org.junit.jupiter.api.extension.RegisterExtension;
+
+              import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+              class Test {
+                  @RegisterExtension
+                  public WireMockExtension wm = WireMockExtension.newInstance().options(options().dynamicPort().dynamicHttpsPort()).build();
+
+                  String baseUrl() {
+                      return "http://localhost:" + wm.getPort();
+                  }
+
+                  String secureBaseUrl() {
+                      return "https://localhost:" + wm.getHttpsPort();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class InJUnit4to5Migration implements RewriteTest {
 
@@ -201,6 +248,113 @@ class UseWiremockExtensionTest implements RewriteTest {
               .parser(JavaParser.fromJavaVersion()
                 .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "wiremock-jre8-2.35"))
               .recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration");
+        }
+
+        @Test
+        void portToGetPort() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.junit.WireMockRule;
+                  import org.junit.Rule;
+                  import org.junit.Test;
+
+                  import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+                  public class OAuthUtilTest {
+                      @Rule
+                      public WireMockRule wireMockRule = new WireMockRule(options().dynamicPort());
+
+                      @Test
+                      public void token() {
+                          String url = "http://localhost:" + wireMockRule.port() + "/oauth2/token";
+                      }
+                  }
+                  """,
+                """
+                  import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.extension.RegisterExtension;
+
+                  import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+                  public class OAuthUtilTest {
+                      @RegisterExtension
+                      public WireMockExtension wireMockRule = WireMockExtension.newInstance().options(options().dynamicPort()).build();
+
+                      @Test
+                      public void token() {
+                          String url = "http://localhost:" + wireMockRule.getPort() + "/oauth2/token";
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void stoppedRuleBecomesServer() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.junit.WireMockRule;
+                  import org.junit.Before;
+                  import org.junit.Rule;
+                  import org.junit.Test;
+
+                  import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+                  public class ThrottledClientTest {
+                      @Rule
+                      public WireMockRule wireMockRule = new WireMockRule(options().dynamicPort());
+                      private String url;
+
+                      @Before
+                      public void setUp() {
+                          url = "http://localhost:" + wireMockRule.port();
+                      }
+
+                      @Test
+                      public void recoversFromOutage() {
+                          wireMockRule.stop();
+                          wireMockRule.start();
+                      }
+                  }
+                  """,
+                """
+                  import com.github.tomakehurst.wiremock.WireMockServer;
+                  import org.junit.jupiter.api.AfterEach;
+                  import org.junit.jupiter.api.BeforeEach;
+                  import org.junit.jupiter.api.Test;
+
+                  import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+                  public class ThrottledClientTest {
+                      public WireMockServer wireMockRule = new WireMockServer(options().dynamicPort());
+                      private String url;
+
+                      @BeforeEach
+                      public void setUp() {
+                          wireMockRule.start();
+                          url = "http://localhost:" + wireMockRule.port();
+                      }
+
+                      @AfterEach
+                      void stopWireMock() {
+                          wireMockRule.stop();
+                      }
+
+                      @Test
+                      public void recoversFromOutage() {
+                          wireMockRule.stop();
+                          wireMockRule.start();
+                      }
+                  }
+                  """
+              )
+            );
         }
 
         @Test

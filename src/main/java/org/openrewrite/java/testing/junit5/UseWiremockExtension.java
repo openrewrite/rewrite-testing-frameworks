@@ -47,6 +47,17 @@ public class UseWiremockExtension extends Recipe {
                 return tree;
             }
 
+            @Override
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                if (mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "com.github.tomakehurst.wiremock.junit.WireMockRule") && ("port".equals(mi.getSimpleName()) || "httpsPort".equals(mi.getSimpleName()))) {
+                    String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "getHttpsPort";
+                    return mi.withName(mi.getName().withSimpleName(getter))
+                            .withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build("com.github.tomakehurst.wiremock.junit5.WireMockExtension")));
+                }
+                return mi;
+            }
+
             @SuppressWarnings("ConcatenationWithEmptyString")
             @Override
             public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
