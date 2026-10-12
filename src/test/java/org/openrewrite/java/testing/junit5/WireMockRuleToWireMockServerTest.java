@@ -332,4 +332,176 @@ class WireMockRuleToWireMockServerTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void ruleAssignedInConstructorBecomesServer() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.Rule;
+
+              class Test {
+                  @Rule
+                  public WireMockRule wm;
+
+                  Test() {
+                      wm = new WireMockRule(8089);
+                  }
+
+                  void outage() {
+                      wm.stop();
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.WireMockServer;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class Test {
+                  public WireMockServer wm;
+
+                  @BeforeEach
+                  void startWireMock() {
+                      wm.start();
+                  }
+
+                  @AfterEach
+                  void stopWireMock() {
+                      wm.stop();
+                  }
+
+                  Test() {
+                      wm = new WireMockServer(8089);
+                  }
+
+                  void outage() {
+                      wm.stop();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ruleReturnedAsServerBecomesServer() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.WireMockServer;
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.Rule;
+
+              class Test {
+                  @Rule
+                  public WireMockRule wm = new WireMockRule(8089);
+
+                  WireMockServer server() {
+                      return wm;
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.WireMockServer;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class Test {
+                  public WireMockServer wm = new WireMockServer(8089);
+
+                  @BeforeEach
+                  void startWireMock() {
+                      wm.start();
+                  }
+
+                  @AfterEach
+                  void stopWireMock() {
+                      wm.stop();
+                  }
+
+                  WireMockServer server() {
+                      return wm;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ruleStoppedThroughMethodReferenceBecomesServer() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.Rule;
+
+              class Test {
+                  @Rule
+                  public WireMockRule wm = new WireMockRule(8089);
+
+                  Runnable outage() {
+                      return wm::stop;
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.WireMockServer;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class Test {
+                  public WireMockServer wm = new WireMockServer(8089);
+
+                  @BeforeEach
+                  void startWireMock() {
+                      wm.start();
+                  }
+
+                  @AfterEach
+                  void stopWireMock() {
+                      wm.stop();
+                  }
+
+                  Runnable outage() {
+                      return wm::stop;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ruleReturnedFromLambdaUnchanged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.WireMockServer;
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.Rule;
+
+              import java.util.function.Supplier;
+
+              class Test {
+                  @Rule
+                  public WireMockRule wm = new WireMockRule(8089);
+
+                  WireMockServer server() {
+                      Supplier<WireMockRule> rule = () -> {
+                          return wm;
+                      };
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
 }

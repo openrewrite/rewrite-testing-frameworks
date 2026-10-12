@@ -29,12 +29,12 @@ import org.openrewrite.java.tree.*;
 
 import java.util.*;
 
-public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<JavaType.Variable>> {
+public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<String>> {
 
     private static final String WIREMOCK_RULE = "com.github.tomakehurst.wiremock.junit.WireMockRule";
     private static final String WIREMOCK_SERVER = "com.github.tomakehurst.wiremock.WireMockServer";
     private static final MethodMatcher NEW_WIREMOCK_RULE = new MethodMatcher(WIREMOCK_RULE + " <constructor>(..)");
-    private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
+    private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.*Rule");
     private static final AnnotationMatcher CLASS_RULE = new AnnotationMatcher("@org.junit.ClassRule");
     private static final Collection<String> SERVER_ONLY_METHODS = Arrays.asList("addMockServiceRequestListener", "checkForUnmatchedRequests", "enableRecordMappings", "getGlobalSettingsHolder", "isHttpEnabled", "isHttpsEnabled", "isRunning", "loadMappingsUsing", "shutdown", "start", "stop");
     private static final Collection<String> LIFECYCLE_ANNOTATIONS = Arrays.asList("org.junit.Before", "org.junit.After", "org.junit.BeforeClass", "org.junit.AfterClass", "org.junit.jupiter.api.BeforeEach", "org.junit.jupiter.api.AfterEach", "org.junit.jupiter.api.BeforeAll", "org.junit.jupiter.api.AfterAll");
@@ -46,21 +46,40 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<JavaType.Va
     final String description = "Replace a `WireMockRule` that is started, stopped or passed on as a `WireMockServer` with a plain `WireMockServer`, as the JUnit 5 `WireMockExtension` has no such methods. The server is started and stopped around each test, or around all tests for a `@ClassRule`.";
 
     @Override
-    public Set<JavaType.Variable> getInitialValue(ExecutionContext ctx) {
+    public Set<String> getInitialValue(ExecutionContext ctx) {
         return new HashSet<>();
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getScanner(Set<JavaType.Variable> serverVariables) {
+    public TreeVisitor<?, ExecutionContext> getScanner(Set<String> serverVariables) {
         return Preconditions.check(new UsesType<>(WIREMOCK_RULE, false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 JavaType.Variable select = wireMockRuleVariable(method.getSelect());
                 if (select != null && SERVER_ONLY_METHODS.contains(method.getSimpleName())) {
-                    serverVariables.add(select);
+                    serverVariables.add(key(select));
                 }
                 addArgumentsExpectingServer(method.getMethodType(), method.getArguments());
                 return super.visitMethodInvocation(method, ctx);
+            }
+
+            @Override
+            public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
+                JavaType.Variable containing = wireMockRuleVariable(memberRef.getContaining());
+                if (containing != null && SERVER_ONLY_METHODS.contains(memberRef.getReference().getSimpleName())) {
+                    serverVariables.add(key(containing));
+                }
+                return super.visitMemberReference(memberRef, ctx);
+            }
+
+            @Override
+            public J.Return visitReturn(J.Return aReturn, ExecutionContext ctx) {
+                if (wireMockRuleVariable(aReturn.getExpression()) != null) {
+                    Object enclosing = getCursor().dropParentUntil(p -> p instanceof J.MethodDeclaration || p instanceof J.Lambda || p == Cursor.ROOT_VALUE).getValue();
+                    JavaType.Method methodType = enclosing instanceof J.MethodDeclaration ? ((J.MethodDeclaration) enclosing).getMethodType() : null;
+                    addIfExpectingServer(methodType == null ? null : methodType.getReturnType(), aReturn.getExpression());
+                }
+                return super.visitReturn(aReturn, ctx);
             }
 
             @Override
@@ -93,45 +112,54 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<JavaType.Va
             private void addIfExpectingServer(@Nullable JavaType expectedType, @Nullable Expression expression) {
                 JavaType.Variable variable = wireMockRuleVariable(expression);
                 if (variable != null && (TypeUtils.isOfClassType(expectedType, WIREMOCK_SERVER) || TypeUtils.isOfClassType(expectedType, "com.github.tomakehurst.wiremock.core.Container"))) {
-                    serverVariables.add(variable);
+                    serverVariables.add(key(variable));
                 }
             }
         });
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(Set<JavaType.Variable> serverVariables) {
+    public TreeVisitor<?, ExecutionContext> getVisitor(Set<String> serverVariables) {
+        if (serverVariables.isEmpty()) {
+            return TreeVisitor.noop();
+        }
         return Preconditions.check(new UsesType<>(WIREMOCK_RULE, false), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 for (Statement statement : classDecl.getBody().getStatements()) {
-                    if (statement instanceof J.VariableDeclarations) {
-                        J.VariableDeclarations field = (J.VariableDeclarations) statement;
-                        boolean classRule = annotatedWith(field.getLeadingAnnotations(), CLASS_RULE);
-                        if (classRule || annotatedWith(field.getLeadingAnnotations(), RULE)) {
-                            for (J.VariableDeclarations.NamedVariable variable : field.getVariables()) {
-                                if (serverVariables.contains(variable.getVariableType())) {
-                                    J.Identifier server = variable.getName().withPrefix(Space.EMPTY).withType(serverType(variable.getType()));
-                                    cd = callInLifecycleMethod(cd, server, "start", classRule ? "org.junit.BeforeClass" : "org.junit.Before", classRule ? "org.junit.jupiter.api.BeforeAll" : "org.junit.jupiter.api.BeforeEach", classRule, ctx);
-                                    cd = callInLifecycleMethod(cd, server, "stop", classRule ? "org.junit.AfterClass" : "org.junit.After", classRule ? "org.junit.jupiter.api.AfterAll" : "org.junit.jupiter.api.AfterEach", classRule, ctx);
-                                }
-                            }
+                    if (!(statement instanceof J.VariableDeclarations) || !annotatedWith(((J.VariableDeclarations) statement).getLeadingAnnotations(), RULE)) {
+                        continue;
+                    }
+                    J.VariableDeclarations field = (J.VariableDeclarations) statement;
+                    boolean classRule = annotatedWith(field.getLeadingAnnotations(), CLASS_RULE);
+                    for (J.VariableDeclarations.NamedVariable variable : field.getVariables()) {
+                        if (serverVariables.contains(key(variable.getVariableType()))) {
+                            J.Identifier server = asServer(variable.getName().withPrefix(Space.EMPTY));
+                            JavaParser.Builder<?, ?> parser = JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "wiremock-jre8-2.35");
+                            cd = callInLifecycleMethod(cd, server, "start",
+                                    classRule ? "org.junit.BeforeClass" : "org.junit.Before",
+                                    classRule ? "org.junit.jupiter.api.BeforeAll" : "org.junit.jupiter.api.BeforeEach",
+                                    classRule, parser);
+                            cd = callInLifecycleMethod(cd, server, "stop",
+                                    classRule ? "org.junit.AfterClass" : "org.junit.After",
+                                    classRule ? "org.junit.jupiter.api.AfterAll" : "org.junit.jupiter.api.AfterEach",
+                                    classRule, parser);
                         }
                     }
                 }
                 return cd;
             }
 
-            private J.ClassDeclaration callInLifecycleMethod(J.ClassDeclaration cd, J.Identifier server, String serverMethod, String junit4Annotation, String jupiterAnnotation, boolean isStatic, ExecutionContext ctx) {
+            private J.ClassDeclaration callInLifecycleMethod(J.ClassDeclaration cd, J.Identifier server, String serverMethod, String junit4Annotation, String jupiterAnnotation, boolean classRule, JavaParser.Builder<?, ?> parser) {
+                List<String> lifecycleAnnotations = Arrays.asList(junit4Annotation, jupiterAnnotation);
                 String call = "#{any(" + WIREMOCK_SERVER + ")}." + serverMethod + "();";
-                JavaParser.Builder<?, ?> parser = JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "wiremock-jre8-2.35");
                 Statement anchor = cd.getBody().getStatements().get(0);
                 for (Statement statement : cd.getBody().getStatements()) {
-                    if (statement instanceof J.MethodDeclaration && ((J.MethodDeclaration) statement).getBody() != null) {
-                        J.MethodDeclaration md = (J.MethodDeclaration) statement;
-                        if (annotatedWith(md.getLeadingAnnotations(), Arrays.asList(junit4Annotation, jupiterAnnotation))) {
+                    J.MethodDeclaration md = statement instanceof J.MethodDeclaration ? (J.MethodDeclaration) statement : null;
+                    if (md != null && md.getBody() != null) {
+                        if (annotatedWith(md.getLeadingAnnotations(), lifecycleAnnotations)) {
                             J.Block body = md.getBody();
                             J.MethodDeclaration withCall = JavaTemplate.builder(call)
                                     .javaParser(parser)
@@ -148,7 +176,7 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<JavaType.Va
                 }
                 maybeAddImport(jupiterAnnotation);
                 String annotation = jupiterAnnotation.substring(jupiterAnnotation.lastIndexOf('.') + 1);
-                return JavaTemplate.builder("@" + annotation + "\n" + (isStatic ? "static " : "") + "void " + serverMethod + "WireMock() {\n" + call + "\n}")
+                return JavaTemplate.builder("@" + annotation + "\n" + (classRule ? "static " : "") + "void " + serverMethod + "WireMock() {\n" + call + "\n}")
                         .imports(jupiterAnnotation)
                         .javaParser(parser)
                         .build()
@@ -158,26 +186,34 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<JavaType.Va
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                 J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
-                if (vd.getTypeExpression() == null || vd.getVariables().stream().noneMatch(v -> serverVariables.contains(v.getVariableType()))) {
+                if (vd.getTypeExpression() == null || !TypeUtils.isOfClassType(multiVariable.getType(), WIREMOCK_RULE) || vd.getVariables().stream().noneMatch(v -> serverVariables.contains(key(v.getVariableType())))) {
                     return vd;
                 }
                 JavaType.FullyQualified server = serverType(multiVariable.getType());
                 vd = (J.VariableDeclarations) new RemoveAnnotationVisitor(RULE).visitNonNull(vd, ctx, getCursor().getParentOrThrow());
-                vd = (J.VariableDeclarations) new RemoveAnnotationVisitor(CLASS_RULE).visitNonNull(vd, ctx, getCursor().getParentOrThrow());
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.junit.ClassRule");
                 maybeRemoveImport(WIREMOCK_RULE);
                 maybeAddImport(WIREMOCK_SERVER);
                 return vd
                         .withTypeExpression(TypeTree.build(server.getClassName()).withType(server).withPrefix(vd.getTypeExpression().getPrefix()))
-                        .withVariables(ListUtils.map(vd.getVariables(), v -> v.getVariableType() == null ? v : v.withVariableType(v.getVariableType().withType(server))));
+                        .withVariables(ListUtils.map(vd.getVariables(), v -> v.withType(server)));
             }
 
             @Override
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass n = super.visitNewClass(newClass, ctx);
+                if (!NEW_WIREMOCK_RULE.matches(n)) {
+                    return n;
+                }
                 Object parent = getCursor().getParentTreeCursor().getValue();
-                if (!NEW_WIREMOCK_RULE.matches(n) || !(parent instanceof J.VariableDeclarations.NamedVariable) || !serverVariables.contains(((J.VariableDeclarations.NamedVariable) parent).getVariableType())) {
+                JavaType.Variable target = null;
+                if (parent instanceof J.VariableDeclarations.NamedVariable) {
+                    target = ((J.VariableDeclarations.NamedVariable) parent).getVariableType();
+                } else if (parent instanceof J.Assignment) {
+                    target = SystemRules.referencedField(((J.Assignment) parent).getVariable());
+                }
+                if (!serverVariables.contains(key(target))) {
                     return n;
                 }
                 JavaType.FullyQualified server = serverType(n.getType());
@@ -197,18 +233,24 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<JavaType.Va
             @Override
             public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
                 J.Identifier i = super.visitIdentifier(identifier, ctx);
-                JavaType.Variable variable = i.getFieldType();
-                if (variable != null && serverVariables.contains(variable)) {
-                    JavaType.FullyQualified server = serverType(variable.getType());
-                    return i.withType(server).withFieldType(variable.withType(server));
-                }
-                return i;
+                return isServerVariable(identifier) ? asServer(i) : i;
+            }
+
+            @Override
+            public J.Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
+                J.Assignment a = super.visitAssignment(assignment, ctx);
+                return isServerVariable(assignment.getVariable()) ? a.withType(a.getVariable().getType()) : a;
             }
 
             @Override
             public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
                 J.FieldAccess fa = super.visitFieldAccess(fieldAccess, ctx);
-                return serverVariables.contains(fa.getName().getFieldType()) ? fa.withType(fa.getName().getType()) : fa;
+                return isServerVariable(fieldAccess) ? fa.withType(fa.getName().getType()) : fa;
+            }
+
+            private boolean isServerVariable(Expression expression) {
+                JavaType.Variable variable = wireMockRuleVariable(expression);
+                return variable != null && serverVariables.contains(key(variable));
             }
         });
     }
@@ -221,9 +263,18 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<JavaType.Va
         return type != null && TypeUtils.isOfClassType(type, WIREMOCK_SERVER) ? type : JavaType.ShallowClass.build(WIREMOCK_SERVER);
     }
 
+    private static J.Identifier asServer(J.Identifier identifier) {
+        JavaType.Variable variable = identifier.getFieldType();
+        JavaType.FullyQualified server = serverType(variable == null ? identifier.getType() : variable.getType());
+        return identifier.withType(server).withFieldType(variable == null ? null : variable.withType(server));
+    }
+
+    private static @Nullable String key(JavaType.@Nullable Variable variable) {
+        return variable == null ? null : variable.getOwner() + "#" + variable.getName();
+    }
+
     private static JavaType.@Nullable Variable wireMockRuleVariable(@Nullable Expression expression) {
-        JavaType.Variable variable = expression instanceof J.Identifier ? ((J.Identifier) expression).getFieldType() :
-                expression instanceof J.FieldAccess ? ((J.FieldAccess) expression).getName().getFieldType() : null;
+        JavaType.Variable variable = SystemRules.referencedField(expression);
         return variable != null && TypeUtils.isOfClassType(variable.getType(), WIREMOCK_RULE) ? variable : null;
     }
 

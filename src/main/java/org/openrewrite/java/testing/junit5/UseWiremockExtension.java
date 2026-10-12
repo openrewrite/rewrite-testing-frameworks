@@ -51,8 +51,8 @@ public class UseWiremockExtension extends Recipe {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), WIREMOCK_RULE) && ("port".equals(mi.getSimpleName()) || "httpsPort".equals(mi.getSimpleName()))) {
-                    String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "getHttpsPort";
+                String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "httpsPort".equals(mi.getSimpleName()) ? "getHttpsPort" : null;
+                if (getter != null && mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), WIREMOCK_RULE)) {
                     return mi.withName(mi.getName().withSimpleName(getter))
                             .withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION)));
                 }
