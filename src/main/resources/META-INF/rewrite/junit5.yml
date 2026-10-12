@@ -246,6 +246,14 @@ recipeList:
       acceptTransitive: true
       scope: test
   - org.openrewrite.java.testing.mockito.MockitoJUnitRunnerToExtension
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-junit-jupiter
+      version: 4.x
+      familyPattern: org.mockito
+      onlyIfUsing: org.powermock.modules.junit4.PowerMockRunner
+      acceptTransitive: true
+      scope: test
   - org.openrewrite.java.testing.junit5.AddMockitoJupiterForRules
 ---
 type: specs.openrewrite.org/v1beta/recipe
