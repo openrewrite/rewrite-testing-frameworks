@@ -56,8 +56,9 @@ tags:
   - testing
   - mockito
 recipeList:
-  - org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
+  - org.openrewrite.java.testing.mockito.ChangeMockitoAllToMockitoCoreReplacingPowerMock
   - org.openrewrite.java.testing.mockito.ReplacePowerMockDependencies
+  - org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
   - org.openrewrite.java.testing.mockito.AddJUnit4ReplacingPowerMockModule
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.powermock
@@ -103,8 +104,9 @@ description: >-
   that replaces PowerMock wherever it comes first on the classpath, so that `Mockito.mockStatic` and `MockedStatic`
   do not resolve. The Hamcrest 1.1 and Objenesis classes bundled in `mockito-all` go with it. Only the Maven
   dependencies declared in the module itself are excluded from, not those it inherits from a parent that does not
-  depend on PowerMock. Where `UpgradeMockitoCoreReplacingPowerMock` runs again in a later cycle, it pairs the
-  exclusion with one of `mockito-core`, which is harmless as the module declares the Mockito that replaces PowerMock.
+  depend on PowerMock. Where `ChangeMockitoAllToMockitoCoreReplacingPowerMock` runs again in a later cycle, it pairs
+  the exclusion with one of `mockito-core`, which is harmless as the module declares the Mockito that replaces
+  PowerMock.
 preconditions:
   - org.openrewrite.java.dependencies.search.ModuleHasDependency:
       groupIdPattern: org.powermock
@@ -118,14 +120,12 @@ recipeList:
       artifactId: mockito-all
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
-displayName: Upgrade `mockito-core` along with the Mockito that replaces PowerMock
+name: org.openrewrite.java.testing.mockito.ChangeMockitoAllToMockitoCoreReplacingPowerMock
+displayName: Change `mockito-all` to `mockito-core` along with the Mockito that replaces PowerMock
 description: >-
-  Upgrades an explicitly declared `mockito-core` to at least the Mockito 3.x that replaces the PowerMock Mockito API.
-  An older `mockito-core` would otherwise take precedence over the one `mockito-inline` depends on, so that
-  `Mockito.mockStatic` and `MockedStatic` do not resolve. `mockito-all` is a 1.x-only uber jar with no 3.x release,
-  so it becomes `mockito-core` first. A declared `mockito-inline` is upgraded as well, as before 3.4 it depends on a
-  `mockito-core` without `Mockito.mockStatic`.
+  Changes a declared `mockito-all` into `mockito-core`, as `mockito-all` is a 1.x-only uber jar with no 3.x release
+  to upgrade to. This runs before the PowerMock dependencies are replaced, so that a module which declared
+  `mockito-all` is seen to declare `mockito-core` and does not get it a second time.
 preconditions:
   - org.openrewrite.java.dependencies.search.RepositoryHasDependency:
       groupIdPattern: org.powermock
@@ -138,14 +138,36 @@ recipeList:
       oldGroupId: org.mockito
       oldArtifactId: mockito-all
       newArtifactId: mockito-core
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.UpgradeMockitoCoreReplacingPowerMock
+displayName: Upgrade `mockito-core` along with the Mockito that replaces PowerMock
+description: >-
+  Upgrades a declared `mockito-core` to at least the Mockito 3.x that replaces the PowerMock Mockito API. An older
+  `mockito-core` would otherwise take precedence over the one `mockito-inline` depends on, so that
+  `Mockito.mockStatic` and `MockedStatic` do not resolve. A declared `mockito-inline` is upgraded as well, as before
+  3.4 it depends on a `mockito-core` without `Mockito.mockStatic`. This runs after the PowerMock dependencies are
+  replaced, so that it also upgrades the Mockito artifact that replaces them. A version managed by a BOM, such as the
+  Mockito 3.3 of Spring Boot 2.2 and 2.3, is overridden as well, through its `mockito.version` property where the BOM
+  uses one, so that the other Mockito artifacts it manages stay aligned.
+preconditions:
+  - org.openrewrite.java.dependencies.search.RepositoryHasDependency:
+      groupIdPattern: org.powermock
+      artifactIdPattern: powermock-api-mockito*
+tags:
+  - testing
+  - mockito
+recipeList:
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: mockito-core
       newVersion: 3.x
+      overrideManagedVersion: true
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.mockito
       artifactId: mockito-inline
       newVersion: 3.x
+      overrideManagedVersion: true
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockitoUsages

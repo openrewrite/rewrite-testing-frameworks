@@ -23,13 +23,20 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.maven.tree.ResolvedDependency;
+import org.openrewrite.maven.tree.Scope;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
+import org.openrewrite.xml.tree.Xml;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
@@ -2850,6 +2857,182 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
             )
           )
         );
+    }
+
+    @Test
+    void mockitoManagedBySpringBoot2BomIsRaisedToOneWithStaticMocking() {
+        rewriteRun(
+          mavenProject("spring-boot-app",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <mockito.version>3.12.4</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> assertThat(resolvedMockitoVersions(pom)).containsOnly(
+                entry("mockito-inline", "3.12.4"),
+                entry("mockito-core", "3.12.4"),
+                entry("mockito-junit-jupiter", "3.12.4")))
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoVersionPropertyOverridingTheSpringBoot2BomIsRaised() {
+        rewriteRun(
+          mavenProject("spring-boot-app",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <mockito.version>3.3.3</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <mockito.version>3.12.4</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> assertThat(resolvedMockitoVersions(pom)).containsOnly(
+                entry("mockito-inline", "3.12.4"),
+                entry("mockito-core", "3.12.4"),
+                entry("mockito-junit-jupiter", "3.12.4")))
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    private static Map<String, String> resolvedMockitoVersions(Xml.Document pom) {
+        return pom.getMarkers().findFirst(MavenResolutionResult.class).orElseThrow()
+          .getDependencies().get(Scope.Test).stream()
+          .filter(dependency -> "org.mockito".equals(dependency.getGroupId()))
+          .collect(toMap(ResolvedDependency::getArtifactId, ResolvedDependency::getVersion));
     }
 
     @Test
