@@ -415,7 +415,7 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     }
 
     @Test
-    void jettyEe10MovesToEe11AlongsideWiremockJetty12() {
+    void jettyEE10MovesToEE11AlongsideWiremockJetty12() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
             //language=java
@@ -481,7 +481,7 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     }
 
     @Test
-    void jettyEe11WebappAddedWhenEe10OnlyCameThroughWiremockJetty12() {
+    void jettyEE11WebappAddedWhenEE10OnlyCameThroughWiremockJetty12() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
             //language=java
@@ -540,7 +540,7 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     }
 
     @Test
-    void jettyEe10UntouchedWithoutWiremockJetty12() {
+    void jettyEE10UntouchedWithoutWiremockJetty12() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
             //language=java

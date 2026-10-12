@@ -31,8 +31,7 @@ tags:
 recipeList:
   # Only holds while the module is still on 3.x, so this runs before the version is bumped
   - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
-  # Only holds while the module still depends on `wiremock-jetty12`, which the dependency changes below remove
-  - org.openrewrite.java.testing.wiremock.MigrateJettyEe10ToEe11
+  - org.openrewrite.java.testing.wiremock.MigrateJettyEE10ToEE11
   - org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
   # Pinned: bounded selectors reject `-beta.N`, and `latest.integration` would also accept 3.x, 5.x and snapshots
   - org.openrewrite.java.dependencies.ChangeDependency:
@@ -249,7 +248,7 @@ recipeList:
   - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.wiremock.MigrateJettyEe10ToEe11
+name: org.openrewrite.java.testing.wiremock.MigrateJettyEE10ToEE11
 displayName: Move Jetty EE10 usages to EE11 alongside `wiremock-jetty12`
 description: >-
   WireMock 3's `wiremock-jetty12` module ran on Jetty's EE10 servlet environment, whereas WireMock 4.x runs on EE11,
