@@ -27,6 +27,8 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.ParenthesizeVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 import org.openrewrite.trait.Comments;
@@ -38,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 /**
@@ -115,9 +118,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (!(statement instanceof J.VariableDeclarations)) {
                 return false;
             }
-            TypeTree typeExpression = ((J.VariableDeclarations) statement).getTypeExpression();
-            return typeExpression != null &&
-                    TypeUtils.isOfClassType(typeExpression.getType(), "org.junit.rules.ExpectedException");
+            return ((J.VariableDeclarations) statement).getVariables().stream().anyMatch(variable ->
+                    TypeUtils.isOfClassType(variable.getType(), "org.junit.rules.ExpectedException"));
         }
 
         @Override
@@ -200,16 +202,66 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             J.Block statementsAfterExpectExceptionBlock = new J.Block(randomId(), Space.EMPTY,
                     Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
                     emptyList(), Space.format(" ")).withStatements(statementsAfterExpectException);
-            String exceptionDeclParam = getCursor().pollMessage(HAS_MATCHER) != null ? "Throwable exception = " : "";
+            boolean kotlin = KotlinJUnit5Support.isKotlin(getCursor());
+            String exceptionDeclParam = getCursor().pollMessage(HAS_MATCHER) != null ?
+                    kotlin ? "val exception = " : "Throwable exception = " : "";
             Object exceptionClass = getCursor().pollMessage(EXCEPTION_CLASS);
             if (exceptionClass == null) {
-                exceptionClass = "Exception.class";
+                exceptionClass = kotlin ? "Exception::class.java" : "Exception.class";
             }
 
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
             Statement firstExpectedExceptionMethodInvocation = getCursor().getMessage(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION);
             String templateString = exceptionClass instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
-            b = JavaTemplate.builder(templateString)
+            if (kotlin) {
+                J.Block assertionBody = KotlinJUnit5Support.lambdaBody(statementsAfterExpectExceptionBlock,
+                        "assertThrows", getCursor().getParentTreeCursor(), ctx);
+                boolean declareException = !exceptionDeclParam.isEmpty();
+                templateString = exceptionClass instanceof String ? "assertThrows(#{}) {}" :
+                        "assertThrows(#{any()}) {}";
+                b = KotlinTemplate.builder(templateString)
+                        .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
+                        .imports("org.junit.jupiter.api.Assertions.assertThrows")
+                        .build()
+                        .apply(updateCursor(b), firstExpectedExceptionMethodInvocation.getCoordinates().before(),
+                                exceptionClass);
+                b = b.withStatements(ListUtils.map(b.getStatements(), statement -> {
+                    J.MethodInvocation assertion = statement instanceof J.MethodInvocation ? (J.MethodInvocation) statement :
+                            statement instanceof J.VariableDeclarations &&
+                                    ((J.VariableDeclarations) statement).getVariables().get(0).getInitializer() instanceof J.MethodInvocation ?
+                                    (J.MethodInvocation) ((J.VariableDeclarations) statement).getVariables().get(0).getInitializer() : null;
+                    if (assertion == null || !"assertThrows".equals(assertion.getSimpleName())) {
+                        return statement;
+                    }
+                    assertion = assertion.withArguments(ListUtils.mapLast(assertion.getArguments(), argument -> {
+                        J.Lambda lambda = (J.Lambda) argument;
+                        return lambda.withBody(((J.Block) lambda.getBody()).withStatements(assertionBody.getStatements())
+                                .withEnd(Space.format("\n")));
+                    }));
+                    if (statement instanceof J.VariableDeclarations) {
+                        J.MethodInvocation replacement = assertion;
+                        J.VariableDeclarations variables = (J.VariableDeclarations) statement;
+                        return variables.withVariables(ListUtils.map(variables.getVariables(), variable -> variable.withInitializer(replacement)));
+                    }
+                    if (declareException) {
+                        JavaType throwable = JavaType.ShallowClass.build("java.lang.Throwable");
+                        J.MethodDeclaration enclosing = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                        JavaType.Variable type = new JavaType.Variable(null, 0, "exception",
+                                enclosing == null ? null : enclosing.getMethodType(), throwable, emptyList());
+                        J.Identifier name = new J.Identifier(randomId(), Space.format(" "), Markers.EMPTY,
+                                emptyList(), "exception", throwable, type);
+                        J.VariableDeclarations.NamedVariable variable = new J.VariableDeclarations.NamedVariable(
+                                randomId(), Space.EMPTY, Markers.EMPTY, name, emptyList(),
+                                new JLeftPadded<>(Space.format(" "), assertion.withPrefix(Space.format(" ")), Markers.EMPTY), type);
+                        return new J.VariableDeclarations(randomId(), assertion.getPrefix(), Markers.EMPTY, emptyList(),
+                                singletonList(new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null,
+                                        J.Modifier.Type.Final, emptyList())), null, null,
+                                singletonList(JRightPadded.build(variable)));
+                    }
+                    return assertion;
+                }));
+            } else {
+                b = JavaTemplate.builder(templateString)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                     .build()
@@ -220,6 +272,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             exceptionClass,
                             statementsAfterExpectExceptionBlock
                     );
+            }
             Cursor updateCursor = updateCursor(b);
             AtomicBoolean removeStatement = new AtomicBoolean(false);
             J.Identifier exceptionIdentifier = new J.Identifier(Tree.randomId(),
@@ -255,7 +308,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 J.Return returnStatement = new J.Return(randomId(), b.getStatements().get(b.getStatements().size() - 1).getPrefix().withComments(emptyList()), Markers.EMPTY, null);
                 return b.withStatements(ListUtils.concat(b.getStatements(), returnStatement));
             }
-            return b;
+            return kotlin ? maybeAutoFormat(block, b, ctx, getCursor().getParentTreeCursor()) : b;
         }
 
         @Override
@@ -626,10 +679,10 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 return Optional.empty();
             }
             maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
-            return Optional.of(JavaTemplate.builder(template)
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
-                    .staticImports("org.hamcrest.MatcherAssert.assertThat", "org.hamcrest.CoreMatchers.containsString")
-                    .build());
+            return Optional.of(KotlinJUnit5Support.template(getCursor(), ctx, template,
+                    template.replace(".getMessage()", ".message").replace(".getCause()", ".cause"),
+                    new String[0], new String[]{"org.hamcrest.MatcherAssert.assertThat", "org.hamcrest.CoreMatchers.containsString"},
+                    false, "junit-jupiter-api-5", "hamcrest-3"));
         }
 
         // expectCause(isA/instanceOf/is(X.class)) becomes the type-safe assertInstanceOf(X.class, exception.getCause()).
@@ -654,10 +707,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             maybeRemoveImport("org.hamcrest.CoreMatchers.is");
             maybeRemoveImport("org.hamcrest.core.Is.is");
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
-            return Optional.of(JavaTemplate.builder("assertInstanceOf(#{any()}, #{any(java.lang.Throwable)}.getCause())")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                    .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
-                    .build()
+            return Optional.of(KotlinJUnit5Support.template(getCursor(), ctx,
+                            "assertInstanceOf(#{any()}, #{any(java.lang.Throwable)}.getCause())",
+                            "assertInstanceOf(#{any()}, #{any(java.lang.Throwable)}.cause)",
+                            new String[0], new String[]{"org.junit.jupiter.api.Assertions.assertInstanceOf"},
+                            false, "junit-jupiter-api-5")
                     .apply(cursor, invocation.getCoordinates().replace(), classArg, exceptionIdentifier));
         }
 
@@ -670,7 +724,10 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (IS_A_MATCHER.matches(matcherCall) || INSTANCE_OF_MATCHER.matches(matcherCall)) {
                 return arg;
             }
-            if (isHamcrestIs(matcherCall) && arg instanceof J.FieldAccess && "class".equals(((J.FieldAccess) arg).getName().getSimpleName())) {
+            if (isHamcrestIs(matcherCall) && arg instanceof J.FieldAccess &&
+                    ("class".equals(((J.FieldAccess) arg).getName().getSimpleName()) ||
+                            "java".equals(((J.FieldAccess) arg).getName().getSimpleName()) &&
+                                    ((J.FieldAccess) arg).getTarget() instanceof J.MemberReference)) {
                 return arg;
             }
             return null;

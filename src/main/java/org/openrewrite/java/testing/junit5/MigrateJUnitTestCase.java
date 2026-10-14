@@ -31,6 +31,8 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
 
 import java.util.Comparator;
 import java.util.HashSet;
@@ -78,8 +80,21 @@ public class MigrateJUnitTestCase extends Recipe {
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
+                    public J preVisit(J tree, ExecutionContext ctx) {
+                        if (KotlinJUnit5Support.isKotlin(tree)) {
+                            scheduleUpdates();
+                        }
+                        return tree;
+                    }
+
+                    @Override
                     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
+                        scheduleUpdates();
+                        return c;
+                    }
+
+                    private void scheduleUpdates() {
                         doAfterVisit(new TestCaseVisitor());
                         // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
                         doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true).getVisitor());
@@ -87,7 +102,6 @@ public class MigrateJUnitTestCase extends Recipe {
                         doAfterVisit(new AssertToAssertions.AssertToAssertionsVisitor());
                         doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions assert*(..)").getVisitor());
                         doAfterVisit(new UseStaticImport("org.junit.jupiter.api.Assertions fail*(..)").getVisitor());
-                        return c;
                     }
 
                     @SuppressWarnings("ConstantConditions")
@@ -127,6 +141,10 @@ public class MigrateJUnitTestCase extends Recipe {
                 if (fullQualifiedExtension != null && "junit.framework.TestCase".equals(fullQualifiedExtension.getFullyQualifiedName())) {
                     cd = cd.withExtends(null);
                 }
+            }
+            if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                cd = cd.withImplements(ListUtils.map(cd.getImplements(), implemented ->
+                        TypeUtils.isOfClassType(implemented.getType(), "junit.framework.TestCase") ? null : implemented));
             }
             maybeRemoveImport("junit.framework.TestCase");
             return cd;
@@ -179,11 +197,18 @@ public class MigrateJUnitTestCase extends Recipe {
         private J.MethodDeclaration updateMethodDeclarationAnnotationAndModifier(J.MethodDeclaration methodDeclaration, String annotation, String fullyQualifiedAnnotation, ExecutionContext ctx) {
             J.MethodDeclaration md = methodDeclaration;
             if (FindAnnotations.find(methodDeclaration.withBody(null), "@" + fullyQualifiedAnnotation).isEmpty()) {
-                md = JavaTemplate.builder(annotation)
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    md = KotlinTemplate.builder(annotation)
+                            .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                            .imports(fullyQualifiedAnnotation).build()
+                            .apply(updateCursor(md), md.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                } else {
+                    md = JavaTemplate.builder(annotation)
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .imports(fullyQualifiedAnnotation).build()
                         .apply(getCursor(), methodDeclaration.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+                }
                 md = maybeAddPublicModifier(md);
                 maybeAddImport(fullyQualifiedAnnotation);
             }
@@ -202,6 +227,17 @@ public class MigrateJUnitTestCase extends Recipe {
 
         private J.MethodDeclaration maybeRemoveOverrideAnnotation(J.MethodDeclaration md, ExecutionContext ctx) {
             JavaType.Method methodType = md.getMethodType();
+            if (KotlinJUnit5Support.isKotlin(getCursor()) && methodType != null &&
+                    !stillOverridesAfterMigration(methodType)) {
+                J.ClassDeclaration owner = getCursor().firstEnclosing(J.ClassDeclaration.class);
+                boolean keepOpen = owner != null && owner.getModifiers().stream().anyMatch(modifier ->
+                        "open".equals(modifier.getKeyword()) || modifier.getType() == J.Modifier.Type.Abstract) &&
+                        md.getModifiers().stream().noneMatch(modifier -> "final".equals(modifier.getKeyword()));
+                md = md.withModifiers(ListUtils.map(md.getModifiers(),
+                        modifier -> "override".equals(modifier.getKeyword()) ?
+                                keepOpen ? modifier.withKeyword("open") : null :
+                                keepOpen && modifier.getType() == J.Modifier.Type.Final ? null : modifier));
+            }
             if (methodType == null ||
                 md.getLeadingAnnotations().stream().noneMatch(OVERRIDE_ANNOTATION_MATCHER::matches) ||
                 stillOverridesAfterMigration(methodType)) {

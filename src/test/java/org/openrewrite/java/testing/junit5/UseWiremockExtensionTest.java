@@ -31,6 +31,33 @@ import static org.openrewrite.maven.Assertions.pomXml;
 @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/170")
 @SuppressWarnings("JUnitMalformedDeclaration")
 class UseWiremockExtensionTest implements RewriteTest {
+    @Test
+    void classRuleBecomesStaticRegisteredExtension() {
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.ClassRule;
+
+              class Example {
+                  @ClassRule
+                  public static WireMockRule server = new WireMockRule(8080);
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+              import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+              import org.junit.jupiter.api.extension.RegisterExtension;
+
+              class Example {
+                  @RegisterExtension
+                  public static WireMockExtension server = WireMockExtension.newInstance().options(WireMockConfiguration.options().port(8080)).build();
+              }
+              """
+          )
+        );
+    }
+
 
     @Override
     public void defaults(RecipeSpec spec) {

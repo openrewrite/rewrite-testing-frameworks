@@ -85,6 +85,20 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + " <init>(java.io.File)");
 
     @Override
+    public J preVisit(J tree, ExecutionContext ctx) {
+        if (KotlinJUnit5Support.isKotlin(tree)) {
+            doAfterVisit(new ChangeType(TEMPORARY_FOLDER, "java.io.File", true).getVisitor());
+            maybeRemoveImport("org.junit.ClassRule");
+            maybeRemoveImport("org.junit.Rule");
+            maybeRemoveImport(TEMPORARY_FOLDER);
+            maybeAddImport("java.io.File");
+            maybeAddImport("java.nio.file.Files");
+            maybeAddImport(TEMP_DIR);
+        }
+        return tree;
+    }
+
+    @Override
     public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         J.CompilationUnit c = (J.CompilationUnit) super.visitCompilationUnit(cu, ctx);
         if (c != cu) {
@@ -104,15 +118,16 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     @Override
     public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
         J.VariableDeclarations mv = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
-        if (!TypeUtils.isOfClassType(multiVariable.getTypeAsFullyQualified(), TEMPORARY_FOLDER)) {
+        if (!TypeUtils.isOfClassType(multiVariable.getTypeAsFullyQualified(), TEMPORARY_FOLDER) &&
+                !(KotlinJUnit5Support.isKotlin(getCursor()) && multiVariable.getTypeExpression() == null &&
+                        multiVariable.getVariables().stream().anyMatch(variable ->
+                                TypeUtils.isOfClassType(variable.getType(), TEMPORARY_FOLDER)))) {
             return mv;
         }
         mv = mv.withTypeExpression(toFileIdentifier(mv.getTypeExpression()));
         return (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule")
-                .asVisitor(a -> JavaTemplate.builder("@TempDir")
-                        .imports(TEMP_DIR)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                        .build()
+                .asVisitor(a -> KotlinJUnit5Support.annotationTemplate(a.getCursor(), ctx, "@TempDir",
+                        new String[]{TEMP_DIR}, "junit-jupiter-api-5")
                         .apply(a.getCursor(), a.getTree().getCoordinates().replace()))
                 .visitNonNull(mv, ctx, getCursor().getParentOrThrow());
     }
@@ -158,9 +173,10 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
         return mi;
     }
 
-    private J.Identifier toFileIdentifier(TypeTree typeTree) {
+    private J.Identifier toFileIdentifier(@Nullable TypeTree typeTree) {
         JavaType.ShallowClass fileType = JavaType.ShallowClass.build("java.io.File");
-        return new J.Identifier(randomId(), typeTree.getPrefix(), Markers.EMPTY, emptyList(), fileType.getClassName(), fileType, null);
+        return new J.Identifier(randomId(), typeTree == null ? Space.format(" ") : typeTree.getPrefix(),
+                Markers.EMPTY, emptyList(), fileType.getClassName(), fileType, null);
     }
 
     private boolean hasRuleAnnotation() {
@@ -222,12 +238,8 @@ class AddNewFolderOrFileMethod extends JavaIsoVisitor<ExecutionContext> {
         JavaType.Method newMethodDeclaration = getMethodDeclaration(cd, fileOrFolder).orElse(null);
 
         if (newMethodDeclaration == null) {
-            cd = JavaTemplate.builder(fileOrFolder.template)
-                    .contextSensitive()
-                    .imports("java.io.File", "java.io.IOException")
-                    .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5"))
-                    .build()
+            cd = KotlinJUnit5Support.template(getCursor(), ctx, fileOrFolder.template, fileOrFolder.kotlinTemplate,
+                            new String[]{"java.io.File", "java.io.IOException"}, new String[0], true, "junit-jupiter-api-5")
                     .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
             newMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
             maybeAddImport("java.io.File");
@@ -268,7 +280,8 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
             mi = fileOrFolder == FileOrFolder.FOLDER ? toNewFolder(mi, ctx) : toNewFile(mi, ctx);
             mi = mi.withMethodType(newMethodType);
             J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
-            mi = mi.withName(mi.getName().withType(parentClass.getType()));
+            mi = mi.withName(mi.getName().withType(KotlinJUnit5Support.isKotlin(getCursor()) ?
+                    newMethodType : parentClass.getType()));
         }
         return mi;
     }
@@ -302,11 +315,8 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
         sb.append(")");
         List<Object> templateArgs = new ArrayList<>(args);
         templateArgs.add(0, tempDir);
-        return JavaTemplate.builder(sb.toString())
-                .contextSensitive()
-                .imports("java.io.File")
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                .build()
+        return KotlinJUnit5Support.template(getCursor(), ctx, sb.toString(), sb.toString(),
+                        new String[]{"java.io.File"}, new String[0], true, "junit-jupiter-api-5")
                 .apply(
                         updateCursor(mi),
                         mi.getCoordinates().replace(),
@@ -334,6 +344,11 @@ enum FileOrFolder {
             "    File result = new File(parent, child);\n" +
             "    result.createNewFile();\n" +
             "    return result;\n" +
+            "}",
+            "private fun newFile(parent: File, child: String): File {\n" +
+            "    val result = File(parent, child)\n" +
+            "    result.createNewFile()\n" +
+            "    return result\n" +
             "}"),
     FOLDER("newFolder", "private static File newFolder(File root, String... subDirs) throws IOException {\n" +
             "    String subFolder = String.join(\"/\", subDirs);\n" +
@@ -342,8 +357,16 @@ enum FileOrFolder {
             "        throw new IOException(\"Couldn't create folders \" + root);\n" +
             "    }\n" +
             "    return result;\n" +
+            "}",
+            "private fun newFolder(root: File, vararg subDirs: String): File {\n" +
+            "    val result = File(root, subDirs.joinToString(\"/\"))\n" +
+            "    if (!result.mkdirs()) {\n" +
+            "        throw IOException(\"Couldn't create folders \" + root)\n" +
+            "    }\n" +
+            "    return result\n" +
             "}");
 
     final String methodName;
     final String template;
+    final String kotlinTemplate;
 }

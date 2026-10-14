@@ -26,7 +26,6 @@ import org.openrewrite.java.VariableNameUtils;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTemplate;
-import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.*;
@@ -60,7 +59,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
                 // Only Java and Kotlin are supported, as the extracted variable declaration is rendered per language
-                return (sourceFile instanceof J.CompilationUnit || sourceFile instanceof K.CompilationUnit) &&
+                return (sourceFile instanceof J.CompilationUnit || KotlinJUnit5Support.isKotlin(sourceFile)) &&
                         super.isAcceptable(sourceFile, ctx);
             }
 
@@ -154,7 +153,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
             private Statement extractExpressionArguments(J.Block body, Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
                 if (lambdaStatement instanceof J.MethodInvocation) {
-                    boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
+                    boolean kotlin = KotlinJUnit5Support.isKotlin(getCursor());
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
                     Map<String, Integer> generatedVariableSuffixes = new HashMap<>();
                     return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {

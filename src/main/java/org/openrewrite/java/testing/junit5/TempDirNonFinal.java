@@ -23,9 +23,13 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.Modifier.Type;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.marker.Markers;
 
 import java.time.Duration;
 import java.util.Iterator;
+
+import static java.util.Collections.emptyList;
 
 public class TempDirNonFinal extends Recipe {
 
@@ -49,6 +53,20 @@ public class TempDirNonFinal extends Recipe {
             J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
             if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches) &&
                 varDecls.hasModifier(Type.Final) && isField(getCursor())) {
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    boolean lateinit = varDecls.getVariables().stream().anyMatch(variable -> variable.getInitializer() == null);
+                    varDecls = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), modifier ->
+                            modifier.getType() == Type.Final ? modifier.withType(Type.LanguageExtension).withKeyword("var")
+                                    .withPrefix(modifier.getPrefix().withWhitespace(" ")) : modifier));
+                    if (lateinit) {
+                        varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), annotation ->
+                                new AnnotationMatcher("@kotlin.jvm.JvmField").matches(annotation) ? null : annotation));
+                        varDecls = varDecls.withModifiers(ListUtils.concat(
+                                new J.Modifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, "lateinit", Type.LanguageExtension,
+                                        emptyList()), varDecls.getModifiers()));
+                    }
+                    return maybeAutoFormat(multiVariable, varDecls, ctx, getCursor().getParentOrThrow());
+                }
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
                                 .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
                         ctx, getCursor().getParentOrThrow());

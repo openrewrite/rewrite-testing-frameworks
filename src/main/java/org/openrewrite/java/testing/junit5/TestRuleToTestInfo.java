@@ -25,13 +25,24 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JLeftPadded;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.openrewrite.Tree.randomId;
 
 public class TestRuleToTestInfo extends Recipe {
 
@@ -53,12 +64,36 @@ public class TestRuleToTestInfo extends Recipe {
         private static final AnnotationMatcher JUPITER_BEFORE_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach");
 
         @Override
+        public J preVisit(J tree, ExecutionContext ctx) {
+            if (KotlinJUnit5Support.isKotlin(tree)) {
+                scheduleUpdates();
+            }
+            return tree;
+        }
+
+        @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J.CompilationUnit compilationUnit = super.visitCompilationUnit(cu, ctx);
+            scheduleUpdates();
+            return compilationUnit;
+        }
+
+        private void scheduleUpdates() {
             maybeRemoveImport("org.junit.Rule");
             maybeRemoveImport("org.junit.rules.TestName");
             maybeAddImport("org.junit.jupiter.api.TestInfo");
             doAfterVisit(new JavaVisitor<ExecutionContext>() {
+                @Override
+                public J visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
+                    J.FieldAccess access = (J.FieldAccess) super.visitFieldAccess(fieldAccess, ctx);
+                    if (KotlinJUnit5Support.isKotlin(getCursor()) &&
+                            "methodName".equals(access.getSimpleName()) &&
+                            TypeUtils.isOfClassType(access.getTarget().getType(), "org.junit.rules.TestName")) {
+                        return access.getTarget().withPrefix(access.getPrefix());
+                    }
+                    return access;
+                }
+
                 @Override
                 public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                     J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
@@ -70,20 +105,32 @@ public class TestRuleToTestInfo extends Recipe {
             });
             doAfterVisit(new ChangeType("org.junit.rules.TestName", "java.lang.String", true).getVisitor());
             doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
-            return compilationUnit;
         }
 
         @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
-            if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), "org.junit.rules.TestName")) {
+            if (varDecls.getVariables().stream().anyMatch(variable ->
+                    TypeUtils.isOfClassType(variable.getType(), "org.junit.rules.TestName"))) {
                 varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), anno -> {
                     if (RULE_ANNOTATION_MATCHER.matches(anno)) {
                         return null;
                     }
                     return anno;
                 }));
-                varDecls = removeFinalModifier(varDecls);
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(),
+                                    anno -> "JvmField".equals(anno.getSimpleName()) ? null : anno))
+                            .withModifiers(ListUtils.map(varDecls.getModifiers(), modifier ->
+                                    modifier.getType() == J.Modifier.Type.Final ?
+                                            modifier.withType(J.Modifier.Type.LanguageExtension).withKeyword("var") : modifier))
+                            .withTypeExpression(TypeTree.build("String").withType(JavaType.Primitive.String).withPrefix(Space.format(" ")));
+                    varDecls = varDecls.withModifiers(ListUtils.concat(new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY,
+                            "lateinit", J.Modifier.Type.LanguageExtension, emptyList()),
+                            ListUtils.map(varDecls.getModifiers(), modifier -> modifier.withPrefix(Space.SINGLE_SPACE))));
+                } else {
+                    varDecls = removeFinalModifier(varDecls);
+                }
                 getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("has-testName-rule", varDecls);
             }
             return varDecls;
@@ -128,6 +175,19 @@ public class TestRuleToTestInfo extends Recipe {
             J.VariableDeclarations varDecls = getCursor().pollMessage("has-testName-rule");
             J.MethodDeclaration beforeMethod = getCursor().pollMessage("before-method");
             if (varDecls != null) {
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    if (beforeMethod == null) {
+                        cd = KotlinTemplate.builder("@BeforeEach\nfun setup(testInfo: TestInfo) {}")
+                                .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .imports("org.junit.jupiter.api.BeforeEach", "org.junit.jupiter.api.TestInfo")
+                                .build()
+                                .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
+                        beforeMethod = (J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1);
+                        maybeAddImport("org.junit.jupiter.api.BeforeEach");
+                    }
+                    doAfterVisit(new BeforeMethodToTestInfoVisitor(beforeMethod, varDecls, ""));
+                    return maybeAutoFormat(classDecl, cd, ctx);
+                }
                 String testMethodStatement = "Optional<Method> testMethod = testInfo.getTestMethod();\n" +
                                              "if (testMethod.isPresent()) {\n" +
                                              "    this.#{} = testMethod.get().getName();\n" +
@@ -175,6 +235,37 @@ public class TestRuleToTestInfo extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             if (md.getId().equals(beforeMethod.getId())) {
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    if (md.getParameters().stream().noneMatch(parameter -> parameter instanceof J.VariableDeclarations &&
+                            TypeUtils.isOfClassType(((J.VariableDeclarations) parameter).getType(), "org.junit.jupiter.api.TestInfo"))) {
+                        md = KotlinTemplate.builder("testInfo: TestInfo").imports("org.junit.jupiter.api.TestInfo")
+                                .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .build().apply(updateCursor(md), md.getCoordinates().replaceParameters());
+                        if (md.getMethodType() != null) {
+                            md = md.withMethodType(md.getMethodType().withParameterNames(singletonList("testInfo"))
+                                    .withParameterTypes(singletonList(JavaType.ShallowClass.build("org.junit.jupiter.api.TestInfo"))));
+                            md = md.withName(md.getName().withType(md.getMethodType()));
+                        }
+                    }
+                    assert md.getBody() != null;
+                    J.Identifier info = ((J.VariableDeclarations) md.getParameters().get(0)).getVariables().get(0)
+                            .getName().withPrefix(Space.EMPTY);
+                    J.Block body = KotlinTemplate.builder("#{any(org.junit.jupiter.api.TestInfo)}.testMethod.get().name")
+                            .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                            .build().apply(new org.openrewrite.Cursor(updateCursor(md), md.getBody()),
+                                    md.getBody().getCoordinates().firstStatement(), info);
+                    Expression name = (Expression) body.getStatements().get(0);
+                    J.Identifier field = varDecls.getVariables().get(0).getName().withPrefix(Space.EMPTY)
+                            .withType(JavaType.Primitive.String);
+                    J.FieldAccess target = new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY,
+                            new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "this", null, null),
+                            new JLeftPadded<>(Space.EMPTY, field, Markers.EMPTY), JavaType.Primitive.String);
+                    J.Assignment assignment = new J.Assignment(randomId(), name.getPrefix(), Markers.EMPTY, target,
+                            new JLeftPadded<>(Space.format(" "), name.withPrefix(Space.format(" ")), Markers.EMPTY),
+                            JavaType.Primitive.String);
+                    body = body.withStatements(ListUtils.mapFirst(body.getStatements(), statement -> assignment));
+                    return maybeAutoFormat(method, md.withBody(body), ctx);
+                }
                 md = JavaTemplate.builder("TestInfo testInfo")
                         .contextSensitive()
                         .javaParser(javaParser(ctx))

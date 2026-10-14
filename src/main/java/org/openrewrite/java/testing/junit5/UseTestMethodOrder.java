@@ -21,8 +21,6 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -53,14 +51,11 @@ public class UseTestMethodOrder extends Recipe {
                     maybeRemoveImport("org.junit.runners.MethodSorters");
                     maybeAddImport("org.junit.jupiter.api.TestMethodOrder");
 
-                    cd = JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
-                            .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-jupiter-api-5"))
-                            .imports("org.junit.jupiter.api.TestMethodOrder",
-                                    "org.junit.jupiter.api.MethodOrderer.*")
-                            .build()
+                    cd = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx, "@TestMethodOrder(MethodName.class)",
+                            new String[]{"org.junit.jupiter.api.TestMethodOrder", "org.junit.jupiter.api.MethodOrderer.MethodName"},
+                            "junit-jupiter-api-5")
                             .apply(getCursor(), methodOrders.iterator().next().getCoordinates().replace());
-                    maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName");
+                    maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName", null, false);
                 }
 
                 return super.visitClassDeclaration(cd, ctx);

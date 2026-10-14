@@ -21,10 +21,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
 
@@ -38,6 +40,38 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
               "mockito-core-3.12",
               "mockito-junit-jupiter-3.12"))
           .recipe(new MockitoJUnitRunnerToExtension());
+    }
+
+    @CsvSource({
+      "MockitoJUnitRunner.Silent, LENIENT",
+      "MockitoJUnitRunner, WARN",
+      "MockitoJUnitRunner.StrictStubs, STRICT_STUBS"
+    })
+    @ParameterizedTest
+    void kotlinMockitoRunners(String runner, String strictness) {
+        String settings = "STRICT_STUBS".equals(strictness) ? "" : "@MockitoSettings(strictness = Strictness." + strictness + ")\n";
+        String imports = "STRICT_STUBS".equals(strictness) ? "" :
+          "import org.mockito.junit.jupiter.MockitoSettings\nimport org.mockito.quality.Strictness\n";
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(),
+            "junit-4", "mockito-core-3.12")),
+          kotlin(
+            """
+              import org.junit.runner.RunWith
+              import org.mockito.junit.MockitoJUnitRunner
+
+              @RunWith(%s::class)
+              class MyTest
+              """.formatted(runner),
+            """
+              import org.junit.jupiter.api.extension.ExtendWith
+              import org.mockito.junit.jupiter.MockitoExtension
+              %s
+              %s@ExtendWith(MockitoExtension::class)
+              class MyTest
+              """.formatted(imports, settings)
+          )
+        );
     }
 
     @DocumentExample

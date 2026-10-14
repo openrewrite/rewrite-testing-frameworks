@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -27,6 +28,66 @@ import org.openrewrite.test.TypeValidation;
 import static org.openrewrite.java.Assertions.java;
 
 class CategoryToTagTest implements RewriteTest {
+    @Test
+    void kotlinArrayOfCategories() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
+            .typeValidationOptions(TypeValidation.all().methodInvocations(false))
+            .afterTypeValidationOptions(TypeValidation.all()),
+          org.openrewrite.kotlin.Assertions.kotlin(
+            """
+              import org.junit.experimental.categories.Category
+
+              interface Fast
+              interface Slow
+              @Category(arrayOf(Fast::class, Slow::class))
+              class PositionalCategories
+              @Category(value = arrayOf(Fast::class))
+              class NamedCategories
+              """,
+            """
+              import org.junit.jupiter.api.Tag
+
+              interface Fast
+              interface Slow
+
+              @Tag("Fast")
+              @Tag("Slow")
+              class PositionalCategories
+
+              @Tag("Fast")
+              class NamedCategories
+              """
+          )
+        );
+    }
+
+    @Test
+    void nestedCategoryKeepsSimpleTagName() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.experimental.categories.Category;
+
+              public class Outer {
+                  public interface Slow {}
+                  @Category(Outer.Slow.class)
+                  public static class NestedTest {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Tag;
+
+              public class Outer {
+                  public interface Slow {}
+
+                  @Tag("Slow")
+                  public static class NestedTest {}
+              }
+              """
+          )
+        );
+    }
 
     @Override
     public void defaults(RecipeSpec spec) {

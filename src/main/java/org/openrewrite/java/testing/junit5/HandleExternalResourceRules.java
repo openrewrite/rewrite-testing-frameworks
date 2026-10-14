@@ -22,7 +22,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
@@ -75,12 +74,10 @@ public class HandleExternalResourceRules extends Recipe {
                         if (!service(AnnotationService.class).matches(updateCursor(cd), EXTEND_WITH_ANNOTATION_MATCHER)) {
                             maybeAddImport(EXTERNAL_RESOURCE_SUPPORT);
                             maybeAddImport(EXTEND_WITH);
-                            return JavaTemplate.builder("@ExtendWith(ExternalResourceSupport.class)")
-                                    .imports(EXTERNAL_RESOURCE_SUPPORT, EXTEND_WITH)
-                                    .javaParser(JavaParser.fromJavaVersion()
-                                            .classpathFromResources(ctx, "junit-jupiter-migrationsupport-5", "junit-jupiter-api-5"))
-                                    .build()
-                                    .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                            JavaTemplate template = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx,
+                                    "@ExtendWith(ExternalResourceSupport.class)", new String[]{EXTERNAL_RESOURCE_SUPPORT, EXTEND_WITH},
+                                    "junit-jupiter-migrationsupport-5", "junit-jupiter-api-5");
+                            return template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                         }
 
                         return cd;
@@ -103,8 +100,9 @@ public class HandleExternalResourceRules extends Recipe {
         @Override
         public J.VariableDeclarations.NamedVariable visitVariable(
                 J.VariableDeclarations.NamedVariable variable, AtomicBoolean hasExternalResourceRule) {
-            if (variable.getInitializer() != null &&
-                    TypeUtils.isAssignableTo(EXTERNAL_RESOURCE_RULE, variable.getInitializer().getType())) {
+            if (TypeUtils.isAssignableTo(EXTERNAL_RESOURCE_RULE, variable.getType()) ||
+                    variable.getInitializer() != null &&
+                            TypeUtils.isAssignableTo(EXTERNAL_RESOURCE_RULE, variable.getInitializer().getType())) {
                 hasExternalResourceRule.set(true);
             }
             return variable;

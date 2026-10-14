@@ -52,6 +52,21 @@ public class EnvironmentVariables extends Recipe {
     public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(ENVIRONMENT_VARIABLES, false), new JavaVisitor<ExecutionContext>() {
             @Override
+            public J preVisit(J tree, ExecutionContext ctx) {
+                if (KotlinJUnit5Support.isKotlin(tree)) {
+                    maybeRemoveImport(RULE);
+                    maybeRemoveImport(CLASS_RULE);
+                    maybeRemoveImport(ENVIRONMENT_VARIABLES);
+                    maybeAddImport(SYSTEM_STUBS_EXTENSION);
+                    maybeAddImport(SYSTEM_STUB);
+                    maybeAddImport(EXTEND_WITH);
+                    maybeAddImport(ENVIRONMENT_VARIABLES_STUB);
+                    doAfterVisit(new ChangeType(ENVIRONMENT_VARIABLES, ENVIRONMENT_VARIABLES_STUB, true).getVisitor());
+                }
+                return tree;
+            }
+
+            @Override
             public @NonNull J visitCompilationUnit(
                     J.@NonNull CompilationUnit cu, @NonNull ExecutionContext ctx) {
                 maybeRemoveImport(RULE);
@@ -75,7 +90,10 @@ public class EnvironmentVariables extends Recipe {
                     return cd;
                 }
                 // Add @ExtendWith(SystemStubsExtension.class) annotation to class.
-                return systemStubExtensionTemplate(ctx).apply(
+                JavaTemplate template = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx,
+                        "@ExtendWith(SystemStubsExtension.class)", new String[]{EXTEND_WITH, SYSTEM_STUBS_EXTENSION},
+                        "system-stubs-jupiter-2", "junit-jupiter-api-5");
+                return template.apply(
                         updateCursor(cd),
                         cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }
@@ -84,7 +102,8 @@ public class EnvironmentVariables extends Recipe {
             public @NonNull J visitVariableDeclarations(
                     J.@NonNull VariableDeclarations variableDecls, @NonNull ExecutionContext ctx) {
                 // missing type attribution, possibly parsing error.
-                if (variableDecls.getType() == null || !TypeUtils.isAssignableTo(ENVIRONMENT_VARIABLES, variableDecls.getType())) {
+                if (variableDecls.getVariables().stream().noneMatch(variable ->
+                        TypeUtils.isAssignableTo(ENVIRONMENT_VARIABLES, variable.getType()))) {
                     return variableDecls;
                 }
                 J.VariableDeclarations vd = (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule").asVisitor(a ->
@@ -112,7 +131,10 @@ public class EnvironmentVariables extends Recipe {
 
                 J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 // Replace EnvironmentVariables.clear() with EnvironmentVariables.remove()
-                if (ENV_VAR_CLEAR.matches(method) && m.getSelect() != null /* NullAway */) {
+                if ((ENV_VAR_CLEAR.matches(method) ||
+                        KotlinJUnit5Support.isKotlin(getCursor()) && method.getMethodType() != null &&
+                                TypeUtils.isOfClassType(method.getMethodType().getDeclaringType(), ENVIRONMENT_VARIABLES) &&
+                                "clear".equals(method.getMethodType().getName())) && m.getSelect() != null /* NullAway */) {
                     int argCount = argCount(m);
                     J j =
                             getEnvVarClearTemplate(ctx, argCount)

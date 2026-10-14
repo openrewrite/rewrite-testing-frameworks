@@ -56,6 +56,7 @@ preconditions:
       artifactIdPattern: testng*
       invertMarking: true
 recipeList:
+  - org.openrewrite.java.testing.junit5.NormalizeKotlinJUnit4Aliases
   - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.WireMockRuleToWireMockServer
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
@@ -161,6 +162,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.JUnitSoftAssertionsToSoftAssertionsExtension
   # Convert any leftover ExternalResource rules last, after more specific rules have already run
   - org.openrewrite.java.testing.junit5.HandleExternalResourceRules
+  - org.openrewrite.java.testing.junit5.KotlinJUnit5MigrationCleanup
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
@@ -220,6 +222,7 @@ recipeList:
       newParameterNames:
         - assumption
         - message
+  - org.openrewrite.java.testing.junit5.KotlinAssumeNotNullToAssumptions
   - org.openrewrite.java.testing.junit5.AssumeNotNullToAssumptionsRecipes
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.Assume

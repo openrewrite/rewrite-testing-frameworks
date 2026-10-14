@@ -32,6 +32,9 @@ import org.openrewrite.java.testing.junit5.RunnerToExtension;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.java.testing.junit5.KotlinJUnit5Support;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -84,6 +87,18 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 return new Annotated.Matcher(signature).<AtomicReference<@Nullable Strictness>>asVisitor(
                     (a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
                         @Override
+                        public J.MemberReference visitMemberReference(J.MemberReference reference, AtomicReference<Strictness> strictness) {
+                            for (Strictness strict : Strictness.values()) {
+                                if (strict.runners.stream().anyMatch(runner ->
+                                        TypeUtils.isOfClassType(reference.getContaining().getType(), runner))) {
+                                    strictness.set(strict);
+                                    break;
+                                }
+                            }
+                            return reference;
+                        }
+
+                        @Override
                         public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
                             for (Strictness strict : Strictness.values()) {
                                 if (strict.runners.stream().anyMatch(runner -> TypeUtils.isOfClassType(fieldAccess.getTarget().getType(), runner))) {
@@ -128,10 +143,14 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 if (strictness == Strictness.STRICT_STUBS) {
                     return Optional.empty();
                 }
-                return Optional.of(JavaTemplate.builder("@MockitoSettings(strictness = Strictness." + strictness + ")")
+                String template = "@MockitoSettings(strictness = Strictness." + strictness + ")";
+                return Optional.of((KotlinJUnit5Support.isKotlin(getCursor()) ?
+                        KotlinTemplate.builder(template).parser(KotlinParser.builder()
+                                .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12")) :
+                        JavaTemplate.builder(template)
+                                .javaParser(JavaParser.fromJavaVersion()
+                                        .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12")))
                         .imports("org.mockito.quality.Strictness", "org.mockito.junit.jupiter.MockitoSettings")
-                        .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "mockito-junit-jupiter-3.12", "mockito-core-3.12"))
                         .build());
             }
         });

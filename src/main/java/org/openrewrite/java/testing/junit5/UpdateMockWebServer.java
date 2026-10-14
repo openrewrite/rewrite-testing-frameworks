@@ -74,23 +74,21 @@ public class UpdateMockWebServer extends Recipe {
                         final J.MethodDeclaration afterEachMethod = getCursor().pollMessage(AFTER_EACH_METHOD);
                         if (mockWebServerVariable != null) {
                             if (afterEachMethod == null) {
-                                cd = JavaTemplate.builder("@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}")
-                                        .contextSensitive()
-                                        .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
-                                        .javaParser(JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx,
-                                                        "junit-4",
-                                                        "junit-jupiter-api-5",
-                                                        "apiguardian-api-1.1",
-                                                        "mockwebserver-3.14"))
-                                        .build()
-                                        .apply(
+                                boolean kotlin = KotlinJUnit5Support.isKotlin(getCursor());
+                                JavaTemplate template = KotlinJUnit5Support.template(getCursor(), ctx,
+                                        "@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}",
+                                        "@AfterEach\nfun afterEachTest() { #{any(okhttp3.mockwebserver.MockWebServer)}.close() }",
+                                        new String[]{AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN}, new String[0],
+                                        true, "junit-4", "junit-jupiter-api-5", "apiguardian-api-1.1", "mockwebserver-3.14");
+                                cd = template.apply(
                                                 updateCursor(cd),
                                                 cd.getBody().getCoordinates().lastStatement(),
                                                 mockWebServerVariable
                                         );
                                 maybeAddImport(AFTER_EACH_FQN);
-                                maybeAddImport(IO_EXCEPTION_FQN);
+                                if (!kotlin) {
+                                    maybeAddImport(IO_EXCEPTION_FQN);
+                                }
                             } else {
                                 for (Statement statement : cd.getBody().getStatements()) {
                                     if (statement == afterEachMethod) {
@@ -115,7 +113,7 @@ public class UpdateMockWebServer extends Recipe {
                                 cd = autoFormat(cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                                     if (statement.isScope(afterEachMethod)) {
                                         J.MethodDeclaration method = (J.MethodDeclaration) statement;
-                                        if (method.getBody() != null) {
+                                        if (method.getBody() != null && !KotlinJUnit5Support.isKotlin(getCursor())) {
                                             if (method.getThrows() == null || method.getThrows().stream()
                                                     .noneMatch(n -> TypeUtils.isOfClassType(n.getType(), IO_EXCEPTION_FQN))) {
                                                 J.Identifier ioExceptionIdent = new J.Identifier(Tree.randomId(),
@@ -143,7 +141,7 @@ public class UpdateMockWebServer extends Recipe {
                     @Override
                     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                         J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, ctx);
-                        JavaType.FullyQualified fieldType = variableDeclarations.getTypeAsFullyQualified();
+                        JavaType.FullyQualified fieldType = TypeUtils.asFullyQualified(variableDeclarations.getVariables().get(0).getType());
                         if (TypeUtils.isOfClassType(fieldType, "okhttp3.mockwebserver.MockWebServer")) {
                             variableDeclarations = variableDeclarations.withLeadingAnnotations(ListUtils.map(variableDeclarations.getLeadingAnnotations(), annotation -> {
                                 if (RULE_MATCHER.matches(annotation)) {
@@ -157,6 +155,9 @@ public class UpdateMockWebServer extends Recipe {
                             }
                         }
                         if (multiVariable != variableDeclarations) {
+                            variableDeclarations = variableDeclarations.withLeadingAnnotations(
+                                    ListUtils.mapFirst(variableDeclarations.getLeadingAnnotations(), annotation ->
+                                            annotation.withPrefix(Space.EMPTY)));
                             getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, MOCK_WEBSERVER_VARIABLE, variableDeclarations.getVariables().get(0).getName());
                         }
                         return variableDeclarations;

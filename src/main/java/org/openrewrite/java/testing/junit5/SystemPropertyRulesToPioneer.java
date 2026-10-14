@@ -26,7 +26,6 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.ShortenFullyQualifiedTypeReferences;
@@ -66,7 +65,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
         return Preconditions.check(new UsesType<>(PACKAGE + ".*", false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
+                return sourceFile instanceof J.CompilationUnit || KotlinJUnit5Support.isKotlin(sourceFile);
             }
 
             @Override
@@ -114,11 +113,9 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                         restoring = true;
                     }
                     maybeAddImport(annotation.fqn);
-                    cd = JavaTemplate.builder(annotation.template)
-                            .imports(annotation.fqn)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-pioneer-2", "junit-jupiter-api-5"))
-                            .build()
-                            .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                    JavaTemplate template = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx, annotation.template,
+                            new String[]{annotation.fqn}, "junit-pioneer-2", "junit-jupiter-api-5");
+                    cd = template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                 }
                 // Pioneer's @RestoreSystemProperties shares its simple name with the System Rules import being removed
                 for (J.Annotation annotation : cd.getLeadingAnnotations()) {

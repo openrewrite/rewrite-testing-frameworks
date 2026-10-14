@@ -26,6 +26,8 @@ import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +52,9 @@ public class AssertToAssertions extends Recipe {
 
         @Override
         public @Nullable J preVisit(J tree, ExecutionContext ctx) {
+            if (KotlinJUnit5Support.isKotlin(tree)) {
+                tree = (J) new NormalizeKotlinJUnit4Aliases().getVisitor().visitNonNull(tree, ctx, getCursor().getParentTreeCursor());
+            }
             if (tree instanceof JavaSourceFile) {
                 JavaSourceFile c = (JavaSourceFile) tree;
                 boolean hasWildcardAssertImport = false;
@@ -63,6 +68,14 @@ public class AssertToAssertions extends Recipe {
                     maybeRemoveImport("org.junit.Assert.*");
                     maybeAddImport("org.junit.jupiter.api.Assertions", "*", false);
                 }
+            }
+            return tree;
+        }
+
+        @Override
+        public J postVisit(J tree, ExecutionContext ctx) {
+            if (KotlinJUnit5Support.isKotlin(tree)) {
+                doAfterVisit(new KotlinJUnit5MigrationCleanup().getVisitor());
             }
             return tree;
         }
@@ -83,18 +96,40 @@ public class AssertToAssertions extends Recipe {
             if (!isJunitAssertMethod(m)) {
                 return m;
             }
-            doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
-                    "org.junit.jupiter.api.Assertions", null, null, true)
+            String methodName = m.getMethodType().getName();
+            boolean kotlin = KotlinJUnit5Support.isKotlin(getCursor());
+            if (kotlin) {
+                m = m.withName(m.getName().withSimpleName(methodName));
+            }
+            if ("fail".equals(methodName) && kotlin) {
+                boolean noArgument = m.getArguments().get(0) instanceof J.Empty;
+                boolean nullMessage = m.getArguments().get(0) instanceof J.Literal &&
+                        ((J.Literal) m.getArguments().get(0)).getValue() == null;
+                maybeRemoveImport("org.junit.Assert");
+                maybeRemoveImport("org.junit.Assert.fail");
+                // Kotlin top-level functions are attributed to their JVM facade, not their import name.
+                maybeAddImport("org.junit.jupiter.api.fail", null, false);
+                // A typed null disambiguates Jupiter's nullable message, supplier and throwable overloads.
+                J.MethodInvocation replacement = KotlinTemplate.builder(noArgument || nullMessage ?
+                                "fail(null as String?)" : "fail(#{any()})")
+                        .imports("org.junit.jupiter.api.fail")
+                        .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                        .build().apply(updateCursor(m), m.getCoordinates().replace(),
+                                noArgument || nullMessage ? new Object[0] : new Object[]{m.getArguments().get(0)});
+                return replacement.withPrefix(m.getPrefix());
+            }
+            doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + methodName + "(..)",
+                    "org.junit.jupiter.api.Assertions", null, null, !kotlin)
                     .getVisitor());
 
             List<JRightPadded<Expression>> args = m.getPadding().getArguments().getPadding().getElements();
             Expression firstArg = args.get(0).getElement();
             // Suppress arg-switching for Assertions.assertEquals(String, String)
             if (args.size() == 2) {
-                if ("assertSame".equals(m.getSimpleName()) ||
-                    "assertNotSame".equals(m.getSimpleName()) ||
-                    "assertEquals".equals(m.getSimpleName()) ||
-                    "assertNotEquals".equals(m.getSimpleName())) {
+                if ("assertSame".equals(methodName) ||
+                    "assertNotSame".equals(methodName) ||
+                    "assertEquals".equals(methodName) ||
+                    "assertNotEquals".equals(methodName)) {
                     return m;
                 }
             }
@@ -142,8 +177,11 @@ public class AssertToAssertions extends Recipe {
         public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
             J.MemberReference mr = super.visitMemberReference(memberRef, ctx);
             if (isJunitAssertMethod(mr)) {
-                doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + mr.getReference().getSimpleName() + "(..)",
-                        "org.junit.jupiter.api.Assertions", null, null, true)
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    mr = mr.withReference(mr.getReference().withSimpleName(mr.getMethodType().getName()));
+                }
+                doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + mr.getMethodType().getName() + "(..)",
+                        "org.junit.jupiter.api.Assertions", null, null, !KotlinJUnit5Support.isKotlin(getCursor()))
                         .getVisitor());
             }
             return mr;
@@ -154,10 +192,10 @@ public class AssertToAssertions extends Recipe {
                 return false;
             }
             if (memberRef instanceof J.MemberReference) {
-                return !"assertThat".equals(((J.MemberReference) memberRef).getReference().getSimpleName());
+                return !"assertThat".equals(memberRef.getMethodType().getName());
             }
             return memberRef instanceof J.MethodInvocation &&
-                    !"assertThat".equals(((J.MethodInvocation) memberRef).getSimpleName());
+                    !"assertThat".equals(memberRef.getMethodType().getName());
         }
     }
 }

@@ -36,7 +36,6 @@ import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinTemplate;
-import org.openrewrite.kotlin.tree.K;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +63,7 @@ public class CsvSourceToValueSource extends Recipe {
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                        boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
+                        boolean kotlin = KotlinJUnit5Support.isKotlin(getCursor());
 
                         // Check if method has exactly one parameter
                         if (m.getParameters().size() != 1 || m.getParameters().get(0) instanceof J.Empty) {

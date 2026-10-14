@@ -77,6 +77,15 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static class ParameterizedTemplateVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         @Override
+        public J preVisit(J tree, ExecutionContext ctx) {
+            if (KotlinJUnit5Support.isKotlin(tree)) {
+                doAfterVisit(KotlinJUnit5Support.junitParamsVisitor());
+                stopAfterPreVisit();
+            }
+            return tree;
+        }
+
+        @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<String> initMethods = getCursor().computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>());

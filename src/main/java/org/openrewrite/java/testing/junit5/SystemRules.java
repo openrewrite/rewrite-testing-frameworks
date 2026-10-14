@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
+import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -125,6 +126,20 @@ final class SystemRules {
         Object parent = reference.getParentTreeCursor().getValue();
         if (parent instanceof J.MethodInvocation && ((J.MethodInvocation) parent).getSelect() == reference.getValue()) {
             return (J.MethodInvocation) parent;
+        }
+        if (parent instanceof J.FieldAccess && ((J.FieldAccess) parent).getTarget() == reference.getValue()) {
+            J.FieldAccess access = (J.FieldAccess) parent;
+            JavaType.FullyQualified owner = TypeUtils.asFullyQualified(access.getTarget().getType());
+            String getter = "get" + Character.toUpperCase(access.getSimpleName().charAt(0)) + access.getSimpleName().substring(1);
+            if (owner != null && owner.getFullyQualifiedName().startsWith(PACKAGE + ".")) {
+                for (JavaType.Method method : owner.getMethods()) {
+                    if (getter.equals(method.getName()) && method.getParameterTypes().isEmpty()) {
+                        return new J.MethodInvocation(Tree.randomId(), access.getPrefix(), Markers.EMPTY,
+                                JRightPadded.build(access.getTarget()), null,
+                                access.getName().withSimpleName(getter).withType(method), JContainer.empty(), method);
+                    }
+                }
+            }
         }
         return null;
     }
