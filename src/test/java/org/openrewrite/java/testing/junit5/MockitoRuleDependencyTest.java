@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -30,9 +31,13 @@ class MockitoRuleDependencyTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResources("org.openrewrite.java.testing.junit5.UseMockitoExtension")
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-4", "mockito-core-5", "mockito-junit-jupiter-5", "junit-jupiter-api-5"));
+            "junit-4",
+            "mockito-core-5",
+            "mockito-junit-jupiter-5",
+            "junit-jupiter-api-5"));
     }
 
+    @DocumentExample
     @Test
     void addsMatchingJupiterDependencyForModernMockitoRule() {
         rewriteRun(
@@ -171,7 +176,11 @@ class MockitoRuleDependencyTest implements RewriteTest {
     void upgradesLegacyMockitoBeforeAligningJupiter() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "junit-4", "mockito-all-1.10", "mockito-core-3.12", "mockito-junit-jupiter-3.12", "junit-jupiter-api-5")),
+            "junit-4",
+            "mockito-all-1.10",
+            "mockito-core-3.12",
+            "mockito-junit-jupiter-3.12",
+            "junit-jupiter-api-5")),
           mavenProject("test",
             srcTestJava(
               java(

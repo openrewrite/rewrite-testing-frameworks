@@ -342,7 +342,10 @@ class JUnit5MigrationTest implements RewriteTest {
     void cucumber4RunnerBecomesSuite() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "cucumber-core-4", "cucumber-junit-4"))
+              .classpathFromResources(new InMemoryExecutionContext(),
+                  "junit-4",
+                  "cucumber-core-4",
+                  "cucumber-junit-4"))
             .beforeRecipe(sources -> sources.sort(comparing(source -> !(source instanceof Xml.Document)))),
           mavenProject("project",
             srcTestJava(

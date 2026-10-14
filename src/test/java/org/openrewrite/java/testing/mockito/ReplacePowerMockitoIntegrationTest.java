@@ -3304,7 +3304,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testMockingStaticMethodsOfSystemIsDisabled() {
+    void mockingStaticMethodsOfSystemIsDisabled() {
         //language=java
         rewriteRun(
           java(
@@ -3344,7 +3344,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void testMockingInheritedStaticMethodIsDisabled() {
+    void mockingInheritedStaticMethodIsDisabled() {
         //language=java
         rewriteRun(
           java(

@@ -51,7 +51,10 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResources("org.openrewrite.java.testing.wiremock.Wiremock3to4Migration")
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5", "wiremock-3.13"));
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "junit-jupiter-api-5",
+              "wiremock-3.13"));
     }
 
     private static String pomDependency(String artifactId) {

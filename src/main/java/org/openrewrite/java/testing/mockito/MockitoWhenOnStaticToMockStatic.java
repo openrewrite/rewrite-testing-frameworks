@@ -33,8 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -362,7 +361,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     }
 
     private static String argumentPlaceholders(List<Expression> arguments) {
-        return String.join(", ", Collections.nCopies(arguments.size(), "#{any()}"));
+        return String.join(", ", nCopies(arguments.size(), "#{any()}"));
     }
 
     private static Object[] templateParameters(List<Object> leading, List<Expression> stubbingArguments) {

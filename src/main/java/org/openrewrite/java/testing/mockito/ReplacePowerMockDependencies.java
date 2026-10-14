@@ -35,16 +35,10 @@ import org.openrewrite.maven.tree.ResolvedDependency;
 import org.openrewrite.maven.tree.ResolvedPom;
 import org.openrewrite.maven.tree.Scope;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.newSetFromMap;
 
 public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMockDependencies.Accumulator> {
 
@@ -160,7 +154,7 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
             }
         }
         if (direct != null) {
-            Set<ResolvedDependency> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+            Set<ResolvedDependency> seen = newSetFromMap(new IdentityHashMap<>());
             for (ResolvedDependency dependency : direct) {
                 if (!"org.powermock".equals(dependency.getGroupId()) && reachesMockito5(dependency, seen)) {
                     return true;

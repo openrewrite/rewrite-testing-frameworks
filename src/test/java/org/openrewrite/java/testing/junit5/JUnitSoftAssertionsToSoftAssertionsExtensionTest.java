@@ -33,7 +33,9 @@ class JUnitSoftAssertionsToSoftAssertionsExtensionTest implements RewriteTest {
         spec.recipe(new JUnitSoftAssertionsToSoftAssertionsExtension())
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-4", "junit-jupiter-api-5", "assertj-core-3"));
+              "junit-4",
+              "junit-jupiter-api-5",
+              "assertj-core-3"));
     }
 
     @DocumentExample
