@@ -697,6 +697,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
+
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
@@ -788,6 +789,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
+
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
@@ -953,6 +955,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
+
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
@@ -1444,6 +1447,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
+
               import static org.mockito.Mockito.when;
               import static org.mockito.Mockito.mock;
 
