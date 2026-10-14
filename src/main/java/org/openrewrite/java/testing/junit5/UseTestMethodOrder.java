@@ -57,10 +57,10 @@ public class UseTestMethodOrder extends Recipe {
                             .javaParser(JavaParser.fromJavaVersion()
                                     .classpathFromResources(ctx, "junit-jupiter-api-5"))
                             .imports("org.junit.jupiter.api.TestMethodOrder",
-                                    "org.junit.jupiter.api.MethodOrderer.*")
+                                    "org.junit.jupiter.api.MethodOrderer.MethodName")
                             .build()
                             .apply(getCursor(), methodOrders.iterator().next().getCoordinates().replace());
-                    maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName");
+                    maybeAddImport("org.junit.jupiter.api.MethodOrderer.MethodName", null, false);
                 }
 
                 return super.visitClassDeclaration(cd, ctx);

@@ -28,6 +28,33 @@ import static org.openrewrite.java.Assertions.java;
 
 class CategoryToTagTest implements RewriteTest {
 
+    @Test
+    void nestedCategoryKeepsSimpleTagName() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.experimental.categories.Category;
+
+              public class Outer {
+                  public interface Slow {}
+                  @Category(Outer.Slow.class)
+                  public static class NestedTest {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Tag;
+
+              public class Outer {
+                  public interface Slow {}
+
+                  @Tag("Slow")
+                  public static class NestedTest {}
+              }
+              """
+          )
+        );
+    }
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
