@@ -104,7 +104,7 @@ public class FindIncompleteAssertions extends Recipe {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                        if (isIncomplete(mi) && isResultDiscarded(method)) {
+                        if (isPendingAssertion(mi) && isResultDiscarded(method)) {
                             return SearchResult.found(mi);
                         }
                         return mi;
@@ -134,7 +134,7 @@ public class FindIncompleteAssertions extends Recipe {
         );
     }
 
-    private static boolean isIncomplete(J.MethodInvocation method) {
+    private static boolean isPendingAssertion(J.MethodInvocation method) {
         J.MethodInvocation current = method;
         while (isAssertJNonAsserting(current) && current.getSelect() instanceof J.MethodInvocation) {
             current = (J.MethodInvocation) current.getSelect();
