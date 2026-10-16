@@ -39,6 +39,30 @@ class UpdateTestAnnotationTest implements RewriteTest {
           .recipe(new UpdateTestAnnotation());
     }
 
+    @Test
+    void explicitZeroTimeout() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+
+              class MyTest {
+                  @Test(timeout = 0L)
+                  public void test() {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Test
+                  public void test() {}
+              }
+              """
+          )
+        );
+    }
+
     @DocumentExample
     @Test
     void expectedNoneToAssertDoesNotThrow() {
@@ -76,7 +100,7 @@ class UpdateTestAnnotationTest implements RewriteTest {
     }
 
     @Test
-    void expectedExceptionLeftUnchangedOnKotlin() {
+    void expectedExceptionOnKotlin() {
         rewriteRun(
           //language=kotlin
           kotlin(
@@ -87,6 +111,211 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   @Test(expected = IllegalArgumentException::class)
                   fun test() {
                       throw IllegalArgumentException()
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+              import org.junit.jupiter.api.Test
+
+              class MyTest {
+                  @Test
+                  fun test() {
+                      assertThrows(IllegalArgumentException::class.java) {
+                          throw IllegalArgumentException()
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1188")
+    @Test
+    void plainTestOnKotlin() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test
+                  fun test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+
+              class MyTest {
+                  @Test
+                  fun test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void expectedNoneOnKotlin() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test(expected = Test.None::class)
+                  fun test() {
+                      println("ok")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+              import org.junit.jupiter.api.Test
+
+              class MyTest {
+                  @Test
+                  fun test() {
+                      assertDoesNotThrow {
+                          println("ok")
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void timeoutAndExpectedExceptionOnKotlin() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test(expected = IllegalArgumentException::class, timeout = 1000L)
+                  fun test() {
+                      val message = "expected"
+                      throw IllegalArgumentException(message)
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+              import org.junit.jupiter.api.Test
+              import org.junit.jupiter.api.Timeout
+
+              import java.util.concurrent.TimeUnit
+
+              class MyTest {
+                  @Test
+                  @Timeout(value = 1000L, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+                  fun test() {
+                      assertThrows(IllegalArgumentException::class.java) {
+                          val message = "expected"
+                          throw IllegalArgumentException(message)
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void timeoutOnKotlin() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test(timeout = 1000L)
+                  fun test() {
+                      println("ok")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+              import org.junit.jupiter.api.Timeout
+
+              import java.util.concurrent.TimeUnit
+
+              class MyTest {
+                  @Test
+                  @Timeout(value = 1000L, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+                  fun test() {
+                      println("ok")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fullyQualifiedTestOnKotlin() {
+        rewriteRun(
+          kotlin(
+            """
+              class MyTest {
+                  @org.junit.Test
+                  fun test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+
+              class MyTest {
+                  @Test
+                  fun test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinReturnsTargetTheAssertionLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Test
+
+              class MyTest {
+                  @Test(expected = IllegalArgumentException::class)
+                  fun test() {
+                      if (System.getProperty("skip") != null) return
+                      fun local() {
+                          return
+                      }
+                      local()
+                      throw IllegalArgumentException("expected")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertThrows
+              import org.junit.jupiter.api.Test
+
+              class MyTest {
+                  @Test
+                  fun test() {
+                      assertThrows(IllegalArgumentException::class.java) {
+                          if (System.getProperty("skip") != null) return@assertThrows
+                          fun local() {
+                              return
+                          }
+                          local()
+                          throw IllegalArgumentException("expected")
+                      }
                   }
               }
               """

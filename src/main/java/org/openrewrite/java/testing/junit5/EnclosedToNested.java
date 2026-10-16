@@ -36,7 +36,10 @@ public class EnclosedToNested extends Recipe {
 
     String displayName = "JUnit 4 `@RunWith(Enclosed.class)` to JUnit Jupiter `@Nested`";
 
-    String description = "Replaces the `Enclosed` runner with `@Nested` on its inner test classes, preserving independent static test classes.";
+    String description = "Replaces the `Enclosed` runner with `@Nested` on its inner test classes. " +
+            "Kotlin companions move into generated abstract fixture superclasses so nested tests keep per-method instances. " +
+            "Their class lifecycle methods and class rules remain shared; private companion members become accessible to the nested subclass. " +
+            "Existing superclasses move to the fixture superclass, while interfaces remain on the nested class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -52,8 +55,12 @@ public class EnclosedToNested extends Recipe {
                 maybeRemoveImport(RUN_WITH);
                 cd = (J.ClassDeclaration) new RemoveAnnotationVisitor(enclosed)
                         .visitNonNull(cd, ctx, getCursor().getParentTreeCursor());
+                cd = cd.withPrefix(classDecl.getPrefix());
                 cd = cd.withBody((J.Block) new AddMissingNested.AddNestedAnnotationVisitor()
                         .visitNonNull(cd.getBody(), ctx, updateCursor(cd)));
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    doAfterVisit(KotlinJUnit5Support.nestedFixturesVisitor(cd.getId()));
+                }
                 maybeAddImport("org.junit.jupiter.api.Nested");
                 return cd;
             }

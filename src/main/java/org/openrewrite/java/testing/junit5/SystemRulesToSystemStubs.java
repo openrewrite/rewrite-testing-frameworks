@@ -28,6 +28,8 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
@@ -125,11 +127,15 @@ public class SystemRulesToSystemStubs extends Recipe {
 
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
+                return sourceFile instanceof J.CompilationUnit || KotlinJUnit5Support.isKotlin(sourceFile);
             }
 
             @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            public J preVisit(J tree, ExecutionContext ctx) {
+                if (!(tree instanceof JavaSourceFile)) {
+                    return tree;
+                }
+                JavaSourceFile cu = (JavaSourceFile) tree;
                 migrations.clear();
                 todos.clear();
                 Cursor root = new Cursor(null, Cursor.ROOT_VALUE);
@@ -154,7 +160,7 @@ public class SystemRulesToSystemStubs extends Recipe {
                         return field;
                     }
                 }.visit(cu, 0, root);
-                return super.visitCompilationUnit(cu, ctx);
+                return tree;
             }
 
             @Override
@@ -166,11 +172,10 @@ public class SystemRulesToSystemStubs extends Recipe {
                 }
                 maybeAddImport(EXTEND_WITH);
                 maybeAddImport(SYSTEM_STUBS_EXTENSION);
-                return JavaTemplate.builder("@ExtendWith(SystemStubsExtension.class)")
-                        .imports(EXTEND_WITH, SYSTEM_STUBS_EXTENSION)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "junit-jupiter-api-5"))
-                        .build()
-                        .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                JavaTemplate template = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx,
+                        "@ExtendWith(SystemStubsExtension.class)", new String[]{EXTEND_WITH, SYSTEM_STUBS_EXTENSION},
+                        "system-stubs-jupiter-2", "junit-jupiter-api-5");
+                return template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }
 
             @Override
@@ -190,12 +195,11 @@ public class SystemRulesToSystemStubs extends Recipe {
 
                 J.VariableDeclarations.NamedVariable namedVariable = vd.getVariables().get(0);
                 Expression oldInitializer = Objects.requireNonNull(namedVariable.getInitializer());
-                Expression initializer = JavaTemplate.builder(migration.initializer)
-                        .imports(migration.imports.toArray(new String[0]))
-                        .staticImports(OUTPUT_FACTORIES + ".tapAndOutput")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2"))
-                        .build()
-                        .apply(new Cursor(new Cursor(getCursor(), namedVariable), oldInitializer),
+                JavaTemplate initializerTemplate = KotlinJUnit5Support.template(getCursor(), ctx,
+                        migration.initializer, migration.initializer.replace("new ", ""),
+                        migration.imports.toArray(new String[0]), new String[]{OUTPUT_FACTORIES + ".tapAndOutput"},
+                        false, "system-stubs-core-2");
+                Expression initializer = initializerTemplate.apply(new Cursor(new Cursor(getCursor(), namedVariable), oldInitializer),
                                 oldInitializer.getCoordinates().replace(), migration.initializerArguments.toArray());
                 JavaType stubType = initializer.getType() == null ? JavaType.ShallowClass.build(migration.kind.stub) : initializer.getType();
 
@@ -247,6 +251,32 @@ public class SystemRulesToSystemStubs extends Recipe {
                 }
                 JavaType stubType = JavaType.ShallowClass.build(migration.kind.stub);
                 return id.withType(stubType).withFieldType(fieldType.withType(stubType));
+            }
+
+            @Override
+            public J visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
+                J.FieldAccess access = (J.FieldAccess) super.visitFieldAccess(fieldAccess, ctx);
+                Migration migration = migrations.get(referencedField(fieldAccess.getTarget()));
+                if (!KotlinJUnit5Support.isKotlin(getCursor()) || migration == null) {
+                    return access;
+                }
+                String expression;
+                switch (access.getSimpleName()) {
+                    case "log":
+                        expression = ".getText()";
+                        break;
+                    case "logWithNormalizedLineSeparator":
+                        expression = ".getText().replace(System.lineSeparator(), \"\\n\")";
+                        break;
+                    case "logAsBytes":
+                        expression = ".getText().toByteArray()";
+                        break;
+                    default:
+                        return access;
+                }
+                return KotlinTemplate.builder("#{any(" + migration.kind.stub + ")}" + expression)
+                        .parser(KotlinParser.builder().classpathFromResources(ctx, "system-stubs-core-2"))
+                        .build().apply(updateCursor(access), access.getCoordinates().replace(), access.getTarget());
             }
 
             @Override
@@ -318,11 +348,10 @@ public class SystemRulesToSystemStubs extends Recipe {
                     default:
                         return m;
                 }
-                return JavaTemplate.builder(template)
-                        .imports(LINES_ALT_STREAM, TEXT_ALT_STREAM)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2"))
-                        .build()
-                        .apply(getCursor(), m.getCoordinates().replace(), parameters.toArray());
+                JavaTemplate invocationTemplate = KotlinJUnit5Support.template(getCursor(), ctx, template,
+                        template.replace("new ", "").replace(".getBytes()", ".toByteArray()"),
+                        new String[]{LINES_ALT_STREAM, TEXT_ALT_STREAM}, new String[0], false, "system-stubs-core-2");
+                return invocationTemplate.apply(getCursor(), m.getCoordinates().replace(), parameters.toArray());
             }
         });
     }

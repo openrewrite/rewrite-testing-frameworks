@@ -22,7 +22,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.format.AutoFormatVisitor;
 import org.openrewrite.java.search.FindAnnotations;
@@ -86,6 +85,14 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<J.VariableDeclarations> mockitoFields = FindFieldsOfType.find(cd, "org.mockito.junit.MockitoRule");
             mockitoFields.addAll(FindFieldsOfType.find(cd, "org.mockito.junit.MockitoTestRule"));
+            for (Statement statement : cd.getBody().getStatements()) {
+                if (statement instanceof J.VariableDeclarations &&
+                        ((J.VariableDeclarations) statement).getVariables().stream().anyMatch(variable ->
+                                TypeUtils.isOfClassType(variable.getType(), "org.mockito.junit.MockitoRule") ||
+                                        TypeUtils.isOfClassType(variable.getType(), "org.mockito.junit.MockitoTestRule"))) {
+                    mockitoFields.add((J.VariableDeclarations) statement);
+                }
+            }
 
             mockitoFields.removeIf(field -> field.getLeadingAnnotations().stream().noneMatch(RULE::matches));
 
@@ -113,25 +120,20 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     if (!strictness.contains("STRICT_STUBS")) {
                         maybeAddImport("org.mockito.junit.jupiter.MockitoSettings");
                         maybeAddImport("org.mockito.quality.Strictness");
-                        cd = JavaTemplate.builder("@MockitoSettings(strictness = " + strictness + ")")
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx,
-                                                "junit-jupiter-api-5",
-                                                "mockito-junit-jupiter-3.12",
-                                                "mockito-core-3.12"))
-                                .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
-                                .build()
-                                .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                        JavaTemplate template = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx,
+                                "@MockitoSettings(strictness = " + strictness + ")",
+                                new String[]{"org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness"},
+                                "junit-jupiter-api-5", "mockito-junit-jupiter-3.12", "mockito-core-3.12");
+                        cd = template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                     }
                     if (FindAnnotations.find(classDecl.withBody(null), EXTEND_WITH_MOCKITO_EXTENSION).isEmpty()) {
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
                         maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
-                        cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "mockito-junit-jupiter-3.12"))
-                                .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
-                                .build()
-                                .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
+                        JavaTemplate template = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx,
+                                "@ExtendWith(MockitoExtension.class)",
+                                new String[]{"org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension"},
+                                "junit-jupiter-api-5", "mockito-junit-jupiter-3.12");
+                        cd = template.apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                     }
                 }
             }

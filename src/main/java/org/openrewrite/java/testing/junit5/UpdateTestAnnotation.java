@@ -23,10 +23,16 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
+import org.openrewrite.kotlin.marker.SingleExpressionBlock;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.marker.Markup;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
@@ -36,6 +42,8 @@ import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.openrewrite.Tree.randomId;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -55,6 +63,16 @@ public class UpdateTestAnnotation extends Recipe {
 
     private static class UpdateTestAnnotationVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final AnnotationMatcher JUNIT4_TEST = new AnnotationMatcher("@org.junit.Test");
+
+        @Override
+        public J preVisit(J tree, ExecutionContext ctx) {
+            if (KotlinJUnit5Support.isKotlin(tree)) {
+                doAfterVisit(new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true).getVisitor());
+                doAfterVisit(KotlinImports.testAnnotation());
+                maybeRemoveImport("org.junit.Test");
+            }
+            return tree;
+        }
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -109,12 +127,8 @@ public class UpdateTestAnnotation extends Recipe {
             ChangeTestAnnotation cta = new ChangeTestAnnotation();
             J.MethodDeclaration m = (J.MethodDeclaration) cta.visitNonNull(method, ctx, getCursor().getParentOrThrow());
             if (m != method) {
-                // The `expected`/`timeout` rewrites below build the replacement body and annotation with
-                // `JavaTemplate`, which does not render against a Kotlin LST. Rather than dropping the arguments
-                // or crashing, leave the JUnit 4 `@Test(expected = ..., timeout = ...)` intact on Kotlin.
-                if ((cta.expectedException != null || cta.timeout != null) &&
-                        getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
-                    return super.visitMethodDeclaration(method, ctx);
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    return super.visitMethodDeclaration(updateKotlinTest(m, cta, ctx), ctx);
                 }
 
                 JavaParser.Builder<?, ?> javaParser = JavaParser.fromJavaVersion()
@@ -179,6 +193,60 @@ public class UpdateTestAnnotation extends Recipe {
             return super.visitMethodDeclaration(m, ctx);
         }
 
+        private J.MethodDeclaration updateKotlinTest(J.MethodDeclaration method, ChangeTestAnnotation annotation,
+                                                     ExecutionContext ctx) {
+            J.MethodDeclaration m = method;
+            KotlinParser.Builder parser = KotlinParser.builder()
+                    .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
+            if (annotation.expectedException != null && m.getBody() != null) {
+                J.Block body = m.getBody();
+                boolean expressionBody = body.getMarkers().findFirst(SingleExpressionBlock.class).isPresent();
+                if (expressionBody) {
+                    m = m.withBody(body.withMarkers(body.getMarkers().removeByType(SingleExpressionBlock.class)
+                            .removeByType(org.openrewrite.kotlin.marker.OmitBraces.class)
+                            .removeByType(org.openrewrite.java.marker.OmitBraces.class)));
+                    body = body.withStatements(ListUtils.mapFirst(body.getStatements(), statement ->
+                            statement.withPrefix(Space.format("\n")))).withEnd(Space.format("\n"));
+                }
+                boolean none = annotation.expectedException instanceof J.MemberReference ?
+                        TypeUtils.isAssignableTo("org.junit.Test$None",
+                                ((J.MemberReference) annotation.expectedException).getContaining().getType()) :
+                        annotation.expectedException instanceof J.FieldAccess &&
+                        TypeUtils.isAssignableTo("org.junit.Test$None",
+                                ((J.FieldAccess) annotation.expectedException).getTarget().getType());
+                String assertion = none ? "assertDoesNotThrow" : "assertThrows";
+                J.Block assertionBody = KotlinJUnit5Support.lambdaBody(body, assertion, getCursor(), ctx);
+                Space lambdaEnd = body.getEnd();
+                KotlinTemplate template = KotlinTemplate.builder(none ?
+                                "assertDoesNotThrow {}" : "assertThrows(#{any()}.java) {}")
+                        .parser(parser)
+                        .imports("org.junit.jupiter.api.Assertions." + assertion)
+                        .build();
+                m = none ? template.apply(updateCursor(m), m.getCoordinates().replaceBody()) :
+                        template.apply(updateCursor(m), m.getCoordinates().replaceBody(), annotation.expectedException);
+                J.MethodInvocation call = (J.MethodInvocation) m.getBody().getStatements().get(0);
+                call = call.withArguments(ListUtils.mapLast(call.getArguments(), argument -> {
+                    J.Lambda lambda = (J.Lambda) argument;
+                    J.Block lambdaBody = (J.Block) lambda.getBody();
+                    return lambda.withBody(lambdaBody.withStatements(assertionBody.getStatements()).withEnd(lambdaEnd));
+                }));
+                m = m.withBody(m.getBody().withStatements(singletonList(call)));
+                maybeAddImport("org.junit.jupiter.api.Assertions", assertion, false);
+            }
+            if (annotation.timeout != null) {
+                m = KotlinTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)")
+                        .parser(parser)
+                        .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
+                        .build()
+                        .apply(updateCursor(m), m.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)),
+                                annotation.timeout);
+                maybeAddImport("org.junit.jupiter.api.Timeout");
+                maybeAddImport("java.util.concurrent.TimeUnit");
+            }
+            maybeAddImport("org.junit.jupiter.api.Test");
+            return maybeAutoFormat(method, m, ctx, getCursor().getParentTreeCursor());
+        }
+
         private J.MethodDeclaration removeSpecificThrowsClause(J.MethodDeclaration method, Expression expectedException) {
             List<NameTree> thrown = method.getThrows();
             if (thrown == null || thrown.isEmpty()) {
@@ -224,11 +292,6 @@ public class UpdateTestAnnotation extends Recipe {
 
             boolean found;
 
-            private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
-                   return JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
-            }
-
             @Override
             public J.Annotation visitAnnotation(J.Annotation a, ExecutionContext ctx) {
                 if (!found && JUNIT4_TEST.matches(a)) {
@@ -246,15 +309,17 @@ public class UpdateTestAnnotation extends Recipe {
                             if ("expected".equals(assignParamName)) {
                                 expectedException = e;
                             } else if ("timeout".equals(assignParamName)) {
-                                timeout = e;
+                                if (!(e instanceof J.Literal && ((J.Literal) e).getValue() instanceof Number &&
+                                        ((Number) ((J.Literal) e).getValue()).longValue() == 0)) {
+                                    timeout = e;
+                                }
                             }
                         }
                     }
 
                     if (a.getAnnotationType() instanceof J.FieldAccess) {
-                        a = JavaTemplate.builder("@org.junit.jupiter.api.Test")
-                                .javaParser(javaParser(ctx))
-                                .build()
+                        a = KotlinJUnit5Support.annotationTemplate(getCursor(), ctx, "@org.junit.jupiter.api.Test", "@Test",
+                                        new String[]{"org.junit.jupiter.api.Test"}, "junit-jupiter-api-5", "apiguardian-api-1.1")
                                 .apply(getCursor(), a.getCoordinates().replace());
                     } else {
                         a = a.withArguments(null)
@@ -263,6 +328,32 @@ public class UpdateTestAnnotation extends Recipe {
                 }
                 return a;
             }
+        }
+    }
+
+    private static final class KotlinImports {
+        private static TreeVisitor<?, ExecutionContext> testAnnotation() {
+            return new KotlinIsoVisitor<ExecutionContext>() {
+                @Override
+                public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
+                    K.CompilationUnit c = cu.withImports(ListUtils.map(cu.getImports(), anImport ->
+                            "org.junit.Test".equals(anImport.getTypeName()) ?
+                                    anImport.withQualid(TypeTree.build("org.junit.jupiter.api.Test")
+                                            .withPrefix(anImport.getQualid().getPrefix())) : anImport));
+                    boolean imported = c.getImports().stream().anyMatch(anImport ->
+                            !anImport.isStatic() && ("org.junit.jupiter.api.Test".equals(anImport.getTypeName()) ||
+                                    "org.junit.jupiter.api".equals(anImport.getPackageName()) &&
+                                            "*".equals(anImport.getQualid().getSimpleName())));
+                    if (!imported && !c.getImports().isEmpty() && !FindAnnotations.find(c,
+                            "@org.junit.jupiter.api.Test").isEmpty()) {
+                        J.Import testImport = new J.Import(randomId(), Space.format("\n"),
+                                Markers.EMPTY, new JLeftPadded<>(Space.EMPTY, false, Markers.EMPTY),
+                                TypeTree.build("org.junit.jupiter.api.Test").withPrefix(Space.format(" ")), null);
+                        c = c.withImports(ListUtils.concat(c.getImports(), testImport));
+                    }
+                    return c;
+                }
+            };
         }
     }
 }

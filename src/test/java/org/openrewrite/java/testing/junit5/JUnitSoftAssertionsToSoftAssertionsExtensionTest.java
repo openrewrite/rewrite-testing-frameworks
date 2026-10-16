@@ -380,7 +380,7 @@ class JUnitSoftAssertionsToSoftAssertionsExtensionTest implements RewriteTest {
     }
 
     @Test
-    void noChangeOnKotlin() {
+    void softAssertionsRuleOnKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "assertj-core-3")),
@@ -393,6 +393,18 @@ class JUnitSoftAssertionsToSoftAssertionsExtensionTest implements RewriteTest {
               class SoftlyTest {
                   @get:Rule
                   val softly: JUnitSoftAssertions = JUnitSoftAssertions()
+              }
+              """,
+            """
+              import org.assertj.core.api.SoftAssertions
+              import org.assertj.core.api.junit.jupiter.InjectSoftAssertions
+              import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension
+              import org.junit.jupiter.api.extension.ExtendWith
+
+              @ExtendWith(SoftAssertionsExtension::class)
+              class SoftlyTest {
+                  @InjectSoftAssertions
+                  lateinit var softly: SoftAssertions
               }
               """
           )

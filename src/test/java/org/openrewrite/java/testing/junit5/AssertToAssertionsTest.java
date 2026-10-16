@@ -21,12 +21,14 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"SimplifiableAssertion", "ConstantConditions", "UnnecessaryLocalVariable"})
 class AssertToAssertionsTest implements RewriteTest {
@@ -36,7 +38,85 @@ class AssertToAssertionsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"))
           .recipe(new AssertToAssertions());
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1188")
+    @Test
+    void kotlinAssertionMessagesAndOverloads() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Assert.*
+
+              fun assertions() {
+                  assertEquals("sum", 3, 1 + 2)
+                  assertEquals("difference", 0.5, 1.0 - 0.5, 0.001)
+                  assertTrue("condition", true)
+                  assertFalse("condition", false)
+                  assertNull("value", null)
+                  assertNotNull("value", "present")
+                  assertArrayEquals("array", intArrayOf(1, 2), intArrayOf(1, 2))
+                  assertEquals("expected", "actual")
+                  assertNotEquals("expected", "actual")
+                  assertSame("same", "same")
+                  assertNotSame("expected", "actual")
+                  fail("failure")
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.*
+              import org.junit.jupiter.api.fail
+
+              fun assertions() {
+                  assertEquals(3, 1 + 2, "sum")
+                  assertEquals(0.5, 1.0 - 0.5, 0.001, "difference")
+                  assertTrue(true, "condition")
+                  assertFalse(false, "condition")
+                  assertNull(null, "value")
+                  assertNotNull("present", "value")
+                  assertArrayEquals(intArrayOf(1, 2), intArrayOf(1, 2), "array")
+                  assertEquals("expected", "actual")
+                  assertNotEquals("expected", "actual")
+                  assertSame("same", "same")
+                  assertNotSame("expected", "actual")
+                  fail("failure")
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinFailureWithoutMessageIsUnambiguous() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Assert.fail
+
+              fun withoutMessage() {
+                  fail()
+              }
+
+              fun nullMessage() {
+                  fail(null)
+              }
+              """,
+            """
+              import org.junit.jupiter.api.fail
+
+              fun withoutMessage() {
+                  fail(null as String?)
+              }
+
+              fun nullMessage() {
+                  fail(null as String?)
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample

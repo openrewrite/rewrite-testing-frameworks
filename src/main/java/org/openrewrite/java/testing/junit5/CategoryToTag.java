@@ -24,8 +24,10 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -81,24 +83,28 @@ public class CategoryToTag extends Recipe {
 
         private Stream<J.Annotation> categoryAnnotationToTagAnnotations(J.Annotation maybeCategory) {
             if (maybeCategory.getArguments() != null && TypeUtils.isOfClassType(maybeCategory.getAnnotationType().getType(), "org.junit.experimental.categories.Category")) {
-                Expression annotationArgument = maybeCategory.getArguments().iterator().next();
-                if (annotationArgument instanceof J.Assignment) {
-                    annotationArgument = ((J.Assignment) annotationArgument).getAssignment();
-                }
-
-                Stream<J.FieldAccess> categories = Stream.empty();
-                if (annotationArgument instanceof J.NewArray) {
-                    J.NewArray argArray = (J.NewArray) annotationArgument;
-                    if (argArray.getInitializer() != null) {
-                        categories = argArray.getInitializer().stream()
-                                .map(J.FieldAccess.class::cast);
+                List<Expression> categories = maybeCategory.getArguments().stream().flatMap(argument -> {
+                    Expression value = argument instanceof J.Assignment ? ((J.Assignment) argument).getAssignment() : argument;
+                    if (value instanceof J.NewArray) {
+                        return ((J.NewArray) value).getInitializer() == null ? Stream.empty() :
+                                ((J.NewArray) value).getInitializer().stream();
                     }
+                    if (KotlinJUnit5Support.isKotlin(getCursor()) && value instanceof K.ListLiteral) {
+                        return ((K.ListLiteral) value).getElements().stream();
+                    }
+                    if (value instanceof J.MethodInvocation && "arrayOf".equals(((J.MethodInvocation) value).getSimpleName())) {
+                        return ((J.MethodInvocation) value).getArguments().stream();
+                    }
+                    return Stream.of(value);
+                }).collect(toList());
+                if (categories.stream().anyMatch(category -> !(category instanceof J.FieldAccess) &&
+                        !(category instanceof J.MemberReference))) {
+                    return Stream.of(maybeCategory);
                 }
-                if (annotationArgument instanceof J.FieldAccess) {
-                    categories = Stream.of((J.FieldAccess) annotationArgument);
-                }
-                return categories.map(category -> {
-                    String targetName = convertToTagName(category);
+                return categories.stream().map(category -> {
+                    Expression target = category instanceof J.MemberReference ?
+                            ((J.MemberReference) category).getContaining() : ((J.FieldAccess) category).getTarget();
+                    String targetName = convertToTagName(target);
                     J.Annotation tagAnnotation = new J.Annotation(
                             randomId(),
                             Space.EMPTY,
@@ -123,21 +129,26 @@ public class CategoryToTag extends Recipe {
                                     Markers.EMPTY
                             )
                     );
-                    maybeRemoveImport(TypeUtils.asFullyQualified(category.getTarget().getType()));
+                    maybeRemoveImport(TypeUtils.asFullyQualified(target.getType()));
                     return tagAnnotation;
                 });
             }
             return Stream.of(maybeCategory);
         }
 
-        private static String convertToTagName(J.FieldAccess category) {
-            if (category.getTarget() instanceof J.Identifier) {
-                return ((J.Identifier) category.getTarget()).getSimpleName();
+        private static String convertToTagName(Expression category) {
+            JavaType.FullyQualified type = TypeUtils.asFullyQualified(category.getType());
+            if (type != null) {
+                String name = type.getClassName();
+                return name.substring(Math.max(name.lastIndexOf('$'), name.lastIndexOf('.')) + 1);
             }
-            if (category.getTarget() instanceof J.FieldAccess) {
-                return ((J.FieldAccess) category.getTarget()).getSimpleName();
+            if (category instanceof J.Identifier) {
+                return ((J.Identifier) category).getSimpleName();
             }
-            return category.getTarget().toString();
+            if (category instanceof J.FieldAccess) {
+                return ((J.FieldAccess) category).getSimpleName();
+            }
+            return category.toString();
         }
     }
 }

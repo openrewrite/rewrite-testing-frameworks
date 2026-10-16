@@ -23,8 +23,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType.FullyQualified;
 import org.openrewrite.java.tree.JavaType.Method;
@@ -47,7 +45,9 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
         return Preconditions.check(new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                if (classDecl.getExtends() != null) {
+                if (classDecl.getExtends() != null || KotlinJUnit5Support.isKotlin(getCursor()) &&
+                        classDecl.getType() != null && classDecl.getType().getSupertype() != null &&
+                        !"java.lang.Object".equals(classDecl.getType().getSupertype().getFullyQualifiedName())) {
                     // Only classes that extend other classes can have override methods with missing annotations
                     return SearchResult.found(classDecl);
                 }
@@ -76,10 +76,8 @@ public class AddMissingTestBeforeAfterAnnotations extends Recipe {
         private J.MethodDeclaration maybeAddMissingAnnotation(J.MethodDeclaration method, Method superMethod, LifecyleAnnotation la, ExecutionContext ctx) {
             if (la.needsAnnotation(method, superMethod)) {
                 maybeAddImport(la.newAnnotation);
-                return JavaTemplate.builder(la.newAnnotationSimple)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                        .imports(la.newAnnotation)
-                        .build()
+                return KotlinJUnit5Support.annotationTemplate(getCursor(), ctx, la.newAnnotationSimple,
+                        new String[]{la.newAnnotation}, "junit-jupiter-api-5")
                         .apply(getCursor(), method.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
             }
             return method;

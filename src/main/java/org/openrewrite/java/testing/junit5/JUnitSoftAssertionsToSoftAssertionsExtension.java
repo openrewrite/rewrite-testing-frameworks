@@ -27,13 +27,16 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -41,8 +44,10 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Comparator.comparing;
+import static org.openrewrite.Tree.randomId;
 
 public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
 
@@ -85,11 +90,31 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                                 new UsesType<>(JUNIT_BDD_SOFT_ASSERTIONS, false))),
                 new JavaIsoVisitor<ExecutionContext>() {
 
-                    // Kotlin properties would need `lateinit var` rather than a dropped `final` and initializer, and
-                    // the `ChangeType` below is driven from a `J.CompilationUnit` that a Kotlin source does not have.
                     @Override
                     public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                        return sourceFile instanceof J.CompilationUnit;
+                        return sourceFile instanceof J.CompilationUnit || KotlinJUnit5Support.isKotlin(sourceFile);
+                    }
+
+                    @Override
+                    public J preVisit(J tree, ExecutionContext ctx) {
+                        if (KotlinJUnit5Support.isKotlin(tree)) {
+                            getCursor().putMessage(UNCONVERTIBLE_TYPES, unconvertibleRuleTypes((JavaSourceFile) tree));
+                        }
+                        return tree;
+                    }
+
+                    @Override
+                    public J postVisit(J tree, ExecutionContext ctx) {
+                        if (KotlinJUnit5Support.isKotlin(tree)) {
+                            Set<String> convertedTypes = getCursor().pollMessage(CONVERTED_TYPES);
+                            if (convertedTypes != null) {
+                                for (String convertedType : convertedTypes) {
+                                    doAfterVisit(new ChangeType(convertedType, RULE_TO_PROVIDER.get(convertedType), true).getVisitor());
+                                }
+                                maybeRemoveImport(RULE);
+                            }
+                        }
+                        return tree;
                     }
 
                     @Override
@@ -117,11 +142,8 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                         }
                         maybeAddImport(EXTEND_WITH);
                         maybeAddImport(SOFT_ASSERTIONS_EXTENSION);
-                        return JavaTemplate.builder("@ExtendWith(SoftAssertionsExtension.class)")
-                                .imports(EXTEND_WITH, SOFT_ASSERTIONS_EXTENSION)
-                                .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
-                                .build()
+                        return KotlinJUnit5Support.annotationTemplate(getCursor(), ctx, "@ExtendWith(SoftAssertionsExtension.class)",
+                                new String[]{EXTEND_WITH, SOFT_ASSERTIONS_EXTENSION}, "junit-jupiter-api-5", "assertj-core-3")
                                 .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                     }
 
@@ -136,31 +158,45 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                             return mv;
                         }
 
-                        mv = maybeAutoFormat(mv, mv.withModifiers(ListUtils.map(mv.getModifiers(),
-                                m -> m.getType() == J.Modifier.Type.Final ? null : m)), ctx, getCursor().getParentOrThrow());
+                        boolean kotlin = KotlinJUnit5Support.isKotlin(getCursor());
+                        if (kotlin) {
+                            mv = mv.withModifiers(ListUtils.map(mv.getModifiers(), modifier ->
+                                    modifier.getType() == J.Modifier.Type.Final ?
+                                            modifier.withType(J.Modifier.Type.LanguageExtension).withKeyword("var") : modifier));
+                            mv = mv.withModifiers(ListUtils.concat(new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY,
+                                    "lateinit", J.Modifier.Type.LanguageExtension, emptyList()),
+                                    ListUtils.map(mv.getModifiers(), modifier -> modifier.withPrefix(Space.SINGLE_SPACE))))
+                                    .withLeadingAnnotations(ListUtils.map(mv.getLeadingAnnotations(), annotation ->
+                                            "JvmField".equals(annotation.getSimpleName()) ? null : annotation));
+                            if (mv.getTypeExpression() == null) {
+                                mv = mv.withTypeExpression(TypeTree.build(ruleType.substring(ruleType.lastIndexOf('.') + 1))
+                                        .withType(JavaType.ShallowClass.build(ruleType)).withPrefix(Space.SINGLE_SPACE));
+                            }
+                        } else {
+                            mv = maybeAutoFormat(mv, mv.withModifiers(ListUtils.map(mv.getModifiers(),
+                                    m -> m.getType() == J.Modifier.Type.Final ? null : m)), ctx, getCursor().getParentOrThrow());
+                        }
                         mv = mv.withVariables(ListUtils.map(mv.getVariables(), v -> v.withInitializer(null)));
                         mv = (J.VariableDeclarations) new Annotated.Matcher('@' + RULE)
-                                .asVisitor(a -> JavaTemplate.builder("@InjectSoftAssertions")
-                                        .imports(INJECT_SOFT_ASSERTIONS)
-                                        .javaParser(JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
-                                        .build()
+                                .asVisitor(a -> KotlinJUnit5Support.annotationTemplate(a.getCursor(), ctx,
+                                        "@InjectSoftAssertions", new String[]{INJECT_SOFT_ASSERTIONS},
+                                        "junit-jupiter-api-5", "assertj-core-3")
                                         .apply(a.getCursor(), a.getTree().getCoordinates().replace()))
                                 .visitNonNull(mv, ctx, getCursor().getParentOrThrow());
                         maybeAddImport(INJECT_SOFT_ASSERTIONS);
 
                         getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, CONVERTED_TYPES, ruleType);
-                        getCursor().dropParentUntil(J.CompilationUnit.class::isInstance)
+                        getCursor().dropParentUntil(JavaSourceFile.class::isInstance)
                                 .<Set<String>>computeMessageIfAbsent(CONVERTED_TYPES, k -> new LinkedHashSet<>())
                                 .add(ruleType);
-                        return mv;
+                        return kotlin ? maybeAutoFormat(multiVariable, mv, ctx) : mv;
                     }
                 });
     }
 
     private static @Nullable String softAssertionsType(J.VariableDeclarations mv) {
         for (String ruleType : RULE_TO_PROVIDER.keySet()) {
-            if (TypeUtils.isOfClassType(mv.getType(), ruleType)) {
+            if (mv.getVariables().stream().anyMatch(variable -> TypeUtils.isOfClassType(variable.getType(), ruleType))) {
                 return ruleType;
             }
         }
@@ -170,7 +206,7 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
     // Types also declared as a field this recipe leaves alone, such as a `@ClassRule` or a field only referenced from a
     // `RuleChain`; those fields still have to implement `TestRule`, so the compilation unit wide `ChangeType` that
     // follows the conversion must not run for their type.
-    private static Set<String> unconvertibleRuleTypes(J.CompilationUnit cu) {
+    private static Set<String> unconvertibleRuleTypes(JavaSourceFile cu) {
         return new JavaIsoVisitor<Set<String>>() {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations mv, Set<String> types) {

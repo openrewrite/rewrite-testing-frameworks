@@ -23,12 +23,15 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.format.ShiftFormat;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.junit5.SystemRules.*;
 
@@ -59,11 +62,15 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
 
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
+                return sourceFile instanceof J.CompilationUnit || KotlinJUnit5Support.isKotlin(sourceFile);
             }
 
             @Override
-            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+            public J preVisit(J tree, ExecutionContext ctx) {
+                if (!(tree instanceof JavaSourceFile)) {
+                    return tree;
+                }
+                JavaSourceFile cu = (JavaSourceFile) tree;
                 migrated.clear();
                 todos.clear();
                 plans.clear();
@@ -91,7 +98,7 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
                         return field;
                     }
                 }.visit(cu, 0, root);
-                return super.visitCompilationUnit(cu, ctx);
+                return tree;
             }
 
             @Override
@@ -138,7 +145,45 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
                 String status = VariableNameUtils.generateVariableName("status", new Cursor(getCursor(), body), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
                 maybeAddImport(SYSTEM_STUBS, "catchSystemExit");
                 Cursor bodyCursor = new Cursor(getCursor(), body);
-                if (plan.status == null) {
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    J.MethodInvocation call = KotlinTemplate.builder("catchSystemExit {}")
+                            .imports(SYSTEM_STUBS + ".catchSystemExit")
+                            .parser(KotlinParser.builder().classpathFromResources(ctx, "system-stubs-core-2"))
+                            .build().apply(new Cursor(bodyCursor, expectation), expectation.getCoordinates().replace());
+                    call = call.withArguments(ListUtils.map(call.getArguments(), argument -> {
+                        if (argument instanceof J.Lambda) {
+                            J.Lambda lambda = (J.Lambda) argument;
+                            J.Block generated = (J.Block) lambda.getBody();
+                            return lambda.withBody(KotlinJUnit5Support.lambdaBody(
+                                    generated.withStatements(exiting).withEnd(method.getBody().getEnd()), "catchSystemExit", getCursor(), ctx));
+                        }
+                        return argument;
+                    }));
+                    Statement caught = call;
+                    if (plan.status != null) {
+                        JavaType.Variable type = new JavaType.Variable(null, 0, status, m.getMethodType(),
+                                JavaType.Primitive.Int, emptyList());
+                        J.Identifier name = new J.Identifier(randomId(), Space.SINGLE_SPACE, Markers.EMPTY,
+                                emptyList(), status, JavaType.Primitive.Int, type);
+                        J.VariableDeclarations.NamedVariable variable = new J.VariableDeclarations.NamedVariable(
+                                randomId(), Space.EMPTY, Markers.EMPTY, name, emptyList(),
+                                new JLeftPadded<>(Space.SINGLE_SPACE, call.withPrefix(Space.SINGLE_SPACE), Markers.EMPTY), type);
+                        caught = new J.VariableDeclarations(randomId(), expectation.getPrefix(), Markers.EMPTY, emptyList(),
+                                singletonList(new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null,
+                                        J.Modifier.Type.Final, emptyList())), null, null, singletonList(JRightPadded.build(variable)));
+                        maybeAddImport(ASSERTIONS, "assertEquals");
+                        J.MethodInvocation assertion = KotlinTemplate.builder("assertEquals(0, 0)")
+                                .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .staticImports(ASSERTIONS + ".assertEquals")
+                                .build().apply(new Cursor(bodyCursor, expectation), expectation.getCoordinates().replace());
+                        assertion = assertion.withArguments(Arrays.asList(plan.status.withPrefix(Space.EMPTY),
+                                name.withPrefix(Space.SINGLE_SPACE)));
+                        body = body.withStatements(ListUtils.concatAll(statements.subList(0, plan.first),
+                                Arrays.asList(caught, assertion.withPrefix(expectation.getPrefix()))));
+                    } else {
+                        body = body.withStatements(ListUtils.concat(statements.subList(0, plan.first), caught));
+                    }
+                } else if (plan.status == null) {
                     body = JavaTemplate.builder("catchSystemExit(() -> #{any()});")
                             .staticImports(SYSTEM_STUBS + ".catchSystemExit")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-core-2", "junit-jupiter-api-5"))
@@ -172,7 +217,7 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
                     }
                 }
                 m = m.withBody(body.withStatements(ListUtils.concatAll(body.getStatements(), inlined)));
-                return withThrowsException(m);
+                return !KotlinJUnit5Support.isKotlin(getCursor()) ? withThrowsException(m) : maybeAutoFormat(method, m, ctx);
             }
 
             private J.MethodDeclaration withThrowsException(J.MethodDeclaration m) {

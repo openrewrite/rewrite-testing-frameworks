@@ -53,8 +53,9 @@ public class UseWiremockExtension extends Recipe {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "httpsPort".equals(mi.getSimpleName()) ? "getHttpsPort" : null;
                 if (getter != null && mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), WIREMOCK_RULE)) {
-                    return mi.withName(mi.getName().withSimpleName(getter))
-                            .withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION)));
+                    return mi.withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION)))
+                            .withName(mi.getName().withSimpleName(getter).withType(
+                                    mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION))));
                 }
                 return mi;
             }
@@ -66,6 +67,8 @@ public class UseWiremockExtension extends Recipe {
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport(WIREMOCK_EXTENSION);
                     doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true)
+                            .getVisitor());
+                    doAfterVisit(new ChangeType("org.junit.ClassRule", "org.junit.jupiter.api.extension.RegisterExtension", true)
                             .getVisitor());
 
                     Expression arg = n.getArguments().get(0);

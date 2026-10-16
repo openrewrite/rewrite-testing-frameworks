@@ -81,11 +81,13 @@ recipeDependencies {
 }
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
+val provided = configurations.named("provided")
 dependencies {
     implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
     implementation("org.openrewrite:rewrite-json")
+    provided("org.openrewrite:rewrite-kotlin:${rewriteVersion}")
     implementation("org.openrewrite:rewrite-maven")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:${rewriteVersion}")
     implementation("org.openrewrite.recipe:rewrite-static-analysis:${rewriteVersion}")
@@ -110,7 +112,9 @@ dependencies {
     testRuntimeOnly("org.openrewrite:rewrite-java-25")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
-    testImplementation("org.openrewrite:rewrite-kotlin")
+    testImplementation("org.junit.platform:junit-platform-launcher:1.13.3")
+    testRuntimeOnly("org.hamcrest:hamcrest:3.0")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:2.2.21")
     testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testRuntimeOnly(gradleApi())
 
@@ -129,6 +133,32 @@ dependencies {
 tasks.test {
     // The `TestNgToAssertJTest` tests require a lot of memory for the `JavaTemplate` caching
     maxHeapSize = "1g"
+    useJUnitPlatform {
+        excludeTags("kotlin-execution")
+    }
+    systemProperty("rewrite.kotlin.executionClasspath", sourceSets.test.get().runtimeClasspath.asPath)
+}
+
+val kotlinMigrationExecutionTest by tasks.registering(Test::class) {
+    description = "Compile migrated Kotlin and Java fixtures and execute them without legacy JUnit."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    maxHeapSize = "1g"
+    useJUnitPlatform {
+        includeTags("kotlin-execution")
+    }
+    systemProperty("rewrite.kotlin.executionClasspath", sourceSets.test.get().runtimeClasspath.asPath)
+    shouldRunAfter(tasks.test)
+}
+
+tasks.check {
+    dependsOn(kotlinMigrationExecutionTest)
+}
+
+tasks.withType<Test>().configureEach {
+    systemProperty("rewrite.kotlin.testJvmTarget",
+        providers.systemProperty("rewrite.kotlin.testJvmTarget").getOrElse("17"))
 }
 
 tasks.withType<JavaCompile> {

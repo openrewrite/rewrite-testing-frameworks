@@ -57,9 +57,8 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
 
                 cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                     if (statement instanceof J.VariableDeclarations) {
-                        //noinspection ConstantConditions
-                        if (TypeUtils.isOfClassType(((J.VariableDeclarations) statement).getTypeExpression().getType(),
-                                "org.junit.rules.Timeout")) {
+                        if (((J.VariableDeclarations) statement).getVariables().stream().anyMatch(variable ->
+                                TypeUtils.isOfClassType(variable.getType(), "org.junit.rules.Timeout"))) {
                             List<J.VariableDeclarations.NamedVariable> variables = ((J.VariableDeclarations) statement).getVariables();
                             if (!variables.isEmpty()) {
                                 Expression timeoutInitializer = variables.get(0).getInitializer();

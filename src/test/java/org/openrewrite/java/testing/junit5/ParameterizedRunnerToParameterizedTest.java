@@ -20,11 +20,13 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class ParameterizedRunnerToParameterizedTest implements RewriteTest {
 
@@ -33,7 +35,135 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"))
           .recipe(new ParameterizedRunnerToParameterized());
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1188")
+    @Test
+    void kotlinPrimaryConstructor() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.Assert.assertTrue
+              import org.junit.Test
+              import org.junit.runner.RunWith
+              import org.junit.runners.Parameterized
+
+              @RunWith(Parameterized::class)
+              class MyTest(private val value: Int) {
+                  @Test
+                  fun parameterIsProvided() {
+                      assertTrue(value > 0)
+                  }
+
+                  companion object {
+                      @JvmStatic
+                      @Parameterized.Parameters(name = "{index}: value={0}")
+                      fun values(): List<Array<Int>> = listOf(arrayOf(1), arrayOf(2))
+                  }
+              }
+              """,
+            """
+              import org.junit.Assert.assertTrue
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.MethodSource
+
+              class MyTest {
+                  private var value: Int = 0
+
+                  fun initMyTest(value: Int) {
+                      this.value = value
+                  }
+
+                  @MethodSource("values")
+                  @ParameterizedTest(name = "{index}: value={0}")
+                  fun parameterIsProvided(value: Int) {
+                      initMyTest(value)
+                      assertTrue(this.value > 0)
+                  }
+
+                  companion object {
+                      @JvmStatic
+                      fun values(): List<Array<Int>> = listOf(arrayOf(1), arrayOf(2))
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupRunsOnceAfterParameterAssignment() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.all().methodInvocations(false)),
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+
+              import static org.junit.Assert.assertEquals;
+
+              @RunWith(Parameterized.class)
+              class Example {
+                  @Parameterized.Parameter
+                  public int value;
+                  private int setups;
+
+                  @Before
+                  public void setUp() {
+                      assertEquals(42, value);
+                      setups++;
+                  }
+
+                  @Parameterized.Parameters
+                  public static Object[][] values() {
+                      return new Object[][] {{42}};
+                  }
+
+                  @Test
+                  public void test() {
+                      assertEquals(1, setups);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import static org.junit.Assert.assertEquals;
+
+              class Example {
+                  public int value;
+                  private int setups;
+
+                  public void setUp() {
+                      assertEquals(42, value);
+                      setups++;
+                  }
+
+                  public static Object[][] values() {
+                      return new Object[][] {{42}};
+                  }
+
+                  @MethodSource("values")
+                  @ParameterizedTest
+                  public void test(int value) {
+                      initExample(value);
+                      assertEquals(1, setups);
+                  }
+
+                  public void initExample(int value) {
+                      this.value = value;
+                      this.setUp();
+                  }
+              }
+              """
+          )
+        );
     }
 
     @DocumentExample
@@ -271,7 +401,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Before;
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
 
@@ -289,7 +418,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                   }
 
-                  @Before
                   public void setUp() {}
 
                   @MethodSource("parameters")

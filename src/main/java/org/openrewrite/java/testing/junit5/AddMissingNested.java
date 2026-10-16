@@ -22,6 +22,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -32,8 +33,10 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 import org.openrewrite.trait.Comments;
 
@@ -43,7 +46,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
+import static org.openrewrite.Tree.randomId;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -73,6 +78,7 @@ public class AddMissingNested extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
+        // EnclosedToNested also invokes AddNestedAnnotationVisitor for Kotlin's explicit inner-class conversion.
         return Preconditions.check(Preconditions.and(PRECONDITION, Preconditions.not(new KotlinFileChecker<>())), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -105,13 +111,32 @@ public class AddMissingNested extends Recipe {
                 // Skipping silently can end test discovery unnoticed, as `EnclosedToNested` already removed the runner
                 return Comments.of(updateCursor(cd)).multilineComment(REQUIRES_MANUAL_MIGRATION);
             }
-            cd = JavaTemplate.builder("@Nested")
+            boolean kotlin = KotlinJUnit5Support.isKotlin(getCursor());
+            if (kotlin) {
+                J.Annotation annotation = new J.Annotation(randomId(), Space.format("\n"), Markers.EMPTY,
+                        new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "Nested",
+                                JavaType.ShallowClass.build(NESTED), null), null);
+                cd = cd.withLeadingAnnotations(ListUtils.concat(cd.getLeadingAnnotations(), annotation));
+            } else {
+                cd = JavaTemplate.builder("@Nested")
                     .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx, "junit-jupiter-api-5"))
                     .imports(NESTED)
                     .build()
                     .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
+            }
             cd.getModifiers().removeIf(modifier -> modifier.getType() == J.Modifier.Type.Static);
+            if (kotlin && cd.getModifiers().stream().noneMatch(modifier -> "inner".equals(modifier.getKeyword()))) {
+                if (cd.getModifiers().stream().anyMatch(modifier -> modifier.getType() == J.Modifier.Type.Final &&
+                        modifier.getKeyword() == null)) {
+                    cd = cd.withModifiers(ListUtils.map(cd.getModifiers(), modifier ->
+                            modifier.getType() == J.Modifier.Type.Final && modifier.getKeyword() == null ?
+                                    modifier.withType(J.Modifier.Type.LanguageExtension).withKeyword("inner") : modifier));
+                } else {
+                    cd = cd.withModifiers(ListUtils.concat(cd.getModifiers(), new J.Modifier(randomId(), Space.SINGLE_SPACE,
+                            Markers.EMPTY, "inner", J.Modifier.Type.LanguageExtension, emptyList())));
+                }
+            }
             return maybeAutoFormat(classDecl, cd, ctx);
         }
 

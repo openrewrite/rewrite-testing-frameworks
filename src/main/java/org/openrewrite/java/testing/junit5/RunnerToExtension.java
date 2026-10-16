@@ -27,6 +27,8 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
 
 import java.util.List;
 
@@ -64,6 +66,14 @@ public class RunnerToExtension extends Recipe {
             private final JavaType.Class extensionType = JavaType.ShallowClass.build(extension);
 
             private JavaTemplate buildExtendsWithTemplate(ExecutionContext ctx) {
+                if (KotlinJUnit5Support.isKotlin(getCursor())) {
+                    return KotlinTemplate.builder("@ExtendWith(#{}::class)")
+                            .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5")
+                                    .dependsOn("package " + extensionType.getPackageName() + "\n" +
+                                            "import org.junit.jupiter.api.extension.Extension\n" +
+                                            "class " + extensionType.getClassName() + " : Extension"))
+                            .imports("org.junit.jupiter.api.extension.ExtendWith", extension).build();
+                }
                 return JavaTemplate.builder("@ExtendWith(#{}.class)")
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "junit-jupiter-api-5")
