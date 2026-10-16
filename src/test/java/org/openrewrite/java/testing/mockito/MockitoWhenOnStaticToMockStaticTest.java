@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -25,6 +26,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import static org.junit.jupiter.api.condition.JRE.JAVA_25;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
@@ -166,6 +168,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @EnabledForJreRange(min = JAVA_25)
     @Test
     void shouldRenameUnnamedVariableWhenReusingWrappingMockedStatic() {
         rewriteRun(
@@ -209,6 +212,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @EnabledForJreRange(min = JAVA_25)
     @Test
     void shouldRenameMultipleUnnamedVariablesIndividually() {
         rewriteRun(
