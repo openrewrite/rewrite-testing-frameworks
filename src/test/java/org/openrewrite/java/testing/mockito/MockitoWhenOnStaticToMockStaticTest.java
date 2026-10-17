@@ -633,6 +633,86 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @Test
+    void importsClassOfStaticallyImportedMethod() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> getNumber()).thenReturn(-1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importsClassOfStaticallyImportedMethodStubbedInBefore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Before;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  @Before
+                  public void setUp() {
+                      when(getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.junit.After;
+              import org.junit.Before;
+              import org.mockito.MockedStatic;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  private MockedStatic<A> mockA1;
+
+                  @Before
+                  public void setUp() {
+                      mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> getNumber()).thenReturn(-1);
+                  }
+
+                  @After
+                  public void tearDown() {
+                      mockA1.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class UsingJunit4 {
         @Test

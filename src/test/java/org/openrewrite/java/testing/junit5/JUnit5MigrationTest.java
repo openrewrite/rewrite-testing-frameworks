@@ -978,8 +978,7 @@ class JUnit5MigrationTest implements RewriteTest {
 
                   @MockitoSettings(strictness = Strictness.WARN)
                   @ExtendWith(MockitoExtension.class)
-                  public class MyClassTest {
-                  }
+                  public class MyClassTest {}
                   """
               )
             ),
