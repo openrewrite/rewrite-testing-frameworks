@@ -174,12 +174,8 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         if (!STUBBER_WHEN_MATCHER.matches(whenCall)) {
                             return false;
                         }
-                        // Ensure doNothing() is standalone (not chained after doThrow() etc.)
-                        if (!(whenCall.getSelect() instanceof J.MethodInvocation)) {
-                            return false;
-                        }
-                        J.MethodInvocation doNothingCall = (J.MethodInvocation) whenCall.getSelect();
-                        if (!DO_NOTHING_MATCHER.matches(doNothingCall) || doNothingCall.getSelect() != null) {
+                        // Mockito.doNothing() only, not Stubber.doNothing() chained after doThrow() etc.
+                        if (!DO_NOTHING_MATCHER.matches(whenCall.getSelect())) {
                             return false;
                         }
                         // Check that the when() argument references a @Mock field
