@@ -36,6 +36,78 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
           .recipe(new ParameterizedRunnerToParameterized());
     }
 
+    @Test
+    void setupRunsOnceAfterParameterAssignment() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.all().methodInvocations(false)),
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+
+              import static org.junit.Assert.assertEquals;
+
+              @RunWith(Parameterized.class)
+              class Example {
+                  @Parameterized.Parameter
+                  public int value;
+                  private int setups;
+
+                  @Before
+                  public void setUp() {
+                      assertEquals(42, value);
+                      setups++;
+                  }
+
+                  @Parameterized.Parameters
+                  public static Object[][] values() {
+                      return new Object[][] {{42}};
+                  }
+
+                  @Test
+                  public void test() {
+                      assertEquals(1, setups);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import static org.junit.Assert.assertEquals;
+
+              class Example {
+                  public int value;
+                  private int setups;
+
+                  public void setUp() {
+                      assertEquals(42, value);
+                      setups++;
+                  }
+
+                  public static Object[][] values() {
+                      return new Object[][] {{42}};
+                  }
+
+                  @MethodSource("values")
+                  @ParameterizedTest
+                  public void test(int value) {
+                      initExample(value);
+                      assertEquals(1, setups);
+                  }
+
+                  public void initExample(int value) {
+                      this.value = value;
+                      this.setUp();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @DocumentExample
     @Test
     void parameterizedTestToParameterizedTestsWithMethodSource() {
@@ -271,7 +343,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Before;
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.provider.MethodSource;
 
@@ -289,7 +360,6 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
                       return Arrays.asList(new Object[]{124, "Otis", "TheDog", Map.of("toys", "ball", "treats", "bacon")}, new Object[]{126, "Garfield", "TheBoss", Map.of("toys", "yarn", "treats", "fish")});
                   }
 
-                  @Before
                   public void setUp() {}
 
                   @MethodSource("parameters")
