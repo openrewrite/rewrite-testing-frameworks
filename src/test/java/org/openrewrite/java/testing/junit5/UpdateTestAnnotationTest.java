@@ -39,6 +39,30 @@ class UpdateTestAnnotationTest implements RewriteTest {
           .recipe(new UpdateTestAnnotation());
     }
 
+    @Test
+    void explicitZeroTimeout() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+
+              class MyTest {
+                  @Test(timeout = 0L)
+                  public void test() {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              class MyTest {
+                  @Test
+                  public void test() {}
+              }
+              """
+          )
+        );
+    }
+
     @DocumentExample
     @Test
     void expectedNoneToAssertDoesNotThrow() {

@@ -103,8 +103,9 @@ public class HandleExternalResourceRules extends Recipe {
         @Override
         public J.VariableDeclarations.NamedVariable visitVariable(
                 J.VariableDeclarations.NamedVariable variable, AtomicBoolean hasExternalResourceRule) {
-            if (variable.getInitializer() != null &&
-                    TypeUtils.isAssignableTo(EXTERNAL_RESOURCE_RULE, variable.getInitializer().getType())) {
+            if (TypeUtils.isAssignableTo(EXTERNAL_RESOURCE_RULE, variable.getType()) ||
+                    variable.getInitializer() != null &&
+                            TypeUtils.isAssignableTo(EXTERNAL_RESOURCE_RULE, variable.getInitializer().getType())) {
                 hasExternalResourceRule.set(true);
             }
             return variable;

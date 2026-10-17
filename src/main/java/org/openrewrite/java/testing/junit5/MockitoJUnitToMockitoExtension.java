@@ -86,6 +86,14 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<J.VariableDeclarations> mockitoFields = FindFieldsOfType.find(cd, "org.mockito.junit.MockitoRule");
             mockitoFields.addAll(FindFieldsOfType.find(cd, "org.mockito.junit.MockitoTestRule"));
+            for (Statement statement : cd.getBody().getStatements()) {
+                if (statement instanceof J.VariableDeclarations &&
+                        ((J.VariableDeclarations) statement).getVariables().stream().anyMatch(variable ->
+                                TypeUtils.isOfClassType(variable.getType(), "org.mockito.junit.MockitoRule") ||
+                                        TypeUtils.isOfClassType(variable.getType(), "org.mockito.junit.MockitoTestRule"))) {
+                    mockitoFields.add((J.VariableDeclarations) statement);
+                }
+            }
 
             mockitoFields.removeIf(field -> field.getLeadingAnnotations().stream().noneMatch(RULE::matches));
 
