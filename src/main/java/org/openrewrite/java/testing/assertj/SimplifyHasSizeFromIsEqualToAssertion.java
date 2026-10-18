@@ -31,6 +31,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
+import static java.util.Objects.requireNonNull;
+
 public class SimplifyHasSizeFromIsEqualToAssertion extends Recipe {
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -83,8 +85,12 @@ public class SimplifyHasSizeFromIsEqualToAssertion extends Recipe {
                             return mi;
                         }
 
+                        // The template calls the same assertThat as the replaced code
+                        String assertions = requireNonNull(assertThat.getMethodType()).getDeclaringType().getFullyQualifiedName();
+                        maybeAddImport(assertions, "assertThat");
                         return JavaTemplate.builder("assertThat(#{any()}).hasSize(#{any(int)})")
                                 .contextSensitive()
+                                .staticImports(assertions + ".assertThat")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), actual, actualLiteral);

@@ -102,6 +102,31 @@ class SimplifyArrayLengthAssertionTest implements RewriteTest {
     }
 
     @Test
+    void fullyQualifiedAssertThat() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              class MyTest {
+                  void testMethod(String[] array) {
+                      org.assertj.core.api.Assertions.assertThat(array.length).isEqualTo(7);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(String[] array) {
+                      assertThat(array).hasSize(7);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doesNotChangeCollectionSize() {
         rewriteRun(
           //language=java
