@@ -25,7 +25,9 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -86,6 +88,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         if (usages.spiedStatically) {
                             maybeAddImport("org.mockito.Mockito");
                         }
+                        usages.namedTypes.forEach(this::maybeAddImport);
                         maybeRemoveImport(POWER_MOCKITO);
 
                         doAfterVisit(new ChangeMethodTargetToStatic(POWER_MOCKITO + " mockStatic(..)",
@@ -188,6 +191,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private final J.ClassDeclaration classDecl;
         private final ScopedMocks mocks;
         boolean spiedStatically;
+        final Set<String> namedTypes = new LinkedHashSet<>();
 
         StaticMockUsageVisitor(J.ClassDeclaration classDecl, ScopedMocks mocks) {
             this.classDecl = classDecl;
@@ -295,10 +299,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), block);
             String verification = "#{any(org.mockito.MockedStatic)}.verify(" + staticCallAsVerification(call, blockCursor) +
                                   (mode == null ? "" : ", #{any(org.mockito.verification.VerificationMode)}") + ");";
-            J.MethodInvocation replaced = JavaTemplate.builder(verification)
-                    .contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                    .build()
+            J.MethodInvocation replaced = mockitoTemplate(verification, methodReferenceImport(call), ctx)
                     .apply(new Cursor(blockCursor, verifyStatic), verifyStatic.getCoordinates().replace(),
                             templateArguments(mock.field(), call, mode == null ? emptyList() : singletonList(mode)).toArray());
             return replaced.withPrefix(verifyStatic.getPrefix());
@@ -333,10 +334,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             String template = "#{any(org.mockito.MockedStatic)}." + mi.getSimpleName() + "(" +
                               staticCallAsVerification(call, getCursor()) +
                               rest.stream().map(r -> ", #{any()}").collect(joining()) + ")";
-            return JavaTemplate.builder(template)
-                    .contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                    .build()
+            return mockitoTemplate(template, methodReferenceImport(call), ctx)
                     .apply(getCursor(), mi.getCoordinates().replace(), templateArguments(mock.field(), call, rest).toArray());
         }
 
@@ -355,11 +353,27 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             }
             String template = "#{any(org.mockito.MockedStatic)}.when(() -> " + mock.className + "." + methodName + "(" +
                               methodArguments.stream().map(r -> "#{any()}").collect(joining(", ")) + "))";
-            return JavaTemplate.builder(template)
-                    .contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                    .build()
+            String mockedImport = mocks.importFor(mock.mockedType);
+            if (mockedImport != null) {
+                namedTypes.add(mockedImport);
+            }
+            return mockitoTemplate(template, mockedImport, ctx)
                     .apply(getCursor(), mi.getCoordinates().replace(), ListUtils.concat(mock.field(), methodArguments).toArray());
+        }
+
+        private static JavaTemplate mockitoTemplate(String code, @Nullable String typeImport, ExecutionContext ctx) {
+            JavaTemplate.Builder builder = JavaTemplate.builder(code)
+                    .contextSensitive()
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"));
+            if (typeImport != null) {
+                builder.imports(typeImport);
+            }
+            return builder.build();
+        }
+
+        /// The import for the class that a method reference to the static call names, spelled as the call spells it.
+        private @Nullable String methodReferenceImport(J.MethodInvocation call) {
+            return isMethodReference(call) ? mocks.importFor(requireNonNull(call.getSelect()).getType()) : null;
         }
 
         private static boolean isMethodReference(J.MethodInvocation call) {
