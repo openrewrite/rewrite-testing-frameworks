@@ -71,6 +71,35 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void fullyQualifiedAssertThat() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.time.Duration;
+
+              class Foo {
+                  void testMethod(Duration duration) {
+                      org.assertj.core.api.Assertions.assertThat(duration.getSeconds()).isEqualTo(1);
+                  }
+              }
+              """,
+            """
+              import java.time.Duration;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void testMethod(Duration duration) {
+                      assertThat(duration).hasSeconds(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void getNanoToHasNanos() {
         //language=java
         rewriteRun(
