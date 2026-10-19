@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.mockito;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -43,6 +44,7 @@ import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
+import static org.openrewrite.properties.Assertions.properties;
 import static org.openrewrite.test.SourceSpecs.text;
 
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
@@ -2726,6 +2728,240 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                 spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
               )
             )
+          )
+        );
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+      "powermock-api-mockito, 1.7.4, mock(List.class), mockito-core",
+      "powermock-api-mockito2, 2.0.9, mock(List.class), mockito-core",
+      "powermock-api-mockito, 1.7.4, mockStatic(Calendar.class), mockito-inline",
+      "powermock-api-mockito2, 2.0.9, mockStatic(Calendar.class), mockito-inline"
+    })
+    void versionPropertyInheritedFromParentIsUpdated(String powerMockArtifact, String powerMockVersion, String mocking, String mockitoArtifact) {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <powermock.version>%s</powermock.version>
+                </properties>
+              </project>
+              """.formatted(powerMockVersion),
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <powermock.version>3.12.4</powermock.version>
+                </properties>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>%s</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(powerMockArtifact),
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>%s</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(mockitoArtifact)
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+                  import java.util.List;
+
+                  class MockingTest {
+                      void test() {
+                          PowerMockito.%s;
+                      }
+                  }
+                  """.formatted(mocking),
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void managedMockitoVersionIsUsedOverInheritedPowerMockProperty() {
+        rewriteRun(
+          spec -> spec.expectedCyclesThatMakeChanges(2),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <powermock.version>2.0.9</powermock.version>
+                </properties>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencyManagement>
+                    <dependencies>
+                      <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.4</version>
+                      </dependency>
+                    </dependencies>
+                  </dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencyManagement>
+                    <dependencies>
+                      <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.4</version>
+                      </dependency>
+                    </dependencies>
+                  </dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void versionVariableFromGradlePropertiesIsUpdated() {
+        rewriteRun(
+          properties(
+            """
+              powermockVersion=2.0.9
+              """,
+            """
+              powermockVersion=3.12.4
+              """,
+            spec -> spec.path("gradle.properties")
+          ),
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation "org.powermock:powermock-api-mockito2:$powermockVersion"
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation "org.mockito:mockito-core:$powermockVersion"
+              }
+              """
           )
         );
     }
