@@ -35,6 +35,7 @@ class HandleExternalResourceRulesTest implements RewriteTest {
               .classpathFromResources(new InMemoryExecutionContext(),
                 "junit-4",
                 "junit-jupiter-api-5",
+                "junit-platform-commons-1",
                 "junit-jupiter-migrationsupport-5",
                 "grpc-testing"));
     }

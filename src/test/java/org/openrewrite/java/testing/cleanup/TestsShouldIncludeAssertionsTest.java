@@ -38,6 +38,7 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "mockito-all-1.10",
               "hamcrest-3",
               "assertj-core-3",

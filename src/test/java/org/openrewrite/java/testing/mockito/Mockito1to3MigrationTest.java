@@ -37,6 +37,7 @@ class Mockito1to3MigrationTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api",
+              "junit-platform-commons",
               "mockito-all",
               "mockito-junit-jupiter")
             //language=java

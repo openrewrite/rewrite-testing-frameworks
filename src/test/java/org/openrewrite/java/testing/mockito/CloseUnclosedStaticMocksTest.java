@@ -31,7 +31,7 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new CloseUnclosedStaticMocks())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-5")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "mockito-core-5")
             //language=java
             .dependsOn(
               """

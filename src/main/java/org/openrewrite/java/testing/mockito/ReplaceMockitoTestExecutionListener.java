@@ -103,7 +103,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
                     case JUPITER:
                         cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "junit-platform-commons", "mockito-junit-jupiter"))
                                 .build()
                                 .apply(getCursor(), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
                         maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");

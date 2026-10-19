@@ -31,6 +31,7 @@ class ReplaceMockitoTestExecutionListenerTest implements RewriteTest {
                 "spring-test-6.1",
                 "spring-boot-test-3.2",
                 "junit-jupiter-api-5",
+                "junit-platform-commons-1",
                 "mockito-junit-jupiter-5",
                 "junit-4.13",
                 "mockito-core-3",

@@ -40,6 +40,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "mockito-core-3.12",
               "mockito-junit-jupiter-3.12",
               "testng"
@@ -69,6 +70,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "mockito-core-5"
             ))
           // Known limitation with: /*~~(Identifier type is missing or malformed)~~>*/A

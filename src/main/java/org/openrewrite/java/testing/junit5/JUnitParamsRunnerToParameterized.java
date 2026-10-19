@@ -271,6 +271,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                             .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx,
                                     "junit-jupiter-api-5",
+                                    "junit-platform-commons-1",
                                     "hamcrest-3",
                                     "junit-jupiter-params-5"))
                             .imports("org.junit.jupiter.params.ParameterizedTest").build()
@@ -280,6 +281,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx,
                                 "junit-jupiter-api-5",
+                                "junit-platform-commons-1",
                                 "hamcrest-3",
                                 "junit-jupiter-params-5"))
                         .imports("org.junit.jupiter.params.ParameterizedTest").build()
@@ -296,6 +298,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx,
                                 "junit-jupiter-api-5",
+                                "junit-platform-commons-1",
                                 "hamcrest-3",
                                 "junit-jupiter-params-5"))
                         .imports("org.junit.jupiter.params.provider.MethodSource").build();

@@ -32,7 +32,8 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
                 "mockito-core",
                 "mockito-junit-jupiter",
                 "junit-4",
-                "junit-jupiter-api-5"))
+                "junit-jupiter-api-5",
+                "junit-platform-commons-1"))
           .recipe(new RemoveInitMocksIfRunnersSpecified());
     }
 

@@ -107,7 +107,7 @@ public class AddMissingNested extends Recipe {
             }
             cd = JavaTemplate.builder("@Nested")
                     .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5"))
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .imports(NESTED)
                     .build()
                     .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));

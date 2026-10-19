@@ -117,6 +117,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                                 .javaParser(JavaParser.fromJavaVersion()
                                         .classpathFromResources(ctx,
                                                 "junit-jupiter-api-5",
+                                                "junit-platform-commons-1",
                                                 "mockito-junit-jupiter-3.12",
                                                 "mockito-core-3.12"))
                                 .imports("org.mockito.junit.jupiter.MockitoSettings", "org.mockito.quality.Strictness")
@@ -128,7 +129,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                         maybeAddImport("org.mockito.junit.jupiter.MockitoExtension");
                         cd = JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "mockito-junit-jupiter-3.12"))
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "mockito-junit-jupiter-3.12"))
                                 .imports("org.junit.jupiter.api.extension.ExtendWith", "org.mockito.junit.jupiter.MockitoExtension")
                                 .build()
                                 .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));

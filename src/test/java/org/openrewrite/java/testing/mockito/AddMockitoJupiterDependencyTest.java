@@ -37,6 +37,7 @@ class AddMockitoJupiterDependencyTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api",
+              "junit-platform-commons",
               "mockito-core",
               "mockito-junit-jupiter"));
     }

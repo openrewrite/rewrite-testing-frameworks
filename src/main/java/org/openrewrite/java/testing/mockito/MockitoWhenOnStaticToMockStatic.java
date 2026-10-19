@@ -259,7 +259,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             if (beforeMethodJunit4.isPresent()) {
                                 after = writeAfterMethod(after, beforeMethodJunit4.get(), ctx, template, correspondingAfterFqn, "junit-4");
                             } else if (beforeMethodJunit5.isPresent()) {
-                                after = writeAfterMethod(after, beforeMethodJunit5.get(), ctx, template, correspondingAfterFqn, "junit-jupiter-api-5");
+                                after = writeAfterMethod(after, beforeMethodJunit5.get(), ctx, template, correspondingAfterFqn, "junit-jupiter-api-5", "junit-platform-commons-1");
                             } else if (beforeMethodTestng.isPresent()) {
                                 after = writeAfterMethod(after, beforeMethodTestng.get(), ctx, template, correspondingAfterFqn, "testng");
                             }

@@ -33,7 +33,7 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
         spec
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-5", "junit-jupiter-params-5"))
+              "junit-jupiter-api-5", "junit-platform-commons-1", "junit-jupiter-params-5"))
           .recipe(new KotlinTestMethodsShouldReturnUnit())
           // https://github.com/openrewrite/rewrite/issues/6408
           .typeValidationOptions(TypeValidation.all().methodInvocations(false));

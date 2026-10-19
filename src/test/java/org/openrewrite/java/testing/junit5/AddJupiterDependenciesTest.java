@@ -44,7 +44,7 @@ class AddJupiterDependenciesTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddJupiterDependencies())
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "junit-platform-commons"));
     }
 
     @DocumentExample
@@ -173,7 +173,7 @@ class AddJupiterDependenciesTest implements RewriteTest {
     void inheritsDependencyAnalysisAndDeclaresParameterizedApi() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "junit-jupiter-params-5")),
           mavenProject("parent",
             pomXml(
               """

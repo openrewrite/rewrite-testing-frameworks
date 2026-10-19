@@ -33,6 +33,7 @@ class ExpectedSystemExitToCatchSystemExitTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "system-rules-1",
               "system-stubs-core-2"))
           .recipe(new ExpectedSystemExitToCatchSystemExit());

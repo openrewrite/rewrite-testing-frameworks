@@ -138,7 +138,7 @@ public class TestRuleToTestInfo extends Recipe {
                     cd = JavaTemplate.builder(t)
                             .contextSensitive()
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                    .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                             .imports("org.junit.jupiter.api.TestInfo",
                                     "org.junit.jupiter.api.BeforeEach",
                                     "java.util.Optional",
@@ -168,7 +168,7 @@ public class TestRuleToTestInfo extends Recipe {
 
         private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                 return JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5");
+                        .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1");
         }
 
         @Override

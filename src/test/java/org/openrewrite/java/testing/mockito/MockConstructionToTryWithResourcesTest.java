@@ -31,7 +31,7 @@ class MockConstructionToTryWithResourcesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new MockConstructionToTryWithResources())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-5")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "mockito-core-5")
             //language=java
             .dependsOn(
               """
@@ -327,7 +327,7 @@ class MockConstructionToTryWithResourcesTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-5")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "mockito-core-5")
             //language=java
             .dependsOn(
               """

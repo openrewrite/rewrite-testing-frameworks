@@ -35,7 +35,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3"))
           .recipe(new HamcrestMatcherToJUnit5());
     }
 
@@ -1025,7 +1025,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void equalToKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1065,7 +1065,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
           // Unwrapping not() stores logical context on the ExecutionContext (see RemoveNotMatcherVisitor)
           spec -> spec.typeValidationOptions(all().immutableExecutionContext(false))
             .parser(KotlinParser.builder()
-              .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1104,7 +1104,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void greaterThanKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1140,7 +1140,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void containsStringKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1178,7 +1178,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void nullValueKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1220,7 +1220,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void collectionsKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """
@@ -1260,7 +1260,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void assertionsWithReasonKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3")),
           //language=kotlin
           kotlin(
             """

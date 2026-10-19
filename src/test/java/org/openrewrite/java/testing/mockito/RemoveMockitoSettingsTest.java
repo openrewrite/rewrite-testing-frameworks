@@ -33,7 +33,8 @@ class RemoveMockitoSettingsTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "mockito-core",
               "mockito-junit-jupiter",
-              "junit-jupiter-api"))
+              "junit-jupiter-api",
+              "junit-platform-commons"))
           .recipeFromResources("org.openrewrite.java.testing.mockito.MockitoBestPractices");
     }
 

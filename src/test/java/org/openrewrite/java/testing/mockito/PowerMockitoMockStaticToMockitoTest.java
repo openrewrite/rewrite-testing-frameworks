@@ -39,6 +39,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
               "apiguardian-api-1.1",
               "junit-4",
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "mockito-core-3.12",
               "powermock-api-mockito-1",
               "powermock-core-1",
@@ -47,6 +48,7 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "mockito-core-5"
             ))
           .recipe(new PowerMockitoMockStaticToMockito())

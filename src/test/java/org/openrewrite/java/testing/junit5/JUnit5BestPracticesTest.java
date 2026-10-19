@@ -193,7 +193,7 @@ class JUnit5BestPracticesTest implements RewriteTest {
         //language=java
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api", "junit-platform-commons")),
           java(
             """
               import java.io.IOException;

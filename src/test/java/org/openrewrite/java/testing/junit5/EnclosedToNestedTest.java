@@ -76,7 +76,7 @@ class EnclosedToNestedTest implements RewriteTest {
     void preservesIndependentJupiterFixture() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1")),
           java(
             """
               import org.junit.jupiter.api.Test;

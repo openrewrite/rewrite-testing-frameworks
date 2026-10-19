@@ -32,6 +32,7 @@ class AssertThatBooleanToAssertJTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "hamcrest-3",
               "assertj-core-3"));
     }

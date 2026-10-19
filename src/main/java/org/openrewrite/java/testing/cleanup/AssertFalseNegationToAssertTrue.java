@@ -67,13 +67,13 @@ public class AssertFalseNegationToAssertTrue extends Recipe {
                         t = JavaTemplate.builder(sb.toString())
                                 .contextSensitive()
                                 .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
                                 .contextSensitive()
                                 .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                 .build();
                     }
                     return  t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);

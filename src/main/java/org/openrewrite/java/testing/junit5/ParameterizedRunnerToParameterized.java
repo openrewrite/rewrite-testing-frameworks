@@ -204,7 +204,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             return JavaTemplate.builder(initMethodTemplate.toString())
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "junit-jupiter-params-5"))
                     .build();
         }
 
@@ -311,7 +311,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     "@ParameterizedTest";
             JavaTemplate parameterizedTestTemplate = JavaTemplate.builder(parameterizedTestAnnotationTemplate)
                     .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "junit-jupiter-params-5"))
                     .imports("org.junit.jupiter.params.ParameterizedTest")
                     .build();
             m = m.withLeadingAnnotations(ListUtils.map(m.getLeadingAnnotations(), annotation -> {
@@ -340,7 +340,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             if (m.getLeadingAnnotations().stream().anyMatch(PARAMETERIZED_TEST::matches)) {
                 m = JavaTemplate.builder("@MethodSource(\"" + parametersMethodName + "\")")
                         .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "junit-jupiter-params-5"))
                         .imports("org.junit.jupiter.params.provider.MethodSource")
                         .build()
                         .apply(updateCursor(m),
@@ -350,7 +350,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                 m = JavaTemplate.builder(initMethodName + "(#{});")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-jupiter-params-5"))
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "junit-jupiter-params-5"))
                         .build()
                         .apply(updateCursor(m), newStatementCoordinates, initStatementParamString);
                 m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), parameterizedTestMethodParameters.get(parameterizedTestMethodParameters.size() - 1), ctx, getCursor().getParentTreeCursor());

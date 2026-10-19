@@ -170,7 +170,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 JavaTemplate.Builder builder = JavaTemplate.builder(String.format(template, dedicatedAssertion))
                         .contextSensitive()
                         .staticImports(assertions + ".assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"));
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "assertj-core-3"));
                 if (template.contains("Path.of(")) {
                     builder.imports("java.nio.file.Path");
                 }

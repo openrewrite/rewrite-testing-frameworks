@@ -111,7 +111,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
         return (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule")
                 .asVisitor(a -> JavaTemplate.builder("@TempDir")
                         .imports(TEMP_DIR)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                         .build()
                         .apply(a.getCursor(), a.getTree().getCoordinates().replace()))
                 .visitNonNull(mv, ctx, getCursor().getParentOrThrow());
@@ -180,7 +180,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
             return JavaTemplate.builder("File.createTempFile(\"junit\", null, #{any(java.io.File)})")
                     .imports("java.io.File")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .build()
                     .apply(getCursor(), mi.getCoordinates().replace(), tempDir);
         }
@@ -226,7 +226,7 @@ class AddNewFolderOrFileMethod extends JavaIsoVisitor<ExecutionContext> {
                     .contextSensitive()
                     .imports("java.io.File", "java.io.IOException")
                     .javaParser(JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5"))
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .build()
                     .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
             newMethodDeclaration = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
@@ -279,7 +279,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
         if (args.isEmpty()) {
             return JavaTemplate.builder("newFolder(#{any(java.io.File)}, \"junit\")")
                     .imports("java.io.File")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .build()
                     .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir);
         }
@@ -287,7 +287,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
         if (args.size() == 1) {
             return JavaTemplate.builder("newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
                     .imports("java.io.File")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .build()
                     .apply(
                             updateCursor(mi),
@@ -305,7 +305,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
         return JavaTemplate.builder(sb.toString())
                 .contextSensitive()
                 .imports("java.io.File")
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                 .build()
                 .apply(
                         updateCursor(mi),
@@ -322,7 +322,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
         }
         return JavaTemplate.builder("newFile(#{any(java.io.File)}, #{any(java.lang.String)})")
                 .imports("java.io.File")
-                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                 .build()
                 .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir, args.get(0));
     }

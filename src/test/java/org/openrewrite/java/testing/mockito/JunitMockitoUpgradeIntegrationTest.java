@@ -37,7 +37,8 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
               "mockito-all-1.10",
               "junit-4",
               "hamcrest-3",
-              "junit-jupiter-api-5"))
+              "junit-jupiter-api-5",
+              "junit-platform-commons-1"))
           .recipe(Environment.builder()
             .scanRuntimeClasspath("org.openrewrite.java.testing.junit5")
             .build()
@@ -56,7 +57,8 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
                 "mockito-core",
                 "junit-4",
                 "hamcrest-3",
-                "junit-jupiter-api-5")),
+                "junit-jupiter-api-5",
+                "junit-platform-commons-1")),
           java(
             """
               package org.openrewrite.java.testing.junit5;

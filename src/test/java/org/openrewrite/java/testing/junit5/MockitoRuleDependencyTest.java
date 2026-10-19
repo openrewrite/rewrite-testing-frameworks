@@ -34,7 +34,8 @@ class MockitoRuleDependencyTest implements RewriteTest {
             "junit-4",
             "mockito-core-5",
             "mockito-junit-jupiter-5",
-            "junit-jupiter-api-5"));
+            "junit-jupiter-api-5",
+            "junit-platform-commons-1"));
     }
 
     @DocumentExample
@@ -180,7 +181,8 @@ class MockitoRuleDependencyTest implements RewriteTest {
             "mockito-all-1.10",
             "mockito-core-3.12",
             "mockito-junit-jupiter-3.12",
-            "junit-jupiter-api-5")),
+            "junit-jupiter-api-5",
+            "junit-platform-commons-1")),
           mavenProject("test",
             srcTestJava(
               java(

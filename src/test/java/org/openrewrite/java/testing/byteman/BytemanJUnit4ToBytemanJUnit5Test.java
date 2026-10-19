@@ -32,6 +32,7 @@ class BytemanJUnit4ToBytemanJUnit5Test implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
             "junit-4",
             "junit-jupiter-api-5",
+            "junit-platform-commons-1",
             "byteman-bmunit-4",
             "byteman-bmunit5-4"))
           .recipeFromResource(

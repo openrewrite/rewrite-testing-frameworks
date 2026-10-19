@@ -24,6 +24,7 @@ public class JMockitTestUtils {
 
     static final String MOCKITO_CORE_DEPENDENCY = "mockito-core-3.12";
     static final String JUNIT_5_JUPITER_DEPENDENCY = "junit-jupiter-api-5";
+    static final String JUNIT_PLATFORM_COMMONS_DEPENDENCY = "junit-platform-commons-1";
     static final String JUNIT_4_DEPENDENCY = "junit-4";
     static final String JMOCKIT_DEPENDENCY = "jmockit-1.49";
     static final String MOCKITO_JUPITER_DEPENDENCY = "mockito-junit-jupiter-3.12";
@@ -31,6 +32,7 @@ public class JMockitTestUtils {
     static void setDefaultParserSettings(RecipeSpec spec) {
         setParserSettings(spec,
           JUNIT_5_JUPITER_DEPENDENCY,
+          JUNIT_PLATFORM_COMMONS_DEPENDENCY,
           JMOCKIT_DEPENDENCY,
           MOCKITO_CORE_DEPENDENCY,
           MOCKITO_JUPITER_DEPENDENCY);

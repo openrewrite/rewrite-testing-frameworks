@@ -37,6 +37,7 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "mockito-core-3.12",
               "powermock-core-1",
               "powermock-api-mockito-1",

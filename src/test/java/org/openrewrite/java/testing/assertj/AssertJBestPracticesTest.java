@@ -272,7 +272,7 @@ class AssertJBestPracticesTest implements RewriteTest {
         @Test
         void junitCollapsedAssertions() {
             rewriteRun(
-              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1")),
               //language=java
               java(
                 """
@@ -348,7 +348,7 @@ class AssertJBestPracticesTest implements RewriteTest {
         @Test
         void decomposeConjunctionIntoDedicatedAssertions() {
             rewriteRun(
-              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1")),
               //language=java
               java(
                 """
@@ -378,7 +378,7 @@ class AssertJBestPracticesTest implements RewriteTest {
         @Test
         void decomposeConjunctionWithMethodCallStaysSeparate() {
             rewriteRun(
-              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1")),
               //language=java
               java(
                 """
@@ -416,7 +416,7 @@ class AssertJBestPracticesTest implements RewriteTest {
         @Test
         void decomposeConjunctionWithSameSubjectCollapsesToChain() {
             rewriteRun(
-              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1")),
               //language=java
               java(
                 """
@@ -448,7 +448,7 @@ class AssertJBestPracticesTest implements RewriteTest {
     @Test
     void assertTrueContainsWithMethodCallArgPreservesMethodCall() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1")),
           //language=java
           java(
             """

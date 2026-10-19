@@ -136,7 +136,7 @@ public class EnvironmentVariables extends Recipe {
         return JavaTemplate.builder("@ExtendWith(SystemStubsExtension.class)")
                 .imports(EXTEND_WITH, SYSTEM_STUBS_EXTENSION)
                 .javaParser(
-                        JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "junit-jupiter-api-5"))
+                        JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "junit-jupiter-api-5", "junit-platform-commons-1"))
                 .build();
     }
 

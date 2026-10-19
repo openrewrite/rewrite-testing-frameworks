@@ -119,7 +119,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                 maybeAddImport("org.junit.jupiter.api.AfterEach");
                                 if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
                                     cd = KotlinTemplate.builder("@AfterEach\nfun " + tearDownMethodName(cd) + "() {\n}")
-                                            .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                            .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                             .imports("org.junit.jupiter.api.AfterEach")
                                             .build()
                                             .apply(getCursor(), cd.getBody().getCoordinates().lastStatement());
@@ -128,7 +128,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                             ListUtils.mapLast(cd.getBody().getStatements(), stm -> withBlankLineBefore(stm))));
                                 } else {
                                     cd = JavaTemplate.builder("@AfterEach\nvoid " + tearDownMethodName(cd) + "() throws Exception {\n}")
-                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                             .imports("org.junit.jupiter.api.AfterEach")
                                             .build()
                                             .apply(getCursor(), cd.getBody().getCoordinates().lastStatement());

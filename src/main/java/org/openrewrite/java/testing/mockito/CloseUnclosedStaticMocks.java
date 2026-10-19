@@ -324,7 +324,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                     isStatic ? "@AfterAll public static" : "@AfterEach public", methodName, varName);
             return JavaTemplate.builder(methodTemplate)
                     .contextSensitive()
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .imports("org.junit.jupiter.api.AfterEach", "org.junit.jupiter.api.AfterAll")
                     .build().apply(updateCursor(cd), classDecl.getBody().getCoordinates().lastStatement());
         }

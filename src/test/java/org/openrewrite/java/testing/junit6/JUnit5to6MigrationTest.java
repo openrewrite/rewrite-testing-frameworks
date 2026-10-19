@@ -36,6 +36,7 @@ class JUnit5to6MigrationTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "testng-7"))
           .recipeFromResources("org.openrewrite.java.testing.junit6.JUnit5to6Migration");
     }

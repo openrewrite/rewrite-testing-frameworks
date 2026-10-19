@@ -78,7 +78,7 @@ public class HandleExternalResourceRules extends Recipe {
                             return JavaTemplate.builder("@ExtendWith(ExternalResourceSupport.class)")
                                     .imports(EXTERNAL_RESOURCE_SUPPORT, EXTEND_WITH)
                                     .javaParser(JavaParser.fromJavaVersion()
-                                            .classpathFromResources(ctx, "junit-jupiter-migrationsupport-5", "junit-jupiter-api-5"))
+                                            .classpathFromResources(ctx, "junit-jupiter-migrationsupport-5", "junit-jupiter-api-5", "junit-platform-commons-1"))
                                     .build()
                                     .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                         }

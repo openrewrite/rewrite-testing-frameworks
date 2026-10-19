@@ -132,7 +132,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()});")
                     .contextSensitive()
                     .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .build()
                     .apply(getCursor(), try_.getCoordinates().replace(), try_.getBody());
         }
@@ -155,7 +155,7 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             maybeRemoveCatchTypes(try_);
             return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()}, #{any(String)});")
                     .imports("org.junit.jupiter.api.Assertions")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .build()
                     .apply(getCursor(), try_.getCoordinates().replace(), try_.getBody(), failCallArgument);
         }

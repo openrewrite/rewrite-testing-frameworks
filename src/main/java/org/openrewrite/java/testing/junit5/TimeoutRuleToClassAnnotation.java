@@ -108,7 +108,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 return JavaTemplate.builder(template)
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
+                                .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3"))
                         .imports("org.junit.jupiter.api.Timeout",
                                 "java.util.concurrent.TimeUnit")
                         .build()

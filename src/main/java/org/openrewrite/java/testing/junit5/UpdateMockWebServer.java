@@ -81,6 +81,7 @@ public class UpdateMockWebServer extends Recipe {
                                                 .classpathFromResources(ctx,
                                                         "junit-4",
                                                         "junit-jupiter-api-5",
+                                                        "junit-platform-commons-1",
                                                         "apiguardian-api-1.1",
                                                         "mockwebserver-3.14"))
                                         .build()
@@ -101,6 +102,7 @@ public class UpdateMockWebServer extends Recipe {
                                                         .classpathFromResources(ctx,
                                                                 "junit-4",
                                                                 "junit-jupiter-api-5",
+                                                                "junit-platform-commons-1",
                                                                 "apiguardian-api-1.1",
                                                                 "mockwebserver-3.14"))
                                                 .build()

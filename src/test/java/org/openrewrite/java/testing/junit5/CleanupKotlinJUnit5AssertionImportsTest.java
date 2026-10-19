@@ -32,7 +32,7 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1"))
           .recipe(new CleanupKotlinJUnit5AssertionImports())
           .typeValidationOptions(TypeValidation.all().methodInvocations(false));
     }
@@ -148,7 +148,7 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
         // This test ensures the recipe only operates on Kotlin files
         rewriteRun(
           spec -> spec.parser(org.openrewrite.java.JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1")),
           java(
             """
               import org.junit.jupiter.api.*;

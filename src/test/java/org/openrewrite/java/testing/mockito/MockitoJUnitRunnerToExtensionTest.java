@@ -35,6 +35,7 @@ class MockitoJUnitRunnerToExtensionTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "junit-jupiter-api-5",
+              "junit-platform-commons-1",
               "mockito-core-3.12",
               "mockito-junit-jupiter-3.12"))
           .recipe(new MockitoJUnitRunnerToExtension());

@@ -55,7 +55,7 @@ public class UseTestMethodOrder extends Recipe {
 
                     cd = JavaTemplate.builder("@TestMethodOrder(MethodName.class)")
                             .javaParser(JavaParser.fromJavaVersion()
-                                    .classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                    .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                             .imports("org.junit.jupiter.api.TestMethodOrder",
                                     "org.junit.jupiter.api.MethodOrderer.*")
                             .build()

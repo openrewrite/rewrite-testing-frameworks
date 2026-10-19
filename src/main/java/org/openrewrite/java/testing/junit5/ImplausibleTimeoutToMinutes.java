@@ -90,7 +90,7 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 return JavaTemplate.builder("@Timeout(value = " + minutes + ", unit = TimeUnit.MINUTES)")
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                         .imports(TIMEOUT, "java.util.concurrent.TimeUnit")
                         .build()
                         .apply(getCursor(), a.getCoordinates().replace());

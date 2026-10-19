@@ -102,7 +102,8 @@ public class HamcrestHasItemMatcherToAssertJ extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx,
                                 "assertj-core-3",
                                 "hamcrest-3",
-                                "junit-jupiter-api-5"))
+                                "junit-jupiter-api-5",
+                                "junit-platform-commons-1"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build();
 

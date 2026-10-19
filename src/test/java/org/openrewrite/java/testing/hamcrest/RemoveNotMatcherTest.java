@@ -31,7 +31,7 @@ class RemoveNotMatcherTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3"))
           .recipe(toRecipe(RemoveNotMatcherVisitor::new))
           .typeValidationOptions(all().immutableExecutionContext(false));
     }

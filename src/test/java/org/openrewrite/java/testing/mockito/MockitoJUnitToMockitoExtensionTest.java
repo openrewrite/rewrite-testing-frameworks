@@ -37,7 +37,8 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
               "mockito-junit-jupiter-3.12",
               "junit-4",
               "hamcrest-3",
-              "junit-jupiter-api-5"))
+              "junit-jupiter-api-5",
+              "junit-platform-commons-1"))
           .recipe(new MockitoJUnitToMockitoExtension());
     }
 

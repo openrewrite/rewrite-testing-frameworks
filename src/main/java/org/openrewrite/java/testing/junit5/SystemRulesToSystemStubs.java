@@ -168,7 +168,7 @@ public class SystemRulesToSystemStubs extends Recipe {
                 maybeAddImport(SYSTEM_STUBS_EXTENSION);
                 return JavaTemplate.builder("@ExtendWith(SystemStubsExtension.class)")
                         .imports(EXTEND_WITH, SYSTEM_STUBS_EXTENSION)
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "junit-jupiter-api-5"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "system-stubs-jupiter-2", "junit-jupiter-api-5", "junit-platform-commons-1"))
                         .build()
                         .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }

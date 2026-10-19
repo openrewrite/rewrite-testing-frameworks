@@ -31,7 +31,7 @@ class MigrateJUnitPioneerToJupiterTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-6", "junit-pioneer-2"))
+              "junit-jupiter-api-6", "junit-platform-commons-6", "junit-pioneer-2"))
           .recipeFromResources("org.openrewrite.java.testing.junit6.MigrateJUnitPioneerToJupiter");
     }
 

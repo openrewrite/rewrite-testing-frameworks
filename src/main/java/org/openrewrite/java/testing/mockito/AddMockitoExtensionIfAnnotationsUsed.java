@@ -91,7 +91,7 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
                 return JavaTemplate.builder("@ExtendWith(MockitoExtension.class)")
                         .imports("org.mockito.junit.jupiter.MockitoExtension")
                         .imports("org.junit.jupiter.api.extension.ExtendWith")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api", "junit-platform-commons", "mockito-junit-jupiter"))
                         .build()
                         .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }
@@ -131,7 +131,7 @@ public class AddMockitoExtensionIfAnnotationsUsed extends Recipe {
                 return KotlinTemplate.builder("@ExtendWith(MockitoExtension::class)")
                         .imports("org.mockito.junit.jupiter.MockitoExtension")
                         .imports("org.junit.jupiter.api.extension.ExtendWith")
-                        .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api", "mockito-junit-jupiter"))
+                        .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api", "junit-platform-commons", "mockito-junit-jupiter"))
                         .build()
                         .apply(getCursor(), classDecl.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }

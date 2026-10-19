@@ -210,7 +210,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             Statement firstExpectedExceptionMethodInvocation = getCursor().getMessage(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION);
             String templateString = exceptionClass instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             b = JavaTemplate.builder(templateString)
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertThrows")
                     .build()
                     .apply(
@@ -627,7 +627,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }
             maybeAddImport("org.hamcrest.MatcherAssert", "assertThat");
             return Optional.of(JavaTemplate.builder(template)
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "hamcrest-3"))
                     .staticImports("org.hamcrest.MatcherAssert.assertThat", "org.hamcrest.CoreMatchers.containsString")
                     .build());
         }
@@ -655,7 +655,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             maybeRemoveImport("org.hamcrest.core.Is.is");
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertInstanceOf");
             return Optional.of(JavaTemplate.builder("assertInstanceOf(#{any()}, #{any(java.lang.Throwable)}.getCause())")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                     .staticImports("org.junit.jupiter.api.Assertions.assertInstanceOf")
                     .build()
                     .apply(cursor, invocation.getCoordinates().replace(), classArg, exceptionIdentifier));

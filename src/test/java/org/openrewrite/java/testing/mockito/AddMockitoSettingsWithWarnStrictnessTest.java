@@ -35,7 +35,8 @@ class AddMockitoSettingsWithWarnStrictnessTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "mockito-core-3.12",
               "mockito-junit-jupiter-3.12",
-              "junit-jupiter-api-5"))
+              "junit-jupiter-api-5",
+              "junit-platform-commons-1"))
           .recipe(new AddMockitoSettingsWithWarnStrictness());
     }
 

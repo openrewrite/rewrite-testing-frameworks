@@ -116,7 +116,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                     maybeAddImport(annotation.fqn);
                     cd = JavaTemplate.builder(annotation.template)
                             .imports(annotation.fqn)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-pioneer-2", "junit-jupiter-api-5"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-pioneer-2", "junit-jupiter-api-5", "junit-platform-commons-1"))
                             .build()
                             .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                 }

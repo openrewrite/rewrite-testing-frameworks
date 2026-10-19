@@ -179,11 +179,11 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     String templateString = assertion + "(" + templateBody + (reason == null ? ")" : ", #{any(java.lang.String)})");
                     JavaTemplate template = kotlin ?
                             KotlinTemplate.builder(templateString)
-                                    .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                    .parser(KotlinParser.builder().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                     .staticImports("org.junit.jupiter.api.Assertions." + assertion)
                                     .build() :
                             JavaTemplate.builder(templateString)
-                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                     .staticImports("org.junit.jupiter.api.Assertions." + assertion)
                                     .build();
 

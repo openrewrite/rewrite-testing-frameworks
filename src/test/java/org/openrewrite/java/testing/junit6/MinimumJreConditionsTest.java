@@ -34,7 +34,7 @@ class MinimumJreConditionsTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "junit-platform-commons"))
           .recipe(new MinimumJreConditions("17"));
     }
 

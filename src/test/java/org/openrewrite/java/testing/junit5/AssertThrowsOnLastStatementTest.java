@@ -35,9 +35,9 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             //.logCompilationWarningsAndErrors(true)
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1"))
           .parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1"))
           .recipe(new AssertThrowsOnLastStatement());
     }
 
@@ -1036,7 +1036,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     void lastStatementWithLambdaArguments() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "assertj-core-3")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-platform-commons-1", "assertj-core-3")),
           //language=java
           java(
             """

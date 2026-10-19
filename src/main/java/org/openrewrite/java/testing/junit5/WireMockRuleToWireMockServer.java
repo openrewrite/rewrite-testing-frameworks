@@ -137,7 +137,7 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<String>> {
                     for (J.VariableDeclarations.NamedVariable variable : field.getVariables()) {
                         if (serverVariables.contains(key(variable.getVariableType()))) {
                             J.Identifier server = asServer(variable.getName().withPrefix(Space.EMPTY));
-                            JavaParser.Builder<?, ?> parser = JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "wiremock-jre8-2.35");
+                            JavaParser.Builder<?, ?> parser = JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "wiremock-jre8-2.35");
                             cd = callInLifecycleMethod(cd, server, "start",
                                     classRule ? "org.junit.BeforeClass" : "org.junit.Before",
                                     classRule ? "org.junit.jupiter.api.BeforeAll" : "org.junit.jupiter.api.BeforeEach",

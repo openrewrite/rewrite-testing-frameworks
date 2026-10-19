@@ -118,7 +118,7 @@ public class UpdateTestAnnotation extends Recipe {
                 }
 
                 JavaParser.Builder<?, ?> javaParser = JavaParser.fromJavaVersion()
-                        .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
+                        .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "apiguardian-api-1.1");
                 if (cta.expectedException != null) {
                     m = JavaTemplate.builder("org.junit.jupiter.api.function.Executable o = () -> #{};")
                             .javaParser(javaParser)
@@ -226,7 +226,7 @@ public class UpdateTestAnnotation extends Recipe {
 
             private JavaParser.Builder<?, ?> javaParser(ExecutionContext ctx) {
                    return JavaParser.fromJavaVersion()
-                            .classpathFromResources(ctx, "junit-jupiter-api-5", "apiguardian-api-1.1");
+                            .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "apiguardian-api-1.1");
             }
 
             @Override

@@ -120,7 +120,7 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                         return JavaTemplate.builder("@ExtendWith(SoftAssertionsExtension.class)")
                                 .imports(EXTEND_WITH, SOFT_ASSERTIONS_EXTENSION)
                                 .javaParser(JavaParser.fromJavaVersion()
-                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
+                                        .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "assertj-core-3"))
                                 .build()
                                 .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                     }
@@ -143,7 +143,7 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                                 .asVisitor(a -> JavaTemplate.builder("@InjectSoftAssertions")
                                         .imports(INJECT_SOFT_ASSERTIONS)
                                         .javaParser(JavaParser.fromJavaVersion()
-                                                .classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
+                                                .classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1", "assertj-core-3"))
                                         .build()
                                         .apply(a.getCursor(), a.getTree().getCoordinates().replace()))
                                 .visitNonNull(mv, ctx, getCursor().getParentOrThrow());

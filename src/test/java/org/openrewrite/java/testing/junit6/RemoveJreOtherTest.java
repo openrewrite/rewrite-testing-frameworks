@@ -30,7 +30,7 @@ class RemoveJreOtherTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-6"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-6", "junit-platform-commons-6"))
           .recipe(new RemoveJreOther());
     }
 

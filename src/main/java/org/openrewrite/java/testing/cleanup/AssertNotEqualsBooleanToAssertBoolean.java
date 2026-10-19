@@ -68,12 +68,12 @@ public class AssertNotEqualsBooleanToAssertBoolean extends Recipe {
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
                                 .staticImports(String.format("org.junit.jupiter.api.Assertions.%s", assertMethod))
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
                                 .imports("org.junit.jupiter.api.Assertions")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "junit-platform-commons-1"))
                                 .build();
                     }
                     return t.apply(updateCursor(mi), mi.getCoordinates().replace(), args);
