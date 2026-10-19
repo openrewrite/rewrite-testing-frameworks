@@ -40,3 +40,4 @@ recipeList:
       oldArtifactId: javafaker
       newGroupId: net.datafaker
       newArtifactId: datafaker
+      newVersion: 1.x
