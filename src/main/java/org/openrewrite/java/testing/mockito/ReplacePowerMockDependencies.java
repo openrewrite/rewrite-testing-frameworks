@@ -53,25 +53,22 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
             "which is bundled in `mockito-inline` for Mockito 3.x/4.x.";
 
     /// The `ChangeDependency` delegates are scanned along with this recipe because their scan is what finds a version
-    /// held in a parent pom property or a Gradle version variable. Which one applies is only known per project once
-    /// the scan is done, so every combination of PowerMock artifact, Mockito target and managed-dependency handling
-    /// is scanned.
+    /// held in a parent pom property or a Gradle version variable. The version found depends on the Mockito target,
+    /// which the visitor only picks per project after scanning, so a delegate is scanned for each target.
     private final transient List<ChangeDependency> changeDependencies = new ArrayList<>();
 
     public ReplacePowerMockDependencies() {
         for (String powerMockArtifact : Arrays.asList("powermock-api-mockito", "powermock-api-mockito2")) {
             for (String mockitoArtifact : Arrays.asList("mockito-core", "mockito-inline")) {
-                for (Boolean changeManagedDependency : Arrays.asList(null, false)) {
-                    changeDependencies.add(new ChangeDependency(
-                            "org.powermock", powerMockArtifact,
-                            "org.mockito", mockitoArtifact, "3.x",
-                            null, null, changeManagedDependency));
-                }
+                changeDependencies.add(new ChangeDependency(
+                        "org.powermock", powerMockArtifact,
+                        "org.mockito", mockitoArtifact, "3.x",
+                        null, null, null));
             }
         }
     }
 
-    static class Accumulator {
+    public static class Accumulator {
         Map<JavaProject, Boolean> needsInlineMocking = new HashMap<>();
         Set<JavaProject> withJavaSources = new HashSet<>();
         Map<ChangeDependency, ChangeDependency.Accumulator> changeDependencies = new LinkedHashMap<>();
@@ -160,13 +157,21 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
                 if (declaresDependency(tree, targetArtifact) || resolvesMockito5(tree)) {
                     return tree;
                 }
-                Boolean changeManagedDependency = managesDependency(tree, targetArtifact) ? false : null;
+                boolean managesTarget = managesDependency(tree, targetArtifact);
                 for (Map.Entry<ChangeDependency, ChangeDependency.Accumulator> entry : acc.changeDependencies.entrySet()) {
                     ChangeDependency changeDependency = entry.getKey();
-                    if (targetArtifact.equals(changeDependency.getNewArtifactId()) &&
-                        Objects.equals(changeManagedDependency, changeDependency.getChangeManagedDependency())) {
-                        doAfterVisit(changeDependency.getVisitor(entry.getValue()));
+                    if (!targetArtifact.equals(changeDependency.getNewArtifactId())) {
+                        continue;
                     }
+                    // Not changing managed dependencies only makes the scan stricter about properties shared with a
+                    // managed PowerMock entry, which the migration removes anyway, so the default scan is reused.
+                    if (managesTarget) {
+                        changeDependency = new ChangeDependency(
+                                changeDependency.getOldGroupId(), changeDependency.getOldArtifactId(),
+                                changeDependency.getNewGroupId(), targetArtifact, changeDependency.getNewVersion(),
+                                null, null, false);
+                    }
+                    doAfterVisit(changeDependency.getVisitor(entry.getValue()));
                 }
                 return tree;
             }
@@ -250,8 +255,8 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
         ResolvedPom pom = mrr.getPom();
         for (ManagedDependency managed : pom.getRequested().getDependencyManagement()) {
             if (managed instanceof ManagedDependency.Defined &&
-                "org.mockito".equals(pom.getValue(((ManagedDependency.Defined) managed).getGroupId())) &&
-                mockitoArtifact.equals(pom.getValue(((ManagedDependency.Defined) managed).getArtifactId()))) {
+                "org.mockito".equals(pom.getValue((managed).getGroupId())) &&
+                mockitoArtifact.equals(pom.getValue((managed).getArtifactId()))) {
                 return true;
             }
         }
