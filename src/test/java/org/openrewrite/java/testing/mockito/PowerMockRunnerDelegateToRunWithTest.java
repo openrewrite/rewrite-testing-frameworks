@@ -169,7 +169,6 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
             """
               import org.junit.Test;
 
-
               public class MyTest {
 
                   @Test
