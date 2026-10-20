@@ -112,7 +112,7 @@ public class AddMissingNested extends Recipe {
                     .build()
                     .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
             cd.getModifiers().removeIf(modifier -> modifier.getType() == J.Modifier.Type.Static);
-            return maybeAutoFormat(classDecl, cd, ctx);
+            return maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
         }
 
         private static boolean hasTestMethods(final J.ClassDeclaration cd) {

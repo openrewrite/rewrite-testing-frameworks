@@ -67,6 +67,35 @@ class SimplifyHasSizeFromIsEqualToAssertionTest implements RewriteTest {
     }
 
     @Test
+    void fullyQualifiedAssertThat() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              class MyTest {
+                  void testMethod(List<String> predecessors) {
+                      org.assertj.core.api.Assertions.assertThat(4).isEqualTo(predecessors.size());
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> predecessors) {
+                      assertThat(predecessors).hasSize(4);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void chainedIterableSize() {
         rewriteRun(
           //language=java

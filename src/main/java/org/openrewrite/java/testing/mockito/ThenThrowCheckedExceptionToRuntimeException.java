@@ -28,7 +28,10 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
 
+import static java.util.Collections.emptyList;
+import static org.openrewrite.Tree.randomId;
 
 public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
     @Getter
@@ -66,12 +69,12 @@ public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
                                 J.FieldAccess fa = (J.FieldAccess) arg;
                                 if ("class".equals(fa.getName().getSimpleName())) {
                                     JavaType exceptionType = fa.getTarget().getType();
-                                    if (isUndeclaredCheckedException(exceptionType, mockedMethodType) &&
-                                            fa.getTarget() instanceof J.Identifier) {
+                                    if (isUndeclaredCheckedException(exceptionType, mockedMethodType)) {
                                         maybeRemoveImport(((JavaType.FullyQualified) exceptionType).getFullyQualifiedName());
-                                        return fa.withTarget(((J.Identifier) fa.getTarget())
-                                                .withSimpleName("RuntimeException")
-                                                .withType(JavaType.ShallowClass.build("java.lang.RuntimeException")));
+                                        // Replaces a simple or a fully qualified name alike
+                                        return fa.withTarget(new J.Identifier(randomId(), fa.getTarget().getPrefix(),
+                                                Markers.EMPTY, emptyList(), "RuntimeException",
+                                                JavaType.ShallowClass.build("java.lang.RuntimeException"), null));
                                     }
                                 }
                             }

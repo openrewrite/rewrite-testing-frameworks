@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -60,27 +61,7 @@ class AddHamcrestIfUsedTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest", "junit-4"));
     }
 
-    @Test
-    void addsDependencyForCoreMatchersAndMatcherAssert() {
-        rewriteRun(
-          mavenProject("example",
-            pomXml(BEFORE, AFTER),
-            srcTestJava(java(
-              """
-                import static org.hamcrest.CoreMatchers.containsString;
-                import static org.hamcrest.MatcherAssert.assertThat;
-
-                class T {
-                    void test() {
-                        assertThat("message", containsString("mess"));
-                    }
-                }
-                """
-            ))
-          )
-        );
-    }
-
+    @DocumentExample
     @Test
     void migrationAddsDependencyForExpectedExceptionMessage() {
         rewriteRun(
@@ -106,9 +87,8 @@ class AddHamcrestIfUsedTest implements RewriteTest {
                 </project>
                 """,
               spec -> spec.after(pom -> {
-                  assertThat(pom).contains("<artifactId>hamcrest</artifactId>", "<artifactId>junit-jupiter</artifactId>")
-                    .doesNotContain("<artifactId>junit</artifactId>");
-                  return pom;
+                  return assertThat(pom).contains("<artifactId>hamcrest</artifactId>", "<artifactId>junit-jupiter</artifactId>")
+                          .doesNotContain("<artifactId>junit</artifactId>").actual();
               })
             ),
             srcTestJava(java(
@@ -130,13 +110,33 @@ class AddHamcrestIfUsedTest implements RewriteTest {
                 }
                 """,
               spec -> spec.after(source -> {
-                  assertThat(source).contains("import org.junit.jupiter.api.Test;",
-                      "import static org.hamcrest.CoreMatchers.containsString;",
-                      "import static org.hamcrest.MatcherAssert.assertThat;",
-                      "assertThat(exception.getMessage(), containsString(\"bad\"));")
-                    .doesNotContain("ExpectedException");
-                  return source;
+                  return assertThat(source).contains("import org.junit.jupiter.api.Test;",
+                          "import static org.hamcrest.CoreMatchers.containsString;",
+                          "import static org.hamcrest.MatcherAssert.assertThat;",
+                          "assertThat(exception.getMessage(), containsString(\"bad\"));")
+                          .doesNotContain("ExpectedException").actual();
               })
+            ))
+          )
+        );
+    }
+
+    @Test
+    void addsDependencyForCoreMatchersAndMatcherAssert() {
+        rewriteRun(
+          mavenProject("example",
+            pomXml(BEFORE, AFTER),
+            srcTestJava(java(
+              """
+                import static org.hamcrest.CoreMatchers.containsString;
+                import static org.hamcrest.MatcherAssert.assertThat;
+
+                class T {
+                    void test() {
+                        assertThat("message", containsString("mess"));
+                    }
+                }
+                """
             ))
           )
         );

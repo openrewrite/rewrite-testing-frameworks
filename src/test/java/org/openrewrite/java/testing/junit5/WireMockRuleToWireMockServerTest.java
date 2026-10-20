@@ -22,7 +22,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import static org.openrewrite.java.Assertions.*;
+import static org.openrewrite.java.Assertions.java;
 
 @SuppressWarnings("JUnitMalformedDeclaration")
 class WireMockRuleToWireMockServerTest implements RewriteTest {
@@ -35,28 +35,6 @@ class WireMockRuleToWireMockServerTest implements RewriteTest {
               "junit-4",
               "wiremock-jre8-2.35"))
           .recipe(new WireMockRuleToWireMockServer());
-    }
-
-    @Test
-    void ruleWithoutServerMethodsUnchanged() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import com.github.tomakehurst.wiremock.junit.WireMockRule;
-              import org.junit.Rule;
-
-              class Test {
-                  @Rule
-                  public WireMockRule wm = new WireMockRule(8089);
-
-                  String baseUrl() {
-                      return "http://localhost:" + wm.port();
-                  }
-              }
-              """
-          )
-        );
     }
 
     @DocumentExample
@@ -110,6 +88,28 @@ class WireMockRuleToWireMockServerTest implements RewriteTest {
                       if (!wm.isRunning()) {
                           wm.start();
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ruleWithoutServerMethodsUnchanged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.Rule;
+
+              class Test {
+                  @Rule
+                  public WireMockRule wm = new WireMockRule(8089);
+
+                  String baseUrl() {
+                      return "http://localhost:" + wm.port();
                   }
               }
               """

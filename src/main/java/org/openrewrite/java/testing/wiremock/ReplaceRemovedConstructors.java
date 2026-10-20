@@ -206,8 +206,8 @@ public class ReplaceRemovedConstructors extends Recipe {
                         }
                         for (Replacement fold : ADMIN_CLIENT_FOLDS) {
                             if (fold.getMatcher().matches(adminClient)) {
-                                maybeAddImport(WIRE_MOCK);
                                 maybeRemoveImport(HTTP_ADMIN_CLIENT);
+                                maybeAddImport(WIRE_MOCK);
                                 return fold.getTemplate(ctx).apply(getCursor(), wireMock.getCoordinates().replace(),
                                         arguments(adminClient.getArguments()));
                             }
@@ -231,8 +231,10 @@ public class ReplaceRemovedConstructors extends Recipe {
     private static class Replacement {
         @Getter
         private final String owner;
+
         @Getter
         private final MethodMatcher matcher;
+
         private final String code;
 
         private @Nullable JavaTemplate template;

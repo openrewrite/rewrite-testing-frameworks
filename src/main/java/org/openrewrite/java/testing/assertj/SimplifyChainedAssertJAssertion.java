@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNull;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -163,10 +164,17 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 arguments.add(actual);
 
                 String template = getStringTemplateAndAppendArguments(assertThatArg, mi, arguments);
-                J.MethodInvocation result = JavaTemplate.builder(String.format(template, dedicatedAssertion))
+                // The template calls the same assertThat as the replaced code
+                String assertions = requireNonNull(assertThat.getMethodType()).getDeclaringType().getFullyQualifiedName();
+                maybeAddImport(assertions, "assertThat");
+                JavaTemplate.Builder builder = JavaTemplate.builder(String.format(template, dedicatedAssertion))
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
-                        .build()
+                        .staticImports(assertions + ".assertThat")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"));
+                if (template.contains("Path.of(")) {
+                    builder.imports("java.nio.file.Path");
+                }
+                J.MethodInvocation result = builder.build()
                         .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
 
                 // Splice intermediate methods (as, describedAs, etc.) back into the chain

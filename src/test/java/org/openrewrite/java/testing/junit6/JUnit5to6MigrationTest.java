@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit6;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -37,6 +38,39 @@ class JUnit5to6MigrationTest implements RewriteTest {
               "junit-jupiter-api-5",
               "testng-7"))
           .recipeFromResources("org.openrewrite.java.testing.junit6.JUnit5to6Migration");
+    }
+
+    @DocumentExample
+    @Test
+    void renamesStoreGetOrComputeIfAbsent() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtensionContext;
+
+              class FooExtension {
+                  void store(ExtensionContext.Store store) {
+                      store.getOrComputeIfAbsent(StringBuilder.class);
+                      store.getOrComputeIfAbsent("key", k -> new StringBuilder());
+                      store.getOrComputeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtensionContext;
+
+              class FooExtension {
+                  void store(ExtensionContext.Store store) {
+                      store.computeIfAbsent(StringBuilder.class);
+                      store.computeIfAbsent("key", k -> new StringBuilder());
+                      store.computeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
+                  }
+              }
+              """,
+            spec -> spec.markers(javaVersion(17))
+          )
+        );
     }
 
     @Test
@@ -82,38 +116,6 @@ class JUnit5to6MigrationTest implements RewriteTest {
               .as("junit-jupiter.version property should be upgraded to 6.x")
               .containsPattern("<junit-jupiter\\.version>6\\.\\d+\\.\\d+</junit-jupiter\\.version>")
               .actual())
-          )
-        );
-    }
-
-    @Test
-    void renamesStoreGetOrComputeIfAbsent() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-
-              class FooExtension {
-                  void store(ExtensionContext.Store store) {
-                      store.getOrComputeIfAbsent(StringBuilder.class);
-                      store.getOrComputeIfAbsent("key", k -> new StringBuilder());
-                      store.getOrComputeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.extension.ExtensionContext;
-
-              class FooExtension {
-                  void store(ExtensionContext.Store store) {
-                      store.computeIfAbsent(StringBuilder.class);
-                      store.computeIfAbsent("key", k -> new StringBuilder());
-                      store.computeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
-                  }
-              }
-              """,
-            spec -> spec.markers(javaVersion(17))
           )
         );
     }

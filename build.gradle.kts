@@ -46,7 +46,7 @@ recipeDependencies {
     parserClasspath("org.testcontainers:junit-jupiter:1.20.6")
     parserClasspath("org.testng:testng:7.+")
     parserClasspath("org.wiremock:wiremock:3.13.2")
-    parserClasspath("org.wiremock:wiremock-core:4.0.0-beta.38")
+    parserClasspath("org.wiremock:wiremock-core:4.0.0-beta.40") // no 4.0.0 GA yet, and a dynamic 4.+ skips pre-releases
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("uk.org.webcompere:system-stubs-core:2.1.8")
     parserClasspath("uk.org.webcompere:system-stubs-jupiter:2.1.8")
@@ -106,10 +106,12 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
-    testImplementation("org.openrewrite:rewrite-java-25")
+    testRuntimeOnly("org.openrewrite:rewrite-java-21")
+    testRuntimeOnly("org.openrewrite:rewrite-java-25")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin")
+    testImplementation("org.openrewrite:rewrite-properties")
     testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testRuntimeOnly(gradleApi())
 
@@ -123,12 +125,6 @@ dependencies {
     testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
     testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testRuntimeOnly("org.testng:testng:latest.release")
-}
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(25))
-    }
 }
 
 tasks.test {

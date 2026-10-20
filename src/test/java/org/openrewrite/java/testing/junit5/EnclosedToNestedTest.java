@@ -35,6 +35,43 @@ class EnclosedToNestedTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration");
     }
 
+    @DocumentExample
+    @Test
+    void oneInnerClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.experimental.runners.Enclosed;
+              import org.junit.runner.RunWith;
+
+              @RunWith(Enclosed.class)
+              public class RootTest {
+                  public static class InnerTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+
+              public class RootTest {
+                  @Nested
+                  public class InnerTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void preservesIndependentJupiterFixture() {
         rewriteRun(
@@ -125,43 +162,6 @@ class EnclosedToNestedTest implements RewriteTest {
               }
               class Fixtures {
                   public static class Case {
-                      @Test
-                      public void test() {
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void oneInnerClass() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Test;
-              import org.junit.experimental.runners.Enclosed;
-              import org.junit.runner.RunWith;
-
-              @RunWith(Enclosed.class)
-              public class RootTest {
-                  public static class InnerTest {
-                      @Test
-                      public void test() {
-                      }
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Nested;
-              import org.junit.jupiter.api.Test;
-
-              public class RootTest {
-                  @Nested
-                  public class InnerTest {
                       @Test
                       public void test() {
                       }

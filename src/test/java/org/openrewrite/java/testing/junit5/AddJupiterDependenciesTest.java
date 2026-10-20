@@ -47,6 +47,33 @@ class AddJupiterDependenciesTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api"));
     }
 
+    @DocumentExample
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/585")
+    @Test
+    void addToTestScope() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(java(SOME_TEST)),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>0.0.1</version>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  return assertThat(pom)
+                          .contains("junit-jupiter")
+                          .contains("<scope>test</scope>").actual();
+              })
+            )
+          )
+        );
+    }
+
     @Test
     void declaresApiUsedThroughAggregateWhenDependencyAnalysisIsEnabled() {
         rewriteRun(
@@ -421,33 +448,6 @@ class AddJupiterDependenciesTest implements RewriteTest {
                   "<artifactId>junit-jupiter-params</artifactId>")
                 .doesNotContain("<artifactId>junit-jupiter</artifactId>", "<groupId>junit</groupId>")
                 .actual())
-            )
-          )
-        );
-    }
-
-    @DocumentExample
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/585")
-    @Test
-    void addToTestScope() {
-        rewriteRun(
-          mavenProject("project",
-            srcTestJava(java(SOME_TEST)),
-            pomXml(
-              //language=xml
-              """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>org.example</groupId>
-                    <artifactId>project</artifactId>
-                    <version>0.0.1</version>
-                </project>
-                """,
-              spec -> spec.after(pom -> {
-                  return assertThat(pom)
-                          .contains("junit-jupiter")
-                          .contains("<scope>test</scope>").actual();
-              })
             )
           )
         );

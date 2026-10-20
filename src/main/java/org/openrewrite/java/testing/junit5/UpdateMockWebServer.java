@@ -112,7 +112,8 @@ public class UpdateMockWebServer extends Recipe {
                                     }
                                 }
 
-                                cd = autoFormat(cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                                Cursor bodyCursor = new Cursor(getCursor(), cd.getBody());
+                                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                                     if (statement.isScope(afterEachMethod)) {
                                         J.MethodDeclaration method = (J.MethodDeclaration) statement;
                                         if (method.getBody() != null) {
@@ -129,10 +130,10 @@ public class UpdateMockWebServer extends Recipe {
                                                 maybeAddImport(IO_EXCEPTION_FQN);
                                             }
                                         }
-                                        statement = method;
+                                        statement = autoFormat(method, ctx, bodyCursor);
                                     }
                                     return statement;
-                                }))), ctx);
+                                })));
                             }
 
                             maybeRemoveImport("org.junit.Rule");
