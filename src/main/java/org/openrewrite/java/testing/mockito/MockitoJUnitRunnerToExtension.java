@@ -73,9 +73,8 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                             a -> a == null || new AnnotationMatcher(mockitoSettings).matches(a) ? null : a);
                     J.ClassDeclaration _cd = cd.withLeadingAnnotations(annotations);
                     return getTemplate(runnerStrictness, ctx)
-                            .map(t -> maybeAutoFormat(_cd,
-                                    t.apply(updateCursor(_cd), _cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))),
-                                    ctx)).orElse(_cd);
+                            .<J.ClassDeclaration>map(t -> t.apply(updateCursor(_cd), _cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))))
+                            .orElse(_cd);
                 }
                 return cd;
             }

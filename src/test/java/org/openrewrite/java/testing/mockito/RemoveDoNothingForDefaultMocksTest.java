@@ -32,6 +32,56 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
           .recipe(new RemoveDoNothingForDefaultMocks());
     }
 
+    @DocumentExample
+    @Test
+    void removesDoNothingOnMockVoidMethod() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.ArgumentMatchers.anyString;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                      doNothing().when(bufferedWriter).write(anyString());
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import java.io.BufferedWriter;
+              import java.io.IOException;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+                  @Mock
+                  private BufferedWriter bufferedWriter;
+
+                  @Test
+                  public void test() throws IOException {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void removesImportsUsedOnlyInRemovedArguments() {
         rewriteRun(
@@ -91,56 +141,6 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
                   @Mock java.util.function.Consumer<Object> consumer;
                   void test() {
                       verify(consumer).accept(any(List.class));
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void removesDoNothingOnMockVoidMethod() {
-        rewriteRun(
-          //language=Java
-          java(
-            """
-              import org.junit.Test;
-              import org.junit.runner.RunWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.MockitoJUnitRunner;
-              import java.io.BufferedWriter;
-              import java.io.IOException;
-
-              import static org.mockito.Mockito.doNothing;
-              import static org.mockito.ArgumentMatchers.anyString;
-
-              @RunWith(MockitoJUnitRunner.class)
-              class MyTest {
-                  @Mock
-                  private BufferedWriter bufferedWriter;
-
-                  @Test
-                  public void test() throws IOException {
-                      doNothing().when(bufferedWriter).write(anyString());
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-              import org.junit.runner.RunWith;
-              import org.mockito.Mock;
-              import org.mockito.junit.MockitoJUnitRunner;
-              import java.io.BufferedWriter;
-              import java.io.IOException;
-
-              @RunWith(MockitoJUnitRunner.class)
-              class MyTest {
-                  @Mock
-                  private BufferedWriter bufferedWriter;
-
-                  @Test
-                  public void test() throws IOException {
                   }
               }
               """

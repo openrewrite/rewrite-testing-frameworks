@@ -26,17 +26,16 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 
@@ -90,24 +89,51 @@ public class MigrateJUnitTestCase extends Recipe {
                         return c;
                     }
 
-                    @SuppressWarnings("ConstantConditions")
                     @Override
-                    public   J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                    public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+                        J.Block b = super.visitBlock(block, ctx);
+                        // setName has no Jupiter equivalent, so the call is left behind as a comment
+                        List<Statement> statements = new ArrayList<>(b.getStatements());
+                        Space end = b.getEnd();
+                        for (int i = statements.size() - 1; i >= 0; i--) {
+                            Statement statement = statements.get(i);
+                            if (statement instanceof J.MethodInvocation && isTestCaseMethod((J.MethodInvocation) statement) &&
+                                "setName".equals(((J.MethodInvocation) statement).getSimpleName())) {
+                                statements.remove(i);
+                                if (i < statements.size()) {
+                                    statements.set(i, statements.get(i).withPrefix(commentOut(statement, statements.get(i).getPrefix())));
+                                } else {
+                                    end = commentOut(statement, end);
+                                }
+                            }
+                        }
+                        return statements.size() == b.getStatements().size() ? b : b.withStatements(statements).withEnd(end);
+                    }
+
+                    private Space commentOut(Statement statement, Space next) {
+                        List<Comment> comments = new ArrayList<>(statement.getPrefix().getComments());
+                        comments.add(new TextComment(false, statement.withPrefix(Space.EMPTY).printTrimmed(getCursor()) + ";",
+                                next.getWhitespace(), Markers.EMPTY));
+                        comments.addAll(next.getComments());
+                        return statement.getPrefix().withComments(comments);
+                    }
+
+                    @Override
+                    public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                        if ((mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase")) ||
-                            (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"))) {
-                            String name = mi.getSimpleName();
-                            // setUp and tearDown will be invoked via Before and After annotations
-                            if ("setUp".equals(name) || "tearDown".equals(name)) {
-                                return null;
-                            }
-                            if ("setName".equals(name)) {
-                                mi = mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(mi.getPrefix().getComments(), new TextComment(false, "", "", Markers.EMPTY))));
-                            }
+                        // setUp and tearDown will be invoked via Before and After annotations
+                        if (isTestCaseMethod(mi) && ("setUp".equals(mi.getSimpleName()) || "tearDown".equals(mi.getSimpleName()))) {
+                            return null;
                         }
                         return mi;
                     }
                 });
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private static boolean isTestCaseMethod(J.MethodInvocation mi) {
+        return (mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase")) ||
+               (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"));
     }
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {

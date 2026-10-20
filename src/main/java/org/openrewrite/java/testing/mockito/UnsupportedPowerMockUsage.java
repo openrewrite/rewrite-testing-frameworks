@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;

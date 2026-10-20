@@ -265,8 +265,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
 
               @MockitoSettings(strictness = Strictness.WARN)
               @ExtendWith(MockitoExtension.class)
-              public class ExampleTest {
-              }
+              public class ExampleTest {}
               """
           )
         );

@@ -934,6 +934,29 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.assertj.PlaceAssertJDescriptionBeforeAssertion
+examples:
+- description: '`PlaceAssertJDescriptionBeforeAssertionTest#moveDescriptionBeforeAssertion`'
+  sources:
+  - before: |
+      import static org.assertj.core.api.BDDAssertions.then;
+
+      class Test {
+          void test(int port) {
+              then(port).isNotEqualTo(0).as("Lifecycle port is zero");
+          }
+      }
+    after: |
+      import static org.assertj.core.api.BDDAssertions.then;
+
+      class Test {
+          void test(int port) {
+              then(port).as("Lifecycle port is zero").isNotEqualTo(0);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.assertj.ReturnActual
 examples:
 - description: '`ReturnActualTest#singleAssertionAndReturn`'
@@ -3254,6 +3277,61 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.ExpectedSystemExitToCatchSystemExit
+examples:
+- description: '`ExpectedSystemExitToCatchSystemExitTest#expectedStatusAndAssertion`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.contrib.java.lang.system.ExpectedSystemExit;
+      import org.junit.jupiter.api.Test;
+
+      import java.io.File;
+
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+
+      class CliTest {
+          @Rule
+          public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+
+          @Test
+          void exitsWithError() {
+              String[] args = {"--bogus"};
+              exit.expectSystemExitWithStatus(2);
+              exit.checkAssertionAfterwards(() -> assertTrue(new File("error.log").exists()));
+              run(args);
+          }
+
+          private static void run(String[] args) {
+              System.exit(2);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+
+      import java.io.File;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.junit.jupiter.api.Assertions.assertTrue;
+      import static uk.org.webcompere.systemstubs.SystemStubs.catchSystemExit;
+
+      class CliTest {
+
+          @Test
+          void exitsWithError() throws Exception {
+              String[] args = {"--bogus"};
+              int status = catchSystemExit(() -> run(args));
+              assertEquals(2, status);
+              assertTrue(new File("error.log").exists());
+          }
+
+          private static void run(String[] args) {
+              System.exit(2);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.GradleUseJunitJupiter
 examples:
 - description: '`GradleUseJunitJupiterTest#addWhenMissing`'
@@ -3465,6 +3543,76 @@ examples:
           }
       }
     language: java
+- description: '`SystemRulesMigrationTest#migrateRulesAndDependencies`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.contrib.java.lang.system.EnvironmentVariables;
+      import org.junit.contrib.java.lang.system.ExpectedSystemExit;
+      import org.junit.contrib.java.lang.system.ProvideSystemProperty;
+      import org.junit.contrib.java.lang.system.SystemOutRule;
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      class CliTest {
+          @Rule
+          public final ProvideSystemProperty properties = new ProvideSystemProperty("mode", "test");
+
+          @Rule
+          public final EnvironmentVariables environment = new EnvironmentVariables();
+
+          @Rule
+          public final SystemOutRule out = new SystemOutRule().enableLog().mute();
+
+          @Rule
+          public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+
+          @Test
+          void printsUsageAndExits() {
+              environment.set("HOME", "/tmp");
+              exit.expectSystemExitWithStatus(1);
+              exit.checkAssertionAfterwards(() -> assertEquals("usage", out.getLog()));
+              System.out.print("usage");
+              System.exit(1);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import org.junitpioneer.jupiter.SetSystemProperty;
+      import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+      import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+      import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+      import uk.org.webcompere.systemstubs.stream.SystemOut;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static uk.org.webcompere.systemstubs.SystemStubs.catchSystemExit;
+
+      @ExtendWith(SystemStubsExtension.class)
+      @SetSystemProperty(key = "mode", value = "test")
+      class CliTest {
+
+          @SystemStub
+          public final EnvironmentVariables environment = new EnvironmentVariables();
+
+          @SystemStub
+          public final SystemOut out = new SystemOut();
+
+          @Test
+          void printsUsageAndExits() throws Exception {
+              environment.set("HOME", "/tmp");
+              int status = catchSystemExit(() -> {
+                  System.out.print("usage");
+                  System.exit(1);
+              });
+              assertEquals(1, status);
+              assertEquals("usage", out.getText());
+          }
+      }
+    language: java
+  - before: example
+    language: mavenProject
 ---
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnit5BestPractices
@@ -3555,6 +3703,44 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.JUnitSoftAssertionsToSoftAssertionsExtension
+examples:
+- description: '`JUnitSoftAssertionsToSoftAssertionsExtensionTest#softAssertionsRule`'
+  sources:
+  - before: |
+      import org.assertj.core.api.JUnitSoftAssertions;
+      import org.junit.Rule;
+      import org.junit.Test;
+
+      public class SoftlyTest {
+          @Rule
+          public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
+          @Test
+          public void multipleAssertions() {
+              softly.assertThat("foo").isEqualTo("bar");
+          }
+      }
+    after: |
+      import org.assertj.core.api.SoftAssertions;
+      import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
+      import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+      import org.junit.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+
+      @ExtendWith(SoftAssertionsExtension.class)
+      public class SoftlyTest {
+          @InjectSoftAssertions
+          public SoftAssertions softly;
+
+          @Test
+          public void multipleAssertions() {
+              softly.assertThat("foo").isEqualTo("bar");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
 examples:
 - description: '`MigrateJUnitTestCaseTest#convertTestCase`'
@@ -3592,7 +3778,8 @@ examples:
       import org.junit.jupiter.api.BeforeEach;
       import org.junit.jupiter.api.Test;
 
-      import static org.junit.jupiter.api.Assertions.*;
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static org.junit.jupiter.api.Assertions.fail;
 
       public class MathTest {
           protected long value1;
@@ -3887,6 +4074,115 @@ examples:
       public class Test {
           void method() {
               assertTrue(true);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.SystemPropertyRulesToPioneer
+examples:
+- description: '`SystemPropertyRulesToPioneerTest#literalRulesBecomeClassAnnotations`'
+  sources:
+  - before: |
+      import org.junit.ClassRule;
+      import org.junit.Rule;
+      import org.junit.contrib.java.lang.system.ClearSystemProperties;
+      import org.junit.contrib.java.lang.system.ProvideSystemProperty;
+      import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+      import org.junit.jupiter.api.Test;
+
+      class ConfigTest {
+          @ClassRule
+          public static final ProvideSystemProperty PROPERTIES = new ProvideSystemProperty("a", "1").and("b", "2");
+
+          @Rule
+          public final ClearSystemProperties cleared = new ClearSystemProperties("c", "d");
+
+          @Rule
+          public final RestoreSystemProperties restore = new RestoreSystemProperties();
+
+          @Test
+          void readsProperties() {
+              System.setProperty("e", "5");
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.junitpioneer.jupiter.ClearSystemProperty;
+      import org.junitpioneer.jupiter.RestoreSystemProperties;
+      import org.junitpioneer.jupiter.SetSystemProperty;
+
+      @ClearSystemProperty(key = "c")
+      @ClearSystemProperty(key = "d")
+      @RestoreSystemProperties
+      @SetSystemProperty(key = "a", value = "1")
+      @SetSystemProperty(key = "b", value = "2")
+      class ConfigTest {
+
+          @Test
+          void readsProperties() {
+              System.setProperty("e", "5");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.SystemRulesToSystemStubs
+examples:
+- description: '`SystemRulesToSystemStubsTest#outputRules`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.contrib.java.lang.system.SystemErrRule;
+      import org.junit.contrib.java.lang.system.SystemOutRule;
+      import org.junit.jupiter.api.Test;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+
+      class GreeterTest {
+          @Rule
+          public final SystemOutRule out = new SystemOutRule().enableLog().mute();
+
+          @Rule
+          public final SystemErrRule err = new SystemErrRule().enableLog();
+
+          @Test
+          void greets() {
+              System.out.println("Hello");
+              assertEquals("Hello\n", out.getLogWithNormalizedLineSeparator());
+              out.clearLog();
+              System.err.print("Oops");
+              assertEquals("Oops", err.getLog());
+              assertEquals(4, err.getLogAsBytes().length);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.Test;
+      import org.junit.jupiter.api.extension.ExtendWith;
+      import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+      import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+      import uk.org.webcompere.systemstubs.stream.SystemErr;
+      import uk.org.webcompere.systemstubs.stream.SystemOut;
+
+      import static org.junit.jupiter.api.Assertions.assertEquals;
+      import static uk.org.webcompere.systemstubs.stream.output.OutputFactories.tapAndOutput;
+
+      @ExtendWith(SystemStubsExtension.class)
+      class GreeterTest {
+          @SystemStub
+          public final SystemOut out = new SystemOut();
+
+          @SystemStub
+          public final SystemErr err = new SystemErr(tapAndOutput());
+
+          @Test
+          void greets() {
+              System.out.println("Hello");
+              assertEquals("Hello\n", out.getText().replace(System.lineSeparator(), "\n"));
+              out.clear();
+              System.err.print("Oops");
+              assertEquals("Oops", err.getText());
+              assertEquals(4, err.getText().getBytes().length);
           }
       }
     language: java
@@ -4268,6 +4564,59 @@ examples:
       class Test {
           @RegisterExtension
           public WireMockExtension wm = WireMockExtension.newInstance().options(options().dynamicHttpsPort()).build();
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.WireMockRuleToWireMockServer
+examples:
+- description: '`WireMockRuleToWireMockServerTest#stoppedRuleBecomesServer`'
+  sources:
+  - before: |
+      import com.github.tomakehurst.wiremock.junit.WireMockRule;
+      import org.junit.Rule;
+
+      import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+      class Test {
+          @Rule
+          public WireMockRule wm = new WireMockRule(options().dynamicPort());
+
+          void outage() {
+              int port = wm.port();
+              wm.stop();
+              if (!wm.isRunning()) {
+                  wm.start();
+              }
+          }
+      }
+    after: |
+      import com.github.tomakehurst.wiremock.WireMockServer;
+      import org.junit.jupiter.api.AfterEach;
+      import org.junit.jupiter.api.BeforeEach;
+
+      import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+      class Test {
+          public WireMockServer wm = new WireMockServer(options().dynamicPort());
+
+          @BeforeEach
+          void startWireMock() {
+              wm.start();
+          }
+
+          @AfterEach
+          void stopWireMock() {
+              wm.stop();
+          }
+
+          void outage() {
+              int port = wm.port();
+              wm.stop();
+              if (!wm.isRunning()) {
+                  wm.start();
+              }
+          }
       }
     language: java
 ---
@@ -4783,6 +5132,91 @@ examples:
               try (MockedStatic<A> mockedStaticA = mockStatic(A.class)) {
                   assertEquals(A.getNumber(), 42);
               }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.DisableUnsupportedPowerMockTests
+examples:
+- description: '`DisableUnsupportedPowerMockTestsTest#disablesAJunit4TestThatVerifiesAPrivateMethod`'
+  sources:
+  - before: |
+      import org.junit.Test;
+      import org.mockito.Mockito;
+      import org.powermock.api.mockito.PowerMockito;
+
+      public class MyTest {
+
+          @Test
+          public void verifiesAPrivateMethod() throws Exception {
+              Object target = Mockito.mock(Object.class);
+              PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+          }
+      }
+    after: |
+      import org.junit.Ignore;
+      import org.junit.Test;
+      import org.mockito.Mockito;
+      import org.powermock.api.mockito.PowerMockito;
+
+      public class MyTest {
+
+          @Test
+          @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+          public void verifiesAPrivateMethod() throws Exception {
+              // The body of this test is kept for reference while it is migrated by hand:
+              // Object target = Mockito.mock(Object.class);
+              // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.FlagUnsupportedPowerMockUsage
+examples:
+- description: '`FlagUnsupportedPowerMockUsageTest#flagsMemberModificationAndPrivateMethodStubbing`'
+  sources:
+  - before: |
+      class Service {
+          private String secret() {
+              return "real";
+          }
+
+          static void init() {
+          }
+      }
+    language: java
+  - before: |
+      import org.junit.Test;
+      import org.powermock.api.mockito.PowerMockito;
+
+      import static org.powermock.api.support.membermodification.MemberMatcher.method;
+      import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+      public class ServiceTest {
+          @Test
+          public void test() throws Exception {
+              suppress(method(Service.class, "init"));
+              Service service = PowerMockito.spy(new Service());
+              PowerMockito.when(service, "secret").thenReturn("mock");
+          }
+      }
+    after: |
+      import org.junit.Test;
+      import org.powermock.api.mockito.PowerMockito;
+
+      import static org.powermock.api.support.membermodification.MemberMatcher.method;
+      import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+      public class ServiceTest {
+          @Test
+          public void test() throws Exception {
+              /* TODO `MemberModifier.suppress` could not be migrated automatically; migrate it manually to replace PowerMock */
+              suppress(method(Service.class, "init"));
+              Service service = PowerMockito.spy(new Service());
+              /* TODO `PowerMockito.when` with more than one argument could not be migrated automatically; migrate it manually to replace PowerMock */
+              PowerMockito.when(service, "secret").thenReturn("mock");
           }
       }
     language: java
@@ -5573,6 +6007,57 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxSetInternalStateToInjectMocks
+examples:
+- description: '`PowerMockWhiteboxSetInternalStateToInjectMocksTest#redundantCallOnAnAlreadyInjectedObjectIsRemoved`'
+  sources:
+  - before: |
+      class Converter {
+      }
+
+      class Facade {
+          private Converter converter;
+      }
+    language: java
+  - before: |
+      import org.junit.Before;
+      import org.mockito.InjectMocks;
+      import org.mockito.Mock;
+      import org.powermock.reflect.Whitebox;
+
+      public class FacadeTest {
+
+          @InjectMocks
+          private Facade testObj;
+
+          @Mock
+          private Converter converter;
+
+          @Before
+          public void setUp() {
+              Whitebox.setInternalState(testObj, "converter", converter);
+          }
+      }
+    after: |
+      import org.junit.Before;
+      import org.mockito.InjectMocks;
+      import org.mockito.Mock;
+
+      public class FacadeTest {
+
+          @InjectMocks
+          private Facade testObj;
+
+          @Mock
+          private Converter converter;
+
+          @Before
+          public void setUp() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.PowerMockWhiteboxSetInternalStateToJavaReflection
 examples:
 - description: '`PowerMockWhiteboxSetInternalStateToJavaReflectionTest#setInternalStateReplacedWithReflection`'
@@ -5700,26 +6185,80 @@ examples:
       import java.util.Calendar;
 
       import org.junit.jupiter.api.AfterEach;
-      import org.junit.jupiter.api.BeforeEach;
       import org.junit.jupiter.api.Test;
       import org.mockito.MockedStatic;
 
       public class MyTest {
-
           private MockedStatic<Calendar> mockedCalendar;
-
-          @BeforeEach
-          void setUpStaticMocks() {
-              mockedCalendar = mockStatic(Calendar.class);
-          }
 
           @AfterEach
           void tearDownStaticMocks() {
-              mockedCalendar.closeOnDemand();
+              if (mockedCalendar != null) {
+                  mockedCalendar.closeOnDemand();
+              }
           }
 
           @Test
           void testStaticMethod() {
+              mockedCalendar = mockStatic(Calendar.class);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.PowerMockitoWhenNewToMockito
+examples:
+- description: '`PowerMockitoWhenNewToMockitoTest#whenNewInSetUpStaysActiveForEachTest`'
+  sources:
+  - before: |
+      import java.io.File;
+
+      import org.junit.Before;
+      import org.junit.Test;
+
+      import static org.mockito.Mockito.mock;
+      import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+      public class MyTest {
+          private File file = mock(File.class);
+
+          @Before
+          public void setUp() throws Exception {
+              whenNew(File.class).withArguments("data.txt").thenReturn(file);
+          }
+
+          @Test
+          public void test() {
+          }
+      }
+    after: |
+      import java.io.File;
+
+      import org.junit.After;
+      import org.junit.Before;
+      import org.junit.Test;
+      import org.mockito.AdditionalAnswers;
+      import org.mockito.MockedConstruction;
+      import org.mockito.Mockito;
+
+      import static org.mockito.Mockito.mock;
+
+      public class MyTest {
+          private MockedConstruction<File> mockedConstructionFile;
+          private File file = mock(File.class);
+
+          @Before
+          public void setUp() throws Exception {
+              mockedConstructionFile = Mockito.mockConstructionWithAnswer(File.class, AdditionalAnswers.delegatesTo(file));
+          }
+
+          @After
+          public void tearDownStaticMocks() {
+              mockedConstructionFile.closeOnDemand();
+          }
+
+          @Test
+          public void test() {
           }
       }
     language: java
@@ -5757,8 +6296,6 @@ examples:
       import org.mockito.junit.MockitoJUnitRunner;
       import java.io.BufferedWriter;
       import java.io.IOException;
-
-      import static org.mockito.ArgumentMatchers.anyString;
 
       @RunWith(MockitoJUnitRunner.class)
       class MyTest {
@@ -5824,6 +6361,35 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.mockito.RemovePowerMockRule
+examples:
+- description: '`RemovePowerMockRuleTest#removesPowerMockRuleField`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.Test;
+      import org.powermock.modules.junit4.rule.PowerMockRule;
+
+      public class MyTest {
+          @Rule
+          public PowerMockRule rule = new PowerMockRule();
+
+          @Test
+          public void test() {
+          }
+      }
+    after: |
+      import org.junit.Test;
+
+      public class MyTest {
+
+          @Test
+          public void test() {
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.mockito.RemoveTimesZeroAndOne
 examples:
 - description: '`RemoveTimesZeroAndOneTest#replaceTimesZero`'
@@ -5880,7 +6446,6 @@ examples:
       import org.junit.jupiter.api.BeforeEach;
 
       class A {
-
           private AutoCloseable mocks;
 
           @BeforeEach
@@ -5980,14 +6545,11 @@ examples:
       import org.mockito.Mockito;
       import org.testng.annotations.AfterMethod;
       import org.testng.annotations.BeforeClass;
-      import org.testng.annotations.BeforeMethod;
       import org.testng.annotations.Test;
 
       class StaticMethodTest {
-
-          private MockedStatic<Currency> mockedCurrency;
-
           private MockedStatic<Calendar> mockedCalendar;
+          private MockedStatic<Currency> mockedCurrency;
 
           private Calendar calendarMock;
 
@@ -5996,20 +6558,20 @@ examples:
               calendarMock = Mockito.mock(Calendar.class);
           }
 
-          @BeforeMethod
-          void setUpStaticMocks() {
-              mockedCurrency = Mockito.mockStatic(Currency.class);
-              mockedCalendar = Mockito.mockStatic(Calendar.class);
-          }
-
           @AfterMethod(alwaysRun = true)
           void tearDownStaticMocks() {
-              mockedCalendar.closeOnDemand();
-              mockedCurrency.closeOnDemand();
+              if (mockedCalendar != null) {
+                  mockedCalendar.closeOnDemand();
+              }
+              if (mockedCurrency != null) {
+                  mockedCurrency.closeOnDemand();
+              }
           }
 
           @Test
           void testWithCalendar() {
+              mockedCalendar = Mockito.mockStatic(Calendar.class);
+              mockedCurrency = Mockito.mockStatic(Currency.class);
               mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
               assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
               mockedCurrency.verify(Currency::getAvailableCurrencies, Mockito.never());
@@ -6570,6 +7132,208 @@ examples:
           void test() {
               String actual = "hello";
               assertThat(actual).as("Expected greeting").isEqualTo("hello");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
+examples:
+- description: '`MigrateContentTypeHeaderCharsetTest#assignmentKeepsTheUtf8Default`'
+  sources:
+  - before: |
+      import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
+
+      import java.nio.charset.Charset;
+
+      class Headers {
+          Charset of(ContentTypeHeader header) {
+              return header.charset();
+          }
+      }
+    after: |
+      import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
+
+      import java.nio.charset.Charset;
+      import java.nio.charset.StandardCharsets;
+
+      class Headers {
+          Charset of(ContentTypeHeader header) {
+              return header.charset().orElse(StandardCharsets.UTF_8);
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
+examples:
+- description: '`MigrateRequestMethodIsOneOfTest#becomesAMatcherQuestion`'
+  sources:
+  - before: |
+      import com.github.tomakehurst.wiremock.http.RequestMethod;
+
+      class Methods {
+          boolean readOnly(RequestMethod method) {
+              return method.isOneOf(RequestMethod.GET, RequestMethod.HEAD);
+          }
+      }
+    after: |
+      import com.github.tomakehurst.wiremock.http.RequestMethod;
+
+      class Methods {
+          boolean readOnly(RequestMethod method) {
+              return RequestMethod.isOneOf(RequestMethod.GET, RequestMethod.HEAD).match(method).isExactMatch();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
+examples:
+- description: '`MigrateStubMappingUuidToIdTest#uuidOnlyIsRenamedToId`'
+  sources:
+  - before: |
+      {
+        "uuid": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+        "name": "get user",
+        "request": {
+          "method": "GET",
+          "url": "/user"
+        },
+        "response": {
+          "status": 200
+        }
+      }
+    after: |
+      {
+        "id": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+        "name": "get user",
+        "request": {
+          "method": "GET",
+          "url": "/user"
+        },
+        "response": {
+          "status": 200
+        }
+      }
+    path: src/test/resources/mappings/get-user.json
+    language: json
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
+examples:
+- description: '`RemoveDuplicateContentTypeHeaderTest#keepsOnlyTheLastValue`'
+  sources:
+  - before: |
+      import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+      import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+      class Stubs {
+          ResponseDefinitionBuilder response() {
+              return aResponse()
+                      .withStatus(200)
+                      .withHeader("Content-Type", "text/plain", "application/json")
+                      .withBody("{}");
+          }
+      }
+    after: |
+      import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+      import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+      class Stubs {
+          ResponseDefinitionBuilder response() {
+              return aResponse()
+                      .withStatus(200)
+                      .withHeader("Content-Type", "application/json")
+                      .withBody("{}");
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
+examples:
+- description: '`RemoveDuplicateContentTypeStubHeaderTest#keepsOnlyTheLastValue`'
+  sources:
+  - before: |
+      {
+        "request": {
+          "method": "GET",
+          "url": "/user"
+        },
+        "response": {
+          "status": 200,
+          "headers": {
+            "Content-Type": [ "text/plain", "application/json" ]
+          },
+          "body": "{}"
+        }
+      }
+    after: |
+      {
+        "request": {
+          "method": "GET",
+          "url": "/user"
+        },
+        "response": {
+          "status": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": "{}"
+        }
+      }
+    path: src/test/resources/mappings/get-user.json
+    language: json
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
+examples:
+- description: '`ReplaceRemovedConstructorsTest#wireMockHostAndPort`'
+  sources:
+  - before: |
+      import com.github.tomakehurst.wiremock.client.WireMock;
+
+      class Client {
+          WireMock remote() {
+              return new WireMock("localhost", 8080);
+          }
+      }
+    after: |
+      import com.github.tomakehurst.wiremock.client.WireMock;
+
+      class Client {
+          WireMock remote() {
+              return WireMock.create().host("localhost").port(8080).build();
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
+examples:
+- description: '`ReplaceSettersWithTransformTest#singleSetter`'
+  sources:
+  - before: |
+      import com.github.tomakehurst.wiremock.matching.RequestPattern;
+      import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+      class Stubs {
+          StubMapping retarget(StubMapping mapping, RequestPattern pattern) {
+              mapping.setRequest(pattern);
+              return mapping;
+          }
+      }
+    after: |
+      import com.github.tomakehurst.wiremock.matching.RequestPattern;
+      import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+      class Stubs {
+          StubMapping retarget(StubMapping mapping, RequestPattern pattern) {
+              mapping = mapping.transform(builder -> builder.setRequest(pattern));
+              return mapping;
           }
       }
     language: java

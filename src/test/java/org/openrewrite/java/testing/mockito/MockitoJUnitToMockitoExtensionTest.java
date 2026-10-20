@@ -41,29 +41,6 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
           .recipe(new MockitoJUnitToMockitoExtension());
     }
 
-    @Test
-    void preservesUnannotatedDelegate() {
-        rewriteRun(
-          java(
-            """
-              import org.mockito.junit.MockitoRule;
-
-              class Adapter {
-                  private final MockitoRule delegate;
-
-                  Adapter(MockitoRule delegate) {
-                      this.delegate = delegate;
-                  }
-
-                  void configure() {
-                      delegate.silent();
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     void existingExtendWithRemovesSilentMockitoRuleAndAddsMockitoSettingsLenient() {
@@ -120,6 +97,29 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
                   @Test
                   public void testing() {
                       when(mockList.add("one")).thenReturn(true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservesUnannotatedDelegate() {
+        rewriteRun(
+          java(
+            """
+              import org.mockito.junit.MockitoRule;
+
+              class Adapter {
+                  private final MockitoRule delegate;
+
+                  Adapter(MockitoRule delegate) {
+                      this.delegate = delegate;
+                  }
+
+                  void configure() {
+                      delegate.silent();
                   }
               }
               """

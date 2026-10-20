@@ -26,6 +26,7 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
@@ -78,15 +79,10 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                             // Replace @RunWith(PowerMockRunner.class) argument with the delegate runner,
                             // and remove @PowerMockRunnerDelegate
                             maybeRemoveImport(POWER_MOCK_RUNNER_DELEGATE);
-                            return cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
-                                if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
-                                    return annotation.withArguments(singletonList(delegateRunnerArg));
-                                }
-                                if (DELEGATE_MATCHER.matches(annotation)) {
-                                    return null;
-                                }
-                                return annotation;
-                            }));
+                            cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation ->
+                                    RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation) ?
+                                            annotation.withArguments(singletonList(delegateRunnerArg)) : annotation));
+                            return removeAnnotation(cd, DELEGATE_MATCHER, ctx);
                         }
 
                         // No delegate, but Mockito annotations are used — switch to the Mockito JUnit 4 runner
@@ -110,12 +106,11 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
 
                         // No delegate and no Mockito annotations — just remove @RunWith(PowerMockRunner.class)
                         maybeRemoveImport("org.junit.runner.RunWith");
-                        return cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), annotation -> {
-                            if (RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
-                                return null;
-                            }
-                            return annotation;
-                        }));
+                        return removeAnnotation(cd, RUN_WITH_POWER_MOCK_RUNNER_MATCHER, ctx);
+                    }
+
+                    private J.ClassDeclaration removeAnnotation(J.ClassDeclaration cd, AnnotationMatcher matcher, ExecutionContext ctx) {
+                        return (J.ClassDeclaration) new RemoveAnnotationVisitor(matcher).visitNonNull(cd, ctx, getCursor().getParentOrThrow());
                     }
 
                     private @Nullable Expression findDelegateRunnerArg(J.ClassDeclaration cd) {

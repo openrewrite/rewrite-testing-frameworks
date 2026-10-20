@@ -33,8 +33,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 
 
 public class AssertThrowsOnLastStatement extends Recipe {
@@ -50,7 +49,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
             "In some cases, tests might fail if earlier statements in the lambda block throw exceptions.";
 
     @Getter
-    final Set<String> tags = Collections.singleton("RSPEC-S5783");
+    final Set<String> tags = singleton("RSPEC-S5783");
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

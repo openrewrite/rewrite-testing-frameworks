@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -35,8 +34,8 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PowerMockWhiteboxSetInternalStateToInjectMocks extends Recipe {
 

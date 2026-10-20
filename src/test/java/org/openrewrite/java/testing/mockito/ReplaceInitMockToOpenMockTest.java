@@ -98,6 +98,45 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
 
 
     @Test
+    void separatesAddedFieldFromFirstMember() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+                  @BeforeEach
+                  public void setUp() {
+                      MockitoAnnotations.initMocks(this);
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void setUp() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void replaceInitMocksWithStaticImportToOpenMocks() {
         rewriteRun(
           //language=java

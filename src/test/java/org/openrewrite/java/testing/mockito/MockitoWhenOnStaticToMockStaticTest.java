@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -25,6 +26,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import static org.junit.jupiter.api.condition.JRE.JAVA_25;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
@@ -166,6 +168,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @EnabledForJreRange(min = JAVA_25)
     @Test
     void shouldRenameUnnamedVariableWhenReusingWrappingMockedStatic() {
         rewriteRun(
@@ -209,6 +212,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @EnabledForJreRange(min = JAVA_25)
     @Test
     void shouldRenameMultipleUnnamedVariablesIndividually() {
         rewriteRun(
@@ -622,6 +626,86 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                           mockA1.when(() -> A.getNumber()).thenReturn(-1);
                           mockA1.when(() -> A.getNumber()).thenThrow(new IllegalStateException());
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importsClassOfStaticallyImportedMethod() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> getNumber()).thenReturn(-1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importsClassOfStaticallyImportedMethodStubbedInBefore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Before;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  @Before
+                  public void setUp() {
+                      when(getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.junit.After;
+              import org.junit.Before;
+              import org.mockito.MockedStatic;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  private MockedStatic<A> mockA1;
+
+                  @Before
+                  public void setUp() {
+                      mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> getNumber()).thenReturn(-1);
+                  }
+
+                  @After
+                  public void tearDown() {
+                      mockA1.close();
                   }
               }
               """
