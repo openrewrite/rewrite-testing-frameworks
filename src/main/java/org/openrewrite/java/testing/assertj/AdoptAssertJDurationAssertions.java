@@ -88,7 +88,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 or(
-                        new UsesMethod<>(DURATION_ASSERT_HAS_LONG, true),
+                        new UsesMethod<>(TIME_UNIT_MATCHERS),
                         new UsesMethod<>(INTEGER_ASSERT_IS_EQUAL_TO, true),
                         new UsesMethod<>(INTEGER_ASSERT_IS_GREATER_THAN, true),
                         new UsesMethod<>(INTEGER_ASSERT_IS_LESS_THAN, true),
