@@ -170,8 +170,7 @@ public class PowerMockWhiteboxSetInternalStateToInjectMocks extends Recipe {
             }
 
             private List<J.MethodInvocation> setInternalStateCalls(J.ClassDeclaration classDecl) {
-                List<J.MethodInvocation> calls = new ArrayList<>();
-                new JavaIsoVisitor<List<J.MethodInvocation>>() {
+                return new JavaIsoVisitor<List<J.MethodInvocation>>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, List<J.MethodInvocation> p) {
                         if (SET_INTERNAL_STATE.matches(method)) {
@@ -179,8 +178,7 @@ public class PowerMockWhiteboxSetInternalStateToInjectMocks extends Recipe {
                         }
                         return super.visitMethodInvocation(method, p);
                     }
-                }.visit(classDecl, calls);
-                return calls;
+                }.reduce(classDecl, new ArrayList<>());
             }
         });
     }

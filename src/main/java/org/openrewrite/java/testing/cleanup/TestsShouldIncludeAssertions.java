@@ -186,8 +186,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 }
             };
 
-            Set<MethodMatcher> methodMatchers = new HashSet<>();
-            findMethodDeclarationsVisitor.visit(classDeclaration, methodMatchers);
+            Set<MethodMatcher> methodMatchers = findMethodDeclarationsVisitor.reduce(classDeclaration, new HashSet<>());
             Set<J.Block> methodBodies = new HashSet<>();
 
             methodMatchers.forEach(matcher -> {
@@ -212,9 +211,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 }
             };
 
-            Set<J.Block> blocks = new HashSet<>();
-            findMethodDeclarationVisitor.visit(classDeclaration, blocks);
-            return blocks;
+            return findMethodDeclarationVisitor.reduce(classDeclaration, new HashSet<>());
         }
 
         private boolean isAssertion(J.MethodInvocation methodInvocation) {

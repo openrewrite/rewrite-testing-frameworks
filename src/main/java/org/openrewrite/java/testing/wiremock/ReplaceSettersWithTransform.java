@@ -244,8 +244,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                     }
 
                     private boolean referencesReceiver(Expression argument, String receiverName) {
-                        AtomicBoolean found = new AtomicBoolean();
-                        new JavaIsoVisitor<AtomicBoolean>() {
+                        return new JavaIsoVisitor<AtomicBoolean>() {
                             @Override
                             public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
                                 if (receiverName.equals(identifier.getSimpleName())) {
@@ -253,8 +252,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                                 }
                                 return identifier;
                             }
-                        }.visit(argument, found);
-                        return found.get();
+                        }.reduce(argument, new AtomicBoolean()).get();
                     }
 
                     private Statement toTransform(List<SetterCall> run, Statement original) {

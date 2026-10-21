@@ -222,8 +222,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
 
             /** The unsupported usages inside this element, keyed by node so they can be consumed once. */
             private Map<UUID, String> reasonsIn(J element) {
-                Map<UUID, String> found = new LinkedHashMap<>();
-                new JavaIsoVisitor<Map<UUID, String>>() {
+                return new JavaIsoVisitor<Map<UUID, String>>() {
                     @Override
                     public @Nullable J preVisit(J tree, Map<UUID, String> p) {
                         String reason = unsupported.get(tree.getId());
@@ -232,8 +231,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                         }
                         return tree;
                     }
-                }.visit(element, found);
-                return found;
+                }.reduce(element, new LinkedHashMap<>());
             }
 
             private boolean isDisabled(java.util.List<J.Annotation> annotations) {

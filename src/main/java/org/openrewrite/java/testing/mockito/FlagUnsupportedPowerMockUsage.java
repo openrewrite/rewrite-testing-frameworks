@@ -81,8 +81,7 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
             }
 
             private <T extends J> T flag(Cursor parent, T searched) {
-                Set<String> usages = new LinkedHashSet<>();
-                new JavaIsoVisitor<Set<String>>() {
+                Set<String> usages = new JavaIsoVisitor<Set<String>>() {
                     @Override
                     public @Nullable J preVisit(J tree, Set<String> p) {
                         // Annotations are flagged on themselves, and nested blocks on their own statements
@@ -99,7 +98,7 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
                         }
                         return tree;
                     }
-                }.visit(searched, usages, parent);
+                }.reduce(searched, new LinkedHashSet<>(), parent);
                 T flagged = searched;
                 for (String usage : usages) {
                     flagged = Comments.of(new Cursor(parent, flagged)).multilineComment(
