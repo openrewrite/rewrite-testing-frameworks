@@ -367,12 +367,8 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
 
         private J.@Nullable NewArray getMigratedListeners() {
             if (listeners != null && listeners.getInitializer() != null) {
-                List<Expression> newListeners = ListUtils.map(listeners.getInitializer(), l -> {
-                    if (l instanceof J.FieldAccess && isTypeReference(l, MOCKITO_TEST_EXECUTION_LISTENER)) {
-                        return null;
-                    }
-                    return l;
-                });
+                List<Expression> newListeners = ListUtils.filter(listeners.getInitializer(), l ->
+                        !(l instanceof J.FieldAccess && isTypeReference(l, MOCKITO_TEST_EXECUTION_LISTENER)));
                 if (newListeners.isEmpty()) {
                     return null;
                 }

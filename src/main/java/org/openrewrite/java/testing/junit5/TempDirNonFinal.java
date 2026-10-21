@@ -50,7 +50,7 @@ public class TempDirNonFinal extends Recipe {
             if (varDecls.getLeadingAnnotations().stream().anyMatch(TEMPDIR_ANNOTATION_MATCHER::matches) &&
                 varDecls.hasModifier(Type.Final) && isField(getCursor())) {
                 return maybeAutoFormat(varDecls, varDecls.withModifiers(ListUtils
-                                .map(varDecls.getModifiers(), modifier -> modifier.getType() == Type.Final ? null : modifier)),
+                                .filter(varDecls.getModifiers(), modifier -> modifier.getType() != Type.Final)),
                         ctx, getCursor().getParentOrThrow());
             }
             return varDecls;

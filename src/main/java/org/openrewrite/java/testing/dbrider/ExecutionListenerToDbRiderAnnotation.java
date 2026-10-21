@@ -221,12 +221,8 @@ public class ExecutionListenerToDbRiderAnnotation extends Recipe {
         // If the listeners array is empty after removing the DBRiderTestExecutionListener, return null so that the array itself can be removed
         private J.@Nullable NewArray getMigratedListeners() {
             if (listeners != null && listeners.getInitializer() != null) {
-                List<Expression> newListeners = ListUtils.map(listeners.getInitializer(), listener -> {
-                    if (listener instanceof J.FieldAccess && isTypeReference(listener, DBRIDER_TEST_EXECUTION_LISTENER)) {
-                        return null;
-                    }
-                    return listener;
-                });
+                List<Expression> newListeners = ListUtils.filter(listeners.getInitializer(), listener ->
+                        !(listener instanceof J.FieldAccess && isTypeReference(listener, DBRIDER_TEST_EXECUTION_LISTENER)));
                 if (newListeners.isEmpty()) {
                     return null;
                 }

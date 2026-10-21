@@ -120,7 +120,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 List<J.Try.Resource> resources = t.getResources();
                                 if (resources != null) {
                                     // Drop `try (AutoCloseable mocks = MockitoAnnotations.openMocks(this))` resources
-                                    List<J.Try.Resource> kept = ListUtils.map(resources, r -> isRemovableMockInitResource(r, tryable.getBody()) ? null : r);
+                                    List<J.Try.Resource> kept = ListUtils.filter(resources, r -> !isRemovableMockInitResource(r, tryable.getBody()));
                                     if (kept != resources) {
                                         boolean nothingLeft = kept.isEmpty() && t.getCatches().isEmpty() && t.getFinally() == null;
                                         if (nothingLeft && !parentCanCollapseNeuteredTry()) {
