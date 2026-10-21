@@ -136,8 +136,8 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                             return mv;
                         }
 
-                        mv = maybeAutoFormat(mv, mv.withModifiers(ListUtils.map(mv.getModifiers(),
-                                m -> m.getType() == J.Modifier.Type.Final ? null : m)), ctx, getCursor().getParentOrThrow());
+                        mv = maybeAutoFormat(mv, mv.withModifiers(ListUtils.filter(mv.getModifiers(),
+                                m -> m.getType() != J.Modifier.Type.Final)), ctx, getCursor().getParentOrThrow());
                         mv = mv.withVariables(ListUtils.map(mv.getVariables(), v -> v.withInitializer(null)));
                         mv = (J.VariableDeclarations) new Annotated.Matcher('@' + RULE)
                                 .asVisitor(a -> JavaTemplate.builder("@InjectSoftAssertions")

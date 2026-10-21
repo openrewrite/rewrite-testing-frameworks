@@ -92,7 +92,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                 }
 
                 cd = cd.withBody(cd.getBody().withStatements(
-                        ListUtils.map(cd.getBody().getStatements(), s -> annotationsByField.containsKey(s) ? null : s)));
+                        ListUtils.filter(cd.getBody().getStatements(), s -> !annotationsByField.containsKey(s))));
                 maybeRemoveImport(RULE);
                 maybeRemoveImport(CLASS_RULE);
                 maybeRemoveImport(PROVIDE_SYSTEM_PROPERTY);
