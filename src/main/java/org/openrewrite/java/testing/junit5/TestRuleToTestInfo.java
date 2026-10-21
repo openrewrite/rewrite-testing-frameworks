@@ -76,7 +76,8 @@ public class TestRuleToTestInfo extends Recipe {
         @Override
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
-            if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), "org.junit.rules.TestName")) {
+            if (varDecls.getVariables().stream().anyMatch(variable ->
+                    TypeUtils.isOfClassType(variable.getType(), "org.junit.rules.TestName"))) {
                 varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), anno -> {
                     if (RULE_ANNOTATION_MATCHER.matches(anno)) {
                         return null;

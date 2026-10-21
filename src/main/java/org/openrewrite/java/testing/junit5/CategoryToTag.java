@@ -131,6 +131,11 @@ public class CategoryToTag extends Recipe {
         }
 
         private static String convertToTagName(J.FieldAccess category) {
+            JavaType.FullyQualified type = TypeUtils.asFullyQualified(category.getTarget().getType());
+            if (type != null) {
+                String name = type.getClassName();
+                return name.substring(Math.max(name.lastIndexOf('$'), name.lastIndexOf('.')) + 1);
+            }
             if (category.getTarget() instanceof J.Identifier) {
                 return ((J.Identifier) category.getTarget()).getSimpleName();
             }

@@ -186,17 +186,19 @@ public class WireMockRuleToWireMockServer extends ScanningRecipe<Set<String>> {
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                 J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
-                if (vd.getTypeExpression() == null || !TypeUtils.isOfClassType(multiVariable.getType(), WIREMOCK_RULE) || vd.getVariables().stream().noneMatch(v -> serverVariables.contains(key(v.getVariableType())))) {
+                if (multiVariable.getVariables().stream().noneMatch(v -> TypeUtils.isOfClassType(v.getType(), WIREMOCK_RULE) &&
+                        serverVariables.contains(key(v.getVariableType())))) {
                     return vd;
                 }
-                JavaType.FullyQualified server = serverType(multiVariable.getType());
+                JavaType.FullyQualified server = serverType(multiVariable.getVariables().get(0).getType());
                 vd = (J.VariableDeclarations) new RemoveAnnotationVisitor(RULE).visitNonNull(vd, ctx, getCursor().getParentOrThrow());
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.junit.ClassRule");
                 maybeRemoveImport(WIREMOCK_RULE);
                 maybeAddImport(WIREMOCK_SERVER);
                 return vd
-                        .withTypeExpression(TypeTree.build(server.getClassName()).withType(server).withPrefix(vd.getTypeExpression().getPrefix()))
+                        .withTypeExpression(vd.getTypeExpression() == null ? null :
+                                 TypeTree.build(server.getClassName()).withType(server).withPrefix(vd.getTypeExpression().getPrefix()))
                         .withVariables(ListUtils.map(vd.getVariables(), v -> v.withType(server)));
             }
 
