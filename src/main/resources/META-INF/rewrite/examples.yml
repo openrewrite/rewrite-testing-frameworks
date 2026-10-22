@@ -3410,6 +3410,44 @@ examples:
 type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.JUnit4to5Migration
 examples:
+- description: '`AddHamcrestIfUsedTest#migrationAddsDependencyForExpectedExceptionMessage`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.junit.Test;
+      import org.junit.rules.ExpectedException;
+
+      class T {
+          @Rule public ExpectedException thrown = ExpectedException.none();
+          @Test public void test() {
+              thrown.expect(IllegalStateException.class);
+              thrown.expectMessage("bad");
+              failOperation();
+          }
+          void failOperation() {
+              throw new IllegalStateException("bad");
+          }
+      }
+    language: java
+  - before: example
+    language: mavenProject
+  - before: |
+      <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.example</groupId>
+          <artifactId>example</artifactId>
+          <version>1.0</version>
+          <dependencies>
+              <dependency>
+                  <groupId>junit</groupId>
+                  <artifactId>junit</artifactId>
+                  <version>4.13.2</version>
+                  <scope>test</scope>
+              </dependency>
+          </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
 - description: '`EnclosedToNestedTest#oneInnerClass`'
   sources:
   - before: |
@@ -4541,6 +4579,66 @@ examples:
     language: java
 ---
 type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit5.UseMockitoExtension
+examples:
+- description: '`MockitoRuleDependencyTest#addsMatchingJupiterDependencyForModernMockitoRule`'
+  sources:
+  - before: |
+      import org.junit.Rule;
+      import org.mockito.junit.MockitoJUnit;
+      import org.mockito.junit.MockitoRule;
+      class Example {
+          @Rule public MockitoRule mocks = MockitoJUnit.rule();
+      }
+    language: java
+  - before: test
+    language: mavenProject
+  - before: |
+      <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>example</groupId>
+          <artifactId>test</artifactId>
+          <version>1</version>
+          <properties>
+              <mockito.version>5.23.0</mockito.version>
+          </properties>
+          <dependencies>
+              <dependency>
+                  <groupId>org.mockito</groupId>
+                  <artifactId>mockito-core</artifactId>
+                  <version>${mockito.version}</version>
+                  <scope>test</scope>
+              </dependency>
+          </dependencies>
+      </project>
+    after: |
+      <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>example</groupId>
+          <artifactId>test</artifactId>
+          <version>1</version>
+          <properties>
+              <mockito.version>5.23.0</mockito.version>
+          </properties>
+          <dependencies>
+              <dependency>
+                  <groupId>org.mockito</groupId>
+                  <artifactId>mockito-core</artifactId>
+                  <version>${mockito.version}</version>
+                  <scope>test</scope>
+              </dependency>
+              <dependency>
+                  <groupId>org.mockito</groupId>
+                  <artifactId>mockito-junit-jupiter</artifactId>
+                  <version>${mockito.version}</version>
+                  <scope>test</scope>
+              </dependency>
+          </dependencies>
+      </project>
+    path: pom.xml
+    language: xml
+---
+type: specs.openrewrite.org/v1beta/example
 recipeName: org.openrewrite.java.testing.junit5.UseWiremockExtension
 examples:
 - description: '`UseWiremockExtensionTest#optionsArg`'
@@ -4616,6 +4714,33 @@ examples:
               if (!wm.isRunning()) {
                   wm.start();
               }
+          }
+      }
+    language: java
+---
+type: specs.openrewrite.org/v1beta/example
+recipeName: org.openrewrite.java.testing.junit6.JUnit5to6Migration
+examples:
+- description: '`JUnit5to6MigrationTest#renamesStoreGetOrComputeIfAbsent`'
+  sources:
+  - before: |
+      import org.junit.jupiter.api.extension.ExtensionContext;
+
+      class FooExtension {
+          void store(ExtensionContext.Store store) {
+              store.getOrComputeIfAbsent(StringBuilder.class);
+              store.getOrComputeIfAbsent("key", k -> new StringBuilder());
+              store.getOrComputeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
+          }
+      }
+    after: |
+      import org.junit.jupiter.api.extension.ExtensionContext;
+
+      class FooExtension {
+          void store(ExtensionContext.Store store) {
+              store.computeIfAbsent(StringBuilder.class);
+              store.computeIfAbsent("key", k -> new StringBuilder());
+              store.computeIfAbsent("key", k -> new StringBuilder(), StringBuilder.class);
           }
       }
     language: java
