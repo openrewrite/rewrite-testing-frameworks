@@ -47,6 +47,10 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
 
     private static final String TEST_CASE = "junit.framework.TestCase";
     private static final String TESTNG_TEST = "org.testng.annotations.Test";
+    private static final String NESTED = "org.junit.jupiter.api.Nested";
+    private static final String RUN_WITH = "org.junit.runner.RunWith";
+    private static final String PARAMETERIZED = "org.junit.runners.Parameterized";
+    private static final String JUNIT3_TEST = "junit.framework.Test";
 
     private static final Set<String> TEST_ANNOTATIONS = new HashSet<>(Arrays.asList(
             "org.junit.Test",
@@ -114,7 +118,7 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
                     J.ClassDeclaration enclosing = getCursor().getParentTreeCursor().firstEnclosing(J.ClassDeclaration.class);
                     if (enclosing != null && enclosing.getType() != null &&
                             service(AnnotationService.class).getAllAnnotations(getCursor()).stream()
-                                    .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Nested") ||
+                                    .anyMatch(a -> TypeUtils.isOfClassType(a.getType(), NESTED) ||
                                             isUnresolvedTestLikeAnnotation(a))) {
                         acc.nestedClasses.computeIfAbsent(enclosing.getType().getFullyQualifiedName(), k -> new ArrayList<>())
                                 .add(type);
@@ -165,12 +169,12 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
             if (SUITE_ANNOTATIONS.contains(annotation.getFullyQualifiedName())) {
                 return true;
             }
-            if ("org.junit.runner.RunWith".equals(annotation.getFullyQualifiedName()) && annotation instanceof JavaType.Annotation) {
+            if (RUN_WITH.equals(annotation.getFullyQualifiedName()) && annotation instanceof JavaType.Annotation) {
                 List<JavaType.Annotation.ElementValue> values = ((JavaType.Annotation) annotation).getValues();
                 Object value = values.isEmpty() ? null : values.get(0).getValue();
                 JavaType.FullyQualified runner = value instanceof JavaType ? TypeUtils.asFullyQualified((JavaType) value) : null;
                 // An unresolved runner may be a suite; `Parameterized` is a `Suite` that needs tests
-                if (runner == null || (!TypeUtils.isAssignableTo("org.junit.runners.Parameterized", runner) &&
+                if (runner == null || (!TypeUtils.isAssignableTo(PARAMETERIZED, runner) &&
                         SUITE_RUNNERS.stream().anyMatch(fqn -> TypeUtils.isAssignableTo(fqn, runner)))) {
                     return true;
                 }
@@ -222,7 +226,7 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
         if (method.hasFlags(Flag.Static)) {
             // A JUnit 3 style `suite()` method
             return "suite".equals(method.getName()) && method.getParameterTypes().isEmpty() &&
-                    TypeUtils.isAssignableTo("junit.framework.Test", method.getReturnType());
+                    TypeUtils.isAssignableTo(JUNIT3_TEST, method.getReturnType());
         }
         if (testNgClassLevelTest) {
             return method.getAnnotations().stream().map(JavaType.FullyQualified::getFullyQualifiedName)
