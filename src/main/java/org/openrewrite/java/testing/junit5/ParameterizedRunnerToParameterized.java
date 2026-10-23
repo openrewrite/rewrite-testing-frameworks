@@ -260,7 +260,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         J.VariableDeclarations varDecls = (J.VariableDeclarations) statement;
                         if (varDecls.getVariables().stream().anyMatch(it -> fieldNames.contains(it.getSimpleName())) &&
                                 (varDecls.hasModifier(J.Modifier.Type.Final))) {
-                            varDecls = varDecls.withModifiers(ListUtils.map(varDecls.getModifiers(), mod -> mod.getType() == J.Modifier.Type.Final ? null : mod));
+                            varDecls = varDecls.withModifiers(ListUtils.filter(varDecls.getModifiers(), mod -> mod.getType() != J.Modifier.Type.Final));
                             statement = maybeAutoFormat(statement, varDecls, ctx, new Cursor(getCursor(), finalBody));
                         }
                     }

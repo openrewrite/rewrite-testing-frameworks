@@ -109,11 +109,20 @@ public class ArgumentMatcherToLambda extends Recipe {
                             lambdaBody = body.withPrefix(Space.format(" "));
                         }
 
-                        // Build lambda parameter (inferred type, no parentheses for single param)
-                        J.Identifier lambdaParam = new J.Identifier(
-                                randomId(), Space.EMPTY, Markers.EMPTY,
-                                emptyList(), paramName, typeArg, null
-                        );
+                        // Build lambda parameter (inferred type, no parentheses for single param), a declaration
+                        // without a type expression as the parser makes it
+                        J.VariableDeclarations.NamedVariable variable = param.getVariables().get(0);
+                        JavaType.Variable variableType = variable.getVariableType() == null ? null :
+                                variable.getVariableType().withType(typeArg);
+                        J.VariableDeclarations lambdaParam = param
+                                .withPrefix(Space.EMPTY)
+                                .withLeadingAnnotations(emptyList())
+                                .withModifiers(emptyList())
+                                .withTypeExpression(null)
+                                .withVariables(singletonList(variable
+                                        .withPrefix(Space.EMPTY)
+                                        .withName(variable.getName().withType(typeArg).withFieldType(variableType))
+                                        .withVariableType(variableType)));
 
                         J.Lambda.Parameters lambdaParams = new J.Lambda.Parameters(
                                 randomId(), Space.EMPTY, Markers.EMPTY,

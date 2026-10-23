@@ -195,6 +195,23 @@ final class ScopedMocks {
         return outer != null && className.startsWith(outer) ? className.substring(outer.length()) : className;
     }
 
+    /// The top-level class to import for code that names the type by its class name, or null for a class in the
+    /// default package, `java.lang` or the test class's package.
+    @Nullable
+    String importFor(@Nullable JavaType type) {
+        JavaType.FullyQualified topLevel = TypeUtils.asFullyQualified(type);
+        if (topLevel == null || topLevel instanceof JavaType.Unknown) {
+            return null;
+        }
+        for (JavaType.FullyQualified owner = topLevel.getOwningClass(); owner != null; owner = owner.getOwningClass()) {
+            topLevel = owner;
+        }
+        String packageName = topLevel.getPackageName();
+        JavaType.FullyQualified testClass = classDecl.getType();
+        return packageName.isEmpty() || "java.lang".equals(packageName) ||
+               testClass != null && packageName.equals(testClass.getPackageName()) ? null : topLevel.getFullyQualifiedName();
+    }
+
     private static @Nullable String testNgGroups(J.MethodDeclaration method) {
         for (J.Annotation annotation : method.getLeadingAnnotations()) {
             if (TESTNG_TEST.matches(annotation) && annotation.getArguments() != null) {
@@ -274,12 +291,17 @@ final class ScopedMocks {
         J.ClassDeclaration original = cd;
         for (ScopedMock mock : toDeclare) {
             String simpleName = mock.scopedMockType.substring(mock.scopedMockType.lastIndexOf('.') + 1);
-            cd = JavaTemplate.builder("private " + (mock.isStatic ? "static " : "") +
-                                      simpleName + "<" + mock.className + "> " + mock.fieldName + ";")
+            JavaTemplate.Builder template = JavaTemplate.builder("private " + (mock.isStatic ? "static " : "") +
+                                                                 simpleName + "<" + mock.className + "> " + mock.fieldName + ";")
                     .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
-                    .imports(mock.scopedMockType)
-                    .build()
+                    .imports(mock.scopedMockType);
+            String mockedImport = importFor(mock.mockedType);
+            if (mockedImport != null) {
+                template.imports(mockedImport);
+                visitor.maybeAddImport(mockedImport);
+            }
+            cd = template.build()
                     .apply(new Cursor(visitor.getCursor().getParentOrThrow(), cd), cd.getBody().getCoordinates().firstStatement());
             visitor.maybeAddImport(mock.scopedMockType);
         }

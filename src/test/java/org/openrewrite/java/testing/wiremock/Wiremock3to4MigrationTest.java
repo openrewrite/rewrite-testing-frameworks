@@ -36,7 +36,7 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     // rejects `-beta.N`; keep this in step with the `newVersion` arguments over there. Only the
     // recipe *input* below needs the exact version; expected output is matched against
     // `WIREMOCK_4_REGEX_VERSION_STRING` instead, so a version bump over there lands here for free.
-    private static final String WIREMOCK_4_VERSION = "4.0.0-beta.38";
+    private static final String WIREMOCK_4_VERSION = "4.0.0-beta.40";
 
     private static final String WIREMOCK_4_REGEX_STRING = "4\\.\\d+\\.\\d+(?:-[\\w.]+)?";
 
@@ -51,7 +51,10 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResources("org.openrewrite.java.testing.wiremock.Wiremock3to4Migration")
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5", "wiremock-3.13"));
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "junit-jupiter-api-5",
+              "wiremock-3.13"));
     }
 
     private static String pomDependency(String artifactId) {
@@ -410,6 +413,188 @@ class Wiremock3to4MigrationTest implements RewriteTest {
                   WireMockWebContextListener listener;
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void jettyEE10MovesToEE11AlongsideWiremockJetty12() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            //language=java
+            .dependsOn(
+              """
+                package org.eclipse.jetty.ee10.servlet;
+                public class ServletContextHandler {}
+                """
+            )),
+          mavenProject("project",
+            //language=java
+            srcTestJava(
+              java(
+                """
+                  import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+
+                  class MyTest {
+                      ServletContextHandler context;
+                  }
+                  """,
+                """
+                  import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
+
+                  class MyTest {
+                      ServletContextHandler context;
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock-jetty12</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.eclipse.jetty.ee10</groupId>
+                          <artifactId>jetty-ee10-webapp</artifactId>
+                          <version>12.0.16</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(WIREMOCK_3_JETTY12_VERSION),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock"))
+                .containsPattern("<artifactId>jetty-ee11-webapp</artifactId>\\s*<version>12\\.1\\.\\d+</version>")
+                .containsOnlyOnce("jetty-ee11-webapp")
+                .doesNotContain("wiremock-jetty12", "ee10")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void jettyEE11WebappAddedWhenEE10OnlyCameThroughWiremockJetty12() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            //language=java
+            .dependsOn(
+              """
+                package org.eclipse.jetty.ee10.webapp;
+                public class WebAppContext {}
+                """
+            )),
+          mavenProject("project",
+            //language=java
+            srcTestJava(
+              java(
+                """
+                  import org.eclipse.jetty.ee10.webapp.WebAppContext;
+
+                  class MyTest {
+                      WebAppContext context;
+                  }
+                  """,
+                """
+                  import org.eclipse.jetty.ee11.webapp.WebAppContext;
+
+                  class MyTest {
+                      WebAppContext context;
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock-jetty12</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(WIREMOCK_3_JETTY12_VERSION),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock"))
+                .containsPattern("<artifactId>jetty-ee11-webapp</artifactId>\\s*<version>12\\.1\\.\\d+</version>")
+                .doesNotContain("wiremock-jetty12", "ee10")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void jettyEE10UntouchedWithoutWiremockJetty12() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            //language=java
+            .dependsOn(
+              """
+                package org.eclipse.jetty.ee10.servlet;
+                public class ServletContextHandler {}
+                """
+            )),
+          mavenProject("project",
+            //language=java
+            srcTestJava(
+              java(
+                """
+                  import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+
+                  class MyTest {
+                      ServletContextHandler context;
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.eclipse.jetty.ee10</groupId>
+                          <artifactId>jetty-ee10-webapp</artifactId>
+                          <version>12.0.16</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(WIREMOCK_3_VERSION),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock"))
+                .contains("<artifactId>jetty-ee10-webapp</artifactId>")
+                .actual())
+            )
           )
         );
     }

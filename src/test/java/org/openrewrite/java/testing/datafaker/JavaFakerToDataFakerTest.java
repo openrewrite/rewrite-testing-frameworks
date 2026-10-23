@@ -22,6 +22,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class JavaFakerToDataFakerTest implements RewriteTest {
 
@@ -83,6 +84,45 @@ class JavaFakerToDataFakerTest implements RewriteTest {
               class A {
                   RandomService random = new RandomService();
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void changesDependencyToJava8CompatibleDatafakerVersion() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <groupId>com.example</groupId>
+                  <artifactId>sample-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>com.github.javafaker</groupId>
+                          <artifactId>javafaker</artifactId>
+                          <version>1.0.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                  <groupId>com.example</groupId>
+                  <artifactId>sample-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>net.datafaker</groupId>
+                          <artifactId>datafaker</artifactId>
+                          <version>1.9.0</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
               """
           )
         );

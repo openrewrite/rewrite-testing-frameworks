@@ -32,6 +32,7 @@ import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.tree.Flag.Private;
 
 public class PowerMockitoDoStubbingToMockito extends Recipe {
@@ -108,11 +109,13 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                                     .withParameterTypes(singletonList(instanceType))
                                     .withParameterNames(singletonList("mock"));
                         }
+                        // a new call inside the one it replaces, so with ids of its own
                         J.MethodInvocation whenWithInstance = mi
+                                .withId(randomId())
                                 .withPrefix(Space.EMPTY)
                                 .withArguments(singletonList(firstArg.withPrefix(Space.EMPTY)))
                                 .withMethodType(updatedWhenType)
-                                .withName(mi.getName().withType(updatedWhenType));
+                                .withName(mi.getName().withId(randomId()).withType(updatedWhenType));
 
                         // 2. Build .method(args...) chained on when(instance)
                         List<Expression> newArgs = extraArgs.isEmpty() ?

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -60,6 +61,65 @@ class AddHamcrestIfUsedTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest", "junit-4"));
     }
 
+    @DocumentExample
+    @Test
+    void migrationAddsDependencyForExpectedExceptionMessage() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest")),
+          mavenProject("example",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> {
+                  return assertThat(pom).contains("<artifactId>hamcrest</artifactId>", "<artifactId>junit-jupiter</artifactId>")
+                          .doesNotContain("<artifactId>junit</artifactId>").actual();
+              })
+            ),
+            srcTestJava(java(
+              """
+                import org.junit.Rule;
+                import org.junit.Test;
+                import org.junit.rules.ExpectedException;
+
+                class T {
+                    @Rule public ExpectedException thrown = ExpectedException.none();
+                    @Test public void test() {
+                        thrown.expect(IllegalStateException.class);
+                        thrown.expectMessage("bad");
+                        failOperation();
+                    }
+                    void failOperation() {
+                        throw new IllegalStateException("bad");
+                    }
+                }
+                """,
+              spec -> spec.after(source -> {
+                  return assertThat(source).contains("import org.junit.jupiter.api.Test;",
+                          "import static org.hamcrest.CoreMatchers.containsString;",
+                          "import static org.hamcrest.MatcherAssert.assertThat;",
+                          "assertThat(exception.getMessage(), containsString(\"bad\"));")
+                          .doesNotContain("ExpectedException").actual();
+              })
+            ))
+          )
+        );
+    }
+
     @Test
     void addsDependencyForCoreMatchersAndMatcherAssert() {
         rewriteRun(
@@ -82,70 +142,8 @@ class AddHamcrestIfUsedTest implements RewriteTest {
     }
 
     @Test
-    void migrationAddsDependencyForExpectedExceptionMessage() {
-        rewriteRun(
-          spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
-            .cycles(1).expectedCyclesThatMakeChanges(1)
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest")),
-          mavenProject("example",
-            pomXml(
-              """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>org.example</groupId>
-                    <artifactId>example</artifactId>
-                    <version>1.0</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>junit</groupId>
-                            <artifactId>junit</artifactId>
-                            <version>4.13.2</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """,
-              spec -> spec.after(pom -> {
-                  assertThat(pom).contains("<artifactId>hamcrest</artifactId>", "<artifactId>junit-jupiter</artifactId>")
-                    .doesNotContain("<artifactId>junit</artifactId>");
-                  return pom;
-              })
-            ),
-            srcTestJava(java(
-              """
-                import org.junit.Rule;
-                import org.junit.Test;
-                import org.junit.rules.ExpectedException;
-
-                class T {
-                    @Rule public ExpectedException thrown = ExpectedException.none();
-                    @Test public void test() {
-                        thrown.expect(IllegalStateException.class);
-                        thrown.expectMessage("bad");
-                        failOperation();
-                    }
-                    void failOperation() {
-                        throw new IllegalStateException("bad");
-                    }
-                }
-                """,
-              spec -> spec.after(source -> {
-                  assertThat(source).contains("import org.junit.jupiter.api.Test;",
-                      "import static org.hamcrest.CoreMatchers.containsString;",
-                      "import static org.hamcrest.MatcherAssert.assertThat;",
-                      "assertThat(exception.getMessage(), containsString(\"bad\"));")
-                    .doesNotContain("ExpectedException");
-                  return source;
-              })
-            ))
-          )
-        );
-    }
-
-    @Test
     void anticipatesExpectedMessageWithoutAddingToUnrelatedModules() {
         rewriteRun(
-          spec -> spec.cycles(1).expectedCyclesThatMakeChanges(1),
           mavenProject("example",
             pomXml(BEFORE, AFTER),
             srcTestJava(java(

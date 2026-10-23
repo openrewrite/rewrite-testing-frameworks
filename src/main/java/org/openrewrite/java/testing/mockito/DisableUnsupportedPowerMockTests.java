@@ -24,13 +24,14 @@ import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.tree.J;
+import org.openrewrite.java.testing.mockito.table.PowerMockTestsDisabled;
 import org.openrewrite.java.tree.Comment;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -38,13 +39,9 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.java.testing.mockito.table.PowerMockTestsDisabled;
+import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -191,12 +188,12 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 List<String> lines = new ArrayList<>();
                 int common = Integer.MAX_VALUE;
                 for (String line : source.split("\n")) {
-                    if (!line.trim().isEmpty()) {
+                    if (!StringUtils.isBlank(line)) {
                         common = Math.min(common, line.length() - line.replaceAll("^\\s+", "").length());
                     }
                 }
                 for (String line : source.split("\n")) {
-                    if (!line.trim().isEmpty()) {
+                    if (!StringUtils.isBlank(line)) {
                         lines.add(line.substring(Math.min(common, line.length())));
                     }
                 }
@@ -225,8 +222,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
 
             /** The unsupported usages inside this element, keyed by node so they can be consumed once. */
             private Map<UUID, String> reasonsIn(J element) {
-                Map<UUID, String> found = new LinkedHashMap<>();
-                new JavaIsoVisitor<Map<UUID, String>>() {
+                return new JavaIsoVisitor<Map<UUID, String>>() {
                     @Override
                     public @Nullable J preVisit(J tree, Map<UUID, String> p) {
                         String reason = unsupported.get(tree.getId());
@@ -235,8 +231,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                         }
                         return tree;
                     }
-                }.visit(element, found);
-                return found;
+                }.reduce(element, new LinkedHashMap<>());
             }
 
             private boolean isDisabled(java.util.List<J.Annotation> annotations) {

@@ -33,8 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
@@ -110,6 +109,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         if (invokedType != null) {
                             J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable == null) {
+                                maybeAddImport(invokedType.getFullyQualifiedName(), false);
                                 list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx));
                             } else if (MockitoUtils.throwsCheckedException(whenArg.getMethodType())) {
                                 list.add(statement);
@@ -170,6 +170,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                               J.MethodInvocation statement, JavaType.Class invokedType, J.MethodInvocation whenArg, ExecutionContext ctx,
                                               Map<String, String> pendingResources) {
                 String className = invokedType.getClassName();
+                maybeAddImport(invokedType.getFullyQualifiedName(), false);
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
@@ -264,8 +265,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                             }
                         }
 
-                        J.ClassDeclaration cd = super.visitClassDeclaration(after, ctx);
-                        return maybeAutoFormat(classDecl, cd, ctx);
+                        return MockitoUtils.separateAddedMembers(classDecl, super.visitClassDeclaration(after, ctx));
                     }
 
                     private J.ClassDeclaration writeAfterMethod(J.ClassDeclaration after, Statement beforeMethod, ExecutionContext ctx, String template, String importClass, String... classpaths) {
@@ -362,7 +362,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     }
 
     private static String argumentPlaceholders(List<Expression> arguments) {
-        return String.join(", ", Collections.nCopies(arguments.size(), "#{any()}"));
+        return String.join(", ", nCopies(arguments.size(), "#{any()}"));
     }
 
     private static Object[] templateParameters(List<Object> leading, List<Expression> stubbingArguments) {
@@ -370,12 +370,22 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     }
 
     private static JavaType.@Nullable Class getTypeFromInvocation(J.MethodInvocation whenArg) {
+        Expression select = whenArg.getSelect();
+        if (select == null) {
+            // A statically imported method, or one of the enclosing class
+            return whenArg.getMethodType() == null ? null : TypeUtils.asClass(whenArg.getMethodType().getDeclaringType());
+        }
+        if (select instanceof J.FieldAccess && ((J.FieldAccess) select).getName().getFieldType() == null &&
+                TypeUtils.asClass(((J.FieldAccess) select).getTarget().getType()) == null) {
+            // A fully qualified class name, such as `org.example.A`
+            return TypeUtils.asClass(select.getType());
+        }
         J.Identifier clazz = null;
         // Having a fieldType implies that something is a field rather than a class itself
-        if (whenArg.getSelect() instanceof J.Identifier && ((J.Identifier) whenArg.getSelect()).getFieldType() == null) {
-            clazz = (J.Identifier) whenArg.getSelect();
-        } else if (whenArg.getSelect() instanceof J.FieldAccess && ((J.FieldAccess) whenArg.getSelect()).getTarget() instanceof J.Identifier) {
-            clazz = (J.Identifier) ((J.FieldAccess) whenArg.getSelect()).getTarget();
+        if (select instanceof J.Identifier && ((J.Identifier) select).getFieldType() == null) {
+            clazz = (J.Identifier) select;
+        } else if (select instanceof J.FieldAccess && ((J.FieldAccess) select).getTarget() instanceof J.Identifier) {
+            clazz = (J.Identifier) ((J.FieldAccess) select).getTarget();
         }
         return clazz != null && clazz.getType() != null ? (JavaType.Class) clazz.getType() : null;
     }

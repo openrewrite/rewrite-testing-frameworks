@@ -92,7 +92,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                 }
 
                 cd = cd.withBody(cd.getBody().withStatements(
-                        ListUtils.map(cd.getBody().getStatements(), s -> annotationsByField.containsKey(s) ? null : s)));
+                        ListUtils.filter(cd.getBody().getStatements(), s -> !annotationsByField.containsKey(s))));
                 maybeRemoveImport(RULE);
                 maybeRemoveImport(CLASS_RULE);
                 maybeRemoveImport(PROVIDE_SYSTEM_PROPERTY);
@@ -107,7 +107,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
 
                 boolean restoring = hasAnnotation(cd, PIONEER_RESTORE);
                 for (PioneerAnnotation annotation : annotations) {
-                    if (annotation.fqn.equals(PIONEER_RESTORE)) {
+                    if (PIONEER_RESTORE.equals(annotation.fqn)) {
                         if (restoring) {
                             continue;
                         }
@@ -246,6 +246,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
     private static class PioneerAnnotation {
         String fqn;
         String template;
+
         @Nullable
         Object key;
 

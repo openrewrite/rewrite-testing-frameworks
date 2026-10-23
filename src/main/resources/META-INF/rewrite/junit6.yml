@@ -39,6 +39,10 @@ tags:
   - jupiter
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.testng
+      artifactIdPattern: testng*
+      invertMarking: true
   - org.openrewrite.java.search.DoesNotUseType:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true

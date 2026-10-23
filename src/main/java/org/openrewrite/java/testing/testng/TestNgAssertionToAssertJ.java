@@ -110,8 +110,7 @@ public class TestNgAssertionToAssertJ extends Recipe {
             }
 
             private boolean hasReferencesOutsideDeclaration(J scope, JavaType.Variable target, UUID declarationNameId) {
-                AtomicInteger count = new AtomicInteger();
-                new JavaIsoVisitor<AtomicInteger>() {
+                return new JavaIsoVisitor<AtomicInteger>() {
                     @Override
                     public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
                         if (!identifier.getId().equals(declarationNameId) && target.equals(identifier.getFieldType())) {
@@ -119,8 +118,7 @@ public class TestNgAssertionToAssertJ extends Recipe {
                         }
                         return identifier;
                     }
-                }.visit(scope, count);
-                return count.get() > 0;
+                }.reduce(scope, new AtomicInteger()).get() > 0;
             }
 
             private J.MethodInvocation equals(J.MethodInvocation method, ExecutionContext ctx, List<Expression> args,

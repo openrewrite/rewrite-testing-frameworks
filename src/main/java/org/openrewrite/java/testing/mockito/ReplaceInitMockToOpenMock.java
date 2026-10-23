@@ -79,7 +79,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             }
                             J.ClassDeclaration after = JavaTemplate.apply("private AutoCloseable " + variableName + ";",
                                     getCursor(), cd.getBody().getCoordinates().firstStatement());
-                            return maybeAutoFormat(cd, after, ctx);
+                            return MockitoUtils.separateAddedMembers(cd, after);
                         }
                         return cd;
                     }
@@ -135,12 +135,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                 }
                             }
 
-                            cd = super.visitClassDeclaration(cd, ctx);
-                            if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
-                                // Do not autoformat the whole class, as the Kotlin formatter would reformat unrelated code
-                                return cd;
-                            }
-                            return autoFormat(cd, ctx);
+                            return super.visitClassDeclaration(cd, ctx);
                         }
 
                         @Override

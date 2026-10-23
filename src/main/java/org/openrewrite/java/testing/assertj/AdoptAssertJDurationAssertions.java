@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -33,6 +34,7 @@ import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
 import java.util.*;
 
+import static java.util.Objects.requireNonNull;
 import static org.openrewrite.Preconditions.or;
 
 public class AdoptAssertJDurationAssertions extends Recipe {
@@ -86,7 +88,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 or(
-                        new UsesMethod<>(DURATION_ASSERT_HAS_LONG, true),
+                        new UsesMethod<>(TIME_UNIT_MATCHERS),
                         new UsesMethod<>(INTEGER_ASSERT_IS_EQUAL_TO, true),
                         new UsesMethod<>(INTEGER_ASSERT_IS_GREATER_THAN, true),
                         new UsesMethod<>(INTEGER_ASSERT_IS_LESS_THAN, true),
@@ -122,6 +124,8 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         if (!ASSERT_THAT_MATCHER.matches(select)) {
                             return m;
                         }
+                        // The templates call the same assertThat as the replaced code
+                        String assertions = requireNonNull(((J.MethodInvocation) select).getMethodType()).getDeclaringType().getFullyQualifiedName();
 
                         Expression assertThatArgumentExpr = ((J.MethodInvocation) select).getArguments().get(0);
                         if (!(assertThatArgumentExpr instanceof J.MethodInvocation)) {
@@ -132,7 +136,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         if (isZero(isEqualToArg) && checkIfRelatedToDuration(assertThatArg)) {
                             String formatted_template = formatTemplate("assertThat(#{any()}).%s();", m.getSimpleName(), asDescription);
                             templateParameters.set(0, assertThatArg);
-                            return applyTemplate(ctx, m, formatted_template, templateParameters.toArray());
+                            return applyTemplate(ctx, m, formatted_template, assertions, templateParameters.toArray());
                         }
 
                         if (GET_NANO_MATCHER.matches(assertThatArg) || GET_SECONDS_MATCHER.matches(assertThatArg)) {
@@ -142,7 +146,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                             templateParameters.set(0, assertThatArgSelect);
                             templateParameters.add(isEqualToArg);
 
-                            return applyTemplate(ctx, m, formatted_template, templateParameters.toArray());
+                            return applyTemplate(ctx, m, formatted_template, assertions, templateParameters.toArray());
                         }
 
                         return m;
@@ -169,7 +173,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         if (!m.getSimpleName().equals(methodName)) {
                             // update method invocation with new name and arg
                             String template = String.format("#{any()}.%s(%d)", methodName, methodArg);
-                            return applyTemplate(ctx, m, template, m.getSelect());
+                            return applyTemplate(ctx, m, template, null, m.getSelect());
                         }
 
                         return m;
@@ -195,11 +199,16 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         return Arrays.asList(name, argValue);
                     }
 
-                    private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, Object... parameters) {
-                        J.MethodInvocation invocation = JavaTemplate.builder(template)
+                    private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template,
+                                                             @Nullable String assertions, Object... parameters) {
+                        JavaTemplate.Builder builder = JavaTemplate.builder(template)
                                 .contextSensitive()
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                .build()
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"));
+                        if (assertions != null) {
+                            builder.staticImports(assertions + ".assertThat");
+                            maybeAddImport(assertions, "assertThat");
+                        }
+                        J.MethodInvocation invocation = builder.build()
                                 .apply(getCursor(), m.getCoordinates().replace(), parameters);
 
                         // retain whitespace formatting

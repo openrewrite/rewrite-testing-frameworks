@@ -37,12 +37,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Arrays.asList;
@@ -249,8 +244,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                     }
 
                     private boolean referencesReceiver(Expression argument, String receiverName) {
-                        AtomicBoolean found = new AtomicBoolean();
-                        new JavaIsoVisitor<AtomicBoolean>() {
+                        return new JavaIsoVisitor<AtomicBoolean>() {
                             @Override
                             public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
                                 if (receiverName.equals(identifier.getSimpleName())) {
@@ -258,8 +252,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                                 }
                                 return identifier;
                             }
-                        }.visit(argument, found);
-                        return found.get();
+                        }.reduce(argument, new AtomicBoolean()).get();
                     }
 
                     private Statement toTransform(List<SetterCall> run, Statement original) {
@@ -285,10 +278,7 @@ public class ReplaceSettersWithTransform extends Recipe {
 
                         // Only the `transform` call is templated; wrapping it in the assignment by hand keeps the
                         // receiver's own type information, which a `#{any()}` placeholder cannot carry as an lvalue
-                        Expression transform = JavaTemplate.builder(code.toString())
-                                .build()
-                                .apply(new Cursor(getCursor(), original), original.getCoordinates().replace(),
-                                        parameters.toArray());
+                        Expression transform = JavaTemplate.apply(code.toString(), new Cursor(getCursor(), original), original.getCoordinates().replace(), parameters.toArray());
                         transform = attributeWiremock4Api(transform, lambdaParameter, first.getOwner());
 
                         return new J.Assignment(

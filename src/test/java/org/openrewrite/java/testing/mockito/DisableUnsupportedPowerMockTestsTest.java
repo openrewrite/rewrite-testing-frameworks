@@ -53,7 +53,7 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
         rewriteRun(
           spec -> spec.dataTable(PowerMockTestsDisabled.Row.class, rows -> {
               assertThat(rows).hasSize(1);
-              PowerMockTestsDisabled.Row row = rows.get(0);
+              PowerMockTestsDisabled.Row row = rows.getFirst();
               assertThat(row.getTestClass()).isEqualTo("MyTest");
               assertThat(row.getDisabledElement()).isEqualTo("verifiesAPrivateMethod");
               assertThat(row.getScope()).isEqualTo("METHOD");

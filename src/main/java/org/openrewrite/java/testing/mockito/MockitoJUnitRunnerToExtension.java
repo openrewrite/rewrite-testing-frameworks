@@ -69,13 +69,12 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 }
                 registerAfterVisit(cd);
                 if (extensionStrictness == null || extensionStrictness.isGreaterThan(runnerStrictness)) {
-                    List<J.Annotation> annotations = ListUtils.map(cd.getLeadingAnnotations(),
-                            a -> a == null || new AnnotationMatcher(mockitoSettings).matches(a) ? null : a);
+                    List<J.Annotation> annotations = ListUtils.filter(cd.getLeadingAnnotations(),
+                            a -> !(a == null || new AnnotationMatcher(mockitoSettings).matches(a)));
                     J.ClassDeclaration _cd = cd.withLeadingAnnotations(annotations);
                     return getTemplate(runnerStrictness, ctx)
-                            .map(t -> maybeAutoFormat(_cd,
-                                    t.apply(updateCursor(_cd), _cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))),
-                                    ctx)).orElse(_cd);
+                            .<J.ClassDeclaration>map(t -> t.apply(updateCursor(_cd), _cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))))
+                            .orElse(_cd);
                 }
                 return cd;
             }

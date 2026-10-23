@@ -98,8 +98,7 @@ public class GradleUseJunitJupiter extends Recipe {
     }
 
     private static boolean containsJUnitPlatformInvocation(G.CompilationUnit cu) {
-        AtomicBoolean found = new AtomicBoolean(false);
-        new GroovyIsoVisitor<AtomicBoolean>() {
+        return new GroovyIsoVisitor<AtomicBoolean>() {
             @Override
             public @Nullable J preVisit(J tree, AtomicBoolean found) {
                 if (found.get()) {
@@ -121,8 +120,7 @@ public class GradleUseJunitJupiter extends Recipe {
                 }
                 return super.visitMethodInvocation(m, found);
             }
-        }.visit(cu, found);
-        return found.get();
+        }.reduce(cu, new AtomicBoolean(false)).get();
     }
 
     private static class UpdateExistingUseJunit4 extends GroovyIsoVisitor<ExecutionContext> {

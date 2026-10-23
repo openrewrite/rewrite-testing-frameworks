@@ -336,8 +336,7 @@ public class JMockitMockUpToMockito extends Recipe {
         }
 
         private String getAnswerBody(J.MethodDeclaration md) {
-            Set<String> usedVariables = new HashSet<>();
-            new JavaIsoVisitor<Set<String>>() {
+            Set<String> usedVariables = new JavaIsoVisitor<Set<String>>() {
                 @Override
                 public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> ctx) {
                     Cursor scope = getCursor().dropParentUntil(is -> is instanceof J.ClassDeclaration || is instanceof J.Block || is instanceof J.MethodDeclaration || is instanceof J.ForLoop || is instanceof J.ForEachLoop || is instanceof J.ForLoop.Control || is instanceof J.ForEachLoop.Control || is instanceof J.Case || is instanceof J.Try || is instanceof J.Try.Resource || is instanceof J.Try.Catch || is instanceof J.MultiCatch || is instanceof J.Lambda || is instanceof JavaSourceFile);
@@ -346,7 +345,7 @@ public class JMockitMockUpToMockito extends Recipe {
                     }
                     return super.visitVariable(variable, ctx);
                 }
-            }.visit(md, usedVariables);
+            }.reduce(md, new HashSet<>());
 
             StringBuilder sb = new StringBuilder();
             List<Statement> parameters = md.getParameters();

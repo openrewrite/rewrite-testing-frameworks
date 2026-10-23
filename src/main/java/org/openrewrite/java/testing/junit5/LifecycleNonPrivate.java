@@ -69,8 +69,8 @@ public class LifecycleNonPrivate extends Recipe {
                     md.getLeadingAnnotations().stream().anyMatch(ann -> lifeCycleAnnotationMatchers.stream()
                     .anyMatch(matcher -> matcher.matches(ann)))) {
                 return maybeAutoFormat(md,
-                        md.withModifiers(ListUtils.map(md.getModifiers(),
-                                modifier -> modifier.getType() == Type.Private ? null : modifier)),
+                        md.withModifiers(ListUtils.filter(md.getModifiers(),
+                                modifier -> modifier.getType() != Type.Private)),
                         ctx, getCursor().getParentOrThrow());
             }
             return md;
