@@ -19,10 +19,16 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 
 class MigrateJUnitTestCaseTest implements RewriteTest {
@@ -198,6 +204,114 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void keepTestCaseClassLiteral() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class SuiteBuilder {
+                  boolean isJUnit3Test(Class<?> c) {
+                      if (TestCase.class.isAssignableFrom(c)) {
+                          return true;
+                      }
+                      return false;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepTestCaseTypeReferencesWhileMigratingAssertions() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class SuiteBuilder {
+                  boolean isJUnit3Test(Class<?> c, TestCase test) {
+                      TestCase.assertNotNull(test);
+                      return TestCase.class.isAssignableFrom(c);
+                  }
+              }
+              """,
+            """
+              import junit.framework.TestCase;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              class SuiteBuilder {
+                  boolean isJUnit3Test(Class<?> c, TestCase test) {
+                      assertNotNull(test);
+                      return TestCase.class.isAssignableFrom(c);
+                  }
+              }
+              """,
+            spec -> spec.afterRecipe(cu -> assertThat(new JavaIsoVisitor<List<String>>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, List<String> invoked) {
+                    invoked.add(method.getMethodType().getDeclaringType().getFullyQualifiedName() + " " + method.getSimpleName());
+                    return super.visitMethodInvocation(method, invoked);
+                }
+            }.reduce(cu, new ArrayList<>())).containsExactly(
+              "org.junit.jupiter.api.Assertions assertNotNull",
+              "java.lang.Class isAssignableFrom"))
+          )
+        );
+    }
+
+    @Test
+    void keepInstanceMethodCallsOnTestCaseReferences() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class SuiteBuilder {
+                  String describe(TestCase test) {
+                      return test.getName();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeExtendsJUnit3Assert() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.Assert;
+
+              class Verify extends Assert {
+                  void check(Object o) {
+                      assertNotNull(o);
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              class Verify {
+                  void check(Object o) {
+                      assertNotNull(o);
+                  }
+              }
+              """,
+            spec -> spec.afterRecipe(cu ->
+              assertThat(cu.getClasses().get(0).getType().getSupertype().getFullyQualifiedName()).isEqualTo("java.lang.Object"))
           )
         );
     }
