@@ -109,7 +109,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         if (invokedType != null) {
                             J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable == null) {
-                                maybeAddImport(invokedType.getFullyQualifiedName());
+                                maybeAddImport(invokedType.getFullyQualifiedName(), false);
                                 list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx));
                             } else if (MockitoUtils.throwsCheckedException(whenArg.getMethodType())) {
                                 list.add(statement);
@@ -170,7 +170,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                               J.MethodInvocation statement, JavaType.Class invokedType, J.MethodInvocation whenArg, ExecutionContext ctx,
                                               Map<String, String> pendingResources) {
                 String className = invokedType.getClassName();
-                maybeAddImport(invokedType.getFullyQualifiedName());
+                maybeAddImport(invokedType.getFullyQualifiedName(), false);
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
