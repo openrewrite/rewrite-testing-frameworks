@@ -328,7 +328,7 @@ class AddJupiterDependenciesTest implements RewriteTest {
     @Test
     void declaresDirectApiDuringJUnit4Migration() {
         rewriteRun(
-          spec -> spec.cycles(1).expectedCyclesThatMakeChanges(1).recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
             .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4")),
           mavenProject("project",
             srcTestJava(java(
@@ -390,7 +390,7 @@ class AddJupiterDependenciesTest implements RewriteTest {
     @Test
     void declaresParametersGeneratedByJUnitParamsInOneCycle() {
         rewriteRun(
-          spec -> spec.cycles(1).expectedCyclesThatMakeChanges(1).recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
             .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "JUnitParams-1.1")),
           mavenProject("project",
             srcTestJava(java(

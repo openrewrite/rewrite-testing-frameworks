@@ -66,7 +66,6 @@ class AddHamcrestIfUsedTest implements RewriteTest {
     void migrationAddsDependencyForExpectedExceptionMessage() {
         rewriteRun(
           spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
-            .cycles(1).expectedCyclesThatMakeChanges(1)
             .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest")),
           mavenProject("example",
             pomXml(
@@ -145,7 +144,6 @@ class AddHamcrestIfUsedTest implements RewriteTest {
     @Test
     void anticipatesExpectedMessageWithoutAddingToUnrelatedModules() {
         rewriteRun(
-          spec -> spec.cycles(1).expectedCyclesThatMakeChanges(1),
           mavenProject("example",
             pomXml(BEFORE, AFTER),
             srcTestJava(java(
