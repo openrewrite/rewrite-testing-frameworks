@@ -63,6 +63,7 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
             TESTNG_TEST,
             "org.testng.annotations.Factory",
             "com.tngtech.archunit.junit.ArchTest",
+            "com.googlecode.zohhak.api.TestWith",
             "org.junit.platform.commons.annotation.Testable"));
 
     private static final List<String> TEST_LIKE_NAMES = Arrays.asList("Theory", "Property", "TestWith", "Nested");
@@ -73,10 +74,13 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
             "org.junit.platform.suite.api.SelectPackages",
             "io.cucumber.junit.platform.engine.Cucumber");
 
+    // Runners that build their tests from other classes or from files
     private static final List<String> SUITE_RUNNERS = Arrays.asList(
             "org.junit.runners.Suite",
             "io.cucumber.junit.Cucumber",
-            "cucumber.api.junit.Cucumber");
+            "cucumber.api.junit.Cucumber",
+            "au.com.dius.pact.provider.junit.PactRunner",
+            "com.intuit.karate.junit4.Karate");
 
     @Getter
     final String displayName = "Find test classes without tests";

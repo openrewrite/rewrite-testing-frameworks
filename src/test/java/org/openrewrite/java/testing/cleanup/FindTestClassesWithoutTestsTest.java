@@ -94,6 +94,47 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
                 }
                 """,
               """
+                package com.googlecode.zohhak.api;
+                import java.lang.annotation.Retention;
+                import java.lang.annotation.RetentionPolicy;
+                @Retention(RetentionPolicy.RUNTIME)
+                public @interface TestWith {
+                    String[] value();
+                }
+                """,
+              """
+                package com.googlecode.zohhak.api.runners;
+                public class ZohhakRunner extends org.junit.runners.BlockJUnit4ClassRunner {
+                    public ZohhakRunner(Class<?> testClass) throws Exception {
+                        super(testClass);
+                    }
+                }
+                """,
+              """
+                package au.com.dius.pact.provider.junit;
+                public class PactRunner extends org.junit.runners.ParentRunner<Object> {
+                    public PactRunner(Class<?> testClass) throws Exception {
+                        super(testClass);
+                    }
+                }
+                """,
+              """
+                package au.com.dius.pact.provider.junit;
+                public class RestPactRunner extends PactRunner {
+                    public RestPactRunner(Class<?> testClass) throws Exception {
+                        super(testClass);
+                    }
+                }
+                """,
+              """
+                package com.intuit.karate.junit4;
+                public class Karate extends org.junit.runners.ParentRunner<Object> {
+                    public Karate(Class<?> testClass) throws Exception {
+                        super(testClass);
+                    }
+                }
+                """,
+              """
                 package io.cucumber.junit.platform.engine;
                 import java.lang.annotation.Retention;
                 import java.lang.annotation.RetentionPolicy;
@@ -934,6 +975,29 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         }
 
         @Test
+        void zohhak() {
+            rewriteRun(
+              srcTestJava(
+                //language=java
+                java(
+                  """
+                    import com.googlecode.zohhak.api.TestWith;
+                    import com.googlecode.zohhak.api.runners.ZohhakRunner;
+                    import org.junit.runner.RunWith;
+
+                    @RunWith(ZohhakRunner.class)
+                    public class CalculatorTest {
+                        @TestWith("1, 2")
+                        public void add(int a, int b) {
+                        }
+                    }
+                    """
+                )
+              )
+            );
+        }
+
+        @Test
         void nestedClasses() {
             rewriteRun(
               srcTestJava(
@@ -1198,6 +1262,47 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
                         public static Test suite() {
                             return new TestSuite();
                         }
+                    }
+                    """
+                )
+              )
+            );
+        }
+
+        @Test
+        void junit4RunnersThatBuildTestsFromFiles() {
+            rewriteRun(
+              srcTestJava(
+                //language=java
+                java(
+                  """
+                    import au.com.dius.pact.provider.junit.PactRunner;
+                    import org.junit.runner.RunWith;
+
+                    @RunWith(PactRunner.class)
+                    public class ProviderTest {
+                    }
+                    """
+                ),
+                //language=java
+                java(
+                  """
+                    import au.com.dius.pact.provider.junit.RestPactRunner;
+                    import org.junit.runner.RunWith;
+
+                    @RunWith(RestPactRunner.class)
+                    public class RestProviderTest {
+                    }
+                    """
+                ),
+                //language=java
+                java(
+                  """
+                    import com.intuit.karate.junit4.Karate;
+                    import org.junit.runner.RunWith;
+
+                    @RunWith(Karate.class)
+                    public class KarateTest {
                     }
                     """
                 )
