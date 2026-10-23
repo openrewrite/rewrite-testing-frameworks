@@ -49,7 +49,6 @@ class RemoveEmptyTestsTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.Test;
               class MyTest {
               }
               """
