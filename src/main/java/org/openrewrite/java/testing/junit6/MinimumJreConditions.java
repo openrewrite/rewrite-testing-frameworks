@@ -28,6 +28,7 @@ import org.openrewrite.java.trait.Literal;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -220,10 +221,34 @@ public class MinimumJreConditions extends Recipe {
                     doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "minVersion").getVisitor());
                     doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "max").getVisitor());
                     doAfterVisit(new RemoveAnnotationAttribute(singleVersionAnnotationType, "maxVersion").getVisitor());
+                    if (range.getNotation() == RangeNotation.JRE) {
+                        doAfterVisit(addJreConstant(singleVersionAnnotationType));
+                        return;
+                    }
                     String attributeName = range.getNotation() == RangeNotation.VERSION ? "versions" : "value";
                     String newValue = formatJreValue(javaVersion, range.getNotation());
                     doAfterVisit(new AddOrUpdateAnnotationAttribute(singleVersionAnnotationType, attributeName, newValue, null, false, false).getVisitor());
                 }
+            }
+
+            // AddOrUpdateAnnotationAttribute cannot resolve the simple name `JRE`, so it would write the constant untyped
+            private TreeVisitor<?, ExecutionContext> addJreConstant(String singleVersionAnnotationType) {
+                return new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.Annotation visitAnnotation(J.Annotation annotation, ExecutionContext ctx) {
+                        J.Annotation a = super.visitAnnotation(annotation, ctx);
+                        if (!TypeUtils.isOfClassType(a.getType(), singleVersionAnnotationType) ||
+                                a.getArguments() != null && !a.getArguments().isEmpty() && !(a.getArguments().get(0) instanceof J.Empty)) {
+                            return a;
+                        }
+                        maybeAddImport(JRE_IMPORT);
+                        return JavaTemplate.builder("JRE.JAVA_" + javaVersion)
+                                .imports(JRE_IMPORT)
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                .build()
+                                .apply(getCursor(), a.getCoordinates().replaceArguments());
+                    }
+                };
             }
 
             private J.MethodDeclaration simplifySingleValueAnnotationAttributeArrays(J.MethodDeclaration m, Space prefix) {
@@ -324,8 +349,6 @@ public class MinimumJreConditions extends Recipe {
             return version;
         }
         switch (notation) {
-            case JRE:
-                return "JRE.JAVA_" + version;
             case STATIC_JRE:
                 return "JAVA_" + version;
             case VERSION:

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit6;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -23,13 +24,14 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 public class MigrateMethodOrdererAlphanumeric extends Recipe {
 
     private static final String METHOD_ORDERER = "org.junit.jupiter.api.MethodOrderer";
     private static final String ALPHANUMERIC = METHOD_ORDERER + ".Alphanumeric";
-    private static final String METHOD_NAME = METHOD_ORDERER + ".MethodName";
+    private static final JavaType METHOD_NAME = JavaType.ShallowClass.build(METHOD_ORDERER + "$MethodName");
 
     @Getter
     final String displayName = "Migrate `MethodOrderer.Alphanumeric` to `MethodOrderer.MethodName`";
@@ -45,13 +47,11 @@ public class MigrateMethodOrdererAlphanumeric extends Recipe {
             @Override
             public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
                 J.FieldAccess fa = super.visitFieldAccess(fieldAccess, ctx);
-                // Check if this is MethodOrderer.Alphanumeric
-                if ("Alphanumeric".equals(fa.getSimpleName()) &&
-                        fa.getTarget() instanceof J.FieldAccess &&
+                // Renaming the import in place keeps it in step with the code, so no import is added or removed.
+                // visitIdentifier has already renamed a typed name, so match on the name as written.
+                if ("Alphanumeric".equals(fieldAccess.getSimpleName()) &&
                         TypeUtils.isOfClassType(fa.getTarget().getType(), METHOD_ORDERER)) {
-                    maybeRemoveImport(ALPHANUMERIC);
-                    maybeAddImport(METHOD_NAME);
-                    return fa.withName(fa.getName().withSimpleName("MethodName"));
+                    return fa.withName(fa.getName().withSimpleName("MethodName")).withType(retype(fa.getType()));
                 }
                 return fa;
             }
@@ -59,14 +59,16 @@ public class MigrateMethodOrdererAlphanumeric extends Recipe {
             @Override
             public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
                 J.Identifier id = super.visitIdentifier(identifier, ctx);
-                // Check if this is just "Alphanumeric" with the right type
                 if ("Alphanumeric".equals(id.getSimpleName()) &&
                     TypeUtils.isOfClassType(id.getType(), ALPHANUMERIC)) {
-                    maybeRemoveImport(ALPHANUMERIC);
-                    maybeAddImport(METHOD_NAME);
-                    return id.withSimpleName("MethodName");
+                    return id.withSimpleName("MethodName").withType(METHOD_NAME);
                 }
                 return id;
+            }
+
+            // A static import of a class is untyped, and J.Import.getTypeName() relies on that to name the class
+            private @Nullable JavaType retype(@Nullable JavaType type) {
+                return TypeUtils.isOfClassType(type, ALPHANUMERIC) ? METHOD_NAME : type;
             }
         });
     }

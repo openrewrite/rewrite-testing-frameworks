@@ -174,7 +174,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
-                J.Try try_ = (J.Try) javaTemplateMockStatic(String.format(
+                J.Try try_ = (J.Try) javaTemplateMockStatic(statement, String.format(
                         "try(MockedStatic<%1$s> %2$s = mockStatic(%1$s.class)) {\n" +
                                 "    %2$s.when(() -> #{any()}).%3$s(%4$s);\n" +
                                 "}", className, variableName, statement.getSimpleName(), argumentPlaceholders(stubbingArguments)), ctx)
@@ -210,7 +210,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 String mockedStaticVariableTemplate = variable instanceof J ? "#{any()}" : "#{}";
                 J.Block cursorBlock = (J.Block) getCursor().getValue();
                 List<Expression> stubbingArguments = stubbingArguments(statement);
-                Statement replacement = javaTemplateMockStatic(String.format("%s.when(() -> #{any()}).%s(%s);",
+                Statement replacement = javaTemplateMockStatic(statement, String.format("%s.when(() -> #{any()}).%s(%s);",
                                 mockedStaticVariableTemplate, statement.getSimpleName(), argumentPlaceholders(stubbingArguments)), ctx)
                         .<J.Block>apply(getCursor(), cursorBlock.getCoordinates().firstStatement(), templateParameters(asList(variable, whenArg), stubbingArguments))
                         .getStatements().get(0);
@@ -226,7 +226,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
-                List<Statement> statements = javaTemplateMockStatic(String.format(
+                List<Statement> statements = javaTemplateMockStatic(statement, String.format(
                         "%2$s = mockStatic(%1$s.class);\n" +
                                 "%2$s.when(() -> #{any()}).%3$s(%4$s);", className, variableName, statement.getSimpleName(), argumentPlaceholders(stubbingArguments)), ctx)
                         .<J.Block>apply(getCursor(), block.getCoordinates().firstStatement(), templateParameters(singletonList(whenArg), stubbingArguments))
@@ -293,7 +293,11 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 return statements;
             }
 
-            private JavaTemplate javaTemplateMockStatic(String code, ExecutionContext ctx) {
+            private JavaTemplate javaTemplateMockStatic(J.MethodInvocation stubbing, String code, ExecutionContext ctx) {
+                // Only for a qualified Mockito.when, since RemoveImport also unfolds a static star import of Mockito
+                if (((J.MethodInvocation) requireNonNull(stubbing.getSelect())).getSelect() != null) {
+                    maybeRemoveImport("org.mockito.Mockito");
+                }
                 maybeAddImport("org.mockito.MockedStatic", false);
                 maybeAddImport("org.mockito.Mockito", "mockStatic");
                 return JavaTemplate.builder(code)

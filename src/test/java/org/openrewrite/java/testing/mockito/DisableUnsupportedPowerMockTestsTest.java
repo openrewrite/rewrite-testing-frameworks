@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.testing.mockito.table.PowerMockTestsDisabled;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -32,6 +33,8 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
+          // The imports stay for the code the recipe comments out, so whoever reworks the test can restore it
+          .recipeQualityValidation(RecipeQualityValidation.builder().removeUnusedImports(false).build())
           .parser(JavaParser.fromJavaVersion()
             .logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(),
