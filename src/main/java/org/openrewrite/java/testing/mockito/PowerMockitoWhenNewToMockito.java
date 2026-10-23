@@ -69,10 +69,10 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                         cd = mocks.declareFields(this, cd, ctx);
                         cd = (J.ClassDeclaration) new WhenNewVisitor(cd, mocks, migratable).visitNonNull(cd, ctx, getCursor().getParentOrThrow());
                         cd = mocks.closeAfterEachTest(this, cd, "tearDownStaticMocks", ctx);
-                        maybeAddImport("org.mockito.AdditionalAnswers");
                         maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
-                        maybeAddImport("org.mockito.Mockito");
                         maybeRemoveImport("org.powermock.api.mockito.PowerMockito.whenNew");
+                        maybeAddImport("org.mockito.AdditionalAnswers");
+                        maybeAddImport("org.mockito.Mockito");
                         return cd;
                     }
                 });

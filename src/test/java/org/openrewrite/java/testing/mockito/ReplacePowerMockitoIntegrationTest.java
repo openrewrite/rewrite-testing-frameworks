@@ -2732,13 +2732,13 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
     @CsvSource({
       "powermock-api-mockito, 1.7.4, mock(List.class), mockito-core",
       "powermock-api-mockito2, 2.0.9, mock(List.class), mockito-core",
       "powermock-api-mockito, 1.7.4, mockStatic(Calendar.class), mockito-inline",
       "powermock-api-mockito2, 2.0.9, mockStatic(Calendar.class), mockito-inline"
     })
+    @ParameterizedTest
     void versionPropertyInheritedFromParentIsUpdated(String powerMockArtifact, String powerMockVersion, String mocking, String mockitoArtifact) {
         rewriteRun(
           //language=xml

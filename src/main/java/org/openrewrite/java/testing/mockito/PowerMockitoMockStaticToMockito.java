@@ -85,9 +85,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         StaticMockUsageVisitor usages = new StaticMockUsageVisitor(cd, mocks);
                         cd = (J.ClassDeclaration) usages.visitNonNull(cd, ctx, getCursor().getParentOrThrow());
                         cd = mocks.closeAfterEachTest(this, cd, "tearDownStaticMocks", ctx);
-                        if (usages.spiedStatically) {
-                            maybeAddImport("org.mockito.Mockito");
-                        }
+                        maybeAddImport("org.mockito.Mockito");
                         usages.namedTypes.forEach(this::maybeAddImport);
                         maybeRemoveImport(POWER_MOCKITO);
 

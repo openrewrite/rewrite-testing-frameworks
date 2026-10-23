@@ -255,8 +255,8 @@ public class ReplacePowerMockDependencies extends ScanningRecipe<ReplacePowerMoc
         ResolvedPom pom = mrr.getPom();
         for (ManagedDependency managed : pom.getRequested().getDependencyManagement()) {
             if (managed instanceof ManagedDependency.Defined &&
-                "org.mockito".equals(pom.getValue((managed).getGroupId())) &&
-                mockitoArtifact.equals(pom.getValue((managed).getArtifactId()))) {
+                "org.mockito".equals(pom.getValue(managed.getGroupId())) &&
+                mockitoArtifact.equals(pom.getValue(managed.getArtifactId()))) {
                 return true;
             }
         }
