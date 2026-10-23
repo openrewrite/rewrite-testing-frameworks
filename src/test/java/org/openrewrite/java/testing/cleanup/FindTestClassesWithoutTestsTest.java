@@ -145,7 +145,7 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
     class Flagged {
 
         @Test
-        void testClassNamesAndJunit3TestCase() {
+        void classNamesAndJunit3TestCase() {
             rewriteRun(
               srcTestJava(
                 //language=java
@@ -264,7 +264,7 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         }
 
         @Test
-        void testNgWithoutTests() {
+        void withoutTestNgTests() {
             rewriteRun(
               srcTestJava(
                 //language=java
@@ -825,7 +825,7 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         }
 
         @Test
-        void testNg() {
+        void withTestNgTests() {
             rewriteRun(
               srcTestJava(
                 //language=java
