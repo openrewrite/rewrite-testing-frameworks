@@ -186,6 +186,57 @@ class AssertEqualsIntegralDeltaToAssertEqualsTest implements RewriteTest {
     }
 
     @Test
+    void noChangeForNonZeroDelta() {
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class Test {
+                  void test(long elapsed) {
+                      assertEquals(100, elapsed, 50);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeForNonZeroDeltaWithMessage() {
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class Test {
+                  void test(long elapsed) {
+                      assertEquals(100L, elapsed, 0.5, "elapsed");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeForDeltaVariable() {
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class Test {
+                  void test(long elapsed, double tolerance) {
+                      assertEquals(100, elapsed, tolerance);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void noChangeForMessageArg() {
         rewriteRun(
           java(
