@@ -16,8 +16,6 @@
 package org.openrewrite.java.testing.assertj;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -233,36 +231,8 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
         );
     }
 
-    @CsvSource({
-      "hasNanos(6000000L),hasSeconds(6)",
-      "hasMillis(5000),hasSeconds(5)",
-      "hasSeconds(600),hasMinutes(10)",
-      "hasMillis(300000),hasMinutes(5)",
-      "hasMillis(18000000),hasHours(5)",
-      "hasMillis(432000000),hasDays(5)",
-      "hasMinutes(120),hasHours(2)",
-      "hasHours(48),hasDays(2)",
-      "hasHours(24 * 2),hasDays(2)",
-    })
-    @ParameterizedTest
-    void simplifyDurationAssertions(String before, String after) {
-        //language=java
-        var template = """
-          import java.time.Duration;
-
-          import static org.assertj.core.api.Assertions.assertThat;
-
-          class Foo {
-              void testMethod(Duration time) {
-                  assertThat(time).%s;
-              }
-          }
-          """;
-        rewriteRun(java(template.formatted(before), template.formatted(after)));
-    }
-
     @Test
-    void doNotSimplifyNonLiteralMultiplication() {
+    void keepDurationUnits() {
         //language=java
         rewriteRun(
           java(
@@ -272,13 +242,14 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class Foo {
-                  void testMethod(Duration time, int variable) {
-                      assertThat(time).hasHours(19 + 5);
-                      assertThat(time).hasHours(29 - 5);
-                      assertThat(time).hasHours(120 / 5);
-                      assertThat(time).hasHours(25);
-                      assertThat(time).hasHours(25 * 2);
-                      assertThat(time).hasHours(2 * variable);
+                  void testMethod(Duration time) {
+                      assertThat(time).hasNanos(6000000L);
+                      assertThat(time).hasMillis(5000);
+                      assertThat(time).hasSeconds(600);
+                      assertThat(time).hasMinutes(120);
+                      assertThat(time).hasHours(24 * 2);
+                      assertThat(time).hasMillis(0);
+                      assertThat(time).hasNanos(4_000_000_000_000L);
                   }
               }
               """
