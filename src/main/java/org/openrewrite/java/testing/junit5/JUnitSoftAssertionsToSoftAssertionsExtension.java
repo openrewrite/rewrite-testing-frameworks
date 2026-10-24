@@ -21,7 +21,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
-import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
@@ -34,6 +33,7 @@ import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -79,18 +79,14 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.and(
+                        // Kotlin properties would need `lateinit var` rather than a dropped `final` and initializer, and
+                        // the `ChangeType` below is driven from a `J.CompilationUnit` that a Kotlin source does not have.
+                        new JavaFileChecker<>(),
                         new UsesType<>(RULE, false),
                         Preconditions.or(
                                 new UsesType<>(JUNIT_SOFT_ASSERTIONS, false),
                                 new UsesType<>(JUNIT_BDD_SOFT_ASSERTIONS, false))),
                 new JavaIsoVisitor<ExecutionContext>() {
-
-                    // Kotlin properties would need `lateinit var` rather than a dropped `final` and initializer, and
-                    // the `ChangeType` below is driven from a `J.CompilationUnit` that a Kotlin source does not have.
-                    @Override
-                    public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                        return sourceFile instanceof J.CompilationUnit;
-                    }
 
                     @Override
                     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
