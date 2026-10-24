@@ -152,7 +152,9 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
                     maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
+                    boolean logicalContext = true;
                     while (RemoveNotMatcherVisitor.NOT_MATCHER.matches(matcherInvocation)) {
+                        logicalContext = !logicalContext;
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
                         matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx, getCursor());
@@ -164,8 +166,6 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                             return mi;
                         }
                     }
-
-                    boolean logicalContext = RemoveNotMatcherVisitor.getLogicalContext(matcherInvocation, ctx);
 
                     Replacement replacement;
                     try {
