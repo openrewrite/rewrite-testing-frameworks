@@ -29,6 +29,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.*;
 
@@ -119,14 +120,9 @@ public class SystemRulesToSystemStubs extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(PACKAGE + ".*", false), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(new JavaFileChecker<>(), new UsesType<>(PACKAGE + ".*", false)), new JavaVisitor<ExecutionContext>() {
             private final Map<JavaType.Variable, Migration> migrations = new HashMap<>();
             private final Map<JavaType.Variable, String> todos = new HashMap<>();
-
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
-            }
 
             @Override
             public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {

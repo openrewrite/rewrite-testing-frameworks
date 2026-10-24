@@ -28,6 +28,8 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -55,14 +57,10 @@ public class AssertThrowsOnLastStatement extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher assertThrowsMatcher = new MethodMatcher(
                 "org.junit.jupiter.api.Assertions assertThrows(java.lang.Class, org.junit.jupiter.api.function.Executable, ..)");
-        return Preconditions.check(new UsesMethod<>(assertThrowsMatcher), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+        return Preconditions.check(Preconditions.and(
                 // Only Java and Kotlin are supported, as the extracted variable declaration is rendered per language
-                return (sourceFile instanceof J.CompilationUnit || sourceFile instanceof K.CompilationUnit) &&
-                        super.isAcceptable(sourceFile, ctx);
-            }
-
+                Preconditions.or(new JavaFileChecker<>(), new KotlinFileChecker<>()),
+                new UsesMethod<>(assertThrowsMatcher)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
