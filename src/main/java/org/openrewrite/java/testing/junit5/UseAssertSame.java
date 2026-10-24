@@ -26,6 +26,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -106,10 +107,13 @@ public class UseAssertSame extends Recipe {
                 return assertTrue.withName(newMethodName);
             }
         };
+        // Kotlin and Groovy `==` calls `equals`, so only Java's `==` means `assertSame`
         return Preconditions.check(
-                Preconditions.or(
-                        new UsesMethod<>(ASSERT_TRUE_MATCHER),
-                        new UsesMethod<>(ASSERT_FALSE_MATCHER)),
+                Preconditions.and(
+                        new JavaFileChecker<>(),
+                        Preconditions.or(
+                                new UsesMethod<>(ASSERT_TRUE_MATCHER),
+                                new UsesMethod<>(ASSERT_FALSE_MATCHER))),
                 visitor);
     }
 

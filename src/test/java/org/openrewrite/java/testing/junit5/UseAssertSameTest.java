@@ -19,10 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class UseAssertSameTest implements RewriteTest {
     @Override
@@ -249,6 +251,28 @@ class UseAssertSameTest implements RewriteTest {
                   @Test
                   public void test(Object obj) {
                       assertFalse(obj == null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinEqualityIsNotIdentity() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Assertions.assertTrue
+              import org.junit.jupiter.api.Test
+
+              class MyTest {
+                  @Test
+                  fun test() {
+                      assertTrue(listOf(1) == listOf(1))
                   }
               }
               """
