@@ -22,54 +22,25 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
 
-import java.security.InvalidParameterException;
 import java.util.Objects;
 
 class RemoveNotMatcherVisitor extends JavaIsoVisitor<ExecutionContext> {
     static final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers not(..)");
 
-    public static boolean getLogicalContext(J.MethodInvocation mi, ExecutionContext ctx) throws InvalidParameterException {
-        Object msg = ctx.getMessage(mi.toString());
-        if (msg == null) {
-            return true;
-        }
-        if (msg instanceof Boolean) {
-            return (Boolean) msg;
-        }
-        throw new InvalidParameterException();
-    }
-
     @Override
-    @SuppressWarnings("ConstantConditions")
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
         if (NOT_MATCHER.matches(mi)) {
-            boolean logicalContext;
-            if (ctx.pollMessage(mi.toString()) != null) {
-                logicalContext = ctx.getMessage(mi.toString());
-            } else {
-                logicalContext = true;
-            }
-
             maybeRemoveImport("org.hamcrest.Matchers.not");
 
-            J.MethodInvocation result;
             if (Objects.requireNonNull(mi.getArguments().get(0).getType()).toString().startsWith("org.hamcrest")) {
-                result = mi.getArguments().get(0).withPrefix(mi.getPrefix());
-            } else {
-                JavaTemplate template = JavaTemplate.builder("equalTo(#{any(java.lang.Object)})")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "hamcrest-3"))
-                        .staticImports("org.hamcrest.Matchers.equalTo")
-                        .build();
-                maybeAddImport("org.hamcrest.Matchers", "equalTo");
-                result = template.apply(getCursor(), mi.getCoordinates().replace(), mi.getArguments().get(0));
+                return mi.getArguments().get(0).withPrefix(mi.getPrefix());
             }
-
-            ctx.putMessage(result.toString(), !logicalContext); // FIXME Do not store on the use execution context
-
-            return result;
-        }
-        if (ctx.pollMessage(mi.toString()) == null) {
-            ctx.putMessage(mi.toString(), true); // FIXME Do not store on the use execution context
+            maybeAddImport("org.hamcrest.Matchers", "equalTo");
+            return JavaTemplate.builder("equalTo(#{any(java.lang.Object)})")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "hamcrest-3"))
+                    .staticImports("org.hamcrest.Matchers.equalTo")
+                    .build()
+                    .apply(getCursor(), mi.getCoordinates().replace(), mi.getArguments().get(0));
         }
         return super.visitMethodInvocation(mi, ctx);
     }
