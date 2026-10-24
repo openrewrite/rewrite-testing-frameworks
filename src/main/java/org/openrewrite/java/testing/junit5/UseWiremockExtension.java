@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -28,7 +29,9 @@ public class UseWiremockExtension extends Recipe {
 
     private static final String WIREMOCK_RULE = "com.github.tomakehurst.wiremock.junit.WireMockRule";
     private static final String WIREMOCK_EXTENSION = "com.github.tomakehurst.wiremock.junit5.WireMockExtension";
+    private static final String REGISTER_EXTENSION = "org.junit.jupiter.api.extension.RegisterExtension";
     private static final MethodMatcher newWiremockRule = new MethodMatcher(WIREMOCK_RULE + " <constructor>(..)");
+    private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
 
     @Getter
     final String displayName = "Use wiremock extension";
@@ -49,6 +52,19 @@ public class UseWiremockExtension extends Recipe {
             }
 
             @Override
+            public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                J.VariableDeclarations vd = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
+                if (multiVariable.getVariables().stream().noneMatch(v -> TypeUtils.isOfClassType(v.getType(), WIREMOCK_RULE))) {
+                    return vd;
+                }
+                maybeRemoveImport("org.junit.Rule");
+                maybeAddImport(REGISTER_EXTENSION);
+                return vd.withLeadingAnnotations(ListUtils.map(vd.getLeadingAnnotations(), a -> RULE.matches(a) ?
+                        a.withAnnotationType(TypeTree.<J.Identifier>build("RegisterExtension").withType(JavaType.ShallowClass.build(REGISTER_EXTENSION)).withPrefix(a.getAnnotationType().getPrefix())) :
+                        a));
+            }
+
+            @Override
             public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "httpsPort".equals(mi.getSimpleName()) ? "getHttpsPort" : null;
@@ -65,8 +81,6 @@ public class UseWiremockExtension extends Recipe {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
                 if (newWiremockRule.matches(n)) {
                     maybeAddImport(WIREMOCK_EXTENSION);
-                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true)
-                            .getVisitor());
 
                     Expression arg = n.getArguments().get(0);
 
