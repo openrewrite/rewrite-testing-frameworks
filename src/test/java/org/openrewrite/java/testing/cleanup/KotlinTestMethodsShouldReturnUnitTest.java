@@ -172,7 +172,9 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
                   @Test
                   fun myTest() {
                       if (true) {
+                          return
                       } else {
+                          return
                       }
                   }
               }
@@ -182,7 +184,7 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
     }
 
     @Test
-    void preserveReturnInLambda() {
+    void preserveLabeledReturnInLambda() {
         //language=kotlin
         rewriteRun(
           kotlin(
@@ -192,8 +194,8 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
               class ATest {
                   @Test
                   fun myTest() : Int {
-                      val supplier = { return 42 }
-                      return supplier()
+                      val value = run { return@run 42 }
+                      return value
                   }
               }
               """,
@@ -203,8 +205,150 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
               class ATest {
                   @Test
                   fun myTest() {
-                      val supplier = { return 42 }
-                      supplier()
+                      val value = run { return@run 42 }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveReturnInLocalFunction() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun myTest() : Int {
+                      fun helper(): Int {
+                          return 42
+                      }
+                      return helper()
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun myTest() {
+                      fun helper(): Int {
+                          return 42
+                      }
+                      helper()
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepEarlyReturnAsGuard() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun myTest(): Int {
+                      if (System.getenv("SKIP") != null) {
+                          return 0
+                      }
+                      println("test")
+                      return 1
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun myTest() {
+                      if (System.getenv("SKIP") != null) {
+                          return
+                      }
+                      println("test")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeNonLocalReturnFromInlineLambda() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun myTest(): Int {
+                      listOf(1, 2).forEach {
+                          if (it == 2) return it
+                      }
+                      return 0
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeEarlyReturnWithSideEffects() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun myTest(): Int {
+                      if (System.getenv("SKIP") != null) {
+                          return cleanUp()
+                      }
+                      return 1
+                  }
+
+                  fun cleanUp(): Int {
+                      return 0
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeTestInvokedAsHelper() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun compute(): Int {
+                      return 42
+                  }
+
+                  @Test
+                  fun reuse() {
+                      println(compute())
                   }
               }
               """
