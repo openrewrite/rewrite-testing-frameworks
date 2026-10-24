@@ -70,15 +70,15 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                     }
 
                     J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
+                    boolean logicalContext = true;
                     while (RemoveNotMatcherVisitor.NOT_MATCHER.matches(matcherInvocation)) {
+                        logicalContext = !logicalContext;
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
                         matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx, getCursor());
                     }
 
                     if (INSTANCE_OF_MATCHER.matches(matcherInvocation) || IS_A_MATCHER.matches(matcherInvocation)) {
-                        boolean logicalContext = RemoveNotMatcherVisitor.getLogicalContext(matcherInvocation, ctx);
-
                         String templateString = (logicalContext ?
                                 "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" :
                                 "assertFalse(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())") +
