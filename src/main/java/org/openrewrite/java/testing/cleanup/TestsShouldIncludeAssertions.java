@@ -60,6 +60,12 @@ public class TestsShouldIncludeAssertions extends Recipe {
             "reactor.test.StepVerifier"
     );
 
+    private static final List<MethodMatcher> ASSUMPTIONS = Arrays.asList(
+            new MethodMatcher("org.junit.jupiter.api.Assumptions *(..)"),
+            new MethodMatcher("org.junit.Assume *(..)"),
+            new MethodMatcher("org.assertj.core.api.Assumptions *(..)")
+    );
+
     @Option(displayName = "Additional assertions",
             description = "A comma delimited list of packages and/or classes that will be identified as assertions. I.E. a common assertion utility `org.foo.TestUtil`.",
             example = "org.foo.TestUtil, org.bar",
@@ -69,7 +75,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     String displayName = "Include an assertion in tests";
 
-    String description = "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`.";
+    String description = "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`. Tests that make an assumption are left unchanged, as wrapping them would report a skipped test as a failure.";
 
     Set<String> tags = singleton("RSPEC-S2699");
 
@@ -159,7 +165,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 @Override
                 public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
                     J.MethodInvocation mi = super.visitMethodInvocation(method, atomicBoolean);
-                    if (isAssertion(mi)) {
+                    if (isAssertion(mi) || isAssumption(mi)) {
                         atomicBoolean.set(Boolean.TRUE);
                     }
                     return mi;
@@ -212,6 +218,10 @@ public class TestsShouldIncludeAssertions extends Recipe {
             };
 
             return findMethodDeclarationVisitor.reduce(classDeclaration, new HashSet<>());
+        }
+
+        private boolean isAssumption(J.MethodInvocation methodInvocation) {
+            return ASSUMPTIONS.stream().anyMatch(matcher -> matcher.matches(methodInvocation));
         }
 
         private boolean isAssertion(J.MethodInvocation methodInvocation) {
