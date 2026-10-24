@@ -62,8 +62,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     private static final List<MethodMatcher> ASSUMPTIONS = Arrays.asList(
             new MethodMatcher("org.junit.jupiter.api.Assumptions *(..)"),
-            new MethodMatcher("org.junit.Assume *(..)"),
-            new MethodMatcher("org.assertj.core.api.Assumptions *(..)")
+            new MethodMatcher("org.junit.Assume *(..)")
     );
 
     @Option(displayName = "Additional assertions",
