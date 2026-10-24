@@ -355,6 +355,63 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void isGreaterThanZeroOnDurationVariableToIsPositive() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.time.Duration;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void testMethod(Duration duration) {
+                      assertThat(duration.getSeconds()).isGreaterThan(0);
+                      assertThat(duration.getSeconds()).isLessThan(0);
+                      assertThat(duration.getSeconds()).isEqualTo(0);
+                  }
+              }
+              """,
+            """
+              import java.time.Duration;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void testMethod(Duration duration) {
+                      assertThat(duration.getSeconds()).isPositive();
+                      assertThat(duration.getSeconds()).isNegative();
+                      assertThat(duration.getSeconds()).isZero();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotConvertComparisonsToEquality() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.time.Duration;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void testMethod(Duration duration) {
+                      assertThat(duration.getSeconds()).isGreaterThan(5);
+                      assertThat(duration.getSeconds()).isLessThan(5);
+                      assertThat(duration.getSeconds()).as("description").isGreaterThan(5);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotConvertNanoOfSecondToHasNanos() {
         //language=java
         rewriteRun(

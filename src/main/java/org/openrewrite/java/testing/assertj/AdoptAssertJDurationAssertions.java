@@ -28,7 +28,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
@@ -51,6 +50,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     private static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
     private static final MethodMatcher AS_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractObjectAssert as(..)");
     private static final MethodMatcher TIME_UNIT_MATCHERS = new MethodMatcher(DURATION_ASSERT_HAS_LONG, true);
+    private static final MethodMatcher LONG_IS_EQUAL_TO_MATCHER = new MethodMatcher(LONG_ASSERT_IS_EQUAL_TO, true);
 
     private static final List<MethodMatcher> IS_MATCHERS = Arrays.asList(
             new MethodMatcher(INTEGER_ASSERT_IS_EQUAL_TO, true),
@@ -137,7 +137,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                             return applyTemplate(ctx, m, formatted_template, assertions, templateParameters.toArray());
                         }
 
-                        if (GET_SECONDS_MATCHER.matches(assertThatArg)) {
+                        if (LONG_IS_EQUAL_TO_MATCHER.matches(m) && GET_SECONDS_MATCHER.matches(assertThatArg)) {
                             Expression assertThatArgSelect = assertThatArg.getSelect();
                             String methodName = assertThatArg.getSimpleName();
                             String formatted_template = formatTemplate("assertThat(#{any()}).%s(#{any()});", methodName, asDescription);
@@ -221,13 +221,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                     }
 
                     private boolean checkIfRelatedToDuration(J.MethodInvocation argument) {
-                        if (argument.getSelect() != null) {
-                            if (argument.getSelect() instanceof J.MethodInvocation) {
-                                J.MethodInvocation selectMethod = (J.MethodInvocation) argument.getSelect();
-                                return TypeUtils.isOfType(selectMethod.getType(), JavaType.buildType("java.time.Duration"));
-                            }
-                        }
-                        return false;
+                        return argument.getSelect() != null && TypeUtils.isOfClassType(argument.getSelect().getType(), "java.time.Duration");
                     }
 
                     @SuppressWarnings("ConstantValue")
