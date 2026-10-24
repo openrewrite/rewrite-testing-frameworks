@@ -325,6 +325,25 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
     }
 
     @Test
+    void doNotChangeKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testMethod(): Int {
+                      return 42
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void preserveExpressionFromReturn() {
         //language=java
         rewriteRun(
