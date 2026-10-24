@@ -206,6 +206,41 @@ class UseWiremockExtensionTest implements RewriteTest {
         );
     }
 
+    @Test
+    void otherRulesKeepTheirAnnotation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import com.github.tomakehurst.wiremock.junit.WireMockRule;
+              import org.junit.Rule;
+              import org.junit.rules.TemporaryFolder;
+
+              class Test {
+                  @Rule
+                  public WireMockRule wm = new WireMockRule(7001);
+                  @Rule
+                  public TemporaryFolder tmp = new TemporaryFolder();
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+              import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+              import org.junit.Rule;
+              import org.junit.jupiter.api.extension.RegisterExtension;
+              import org.junit.rules.TemporaryFolder;
+
+              class Test {
+                  @RegisterExtension
+                  public WireMockExtension wm = WireMockExtension.newInstance().options(WireMockConfiguration.options().port(7001)).build();
+                  @Rule
+                  public TemporaryFolder tmp = new TemporaryFolder();
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class InJUnit4to5Migration implements RewriteTest {
 
@@ -287,6 +322,42 @@ class UseWiremockExtensionTest implements RewriteTest {
                       public void token() {
                           String url = "http://localhost:" + wireMockRule.getPort() + "/oauth2/token";
                       }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void temporaryFolderNextToWireMockRuleBecomesTempDir() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.junit.WireMockRule;
+                  import org.junit.Rule;
+                  import org.junit.rules.TemporaryFolder;
+
+                  class WireMockTest {
+                      @Rule
+                      public WireMockRule wm = new WireMockRule(7001);
+                      @Rule
+                      public TemporaryFolder tmp = new TemporaryFolder();
+                  }
+                  """,
+                """
+                  import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+                  import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+                  import org.junit.jupiter.api.extension.RegisterExtension;
+                  import org.junit.jupiter.api.io.TempDir;
+
+                  import java.io.File;
+
+                  class WireMockTest {
+                      @RegisterExtension
+                      public WireMockExtension wm = WireMockExtension.newInstance().options(WireMockConfiguration.options().port(7001)).build();
+                      @TempDir
+                      public File tmp;
                   }
                   """
               )
