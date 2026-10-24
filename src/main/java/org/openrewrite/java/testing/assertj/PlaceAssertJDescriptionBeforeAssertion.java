@@ -166,7 +166,7 @@ public class PlaceAssertJDescriptionBeforeAssertion extends Recipe {
         return (movesDescription && isDescription(call)) || (movesFailMessage && isFailMessage(call));
     }
 
-    private static boolean returnsVoid(JavaType.@Nullable FullyQualified functionalInterface) {
+    static boolean returnsVoid(JavaType.@Nullable FullyQualified functionalInterface) {
         if (functionalInterface == null) {
             return false;
         }

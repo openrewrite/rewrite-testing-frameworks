@@ -27,6 +27,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.TypeUtils;
 
 public class JUnitAssertInstanceOfToAssertThat extends Recipe {
 
@@ -44,7 +45,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!ASSERT_INSTANCE_OF_MATCHER.matches(mi)) {
+                if (!ASSERT_INSTANCE_OF_MATCHER.matches(mi) || !isResultDiscarded()) {
                     return mi;
                 }
 
@@ -67,6 +68,14 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), method.getCoordinates().replace(), actual, messageOrSupplier, expected);
+            }
+
+            private boolean isResultDiscarded() {
+                Object parent = getCursor().getParentTreeCursor().getValue();
+                if (parent instanceof J.Lambda) {
+                    return PlaceAssertJDescriptionBeforeAssertion.returnsVoid(TypeUtils.asFullyQualified(((J.Lambda) parent).getType()));
+                }
+                return parent instanceof J.Block;
             }
         });
     }
