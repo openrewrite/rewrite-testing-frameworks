@@ -48,7 +48,6 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     private static final String LONG_ASSERT_IS_EQUAL_TO = "org.assertj.core.api.AbstractLongAssert isEqualTo(..)";
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-    private static final MethodMatcher GET_NANO_MATCHER = new MethodMatcher("java.time.Duration getNano()");
     private static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
     private static final MethodMatcher AS_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractObjectAssert as(..)");
     private static final MethodMatcher TIME_UNIT_MATCHERS = new MethodMatcher(DURATION_ASSERT_HAS_LONG, true);
@@ -65,7 +64,6 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
     private static final Map<String, String> METHOD_MAP = new HashMap<String, String>() {{
         put("getSeconds", "hasSeconds");
-        put("getNano", "hasNanos");
 
         put("hasNanos", "hasMillis");
         put("hasMillis", "hasSeconds");
@@ -139,7 +137,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                             return applyTemplate(ctx, m, formatted_template, assertions, templateParameters.toArray());
                         }
 
-                        if (GET_NANO_MATCHER.matches(assertThatArg) || GET_SECONDS_MATCHER.matches(assertThatArg)) {
+                        if (GET_SECONDS_MATCHER.matches(assertThatArg)) {
                             Expression assertThatArgSelect = assertThatArg.getSelect();
                             String methodName = assertThatArg.getSimpleName();
                             String formatted_template = formatTemplate("assertThat(#{any()}).%s(#{any()});", methodName, asDescription);

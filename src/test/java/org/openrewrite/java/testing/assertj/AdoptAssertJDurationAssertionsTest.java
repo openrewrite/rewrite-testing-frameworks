@@ -100,39 +100,6 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
     }
 
     @Test
-    void getNanoToHasNanos() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(1);
-                  }
-              }
-              """,
-            """
-              import java.time.Duration;
-              import java.time.temporal.Temporal;
-
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Foo {
-                  void testMethod(Temporal timestampA, Temporal timestampB) {
-                      assertThat(Duration.between(timestampA, timestampB)).hasNanos(1);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void isEqualToZeroToIsZero() {
         //language=java
         rewriteRun(
@@ -179,7 +146,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       int zero = 0;
-                      assertThat(Duration.between(timestampA, timestampB).getNano()).isEqualTo(zero);
+                      assertThat(Duration.between(timestampA, timestampB).getSeconds()).isEqualTo(zero);
                   }
               }
               """,
@@ -192,7 +159,7 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
               class Foo {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       int zero = 0;
-                      assertThat(Duration.between(timestampA, timestampB)).hasNanos(zero);
+                      assertThat(Duration.between(timestampA, timestampB)).hasSeconds(zero);
                   }
               }
               """
@@ -380,6 +347,26 @@ class AdoptAssertJDurationAssertionsTest implements RewriteTest {
                   void testMethod(Temporal timestampA, Temporal timestampB) {
                       assertThat(Duration.between(timestampA, timestampB))
                         .hasSeconds(1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotConvertNanoOfSecondToHasNanos() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.time.Duration;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Foo {
+                  void testMethod(Duration duration) {
+                      assertThat(duration.getNano()).isEqualTo(1);
                   }
               }
               """
