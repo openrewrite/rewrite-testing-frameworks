@@ -32,12 +32,16 @@ import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 import org.openrewrite.trait.Comments;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 /**
@@ -72,6 +76,8 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String STATEMENTS_AFTER_EXPECT_EXCEPTION = "statementsAfterExpectException";
         private static final String HAS_MATCHER = "hasMatcher";
         private static final String EXCEPTION_CLASS = "exceptionClass";
+        private static final String MATCHED_EXCEPTION_TYPE = "matchedExceptionType";
+        private static final String MATCHED_EXCEPTION_TYPE_CONFLICT = "matchedExceptionTypeConflict";
         private static final String CANNOT_MIGRATE = "cannotMigrate";
         private static final String CANNOT_MIGRATE_COMMENT = " TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.";
 
@@ -200,14 +206,30 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             J.Block statementsAfterExpectExceptionBlock = new J.Block(randomId(), Space.EMPTY,
                     Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
                     emptyList(), Space.format(" ")).withStatements(statementsAfterExpectException);
-            String exceptionDeclParam = getCursor().pollMessage(HAS_MATCHER) != null ? "Throwable exception = " : "";
+            boolean hasMatcher = getCursor().pollMessage(HAS_MATCHER) != null;
+            String exceptionDeclParam = hasMatcher ? "Throwable exception = " : "";
             Object exceptionClass = getCursor().pollMessage(EXCEPTION_CLASS);
+            JavaType.FullyQualified matchedExceptionType = getCursor().pollMessage(MATCHED_EXCEPTION_TYPE);
+            if (getCursor().pollMessage(MATCHED_EXCEPTION_TYPE_CONFLICT) != null) {
+                matchedExceptionType = null;
+            }
+            // `assertThat(exception, matcher)` only compiles when `exception` is declared as the matcher's
+            // type argument, so a matcher over a specific exception type narrows the captured variable.
+            JavaType.FullyQualified exceptionType = null;
+            if (hasMatcher && matchedExceptionType != null) {
+                Object narrowedExceptionClass = narrowExceptionClass(exceptionClass, matchedExceptionType);
+                if (narrowedExceptionClass != null) {
+                    exceptionClass = narrowedExceptionClass;
+                    exceptionType = matchedExceptionType;
+                }
+            }
             if (exceptionClass == null) {
                 exceptionClass = "Exception.class";
             }
 
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
             Statement firstExpectedExceptionMethodInvocation = getCursor().getMessage(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION);
+            List<Statement> statementsBeforeTemplate = b.getStatements();
             String templateString = exceptionClass instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             b = JavaTemplate.builder(templateString)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
@@ -220,6 +242,10 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                             exceptionClass,
                             statementsAfterExpectExceptionBlock
                     );
+            if (exceptionType != null) {
+                b = declareExceptionAs(b, statementsBeforeTemplate, exceptionType);
+                maybeAddImport(outermostClass(exceptionType).getFullyQualifiedName());
+            }
             Cursor updateCursor = updateCursor(b);
             AtomicBoolean removeStatement = new AtomicBoolean(false);
             J.Identifier exceptionIdentifier = new J.Identifier(Tree.randomId(),
@@ -227,7 +253,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     Markers.EMPTY,
                     emptyList(),
                     "exception",
-                    JavaType.ShallowClass.build("java.lang.Throwable"),
+                    exceptionType != null ? exceptionType : JavaType.ShallowClass.build("java.lang.Throwable"),
                     null);
             b = b.withStatements(ListUtils.map(b.getStatements(), statement -> {
                 if (statement instanceof J.MethodInvocation) {
@@ -277,8 +303,140 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 getCursor().putMessageOnFirstEnclosing(J.Block.class, EXCEPTION_CLASS, method.getArguments().get(0));
             } else {
                 getCursor().putMessageOnFirstEnclosing(J.Block.class, HAS_MATCHER, true);
+                if (EXPECTED_EXCEPTION_MATCHER.matches(method)) {
+                    recordMatchedExceptionType(blockCursor, matchedExceptionType(method.getArguments().get(0).getType()));
+                }
             }
             return method;
+        }
+
+        /**
+         * Tracks the narrowest exception type required by the `expect(Matcher)` calls of a block, so the
+         * captured exception can be declared with a type that every `assertThat(exception, matcher)` accepts.
+         */
+        private static void recordMatchedExceptionType(Cursor blockCursor, JavaType.@Nullable FullyQualified matched) {
+            if (matched == null) {
+                return;
+            }
+            JavaType.FullyQualified previous = blockCursor.getMessage(MATCHED_EXCEPTION_TYPE);
+            if (previous == null || TypeUtils.isAssignableTo(previous, matched)) {
+                blockCursor.putMessage(MATCHED_EXCEPTION_TYPE, matched);
+            } else if (!TypeUtils.isAssignableTo(matched, previous)) {
+                blockCursor.putMessage(MATCHED_EXCEPTION_TYPE_CONFLICT, true);
+            }
+        }
+
+        /**
+         * The type argument `T` of the `org.hamcrest.Matcher<T>` a matcher expression implements, when that is
+         * a `Throwable` subtype narrower than `Throwable` itself; null when the matcher accepts any `Throwable`
+         * (as `isA(..)` and `instanceOf(..)` do) or the type argument can not be resolved.
+         */
+        private static JavaType.@Nullable FullyQualified matchedExceptionType(@Nullable JavaType matcherType) {
+            JavaType.FullyQualified matched = TypeUtils.asFullyQualified(hamcrestMatcherTypeArgument(matcherType, new HashSet<>()));
+            if (matched == null ||
+                    matched instanceof JavaType.Unknown ||
+                    TypeUtils.isOfClassType(matched, "java.lang.Throwable") ||
+                    !TypeUtils.isAssignableTo("java.lang.Throwable", matched)) {
+                return null;
+            }
+            return matched;
+        }
+
+        private static @Nullable JavaType hamcrestMatcherTypeArgument(@Nullable JavaType type, Set<String> visited) {
+            JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
+            if (fq == null || !visited.add(fq.toString())) {
+                return null;
+            }
+            // Hamcrest's own matcher base classes all take the matched type as their first type argument.
+            if (fq instanceof JavaType.Parameterized &&
+                    fq.getFullyQualifiedName().startsWith("org.hamcrest.") &&
+                    TypeUtils.isAssignableTo("org.hamcrest.Matcher", fq) &&
+                    !((JavaType.Parameterized) fq).getTypeParameters().isEmpty()) {
+                return ((JavaType.Parameterized) fq).getTypeParameters().get(0);
+            }
+            JavaType fromSupertype = hamcrestMatcherTypeArgument(fq.getSupertype(), visited);
+            if (fromSupertype != null) {
+                return fromSupertype;
+            }
+            for (JavaType.FullyQualified anInterface : fq.getInterfaces()) {
+                JavaType fromInterface = hamcrestMatcherTypeArgument(anInterface, visited);
+                if (fromInterface != null) {
+                    return fromInterface;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * The class to pass to `assertThrows(..)` when the captured exception is declared as `matched`: an
+         * `expect(X.class)` that already names a subtype of `matched` is kept, otherwise `matched.class` is used.
+         * Null when `expect(X.class)` names an unrelated type, or a class that is not a class literal.
+         */
+        private static @Nullable Object narrowExceptionClass(@Nullable Object exceptionClass, JavaType.FullyQualified matched) {
+            if (exceptionClass == null) {
+                return classLiteral(matched);
+            }
+            if (!(exceptionClass instanceof J.FieldAccess) ||
+                    !"class".equals(((J.FieldAccess) exceptionClass).getSimpleName())) {
+                return null;
+            }
+            JavaType expected = ((J.FieldAccess) exceptionClass).getTarget().getType();
+            if (TypeUtils.isAssignableTo(matched, expected)) {
+                return exceptionClass;
+            }
+            if (TypeUtils.isAssignableTo(expected, matched)) {
+                return classLiteral(matched);
+            }
+            return null;
+        }
+
+        private static J.FieldAccess classLiteral(JavaType.FullyQualified type) {
+            JavaType.Parameterized classType = new JavaType.Parameterized(null,
+                    JavaType.ShallowClass.build("java.lang.Class"), singletonList(type));
+            return new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY, typeTree(type),
+                    JLeftPadded.build(new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "class", classType, null)),
+                    classType);
+        }
+
+        // `Outer.Inner` for a nested class, so that only the outermost class needs to be imported.
+        private static Expression typeTree(JavaType.FullyQualified type) {
+            String className = type.getClassName();
+            J.Identifier name = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(),
+                    className.substring(className.lastIndexOf('.') + 1), type, null);
+            JavaType.FullyQualified owner = type.getOwningClass();
+            if (owner == null) {
+                return name;
+            }
+            return new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY, typeTree(owner), JLeftPadded.build(name), type);
+        }
+
+        private static JavaType.FullyQualified outermostClass(JavaType.FullyQualified type) {
+            JavaType.FullyQualified outermost = type;
+            while (outermost.getOwningClass() != null) {
+                outermost = outermost.getOwningClass();
+            }
+            return outermost;
+        }
+
+        // Re-declares the `Throwable exception = assertThrows(..)` statement the template just inserted as `type`.
+        private static J.Block declareExceptionAs(J.Block block, List<Statement> statementsBeforeTemplate, JavaType.FullyQualified type) {
+            Set<UUID> existing = new HashSet<>();
+            for (Statement statement : statementsBeforeTemplate) {
+                existing.add(statement.getId());
+            }
+            return block.withStatements(ListUtils.map(block.getStatements(), statement -> {
+                if (existing.contains(statement.getId()) || !(statement instanceof J.VariableDeclarations)) {
+                    return statement;
+                }
+                J.VariableDeclarations declarations = (J.VariableDeclarations) statement;
+                TypeTree typeExpression = declarations.getTypeExpression();
+                return declarations
+                        .withTypeExpression((TypeTree) typeTree(type).withPrefix(typeExpression == null ? Space.EMPTY : typeExpression.getPrefix()))
+                        .withVariables(ListUtils.map(declarations.getVariables(), variable -> {
+                            J.VariableDeclarations.NamedVariable v = variable.withType(type);
+                            return v.getVariableType() == null ? v : v.withVariableType(v.getVariableType().withType(type));
+                        }));
+            }));
         }
 
         /**
