@@ -105,4 +105,42 @@ class AssertNotEqualsBooleanToAssertBooleanTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noChangeForObjectArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Map;
+
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class Test {
+                  void test(Map<String, Object> map) {
+                      assertNotEquals(false, map.get("k"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeForBoxedBooleanArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class Test {
+                  void test(Boolean b) {
+                      assertNotEquals(false, b);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
