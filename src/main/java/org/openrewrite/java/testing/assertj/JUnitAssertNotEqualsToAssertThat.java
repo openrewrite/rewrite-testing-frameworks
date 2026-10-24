@@ -28,9 +28,11 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
+
+import static org.openrewrite.java.testing.assertj.JUnitDelta.floatingPointDeltaType;
+import static org.openrewrite.java.testing.assertj.JUnitDelta.widenedTo;
 
 public class JUnitAssertNotEqualsToAssertThat extends Recipe {
 
@@ -72,15 +74,8 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                 }
-                if (args.size() == 3 && isFloatingPointType(args.get(2))) {
-                    maybeAddImport(ASSERTJ, "within", false);
-                    return JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
-                            .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                            .build()
-                            .apply(getCursor(), mi.getCoordinates().replace(), actual, expected, args.get(2));
-                }
-                if (args.size() == 3) {
+                JavaType.Primitive deltaType = floatingPointDeltaType(mi);
+                if (deltaType == null) {
                     Expression message = args.get(2);
                     return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
@@ -90,28 +85,25 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 }
 
                 maybeAddImport(ASSERTJ, "within", false);
+                Expression delta = args.get(2);
+                if (args.size() == 3) {
+                    return JavaTemplate.builder("assertThat(" + widenedTo(deltaType, actual) + ").isNotCloseTo(#{any()}, within(" + widenedTo(deltaType, delta) + "));")
+                            .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), mi.getCoordinates().replace(), actual, expected, delta);
+                }
 
                 Expression message = args.get(3);
-                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
+                return JavaTemplate.builder("assertThat(" + widenedTo(deltaType, actual) + ").as(#{any()}).isNotCloseTo(#{any()}, within(" + widenedTo(deltaType, delta) + "));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
-                        .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected, args.get(2));
+                        .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected, delta);
             }
 
             private boolean isNullLiteral(Expression expression) {
                 return J.Literal.isLiteralValue(expression.unwrap(), null);
-            }
-
-            private boolean isFloatingPointType(Expression expression) {
-                JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
-                if (fullyQualified != null) {
-                    String typeName = fullyQualified.getFullyQualifiedName();
-                    return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
-                }
-
-                JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
-                return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
             }
         });
     }

@@ -28,9 +28,11 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
+
+import static org.openrewrite.java.testing.assertj.JUnitDelta.floatingPointDeltaType;
+import static org.openrewrite.java.testing.assertj.JUnitDelta.widenedTo;
 
 public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
 
@@ -67,16 +69,8 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                             .build()
                             .apply(getCursor(), md.getCoordinates().replace(), actual, expected);
                 }
-                if (args.size() == 3 && isFloatingPointType(args.get(2))) {
-                    maybeAddImport(ASSERTJ, "within", false);
-                    // assert is using floating points with a delta and no message.
-                    return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(#{any()}));")
-                            .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                            .build()
-                            .apply(getCursor(), md.getCoordinates().replace(), actual, expected, args.get(2));
-                }
-                if (args.size() == 3) {
+                JavaType.Primitive deltaType = floatingPointDeltaType(md);
+                if (deltaType == null) {
                     Expression message = args.get(2);
                     return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()});")
                             .staticImports(ASSERTJ + ".assertThat")
@@ -86,31 +80,21 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 }
 
                 maybeAddImport(ASSERTJ, "within", false);
+                Expression delta = args.get(2);
+                if (args.size() == 3) {
+                    return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(" + widenedTo(deltaType, delta) + "));")
+                            .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                            .build()
+                            .apply(getCursor(), md.getCoordinates().replace(), actual, expected, delta);
+                }
 
-                // The assertEquals is using a floating point with a delta argument and a message.
                 Expression message = args.get(3);
-                return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()}, within(#{}));")
+                return JavaTemplate.builder("assertThat(#{anyArray()}).as(#{any()}).containsExactly(#{anyArray()}, within(" + widenedTo(deltaType, delta) + "));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
-                        .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected, args.get(2));
-            }
-
-            /**
-             * Returns true if the expression's type is either a primitive float/double or their object forms Float/Double
-             *
-             * @param expression The expression parsed from the original AST.
-             * @return true if the type is a floating point number.
-             */
-            private boolean isFloatingPointType(Expression expression) {
-                JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(expression.getType());
-                if (fullyQualified != null) {
-                    String typeName = fullyQualified.getFullyQualifiedName();
-                    return "java.lang.Double".equals(typeName) || "java.lang.Float".equals(typeName);
-                }
-
-                JavaType.Primitive parameterType = TypeUtils.asPrimitive(expression.getType());
-                return parameterType == JavaType.Primitive.Double || parameterType == JavaType.Primitive.Float;
+                        .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected, delta);
             }
         });
     }
