@@ -315,8 +315,199 @@ class TestMethodsShouldBeVoidTest implements RewriteTest {
                   @Test
                   void testMethod() {
                       if (true) {
+                          return;
                       } else {
+                          return;
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepEarlyReturnAsGuard() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class ATest {
+                  @Test
+                  int testMethod() {
+                      if (System.getenv("SKIP") != null) {
+                          return 0;
+                      }
+                      fail();
+                      return 1;
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      if (System.getenv("SKIP") != null) {
+                          return;
+                      }
+                      fail();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveReturnInLocalClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @Test
+                  int testMethod() {
+                      class Local {
+                          int value() {
+                              return 42;
+                          }
+                      }
+                      return new Local().value();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @Test
+                  void testMethod() {
+                      class Local {
+                          int value() {
+                              return 42;
+                          }
+                      }
+                      new Local().value();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeEarlyReturnWithSideEffects() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @Test
+                  int testMethod() {
+                      if (System.getenv("SKIP") != null) {
+                          return cleanUp();
+                      }
+                      return 1;
+                  }
+
+                  private int cleanUp() {
+                      return 0;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeTestInvokedAsHelper() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class ATest {
+                  @Test
+                  int compute() {
+                      return 42;
+                  }
+
+                  @Test
+                  void reuse() {
+                      assertEquals(42, compute());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeOverride() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.concurrent.Callable;
+
+              import org.junit.jupiter.api.Test;
+
+              class ATest implements Callable<Integer> {
+                  @Override
+                  @Test
+                  public Integer call() {
+                      return 42;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeAbstractTestMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              abstract class ATest {
+                  @Test
+                  abstract int testMethod();
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class ATest {
+                  @Test
+                  fun testMethod(): Int {
+                      return 42
                   }
               }
               """
