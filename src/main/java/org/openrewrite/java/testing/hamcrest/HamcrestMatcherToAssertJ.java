@@ -97,6 +97,9 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             if (argumentType != null && !TypeUtils.isAssignableTo(argumentType, actualArgument.getType())) {
                 return mi;
             }
+            if (passesIncompatibleVarargsArray((J.MethodInvocation) matcherArgument, actualArgument.getType())) {
+                return mi;
+            }
 
             String actual = typeToIndicator(actualArgument.getType());
             J.MethodInvocation matcherArgumentMethod = (J.MethodInvocation) matcherArgument;
@@ -209,5 +212,26 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             return ((JavaType.Parameterized) type).getTypeParameters().stream().anyMatch(param -> TypeUtils.isAssignableTo(HAMCREST_MATCHER, param));
         }
         return TypeUtils.isAssignableTo(HAMCREST_MATCHER, type);
+    }
+
+    private static boolean passesIncompatibleVarargsArray(J.MethodInvocation matcher, @Nullable JavaType actualType) {
+        JavaType.Method methodType = matcher.getMethodType();
+        JavaType elementType = elementType(actualType);
+        if (methodType == null || !methodType.hasFlags(Flag.Varargs) || elementType == null) {
+            return false;
+        }
+        JavaType lastArgumentType = matcher.getArguments().get(matcher.getArguments().size() - 1).getType();
+        return lastArgumentType instanceof JavaType.Array && !TypeUtils.isAssignableTo(elementType, ((JavaType.Array) lastArgumentType).getElemType());
+    }
+
+    private static @Nullable JavaType elementType(@Nullable JavaType type) {
+        if (type instanceof JavaType.Array) {
+            return ((JavaType.Array) type).getElemType();
+        }
+        if (type instanceof JavaType.Parameterized && TypeUtils.isAssignableTo("java.lang.Iterable", type)) {
+            List<JavaType> typeParameters = ((JavaType.Parameterized) type).getTypeParameters();
+            return typeParameters.size() == 1 ? typeParameters.get(0) : null;
+        }
+        return null;
     }
 }
