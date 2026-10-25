@@ -45,6 +45,7 @@ import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.tree.JavaType.Primitive;
 
 public class CsvSourceToValueSource extends Recipe {
@@ -228,20 +229,11 @@ public class CsvSourceToValueSource extends Recipe {
                         List<Expression> elements = value instanceof J.NewArray ? ((J.NewArray) value).getInitializer() :
                                 value instanceof K.ListLiteral ? ((K.ListLiteral) value).getElements() :
                                         singletonList(value);
-                        if (elements == null) {
+                        List<Expression> nonEmpty = ListUtils.filter(elements, e -> !(e instanceof J.Empty));
+                        if (nonEmpty == null || !nonEmpty.stream().allMatch(e -> e instanceof J.Literal && ((J.Literal) e).getValue() instanceof String)) {
                             return null;
                         }
-                        List<String> strings = new ArrayList<>();
-                        for (Expression element : elements) {
-                            if (element instanceof J.Empty) {
-                                continue;
-                            }
-                            if (!(element instanceof J.Literal) || !(((J.Literal) element).getValue() instanceof String)) {
-                                return null;
-                            }
-                            strings.add((String) ((J.Literal) element).getValue());
-                        }
-                        return strings;
+                        return nonEmpty.stream().map(e -> (String) ((J.Literal) e).getValue()).collect(toList());
                     }
 
                     // CSV parsing splits on commas and line breaks, strips single quotes, trims whitespace, and rejects blank records
