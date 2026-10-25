@@ -1209,6 +1209,130 @@ class JUnit5MigrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void addMigrationSupportForExternalResourceRule() {
+        rewriteRun(
+          spec -> spec.runner(PRODUCTION_CYCLES),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExternalResource;
+
+                  public class MyTest {
+                      @Rule
+                      public ExternalResource resource = new ExternalResource() {
+                      };
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+                  import org.junit.rules.ExternalResource;
+
+                  @ExtendWith(ExternalResourceSupport.class)
+                  public class MyTest {
+                      @Rule
+                      public ExternalResource resource = new ExternalResource() {
+                      };
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-jupiter-migrationsupport</artifactId>\\s*<version>5\\.\\d+\\.\\d+</version>\\s*<scope>test</scope>")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void noMigrationSupportForTemporaryFolderRule() {
+        rewriteRun(
+          spec -> spec.runner(PRODUCTION_CYCLES),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.TemporaryFolder;
+
+                  public class MyTest {
+                      @Rule
+                      public TemporaryFolder folder = new TemporaryFolder();
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual)
+                  .contains("@TempDir")
+                  .doesNotContain("ExternalResourceSupport")
+                  .actual())
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .contains("<artifactId>junit-jupiter</artifactId>")
+                .doesNotContain("junit-jupiter-migrationsupport")
+                .actual())
+            )
+          )
+        );
+    }
+
     @Nested
     class TestngExclude {
         @Test

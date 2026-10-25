@@ -51,4 +51,29 @@ class ExcludeJUnit4UnlessUsingTestcontainersTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void retainJupiterMigrationSupportDependency() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>test</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.junit.jupiter</groupId>
+                          <artifactId>junit-jupiter-migrationsupport</artifactId>
+                          <version>5.14.1</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          )
+        );
+    }
 }
