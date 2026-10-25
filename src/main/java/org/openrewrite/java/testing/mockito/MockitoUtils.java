@@ -33,10 +33,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 public class MockitoUtils {
+    private static final List<AnnotationMatcher> TEST_ANNOTATION_MATCHERS = asList(
+            new AnnotationMatcher("@org.junit.Test"),
+            new AnnotationMatcher("@org.junit.jupiter.api.Test"),
+            new AnnotationMatcher("@org.testng.annotations.Test"));
+
     public static J.ClassDeclaration maybeAddMethodWithAnnotation(
             JavaVisitor visitor,
             J.ClassDeclaration classDecl,
@@ -123,8 +129,10 @@ public class MockitoUtils {
     private static J.@Nullable MethodDeclaration getFirstTestMethod(List<J.MethodDeclaration> methods) {
         for (J.MethodDeclaration methodDeclaration : methods) {
             for (J.Annotation annotation : methodDeclaration.getLeadingAnnotations()) {
-                if ("Test".equals(annotation.getSimpleName())) {
-                    return methodDeclaration;
+                for (AnnotationMatcher matcher : TEST_ANNOTATION_MATCHERS) {
+                    if (matcher.matches(annotation)) {
+                        return methodDeclaration;
+                    }
                 }
             }
         }

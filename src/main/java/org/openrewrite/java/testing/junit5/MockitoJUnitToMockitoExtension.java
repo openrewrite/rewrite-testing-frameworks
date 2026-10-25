@@ -41,20 +41,7 @@ import java.util.Set;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
-/**
- * Replaces JUnit 4 MockitoJUnit rules with JUnit MockitoExtension.
- * <p>
- * Supported MockitoJUnit methods:
- * #rule()
- * #testRule()
- * <p>
- * Does not currently support @Incubating MockitoJUnit.collector().
- *
- * @implNote collector() is designed to aggregate multiple verifications into a single output.
- * Refactoring the method may be fairly complex and would likely benefit from being a separate recipe.
- * <p>
- * Must be run in the JUnit 5 suite.
- */
+// MockitoJUnit.collector() is not migrated: it aggregates verifications into a single report, which would need a recipe of its own.
 public class MockitoJUnitToMockitoExtension extends Recipe {
 
     @Getter

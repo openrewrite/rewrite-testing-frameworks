@@ -22,6 +22,7 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.UsesType;
@@ -33,11 +34,19 @@ import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
+
+    private static final List<AnnotationMatcher> JUNIT5_TEST_ANNOTATIONS = asList(
+            new AnnotationMatcher("@org.junit.jupiter.api.Test"),
+            new AnnotationMatcher("@org.junit.jupiter.api.RepeatedTest"),
+            new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"),
+            new AnnotationMatcher("@org.junit.jupiter.api.TestTemplate"));
 
     @Getter
     final String displayName = "Test methods should have void return type";
@@ -162,11 +171,10 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     private static boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
         for (J.Annotation a : method.getLeadingAnnotations()) {
-            if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
-                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
-                    TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")) {
-                return true;
+            for (AnnotationMatcher matcher : JUNIT5_TEST_ANNOTATIONS) {
+                if (matcher.matches(a)) {
+                    return true;
+                }
             }
         }
         return false;

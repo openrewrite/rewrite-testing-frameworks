@@ -64,7 +64,6 @@ public class TruthThrowableAssertions extends Recipe {
                         }
                         J.MethodInvocation assertThat = (J.MethodInvocation) hasMethod.getSelect();
 
-                        // Handle hasMessageThat().contains(text)
                         if (CONTAINS.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
@@ -79,7 +78,6 @@ public class TruthThrowableAssertions extends Recipe {
                                             mi.getArguments().get(0));
                         }
 
-                        // Handle hasMessageThat().containsMatch(regex)
                         if (CONTAINS_MATCH.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
@@ -94,7 +92,6 @@ public class TruthThrowableAssertions extends Recipe {
                                             mi.getArguments().get(0));
                         }
 
-                        // Handle hasMessageThat().doesNotContain(text)
                         if (DOES_NOT_CONTAIN.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
@@ -109,7 +106,6 @@ public class TruthThrowableAssertions extends Recipe {
                                             mi.getArguments().get(0));
                         }
 
-                        // Handle hasMessageThat().startsWith(prefix)
                         if (STARTS_WITH.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
@@ -124,7 +120,6 @@ public class TruthThrowableAssertions extends Recipe {
                                             mi.getArguments().get(0));
                         }
 
-                        // Handle hasMessageThat().endsWith(suffix)
                         if (ENDS_WITH.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
@@ -139,7 +134,6 @@ public class TruthThrowableAssertions extends Recipe {
                                             mi.getArguments().get(0));
                         }
 
-                        // Handle hasMessageThat().isEqualTo(text)
                         if (IS_EQUAL_TO.matches(mi) && HAS_MESSAGE_THAT.matches(hasMethod)) {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
@@ -154,7 +148,6 @@ public class TruthThrowableAssertions extends Recipe {
                                             mi.getArguments().get(0));
                         }
 
-                        // Handle hasCauseThat().isInstanceOf(type)
                         if (IS_INSTANCE_OF.matches(mi) && HAS_CAUSE_THAT.matches(hasMethod)) {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");

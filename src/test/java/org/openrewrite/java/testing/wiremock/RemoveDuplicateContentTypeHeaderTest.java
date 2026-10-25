@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.wiremock;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -176,85 +177,6 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
     }
 
     @Test
-    void singleValueIsUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("Content-Type", "application/json");
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void otherHeadersKeepEveryValue() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response = aResponse()
-                          .withHeader("Set-Cookie", "a=1", "b=2");
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void valuesHeldInAnArrayCannotBeSplitApart() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-
-              import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-
-              class Stubs {
-                  ResponseDefinitionBuilder response(String[] values) {
-                      return aResponse().withHeader("Content-Type", values);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void requestHeaderMatchersAreUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-              import static com.github.tomakehurst.wiremock.client.WireMock.get;
-              import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-
-              import com.github.tomakehurst.wiremock.client.MappingBuilder;
-
-              class Stubs {
-                  MappingBuilder mapping = get(urlEqualTo("/x"))
-                          .withHeader("Content-Type", equalTo("application/json"));
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void appliesWithoutAnExplicitResponseDefinitionBuilderImport() {
         rewriteRun(
           //language=java
@@ -289,5 +211,87 @@ class RemoveDuplicateContentTypeHeaderTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void singleValueIsUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                  import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                  class Stubs {
+                      ResponseDefinitionBuilder response = aResponse()
+                              .withHeader("Content-Type", "application/json");
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void otherHeadersKeepEveryValue() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                  import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                  class Stubs {
+                      ResponseDefinitionBuilder response = aResponse()
+                              .withHeader("Set-Cookie", "a=1", "b=2");
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void valuesHeldInAnArrayCannotBeSplitApart() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+
+                  import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+
+                  class Stubs {
+                      ResponseDefinitionBuilder response(String[] values) {
+                          return aResponse().withHeader("Content-Type", values);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void requestHeaderMatchersAreUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+                  import static com.github.tomakehurst.wiremock.client.WireMock.get;
+                  import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+
+                  import com.github.tomakehurst.wiremock.client.MappingBuilder;
+
+                  class Stubs {
+                      MappingBuilder mapping = get(urlEqualTo("/x"))
+                              .withHeader("Content-Type", equalTo("application/json"));
+                  }
+                  """
+              )
+            );
+        }
     }
 }

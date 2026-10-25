@@ -31,11 +31,6 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import static java.util.Comparator.comparing;
 
-/**
- * An OpenRewrite recipe that migrates JUnit 4 Testcontainers {@code @Rule} or {@code @ClassRule}
- * fields to JUnit 5's {@code @Container} and adds the {@code @Testcontainers} annotation to the
- * class if necessary.
- */
 public class AddTestcontainersAnnotations extends Recipe {
     private static final String CLASS_RULE_FQN = "org.junit.ClassRule";
     private static final String RULE_FQN = "org.junit.Rule";
@@ -70,7 +65,6 @@ public class AddTestcontainersAnnotations extends Recipe {
                     return cd;
                 }
 
-                // Add class level annotation
                 maybeAddImport(TESTCONTAINERS_FQN);
                 return JavaTemplate.builder("@Testcontainers")
                         .imports(TESTCONTAINERS_FQN)
@@ -89,7 +83,6 @@ public class AddTestcontainersAnnotations extends Recipe {
                     return varDecls;
                 }
 
-                // Remove ClassRule/Rule annotations
                 J.VariableDeclarations vd = varDecls.withLeadingAnnotations(ListUtils.filter(varDecls.getLeadingAnnotations(),
                         ann -> !TypeUtils.isAssignableTo(RULE_FQN, ann.getType()) &&
                                 !TypeUtils.isAssignableTo(CLASS_RULE_FQN, ann.getType())));
@@ -97,7 +90,6 @@ public class AddTestcontainersAnnotations extends Recipe {
                     return vd;
                 }
 
-                // Add field level annotation
                 maybeAddImport(CONTAINER_FQN);
                 return JavaTemplate.builder("@Container")
                         .imports(CONTAINER_FQN)

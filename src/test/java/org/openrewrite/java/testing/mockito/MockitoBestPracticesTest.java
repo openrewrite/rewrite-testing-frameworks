@@ -38,7 +38,7 @@ class MockitoBestPracticesTest implements RewriteTest {
                   "junit-jupiter-api",
                   "mockito-core",
                   "mockito-junit-jupiter"))
-              .recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to5Migration");
+              .recipeFromResources("org.openrewrite.java.testing.mockito.MockitoBestPractices");
         }
 
     @DocumentExample

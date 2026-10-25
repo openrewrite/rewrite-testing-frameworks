@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.wiremock;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -130,99 +131,102 @@ class RemoveDuplicateContentTypeStubHeaderTest implements RewriteTest {
         );
     }
 
-    @Test
-    void singleValueIsUntouched() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "response": {
-                  "headers": {
-                    "Content-Type": "application/json"
-                  }
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/mappings/get-user.json")
-          )
-        );
-    }
-
-    @Test
-    void otherHeadersKeepEveryValue() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "response": {
-                  "headers": {
-                    "Set-Cookie": [ "a=1", "b=2" ]
-                  }
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/mappings/get-user.json")
-          )
-        );
-    }
-
-    @Test
-    void requestHeaderMatchersAreUntouched() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "request": {
-                  "method": "GET",
-                  "headers": {
-                    "Content-Type": {
-                      "equalTo": "application/json"
+    @Nested
+    class NoChange {
+        @Test
+        void singleValueIsUntouched() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "response": {
+                      "headers": {
+                        "Content-Type": "application/json"
+                      }
                     }
                   }
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/mappings/get-user.json")
-          )
-        );
-    }
+                  """,
+                spec -> spec.path("src/test/resources/mappings/get-user.json")
+              )
+            );
+        }
 
-    @Test
-    void contentTypeArrayOutsideHeadersIsUntouched() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "supported": {
-                  "Content-Type": [ "text/plain", "application/json" ]
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/mappings/get-user.json")
-          )
-        );
-    }
-
-    @Test
-    void stubShapedJsonOutsideMappingsIsUntouched() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "response": {
-                  "headers": {
-                    "Content-Type": [ "text/plain", "application/json" ]
+        @Test
+        void otherHeadersKeepEveryValue() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "response": {
+                      "headers": {
+                        "Set-Cookie": [ "a=1", "b=2" ]
+                      }
+                    }
                   }
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/fixtures/config.json")
-          )
-        );
+                  """,
+                spec -> spec.path("src/test/resources/mappings/get-user.json")
+              )
+            );
+        }
+
+        @Test
+        void requestHeaderMatchersAreUntouched() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "request": {
+                      "method": "GET",
+                      "headers": {
+                        "Content-Type": {
+                          "equalTo": "application/json"
+                        }
+                      }
+                    }
+                  }
+                  """,
+                spec -> spec.path("src/test/resources/mappings/get-user.json")
+              )
+            );
+        }
+
+        @Test
+        void contentTypeArrayOutsideHeadersIsUntouched() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "supported": {
+                      "Content-Type": [ "text/plain", "application/json" ]
+                    }
+                  }
+                  """,
+                spec -> spec.path("src/test/resources/mappings/get-user.json")
+              )
+            );
+        }
+
+        @Test
+        void stubShapedJsonOutsideMappingsIsUntouched() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "response": {
+                      "headers": {
+                        "Content-Type": [ "text/plain", "application/json" ]
+                      }
+                    }
+                  }
+                  """,
+                spec -> spec.path("src/test/resources/fixtures/config.json")
+              )
+            );
+        }
     }
 }

@@ -97,7 +97,6 @@ public class AssertionsArgumentOrder extends Recipe {
         matchers.add(JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER);
         matchers.add(JUPITER_ASSERT_NULL_MATCHER);
         matchers.addAll(Arrays.asList(TESTNG_MATCHERS));
-        //noinspection unchecked
         PRECONDITION = Preconditions.or(matchers.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new));
     }
 
