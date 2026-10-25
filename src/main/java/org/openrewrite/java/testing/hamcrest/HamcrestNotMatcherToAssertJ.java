@@ -40,7 +40,6 @@ import static java.util.stream.Collectors.joining;
 public class HamcrestNotMatcherToAssertJ extends Recipe {
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
     private static final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers not(org.hamcrest.Matcher)");
-    private static final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
     @Option(displayName = "Hamcrest Matcher",
             description = "The Hamcrest `not(Matcher)` to migrate to AssertJ.",
@@ -82,7 +81,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
                 return mi;
             }
             Expression matcherArgument = ((J.MethodInvocation) notMethodInvocation).getArguments().get(0);
-            if (!matchersMatcher.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
+            if (!matchersMatcher.matches(matcherArgument) || HamcrestMatcherToAssertJ.takesMatcher((J.MethodInvocation) matcherArgument)) {
                 return mi;
             }
             Expression reasonArgument = mia.size() == 3 ? mia.get(0) : null;

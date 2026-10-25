@@ -36,7 +36,7 @@ import static java.util.stream.Collectors.joining;
 @AllArgsConstructor
 public class HamcrestMatcherToAssertJ extends Recipe {
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-    private static final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
+    private static final String HAMCREST_MATCHER = "org.hamcrest.Matcher";
     private static final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
     @Option(displayName = "Hamcrest matcher",
@@ -91,7 +91,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             Expression reasonArgument = mia.size() == 3 ? mia.get(0) : null;
             Expression actualArgument = mia.get(mia.size() - 2);
             Expression matcherArgument = mia.get(mia.size() - 1);
-            if (!matchersMatcher.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
+            if (!matchersMatcher.matches(matcherArgument) || takesMatcher((J.MethodInvocation) matcherArgument)) {
                 return mi;
             }
             if (argumentType != null && !TypeUtils.isAssignableTo(argumentType, actualArgument.getType())) {
@@ -193,5 +193,21 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             }
             return "#{any(java.lang.Object)}";
         }
+    }
+
+    static boolean takesMatcher(J.MethodInvocation method) {
+        JavaType.Method methodType = method.getMethodType();
+        return (methodType != null && methodType.getParameterTypes().stream().anyMatch(HamcrestMatcherToAssertJ::isOrHoldsMatcher)) ||
+               method.getArguments().stream().anyMatch(arg -> isOrHoldsMatcher(arg.getType()));
+    }
+
+    private static boolean isOrHoldsMatcher(@Nullable JavaType type) {
+        if (type instanceof JavaType.Array) {
+            return isOrHoldsMatcher(((JavaType.Array) type).getElemType());
+        }
+        if (type instanceof JavaType.Parameterized && TypeUtils.isAssignableTo("java.lang.Iterable", type)) {
+            return ((JavaType.Parameterized) type).getTypeParameters().stream().anyMatch(param -> TypeUtils.isAssignableTo(HAMCREST_MATCHER, param));
+        }
+        return TypeUtils.isAssignableTo(HAMCREST_MATCHER, type);
     }
 }
