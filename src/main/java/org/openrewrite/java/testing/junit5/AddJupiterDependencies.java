@@ -21,9 +21,9 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.gradle.marker.GradleDependencyConfiguration;
 import org.openrewrite.gradle.marker.GradleProject;
-import org.openrewrite.groovy.GroovyIsoVisitor;
 import org.openrewrite.groovy.tree.G;
 import org.openrewrite.java.dependencies.AddDependency;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.maven.MavenIsoVisitor;
 import org.openrewrite.maven.RemoveDependency;
 import org.openrewrite.maven.tree.ResolvedDependency;
@@ -120,27 +120,33 @@ public class AddJupiterDependencies extends ScanningRecipe<AddJupiterDependencie
 
     @Value
     @EqualsAndHashCode(callSuper = false)
-    private static class AddJupiterGradle extends GroovyIsoVisitor<ExecutionContext> {
+    private static class AddJupiterGradle extends TreeVisitor<Tree, ExecutionContext> {
         AddDependency.Accumulator acc;
 
         @Override
-        public G.CompilationUnit visitCompilationUnit(G.CompilationUnit t, ExecutionContext ctx) {
-            Optional<GradleProject> maybeGp = t.getMarkers().findFirst(GradleProject.class);
+        public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+            return sourceFile instanceof G.CompilationUnit || sourceFile instanceof K.CompilationUnit;
+        }
+
+        @Override
+        public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+            if (tree == null) {
+                return null;
+            }
+            Optional<GradleProject> maybeGp = tree.getMarkers().findFirst(GradleProject.class);
             if (!maybeGp.isPresent()) {
-                return t;
+                return tree;
             }
             GradleProject gp = maybeGp.get();
             GradleDependencyConfiguration trc = gp.getConfiguration("testRuntimeClasspath");
             if (trc == null) {
-                return t;
+                return tree;
             }
             ResolvedDependency jupiterApi = trc.findResolvedDependency("org.junit.jupiter", "junit-jupiter-api");
             if (jupiterApi == null) {
-                t = (G.CompilationUnit) addJupiterDependency().getVisitor(acc)
-                        .visitNonNull(t, ctx);
+                return addJupiterDependency().getVisitor(acc).visitNonNull(tree, ctx);
             }
-
-            return t;
+            return tree;
         }
     }
 

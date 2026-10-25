@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 import static java.util.Comparator.comparing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.Assertions.buildGradleKts;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
@@ -778,6 +779,57 @@ class JUnit5MigrationTest implements RewriteTest {
                     }
                 }
                 """
+            )
+          )
+        );
+    }
+
+    @Test
+    void migrateGradleKotlinDslBuild() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          mavenProject("project",
+            //language=kotlin
+            buildGradleKts(
+              """
+                plugins {
+                    java
+                }
+                repositories {
+                    mavenCentral()
+                }
+                dependencies {
+                    testImplementation("junit:junit:4.13.2")
+                }
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("testImplementation\\(\"org\\.junit\\.jupiter:junit-jupiter:5\\.\\d+\\.\\d+\"\\)")
+                .contains("tasks.withType<Test>().configureEach {\n    useJUnitPlatform()\n}")
+                .doesNotContain("junit:junit")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void hello() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void hello() {
+                      }
+                  }
+                  """
+              )
             )
           )
         );
