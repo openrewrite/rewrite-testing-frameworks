@@ -373,7 +373,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }).when(mockMockUpClass).changeMsg();
                       try (MockedStatic mockStaticMockUpClass = mockStatic(MockUpClass.class); MockedConstruction mockConsMockUpClass = mockConstructionWithAnswer(MockUpClass.class, delegatesTo(mockMockUpClass))) {
                           mockStaticMockUpClass.when(() -> MockUpClass.changeText(nullable(String.class))).thenAnswer(invocation -> {
-                              String text = invocation.getArgument(0);
                               MockUpClass.Save.text = "mockText";
                               return null;
                           });

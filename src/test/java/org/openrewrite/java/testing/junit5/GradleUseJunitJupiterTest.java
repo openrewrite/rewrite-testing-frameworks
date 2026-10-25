@@ -15,12 +15,14 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.Assertions.buildGradleKts;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 
 class GradleUseJunitJupiterTest implements RewriteTest {
@@ -274,5 +276,246 @@ class GradleUseJunitJupiterTest implements RewriteTest {
             sourceSpecs -> sourceSpecs.path("something.gradle")
           )
         );
+    }
+
+    @Nested
+    class KotlinDsl implements RewriteTest {
+
+        @Override
+        public void defaults(RecipeSpec spec) {
+            spec.recipe(new GradleUseJunitJupiter())
+              .beforeRecipe(withToolingApi("9.x"));
+        }
+
+        @Test
+        void addWhenMissing() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType<JavaCompile>().configureEach { }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType<JavaCompile>().configureEach { }
+                  tasks.withType<Test>().configureEach {
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tasksTest() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.test {
+                      maxHeapSize = "1g"
+                  }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.test {
+                      maxHeapSize = "1g"
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tasksTestUseJUnit() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.test {
+                      useJUnit()
+                  }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.test {
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tasksWithTypeTest() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType<Test> {
+                  }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType<Test> {
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tasksWithTypeTestClass() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType(Test::class.java) {
+                  }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType(Test::class.java) {
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tasksWithTypeTestConfigureEach() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType<Test>().configureEach {
+                  }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.withType<Test>().configureEach {
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tasksNamedTest() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.named<Test>("test") {
+                  }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.named<Test>("test") {
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveSourceSetTestAlone() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  sourceSets.test {
+                  }
+                  """,
+                """
+                  plugins {
+                      java
+                  }
+                  sourceSets.test {
+                  }
+                  tasks.withType<Test>().configureEach {
+                      useJUnitPlatform()
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void alreadyUsesJUnitPlatform() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  tasks.named<Test>("test") {
+                      useJUnitPlatform {
+                          includeTags("fast")
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void dontAddToScriptPlugin() {
+            rewriteRun(
+              //language=kotlin
+              buildGradleKts(
+                """
+                  plugins {
+                      java
+                  }
+                  """,
+                sourceSpecs -> sourceSpecs.path("something.gradle.kts")
+              )
+            );
+        }
     }
 }
