@@ -22,11 +22,11 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.marker.JavaVersion;
-import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -42,8 +42,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toList;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -55,6 +57,7 @@ public class AddMissingNested extends Recipe {
             "org.junit.jupiter.api.RepeatedTest",
             "org.junit.jupiter.params.ParameterizedTest",
             "org.junit.jupiter.api.TestFactory");
+    private static final List<AnnotationMatcher> TEST_ANNOTATION_MATCHERS = TEST_ANNOTATIONS.stream().map(ann -> new AnnotationMatcher("@" + ann)).collect(toList());
 
     @SuppressWarnings("unchecked")
     private static final TreeVisitor<?, ExecutionContext> PRECONDITION =
@@ -116,7 +119,15 @@ public class AddMissingNested extends Recipe {
         }
 
         private static boolean hasTestMethods(final J.ClassDeclaration cd) {
-            return TEST_ANNOTATIONS.stream().anyMatch(ann -> !FindAnnotations.find(cd, "@" + ann).isEmpty());
+            return new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.Annotation visitAnnotation(J.Annotation annotation, AtomicBoolean found) {
+                    if (TEST_ANNOTATION_MATCHERS.stream().anyMatch(matcher -> matcher.matches(annotation))) {
+                        found.set(true);
+                    }
+                    return super.visitAnnotation(annotation, found);
+                }
+            }.reduce(cd, new AtomicBoolean()).get();
         }
 
         private boolean requiresManualMigration(J.ClassDeclaration cd) {

@@ -224,6 +224,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 // We know it will have a matching `@Before*` annotation based on callers
                 String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
                 String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");
+                AnnotationMatcher specificBeforeMatcher = new AnnotationMatcher(matchedAnnotation);
+                AnnotationMatcher correspondingAfterMatcher = new AnnotationMatcher(correspondingAfterFqn);
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
                 List<Statement> statements = javaTemplateMockStatic(statement, String.format(
@@ -242,8 +244,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
 
                         List<Statement> afterStatements = after.getBody().getStatements();
-                        AnnotationMatcher specificBeforeMatcher = new AnnotationMatcher(matchedAnnotation);
-                        if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, new AnnotationMatcher(correspondingAfterFqn)))) {
+                        if (classDecl.getBody().getStatements().stream().noneMatch(it -> isMethodDeclarationWithAnnotation(it, correspondingAfterMatcher))) {
                             String safeAfterMethodName = getSafeAfterMethodName(DEFAULT_AFTER_METHOD, afterStatements);
                             Optional<Statement> beforeMethodJunit4 = afterStatements.stream()
                                     .filter(it -> isMethodDeclarationWithAllAnnotations(it, JUNIT_4_ANNOTATION, specificBeforeMatcher))
@@ -280,7 +281,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
                         J.MethodDeclaration md = super.visitMethodDeclaration(methodDecl, ctx);
-                        if (isMethodDeclarationWithAnnotation(md, new AnnotationMatcher(correspondingAfterFqn))) {
+                        if (isMethodDeclarationWithAnnotation(md, correspondingAfterMatcher)) {
                             return JavaTemplate.builder(variableName + ".close();")
                                     .contextSensitive()
                                     .build()

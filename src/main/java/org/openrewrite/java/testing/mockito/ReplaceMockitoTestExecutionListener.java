@@ -50,6 +50,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             new AnnotationMatcher("@org.springframework.test.context.TestExecutionListeners");
     private static final AnnotationMatcher RUN_WITH_MATCHER =
             new AnnotationMatcher("@org.junit.runner.RunWith");
+    private static final AnnotationMatcher EXTEND_WITH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.extension.ExtendWith");
     private static final String MOCKITO_TEST_EXECUTION_LISTENER =
             "org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener";
     private static final MethodMatcher OPEN_MOCKS_MATCHER =
@@ -245,7 +246,7 @@ public class ReplaceMockitoTestExecutionListener extends Recipe {
             clazz.getLeadingAnnotations().forEach(annotation -> {
                 if (EXECUTION_LISTENER_ANNOTATION_MATCHER.matches(annotation)) {
                     context.testExecutionListenersFound(annotation);
-                } else if (new AnnotationMatcher("@org.junit.jupiter.api.extension.ExtendWith").matches(annotation)) {
+                } else if (EXTEND_WITH_MATCHER.matches(annotation)) {
                     // Check if it's specifically ExtendWith(MockitoExtension.class)
                     if (annotation.getArguments() != null) {
                         for (Expression arg : annotation.getArguments()) {
