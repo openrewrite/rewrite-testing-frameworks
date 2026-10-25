@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 import static org.openrewrite.java.tree.JavaType.Primitive;
 
@@ -86,6 +87,9 @@ public class CsvSourceToValueSource extends Recipe {
                                 }
 
                                 Optional<Literal> textBlockAttribute = annotated.get().getAttribute("textBlock");
+                                Expression valueArg = annotation.getArguments().get(0) instanceof J.Assignment ?
+                                        ((J.Assignment) annotation.getArguments().get(0)).getAssignment() :
+                                        annotation.getArguments().get(0);
                                 List<String> values;
                                 boolean fromTextBlock = textBlockAttribute.isPresent();
                                 if (fromTextBlock) {
@@ -94,41 +98,28 @@ public class CsvSourceToValueSource extends Recipe {
                                         return m;
                                     }
                                     values = parseTextBlockLines(textBlock);
-                                    if (values.isEmpty() || values.stream().anyMatch(v -> v.indexOf(',') >= 0)) {
+                                } else {
+                                    values = literalStrings(valueArg);
+                                    if (values == null) {
                                         return m;
                                     }
-                                    // Single quotes are CsvSource's default quote char; conversion would change the parsed value
-                                    if (values.stream().anyMatch(v -> v.indexOf('\'') >= 0)) {
-                                        return m;
-                                    }
-                                    // Non-String types can't represent values containing whitespace as unquoted literals
-                                    if (!"String".equals(paramType) && values.stream().anyMatch(StringUtils::containsWhitespace)) {
-                                        return m;
-                                    }
-                                } else if ("String".equals(paramType)) {
-                                    // Preserve original argument formatting (e.g. text blocks, custom spacing)
+                                }
+                                if (values.isEmpty() || !values.stream().allMatch(v -> isUnchangedByCsvParsing(v, paramType))) {
+                                    return m;
+                                }
+
+                                if (!fromTextBlock && "String".equals(paramType) && (!kotlin || valueArg instanceof K.ListLiteral)) {
+                                    // Preserve original argument formatting (e.g. custom spacing)
                                     maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
                                     maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
-                                    Expression templateArg = annotation.getArguments().get(0) instanceof J.Assignment ?
-                                            ((J.Assignment) annotation.getArguments().get(0)).getAssignment() :
-                                            annotation.getArguments().get(0);
                                     J.MethodDeclaration updated = applyValueSourceTemplate(
                                             kotlin ? "@ValueSource(strings = [])" : "@ValueSource(strings = {})",
                                             annotation, kotlin, ctx);
                                     return updated.withLeadingAnnotations(ListUtils.map(updated.getLeadingAnnotations(), ann ->
                                             VALUE_SOURCE_MATCHER.matches(ann) ?
                                                     ann.withArguments(ListUtils.map(ann.getArguments(),
-                                                            arg -> ((J.Assignment) arg).withAssignment(templateArg.withPrefix(Space.SINGLE_SPACE)))) :
+                                                            arg -> ((J.Assignment) arg).withAssignment(valueArg.withPrefix(Space.SINGLE_SPACE)))) :
                                                     ann));
-                                } else {
-                                    Optional<Literal> valueAttribute = annotated.get().getDefaultAttribute("value");
-                                    if (!valueAttribute.isPresent()) {
-                                        return m;
-                                    }
-                                    values = valueAttribute.get().getStrings();
-                                    if (values.isEmpty()) {
-                                        return m;
-                                    }
                                 }
 
                                 String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values, fromTextBlock, kotlin);
@@ -219,11 +210,10 @@ public class CsvSourceToValueSource extends Recipe {
                                 return null;
                         }
                         formattedValues = values.stream()
-                                .map(String::trim)
                                 .map(mapper)
                                 .collect(joining(delimiter));
 
-                        if (values.size() == 1) {
+                        if (values.size() == 1 && !kotlin) {
                             return "@ValueSource(" + attributeName + " = " + formattedValues + ")";
                         }
                         String open = kotlin ? "[" : "{";
@@ -232,6 +222,36 @@ public class CsvSourceToValueSource extends Recipe {
                             return "@ValueSource(" + attributeName + " = " + open + "\n" + formattedValues + "\n" + close + ")";
                         }
                         return "@ValueSource(" + attributeName + " = " + open + formattedValues + close + ")";
+                    }
+
+                    private @Nullable List<String> literalStrings(Expression value) {
+                        List<Expression> elements = value instanceof J.NewArray ? ((J.NewArray) value).getInitializer() :
+                                value instanceof K.ListLiteral ? ((K.ListLiteral) value).getElements() :
+                                        singletonList(value);
+                        if (elements == null) {
+                            return null;
+                        }
+                        List<String> strings = new ArrayList<>();
+                        for (Expression element : elements) {
+                            if (element instanceof J.Empty) {
+                                continue;
+                            }
+                            if (!(element instanceof J.Literal) || !(((J.Literal) element).getValue() instanceof String)) {
+                                return null;
+                            }
+                            strings.add((String) ((J.Literal) element).getValue());
+                        }
+                        return strings;
+                    }
+
+                    // CSV parsing splits on commas and line breaks, strips single quotes, trims whitespace, and rejects blank records
+                    private boolean isUnchangedByCsvParsing(String value, String paramType) {
+                        if (value.isEmpty() || value.indexOf(',') >= 0 || value.indexOf('\'') >= 0 ||
+                                value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0 || !value.trim().equals(value)) {
+                            return false;
+                        }
+                        // Non-String types can't represent values containing whitespace as unquoted literals
+                        return "String".equals(paramType) || !StringUtils.containsWhitespace(value);
                     }
 
                     private List<String> parseTextBlockLines(String textBlock) {
