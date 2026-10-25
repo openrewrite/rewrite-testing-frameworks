@@ -41,6 +41,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class MockitoJUnitRunnerToExtension extends Recipe {
+    private static final AnnotationMatcher RUN_WITH = new AnnotationMatcher("@org.junit.runner.RunWith");
+    private static final AnnotationMatcher EXTEND_WITH_MOCKITO = new AnnotationMatcher("@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)");
+    private static final AnnotationMatcher MOCKITO_SETTINGS = new AnnotationMatcher("@org.mockito.junit.jupiter.MockitoSettings");
+    private static final String MOCKITO_STRICTNESS = "org.mockito.quality.Strictness";
+
     @Getter
     final String displayName = "Replace JUnit 4 MockitoJUnitRunner with junit-jupiter MockitoExtension";
 
@@ -53,16 +58,11 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.mockito.junit.MockitoJUnitRunner*", false), new JavaIsoVisitor<ExecutionContext>() {
 
-            final String runWith = "@org.junit.runner.RunWith";
-            final String extendWithMockito = "@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)";
-            final String mockitoSettings = "@org.mockito.junit.jupiter.MockitoSettings";
-            final String mockitoStrictness = "org.mockito.quality.Strictness";
-
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                Strictness runnerStrictness = getStrictness(cd, runWith);
-                Strictness extensionStrictness = getStrictness(cd, mockitoSettings);
+                Strictness runnerStrictness = getStrictness(cd, RUN_WITH);
+                Strictness extensionStrictness = getStrictness(cd, MOCKITO_SETTINGS);
 
                 if (runnerStrictness == null) { // class doesn't have MockitoJunitRunner
                     return cd;
@@ -70,7 +70,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 registerAfterVisit(cd);
                 if (extensionStrictness == null || extensionStrictness.isGreaterThan(runnerStrictness)) {
                     List<J.Annotation> annotations = ListUtils.filter(cd.getLeadingAnnotations(),
-                            a -> !(a == null || new AnnotationMatcher(mockitoSettings).matches(a)));
+                            a -> !(a == null || MOCKITO_SETTINGS.matches(a)));
                     J.ClassDeclaration _cd = cd.withLeadingAnnotations(annotations);
                     return getTemplate(runnerStrictness, ctx)
                             .<J.ClassDeclaration>map(t -> t.apply(updateCursor(_cd), _cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName))))
@@ -79,8 +79,8 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                 return cd;
             }
 
-            private @Nullable Strictness getStrictness(J.ClassDeclaration cd, String signature) {
-                return new Annotated.Matcher(signature).<AtomicReference<@Nullable Strictness>>asVisitor(
+            private @Nullable Strictness getStrictness(J.ClassDeclaration cd, AnnotationMatcher annotationMatcher) {
+                return new Annotated.Matcher(annotationMatcher).<AtomicReference<@Nullable Strictness>>asVisitor(
                     (a, s) -> a.getTree().acceptJava(new JavaIsoVisitor<AtomicReference<Strictness>>() {
                         @Override
                         public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicReference<Strictness> strictness) {
@@ -89,7 +89,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
                                     strictness.set(strict);
                                     break;
                                 }
-                                if (TypeUtils.isOfClassType(fieldAccess.getType(), mockitoStrictness)  && fieldAccess.getName().getSimpleName().equals(strict.name())) {
+                                if (TypeUtils.isOfClassType(fieldAccess.getType(), MOCKITO_STRICTNESS)  && fieldAccess.getName().getSimpleName().equals(strict.name())) {
                                     strictness.set(strict);
                                     break;
                                 }
@@ -100,7 +100,7 @@ public class MockitoJUnitRunnerToExtension extends Recipe {
             }
 
             private void registerAfterVisit(J.ClassDeclaration cd) {
-                boolean hasMockitoExtensions = new Annotated.Matcher(extendWithMockito).<AtomicBoolean>asVisitor(
+                boolean hasMockitoExtensions = new Annotated.Matcher(EXTEND_WITH_MOCKITO).<AtomicBoolean>asVisitor(
                         (a, flag) -> {
                             flag.set(true);
                             return a.getTree();

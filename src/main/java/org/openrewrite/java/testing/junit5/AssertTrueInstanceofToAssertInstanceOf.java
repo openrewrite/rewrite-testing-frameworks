@@ -36,6 +36,9 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
+    private static final MethodMatcher JUNIT5_ASSERT_TRUE = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(boolean, ..)");
+    private static final MethodMatcher JUNIT4_ASSERT_TRUE = new MethodMatcher("org.junit.Assert assertTrue(.., boolean)");
+
     @Getter
     final String displayName = "`assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`";
 
@@ -49,14 +52,12 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                MethodMatcher junit5Matcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertTrue(boolean, ..)");
-                MethodMatcher junit4Matcher = new MethodMatcher("org.junit.Assert assertTrue(.., boolean)");
 
                 TypedTree clazz;
                 Expression expression;
                 Expression reason;
 
-                if (junit5Matcher.matches(mi)) {
+                if (JUNIT5_ASSERT_TRUE.matches(mi)) {
                     maybeRemoveImport("org.junit.jupiter.api.Assertions.assertTrue");
                     Expression argument = mi.getArguments().get(0);
                     if (mi.getArguments().size() == 1) {
@@ -74,7 +75,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                     } else {
                         return mi;
                     }
-                } else if (junit4Matcher.matches(mi)) {
+                } else if (JUNIT4_ASSERT_TRUE.matches(mi)) {
                     maybeRemoveImport("org.junit.Assert.assertTrue");
                     Expression argument;
                     if (mi.getArguments().size() == 1) {
