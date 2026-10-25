@@ -38,6 +38,9 @@ import static java.util.stream.Collectors.toList;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HamcrestNotMatcherToAssertJ extends Recipe {
+    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
+    private static final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers not(org.hamcrest.Matcher)");
+    private static final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
     @Option(displayName = "Hamcrest Matcher",
             description = "The Hamcrest `not(Matcher)` to migrate to JUnit5.",
@@ -65,10 +68,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
     }
 
     private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
-        private final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers not(org.hamcrest.Matcher)");
-        private final MethodMatcher MATCHERS_MATCHER = new MethodMatcher("org.hamcrest.*Matchers " + notMatcher + "(..)");
-        private final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
+        private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.*Matchers " + notMatcher + "(..)");
 
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -91,7 +91,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
 
         private J.MethodInvocation handleTwoArgumentCase(J.MethodInvocation mi, Expression matcherArgument, ExecutionContext ctx) {
             Expression actualArgument = mi.getArguments().get(0);
-            if (!MATCHERS_MATCHER.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
+            if (!matchersMatcher.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
                 return mi;
             }
             String actual = typeToIndicator(actualArgument.getType());
@@ -124,7 +124,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
         private J.MethodInvocation handleThreeArgumentCase(J.MethodInvocation mi, Expression matcherArgument, ExecutionContext ctx) {
             Expression reasonArgument = mi.getArguments().get(0);
             Expression actualArgument = mi.getArguments().get(1);
-            if (!MATCHERS_MATCHER.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
+            if (!matchersMatcher.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
                 return mi;
             }
             String actual = typeToIndicator(actualArgument.getType());
