@@ -25,6 +25,7 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
@@ -80,8 +81,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
 
     private static final String TEMPORARY_FOLDER = "org.junit.rules.TemporaryFolder";
     private static final String TEMP_DIR = "org.junit.jupiter.api.io.TempDir";
-    private static final AnnotationMatcher CLASS_RULE = new AnnotationMatcher("@org.junit.ClassRule");
-    private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
+    private static final AnnotationMatcher ANY_RULE = new AnnotationMatcher("@org.junit.*Rule");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + " <init>()");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + " <init>(java.io.File)");
 
@@ -109,10 +109,10 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             return mv;
         }
         mv = mv.withTypeExpression(toFileIdentifier(mv.getTypeExpression()));
-        if (mv.getLeadingAnnotations().stream().anyMatch(anno -> CLASS_RULE.matches(anno) || RULE.matches(anno))) {
+        if (service(AnnotationService.class).matches(getCursor(), ANY_RULE)) {
             mv = mv.withVariables(ListUtils.map(mv.getVariables(), v -> v.withInitializer(null)));
         }
-        return (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule")
+        return (J.VariableDeclarations) new Annotated.Matcher(ANY_RULE)
                 .asVisitor(a -> JavaTemplate.builder("@TempDir")
                         .imports(TEMP_DIR)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
