@@ -145,7 +145,6 @@ public class MockConstructionToTryWithResources extends Recipe {
 
                 // Create try-with-resources
                 J.Try tryWithResources = JavaTemplate.builder("try (#{any()}) {}")
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                         .build()
                         .apply(new Cursor(getCursor(), varDecl), varDecl.getCoordinates().replace(), varDecl);

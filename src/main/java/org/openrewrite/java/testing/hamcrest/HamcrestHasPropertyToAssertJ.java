@@ -79,7 +79,6 @@ public class HamcrestHasPropertyToAssertJ extends Recipe {
                 String reasonTemplate = reason != null ? ".as(#{any(String)})" : "";
                 JavaTemplate template = JavaTemplate.builder(
                                 "assertThat(#{any()})" + reasonTemplate + ".hasFieldOrProperty(#{any(String)})")
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build();
@@ -110,7 +109,6 @@ public class HamcrestHasPropertyToAssertJ extends Recipe {
                 String reasonTemplate = reason != null ? ".as(#{any(String)})" : "";
                 JavaTemplate template = JavaTemplate.builder(
                                 "assertThat(#{any()})" + reasonTemplate + ".hasFieldOrPropertyWithValue(#{any(String)}, #{any()})")
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build();

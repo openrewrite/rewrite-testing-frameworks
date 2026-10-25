@@ -89,7 +89,6 @@ public class SimplifyHasSizeFromIsEqualToAssertion extends Recipe {
                         String assertions = requireNonNull(assertThat.getMethodType()).getDeclaringType().getFullyQualifiedName();
                         maybeAddImport(assertions, "assertThat");
                         return JavaTemplate.builder("assertThat(#{any()}).hasSize(#{any(int)})")
-                                .contextSensitive()
                                 .staticImports(assertions + ".assertThat")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()

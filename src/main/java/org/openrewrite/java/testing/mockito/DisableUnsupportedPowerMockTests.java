@@ -129,7 +129,6 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 maybeAddImport(framework.disabledAnnotation);
                 return JavaTemplate.builder("@" + simpleName(framework.disabledAnnotation) +
                                 "(\"PowerMock test disabled by migration: rework it not to rely on private members\")")
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, framework.classpathResource))
                         .imports(framework.disabledAnnotation)
                         .build()

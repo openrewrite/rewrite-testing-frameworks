@@ -76,7 +76,6 @@ public class HamcrestEveryItemToAssertJ extends Recipe {
                 String reasonTemplate = reason != null ? ".as(#{any(String)})" : "";
                 JavaTemplate template = JavaTemplate.builder(
                                 "assertThat(#{any()})" + reasonTemplate + ".hasOnlyElementsOfType(#{any(java.lang.Class)})")
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build();
