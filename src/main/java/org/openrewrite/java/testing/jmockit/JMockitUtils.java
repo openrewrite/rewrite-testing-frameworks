@@ -23,7 +23,6 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Optional.empty;
@@ -54,9 +53,5 @@ class JMockitUtils {
         return Arrays.stream(JMockitBlockType.values())
                 .filter(supportedType -> TypeUtils.isOfClassType(type, supportedType.getFqn()))
                 .findFirst();
-    }
-
-    static boolean isSameVariable(J.Identifier a, J.Identifier b) {
-        return a.getSimpleName().equals(b.getSimpleName()) && Objects.equals(a.getFieldType(), b.getFieldType());
     }
 }

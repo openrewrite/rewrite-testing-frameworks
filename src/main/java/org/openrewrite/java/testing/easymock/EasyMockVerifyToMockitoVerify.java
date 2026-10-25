@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -32,7 +33,6 @@ import org.openrewrite.java.tree.Statement;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static java.lang.String.join;
 import static java.util.Collections.nCopies;
@@ -119,11 +119,7 @@ public class EasyMockVerifyToMockitoVerify extends Recipe {
                         mi.getArguments().size() == 1 &&
                         mi.getArguments().get(0) instanceof J.MethodInvocation &&
                         ((J.MethodInvocation) mi.getArguments().get(0)).getSelect() instanceof J.Identifier &&
-                        isSameVariable(dependency, (J.Identifier) ((J.MethodInvocation) mi.getArguments().get(0)).getSelect());
-            }
-
-            private boolean isSameVariable(J.Identifier a, J.Identifier b) {
-                return a.getSimpleName().equals(b.getSimpleName()) && Objects.equals(a.getFieldType(), b.getFieldType());
+                        SemanticallyEqual.areEqual(dependency, ((J.MethodInvocation) mi.getArguments().get(0)).getSelect());
             }
 
             // match: expect(<dep>.someMethod()).andReturn();

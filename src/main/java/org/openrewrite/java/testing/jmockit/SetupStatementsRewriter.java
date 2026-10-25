@@ -19,6 +19,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -27,7 +28,6 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.singletonList;
-import static org.openrewrite.java.testing.jmockit.JMockitUtils.isSameVariable;
 
 @AllArgsConstructor(access = AccessLevel.PACKAGE)
 class SetupStatementsRewriter {
@@ -181,7 +181,7 @@ class SetupStatementsRewriter {
     }
 
     private static boolean isNotMockIdentifier(J.Identifier identifier, List<J.Identifier> spies) {
-        if (spies.stream().anyMatch(spy -> isSameVariable(spy, identifier))) {
+        if (spies.stream().anyMatch(spy -> SemanticallyEqual.areEqual(spy, identifier))) {
             return false;
         }
         if (identifier.getType() instanceof JavaType.Method &&

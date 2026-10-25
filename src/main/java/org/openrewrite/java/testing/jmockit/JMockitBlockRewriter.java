@@ -26,6 +26,7 @@ import org.openrewrite.Tree;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -36,7 +37,6 @@ import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.testing.jmockit.JMockitBlockType.*;
 import static org.openrewrite.java.testing.jmockit.JMockitUtils.MOCKITO_ALL_IMPORT;
 import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
-import static org.openrewrite.java.testing.jmockit.JMockitUtils.isSameVariable;
 
 class JMockitBlockRewriter {
 
@@ -132,7 +132,7 @@ class JMockitBlockRewriter {
                         methodInvocationsToRewrite.add(new ArrayList<>());
                     }
                     if ((isFullVerifications() || isVerificationsInOrder()) &&
-                            uniqueMocks.stream().noneMatch(mock -> isSameVariable(mock, mockObj))) {
+                            uniqueMocks.stream().noneMatch(mock -> SemanticallyEqual.areEqual(mock, mockObj))) {
                         uniqueMocks.add(mockObj);
                     }
                 }
