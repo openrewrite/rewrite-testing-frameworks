@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
@@ -24,6 +25,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JLeftPadded;
@@ -47,7 +49,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.or(new UsesMethod<>(JUNIT5_ASSERT_TRUE), new UsesMethod<>(JUNIT4_ASSERT_TRUE)), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -125,6 +127,6 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
                 return new J.FieldAccess(Tree.randomId(), Space.EMPTY, Markers.EMPTY,
                     target, JLeftPadded.build(classKeyword), classType);
             }
-        };
+        });
     }
 }

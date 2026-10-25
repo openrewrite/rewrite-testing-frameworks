@@ -17,8 +17,10 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.tree.K;
@@ -50,7 +52,7 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new KotlinIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
                 // Check if there's a wildcard import for org.junit.jupiter.api.*
@@ -89,6 +91,6 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
 
                 return cu.withImports(filteredImports);
             }
-        };
+        });
     }
 }
