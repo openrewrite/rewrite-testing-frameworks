@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.testng;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -27,7 +28,7 @@ class TestNgAssertThrowsToAssertThatTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("testng"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "testng-7"))
           .recipe(new TestNgAssertThrowsToAssertThat());
     }
 
@@ -117,6 +118,68 @@ class TestNgAssertThrowsToAssertThatTest implements RewriteTest {
                   void test() {
                       RuntimeException e = assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> {
                           throw new RuntimeException();
+                      }).actual();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertThrowsWithMessage() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.testng.Assert.assertThrows;
+
+              class Test {
+                  void test() {
+                      assertThrows("should throw", IllegalStateException.class, () -> {
+                          throw new IllegalStateException();
+                      });
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              class Test {
+                  void test() {
+                      assertThatExceptionOfType(IllegalStateException.class).as("should throw").isThrownBy(() -> {
+                          throw new IllegalStateException();
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void expectThrowsWithMessageReturnsActual() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.testng.Assert.expectThrows;
+
+              class Test {
+                  void test() {
+                      IllegalStateException e = expectThrows("should throw", IllegalStateException.class, () -> {
+                          throw new IllegalStateException();
+                      });
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              class Test {
+                  void test() {
+                      IllegalStateException e = assertThatExceptionOfType(IllegalStateException.class).as("should throw").isThrownBy(() -> {
+                          throw new IllegalStateException();
                       }).actual();
                   }
               }

@@ -38,12 +38,6 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
 import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
-/**
- * Ensures that all mockStatic calls are properly closed.
- * If mockStatic is in lifecycle methods like @BeforeEach or @BeforeAll,
- * creates a class variable and closes it in @AfterEach or @AfterAll.
- * If mockStatic is inside a test method, wraps it in a try-with-resources block.
- */
 public class CloseUnclosedStaticMocks extends Recipe {
 
     private static final MethodMatcher MOCKED_STATIC_CLOSE_MATCHER = new MethodMatcher("org.mockito.ScopedMock close*(..)");

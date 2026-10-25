@@ -71,7 +71,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.junit.jupiter.api.BeforeEach;
 
               class A {
-
                   private AutoCloseable mocks;
 
                   @BeforeEach
@@ -97,6 +96,45 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
         );
     }
 
+
+    @Test
+    void separatesAddedFieldFromFirstMember() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+                  @BeforeEach
+                  public void setUp() {
+                      MockitoAnnotations.initMocks(this);
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void setUp() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
 
     @Test
     void replaceInitMocksWithStaticImportToOpenMocks() {
@@ -131,7 +169,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.junit.jupiter.api.BeforeEach;
 
               class A {
-
                   private AutoCloseable mocks;
 
                   @BeforeEach
@@ -190,7 +227,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.junit.jupiter.api.BeforeEach;
 
               class A {
-
                   private AutoCloseable mocks1;
 
                   String mocks = "mocks";
@@ -254,7 +290,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.junit.jupiter.api.BeforeEach;
 
               class A {
-
                   private AutoCloseable mocks;
 
                   @BeforeEach
@@ -317,7 +352,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.junit.jupiter.api.BeforeEach;
 
               class A {
-
                   private AutoCloseable mocks;
 
                   @BeforeEach
@@ -381,7 +415,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.mockito.MockitoAnnotations;
 
               class A {
-
                   private AutoCloseable mocks;
 
                   @BeforeEach
@@ -447,7 +480,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.junit.jupiter.api.BeforeEach;
 
               class A {
-
                   private AutoCloseable mocks;
 
                   @BeforeEach
@@ -516,7 +548,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.mockito.MockitoAnnotations;
 
               class A {
-
                   private AutoCloseable mocks;
 
                   @BeforeEach
@@ -583,7 +614,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.mockito.MockitoAnnotations
 
               class MyServiceTest {
-
                   private lateinit var mocks: AutoCloseable
 
                   @Mock
@@ -651,7 +681,6 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
               import org.mockito.MockitoAnnotations
 
               class MyServiceTest {
-
                   private lateinit var mocks: AutoCloseable
 
                   @Mock

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.testcontainers;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -190,63 +191,6 @@ class AddTestcontainersAnnotationsTest implements RewriteTest {
     }
 
     @Test
-    void ignoresNonGenericContainerRule() {
-        rewriteRun(
-          // language=java
-          java(
-            // before
-            """
-              import org.junit.Rule;
-              import org.junit.rules.TemporaryFolder;
-
-              class MyTest {
-                  @Rule
-                  public TemporaryFolder tempFolder = new TemporaryFolder();
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void ignoresNonRuleGenericContainer() {
-        rewriteRun(
-          java(
-            // language=java
-            """
-              import org.testcontainers.containers.GenericContainer;
-
-              class MyTest {
-                  public static GenericContainer<?> c_stat = new GenericContainer<>("redis:latest");
-                  public GenericContainer<?> c = new GenericContainer<>("redis:latest");
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void isIdempotentForAlreadyMigratedClasses() {
-        rewriteRun(
-          // language=java
-          java(
-            // before
-            """
-              import org.testcontainers.containers.GenericContainer;
-              import org.testcontainers.junit.jupiter.Container;
-              import org.testcontainers.junit.jupiter.Testcontainers;
-
-              @Testcontainers
-              class MyTest {
-                  @Container
-                  public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void handlesPartiallyMigratedClass() {
         rewriteRun(
           // language=java
@@ -345,5 +289,65 @@ class AddTestcontainersAnnotationsTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void ignoresNonGenericContainerRule() {
+            rewriteRun(
+              // language=java
+              java(
+                // before
+                """
+                  import org.junit.Rule;
+                  import org.junit.rules.TemporaryFolder;
+
+                  class MyTest {
+                      @Rule
+                      public TemporaryFolder tempFolder = new TemporaryFolder();
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void ignoresNonRuleGenericContainer() {
+            rewriteRun(
+              java(
+                // language=java
+                """
+                  import org.testcontainers.containers.GenericContainer;
+
+                  class MyTest {
+                      public static GenericContainer<?> c_stat = new GenericContainer<>("redis:latest");
+                      public GenericContainer<?> c = new GenericContainer<>("redis:latest");
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void isIdempotentForAlreadyMigratedClasses() {
+            rewriteRun(
+              // language=java
+              java(
+                // before
+                """
+                  import org.testcontainers.containers.GenericContainer;
+                  import org.testcontainers.junit.jupiter.Container;
+                  import org.testcontainers.junit.jupiter.Testcontainers;
+
+                  @Testcontainers
+                  class MyTest {
+                      @Container
+                      public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
+                  }
+                  """
+              )
+            );
+        }
     }
 }

@@ -18,7 +18,7 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.JUnit5BestPractices
 displayName: JUnit 5 best practices
-description: Applies best practices to tests.
+description: Migrates JUnit 4 tests to JUnit 5, upgrades to JUnit 5.14 and applies the JUnit Jupiter best practices.
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -56,14 +56,34 @@ preconditions:
       artifactIdPattern: testng*
       invertMarking: true
 recipeList:
-  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.MigrateSystemRules
+  - org.openrewrite.java.testing.junit5.WireMockRuleToWireMockServer
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
+  # `WireMockExtension` needs WireMock 2.31.0; `wiremock` and `wiremock-standalone` end at 2.27.2, continuing on Java 8 as `-jre8`
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock
+      newArtifactId: wiremock-jre8
+      newVersion: 2.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.tomakehurst
+      oldArtifactId: wiremock-standalone
+      newArtifactId: wiremock-jre8-standalone
+      newVersion: 2.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: com.github.tomakehurst
+      artifactId: wiremock*
+      newVersion: 2.x
+      overrideManagedVersion: true
   - org.openrewrite.java.testing.junit5.IgnoreToDisabled
   - org.openrewrite.java.testing.junit5.ThrowingRunnableToExecutable
   - org.openrewrite.java.testing.junit5.RemoveObsoleteRunners:
       obsoleteRunners:
         - org.junit.runners.JUnit4
         - org.junit.runners.BlockJUnit4ClassRunner
+  # Before the lifecycle annotations are migrated, as it turns those of a runner into `@BeforeSuite` and `@AfterSuite`;
+  # the full upgrade, as the suite migration moves all Cucumber-JVM dependencies to 7.x, which older code must follow
+  - org.openrewrite.cucumber.jvm.UpgradeCucumber7x
   - org.openrewrite.maven.RemovePluginDependency:
       pluginGroupId: org.apache.maven.plugins
       pluginArtifactId: maven-surefire-plugin
@@ -95,7 +115,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UpdateMockWebServer
   - org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
   - org.openrewrite.java.testing.junit5.EnclosedToNested
-  - org.openrewrite.java.testing.junit5.AddMissingNested
   - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
@@ -139,19 +158,27 @@ recipeList:
   - org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
   - org.openrewrite.java.testing.byteman.BytemanJUnit4ToBytemanJUnit5
   - org.openrewrite.java.testing.dbrider.MigrateDbRiderSpringToDbRiderJUnit5
+  - org.openrewrite.java.testing.junit5.JUnitSoftAssertionsToSoftAssertionsExtension
   # Convert any leftover ExternalResource rules last, after more specific rules have already run
   - org.openrewrite.java.testing.junit5.HandleExternalResourceRules
+  - org.openrewrite.java.testing.junit5.AddJupiterMigrationSupport
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
-displayName: Exclude JUnit 4, unless Testcontainers is used
-description: Excludes JUnit 4, as it ought not to be necessary in a JUnit 5 project, unless Testcontainers is used.
+displayName: Exclude JUnit 4, unless a test library requires it
+description: Excludes JUnit 4 unless Testcontainers 1.x, Guava testlib or JUnit Jupiter migrationsupport requires it at runtime, even when tests use JUnit Jupiter.
 preconditions:
   - org.openrewrite.Singleton
   - org.openrewrite.maven.search.DoesNotIncludeDependency:
       groupId: org.testcontainers
       artifactId: '*'
       version: 1.x
+  - org.openrewrite.maven.search.DoesNotIncludeDependency:
+      groupId: com.google.guava
+      artifactId: guava-testlib
+  - org.openrewrite.maven.search.DoesNotIncludeDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-migrationsupport
 recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
@@ -160,7 +187,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
 displayName: Use `MatcherAssert#assertThat(..)`
-description: JUnit 4's `Assert#assertThat(..)` This method was deprecated in JUnit 4 and removed in JUnit Jupiter.
+description: JUnit 4's `Assert#assertThat(..)` was deprecated in JUnit 4 and removed in JUnit Jupiter, so use Hamcrest's `MatcherAssert#assertThat(..)` instead.
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -214,15 +241,25 @@ tags:
   - junit
   - mockito
 recipeList:
+  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-junit-jupiter
       version: 4.x
+      familyPattern: org.mockito
       onlyIfUsing: org.mockito..MockitoJUnit*Runner
       acceptTransitive: true
       scope: test
-  - org.openrewrite.java.testing.mockito.Mockito1to4Migration
   - org.openrewrite.java.testing.mockito.MockitoJUnitRunnerToExtension
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-junit-jupiter
+      version: 4.x
+      familyPattern: org.mockito
+      onlyIfUsing: org.powermock.modules.junit4.PowerMockRunner
+      acceptTransitive: true
+      scope: test
+  - org.openrewrite.java.testing.junit5.AddMockitoJupiterForRules
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.IgnoreToDisabled
@@ -271,7 +308,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.VertxUnitToVertxJunit5
-displayName: Use Vert.x JUnit 5 Extension
+displayName: Use Vert.x JUnit 5 extension
 description: Migrates Vert.x `@RunWith` `VertxUnitRunner` to the JUnit Jupiter `@ExtendWith` `VertxExtension`.
 preconditions:
   - org.openrewrite.Singleton
@@ -320,7 +357,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.CleanupAssertions
-displayName: Clean Up Assertions
+displayName: Clean up assertions
 description: Simplifies JUnit Jupiter assertions to their most-direct equivalents.
 preconditions:
   - org.openrewrite.Singleton
@@ -342,7 +379,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
-displayName: Use XMLUnit Legacy for JUnit 5
+displayName: Use XMLUnit legacy for JUnit 5
 description: Migrates XMLUnit 1.x to XMLUnit legacy 2.x.
 preconditions:
   - org.openrewrite.Singleton
@@ -360,7 +397,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
-displayName: Upgrade Surefire Plugin
+displayName: Upgrade the Maven Surefire plugin
 description: Upgrades the Maven Surefire Plugin to the latest version if still using an older Maven version.
 preconditions:
   - org.openrewrite.Singleton
@@ -383,7 +420,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeToJUnit513
 displayName: Upgrade to JUnit 5.13
-description: Upgrades JUnit 5 to 5.13.x and migrates all deprecated APIs.
+description: Upgrades JUnit 5 to 5.13.x and replaces the deprecated `ParameterizedTest` placeholder constants with those of `ParameterizedInvocationConstants`.
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -432,7 +469,7 @@ recipeList:
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.UpgradeToJUnit514
 displayName: Upgrade to JUnit 5.14
-description: Upgrades JUnit 5 to 5.14.x and migrates all deprecated APIs.
+description: Upgrades JUnit 5 to 5.14.x, including the 5.13 changes, and replaces deprecated types and methods such as `OutputDirectoryProvider` and `DiscoverySelectors.selectClasspathResource(Set)` with their successors.
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -481,3 +518,26 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.gradle.internal.impldep.org.junit.platform.engine.support.discovery.EngineDiscoveryRequestResolver.Builder addResourceContainerSelectorResolver(java.util.function.Predicate)"
       newMethodName: addResourceContainerSelectorResolver
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.MigrateSystemRules
+displayName: Migrate System Rules to System Stubs and JUnit Pioneer
+description: >-
+  Migrates the JUnit 4 rules of System Rules (`com.github.stefanbirkner:system-rules`) as part of the JUnit 4 to 5
+  migration. System property rules that only take string literals become JUnit Pioneer annotations; the other system
+  property, environment variable, standard stream and standard input rules become System Stubs `@SystemStub` fields,
+  and `ExpectedSystemExit` becomes System Stubs' `catchSystemExit(..)`. Rules that can not be migrated get a `TODO`
+  comment, and System Rules is only removed once nothing uses it.
+tags:
+  - testing
+  - junit
+  - jupiter
+  - system-rules
+  - system-stubs
+  - junit-pioneer
+recipeList:
+  - org.openrewrite.java.testing.junit5.EnvironmentVariables
+  - org.openrewrite.java.testing.junit5.SystemPropertyRulesToPioneer
+  - org.openrewrite.java.testing.junit5.SystemRulesToSystemStubs
+  - org.openrewrite.java.testing.junit5.ExpectedSystemExitToCatchSystemExit
+  - org.openrewrite.java.testing.junit5.SystemRulesDependencies

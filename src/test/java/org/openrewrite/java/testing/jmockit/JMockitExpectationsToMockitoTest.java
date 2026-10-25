@@ -709,7 +709,6 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
               """,
             """
               import java.util.ArrayList;
-              import java.util.List;
 
               import org.junit.jupiter.api.extension.ExtendWith;
               import org.mockito.Mock;
@@ -1609,7 +1608,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
         );
     }
 
-    @Disabled // comment migration not supported yet
+    @Disabled("Comments inside an `Expectations` block are not migrated yet")
     @Test
     void whenComments() {
         //language=java
@@ -1905,7 +1904,6 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                           when(config.getValue()).thenReturn(res);
 
                           String name = "mockedName";
-
                           when(config.getName()).thenReturn(name);
                       }
 

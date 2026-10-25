@@ -17,18 +17,20 @@ package org.openrewrite.java.testing.hamcrest;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 public class AssertThatBooleanToAssertJ extends Recipe {
     @Getter
-    final String displayName = "Migrate Hamcrest `assertThat(boolean, Matcher)` to AssertJ";
+    final String displayName = "Migrate Hamcrest `assertThat(String, boolean)` to AssertJ";
 
     @Getter
     final String description = "Replace Hamcrest `assertThat(String, boolean)` with AssertJ `assertThat(boolean).as(String).isTrue()`.";
@@ -37,7 +39,7 @@ public class AssertThatBooleanToAssertJ extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_THAT_MATCHER), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -54,6 +56,6 @@ public class AssertThatBooleanToAssertJ extends Recipe {
                 }
                 return mi;
             }
-        };
+        });
     }
 }

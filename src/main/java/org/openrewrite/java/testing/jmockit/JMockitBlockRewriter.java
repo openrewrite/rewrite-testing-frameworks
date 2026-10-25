@@ -25,6 +25,8 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Tree;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -38,6 +40,7 @@ import static org.openrewrite.java.testing.jmockit.JMockitUtils.getJavaParser;
 
 class JMockitBlockRewriter {
 
+    private static final MethodMatcher RETURNS_MATCHER = new MethodMatcher("mockit.Expectations returns(..)");
     private static final String WHEN_TEMPLATE_PREFIX = "when(#{any()}).";
     private static final String VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX = "verifyNoMoreInteractions(";
     private static final String VERIFY_IN_ORDER_TEMPLATE_PREFIX_1 = "InOrder inOrder";
@@ -124,12 +127,12 @@ class JMockitBlockRewriter {
                 if (select instanceof J.Identifier) {
                     J.Identifier mockObj = (J.Identifier) select;
                     // ensure it's not a returns statement, we add that later to related statements
-                    if (!"returns".equals(invocation.getName().getSimpleName())) {
+                    if (!RETURNS_MATCHER.matches(invocation)) {
                         methodInvocationIdx++;
                         methodInvocationsToRewrite.add(new ArrayList<>());
                     }
                     if ((isFullVerifications() || isVerificationsInOrder()) &&
-                            uniqueMocks.stream().noneMatch(mock -> mock.getSimpleName().equals(mockObj.getSimpleName()))) {
+                            uniqueMocks.stream().noneMatch(mock -> SemanticallyEqual.areEqual(mock, mockObj))) {
                         uniqueMocks.add(mockObj);
                     }
                 }
@@ -315,9 +318,7 @@ class JMockitBlockRewriter {
         }
 
         setNextStatementCoordinates(++numStatementsAdded);
-        // do this last making sure rewrite worked and specify onlyifReferenced=false because framework cannot find static
-        // reference for when method invocation when another static mockit reference is added
-        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when", false);
+        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when");
         if (lenient) {
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
         }
@@ -431,7 +432,7 @@ class JMockitBlockRewriter {
             setNextStatementCoordinates(++numStatementsAdded);
         }
 
-        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify", false);
+        visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verify");
         if (!verificationMode.isEmpty()) {
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, verificationMode);
         }
@@ -439,7 +440,7 @@ class JMockitBlockRewriter {
 
     private void rewriteFullVerify(List<Object> mocks) {
         if (rewriteMultipleMocks(mocks, VERIFY_NO_INTERACTIONS_TEMPLATE_PREFIX)) { // verifyNoMoreInteractions(mock1, mock2 ...
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verifyNoMoreInteractions", false);
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "verifyNoMoreInteractions");
         }
     }
 
@@ -450,7 +451,7 @@ class JMockitBlockRewriter {
         }
         sb.append(VERIFY_IN_ORDER_TEMPLATE_PREFIX_2); // InOrder inOrder1 = inOrder(
         if (rewriteMultipleMocks(mocks, sb.toString())) { // InOrder inOrder = inOrder(mock1, mock2 ..)
-            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "inOrder", false);
+            visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "inOrder");
             visitor.maybeAddImport(IN_ORDER_IMPORT_FQN);
         }
     }

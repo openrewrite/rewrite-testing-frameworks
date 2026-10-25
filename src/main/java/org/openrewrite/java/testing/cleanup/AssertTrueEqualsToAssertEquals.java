@@ -51,6 +51,7 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
                         maybeRemoveImport("org.junit.jupiter.api.Assertions");
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertEquals");
                     } else {
+                        maybeAddImport("org.junit.jupiter.api.Assertions");
                         sb.append("Assertions.");
                     }
                     J.MethodInvocation s = (J.MethodInvocation) mi.getArguments().get(0);
@@ -66,14 +67,12 @@ public class AssertTrueEqualsToAssertEquals extends Recipe {
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
-                                .imports("org.junit.jupiter.api.Assertions.assertEquals")
+                                .imports("org.junit.jupiter.api.Assertions")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     }

@@ -26,8 +26,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
-      name = "Adopt AssertJ Double Assertions",
-      description = "Adopt AssertJ Double Assertions. Favor semantically explicit methods (e.g. " +
+      name = "Adopt AssertJ `Double` assertions",
+      description = "Adopt AssertJ `Double` assertions. Favor semantically explicit methods (e.g. " +
             "`myDouble.isZero()` over `myDouble.isEqualTo(0.0)`)."
 )
 public class AssertJDoubleRules {

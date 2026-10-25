@@ -53,10 +53,10 @@ public class UpdateMockWebServer extends Recipe {
     private static final String AFTER_EACH_METHOD = "after-each-method";
 
     @Getter
-    final String displayName = "OkHttp 3.x `MockWebServer` `@Rule` To 4.x `MockWebServer`";
+    final String displayName = "OkHttp 3.x `MockWebServer` `@Rule` to 4.x `MockWebServer`";
 
     @Getter
-    final String description = "Replace usages of okhttp3 3.x `@Rule` MockWebServer with 4.x `MockWebServer`.";
+    final String description = "Replace usages of OkHttp 3.x `@Rule MockWebServer` with 4.x `MockWebServer`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -95,7 +95,6 @@ public class UpdateMockWebServer extends Recipe {
                                 for (Statement statement : cd.getBody().getStatements()) {
                                     if (statement == afterEachMethod) {
                                         cd = JavaTemplate.builder("#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
-                                                .contextSensitive()
                                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                                 .javaParser(JavaParser.fromJavaVersion()
                                                         .classpathFromResources(ctx,
@@ -112,7 +111,8 @@ public class UpdateMockWebServer extends Recipe {
                                     }
                                 }
 
-                                cd = autoFormat(cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+                                Cursor bodyCursor = new Cursor(getCursor(), cd.getBody());
+                                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                                     if (statement.isScope(afterEachMethod)) {
                                         J.MethodDeclaration method = (J.MethodDeclaration) statement;
                                         if (method.getBody() != null) {
@@ -129,10 +129,10 @@ public class UpdateMockWebServer extends Recipe {
                                                 maybeAddImport(IO_EXCEPTION_FQN);
                                             }
                                         }
-                                        statement = method;
+                                        statement = autoFormat(method, ctx, bodyCursor);
                                     }
                                     return statement;
-                                }))), ctx);
+                                })));
                             }
 
                             maybeRemoveImport("org.junit.Rule");
@@ -145,12 +145,8 @@ public class UpdateMockWebServer extends Recipe {
                         J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, ctx);
                         JavaType.FullyQualified fieldType = variableDeclarations.getTypeAsFullyQualified();
                         if (TypeUtils.isOfClassType(fieldType, "okhttp3.mockwebserver.MockWebServer")) {
-                            variableDeclarations = variableDeclarations.withLeadingAnnotations(ListUtils.map(variableDeclarations.getLeadingAnnotations(), annotation -> {
-                                if (RULE_MATCHER.matches(annotation)) {
-                                    return null;
-                                }
-                                return annotation;
-                            }));
+                            variableDeclarations = variableDeclarations.withLeadingAnnotations(ListUtils.filter(variableDeclarations.getLeadingAnnotations(), annotation ->
+                                    !RULE_MATCHER.matches(annotation)));
                             if (variableDeclarations.getLeadingAnnotations().isEmpty()) {
                                 variableDeclarations = variableDeclarations.withModifiers(Space.formatFirstPrefix(
                                         variableDeclarations.getModifiers(), Space.EMPTY));

@@ -15,12 +15,10 @@
 #
 
 ---
-
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.assertj.Assertj
 displayName: AssertJ best practices
 description: Migrates JUnit asserts to AssertJ and applies best practices to assertions.
-
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -94,6 +92,7 @@ recipeList:
   - org.openrewrite.java.testing.assertj.CollapseConsecutiveAssertThatStatements
   - org.openrewrite.java.testing.assertj.ReturnActual
   - org.openrewrite.java.testing.assertj.SimplifyRedundantAssertJChains
+  - org.openrewrite.java.testing.assertj.PlaceAssertJDescriptionBeforeAssertion
   - org.openrewrite.java.testing.assertj.MigrateAssertionsForClassAndInterfaceTypes
   - org.openrewrite.java.testing.assertj.StaticImports
 
@@ -592,8 +591,8 @@ recipeList:
       oldPackageName: org.fest.assertions.data
       newPackageName: org.assertj.core.data
   - org.openrewrite.java.dependencies.ChangeDependency:
-        oldGroupId: org.easytesting
-        oldArtifactId: fest-assert-core
-        newGroupId: org.assertj
-        newArtifactId: assertj-core
-        newVersion: 3.x
+      oldGroupId: org.easytesting
+      oldArtifactId: fest-assert-core
+      newGroupId: org.assertj
+      newArtifactId: assertj-core
+      newVersion: 3.x

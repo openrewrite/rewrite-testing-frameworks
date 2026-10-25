@@ -23,7 +23,9 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import static org.openrewrite.java.Assertions.java;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.java.Assertions.*;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class JUnit5BestPracticesTest implements RewriteTest {
 
@@ -227,6 +229,59 @@ class JUnit5BestPracticesTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void keepsMigrationSupportAddedForExternalResourceRule() {
+        rewriteRun(
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExternalResource;
+
+                  public class MyTest {
+                      @Rule
+                      public ExternalResource resource = new ExternalResource() {
+                      };
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual)
+                  .contains("@ExtendWith(ExternalResourceSupport.class)")
+                  .actual())
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .contains("<artifactId>junit-jupiter-migrationsupport</artifactId>")
+                .actual())
+            )
           )
         );
     }

@@ -519,6 +519,40 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
         );
     }
 
+    @Test
+    void integralActualKeepsNonZeroDelta() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class MyTest {
+                  void test(long elapsed, int count, int offset) {
+                      assertEquals(100, elapsed, 10);
+                      assertEquals(100, elapsed, 10, "Took too long");
+                      assertEquals(1.5, count, 0.5);
+                      assertEquals(5, count + offset, 1.0);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
+
+              class MyTest {
+                  void test(long elapsed, int count, int offset) {
+                      assertThat((float) elapsed).isCloseTo(100, within((float) 10));
+                      assertThat((float) elapsed).as("Took too long").isCloseTo(100, within((float) 10));
+                      assertThat((double) count).isCloseTo(1.5, within(0.5));
+                      assertThat((double) (count + offset)).isCloseTo(5, within(1.0));
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/492")
     @Test
     void nullArgumentAssertedOnNonNullArgument() {

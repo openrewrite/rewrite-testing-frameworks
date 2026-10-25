@@ -17,12 +17,14 @@ package org.openrewrite.java.testing.cleanup;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 
 public class AssertFalseNegationToAssertTrue extends Recipe {
@@ -38,7 +40,7 @@ public class AssertFalseNegationToAssertTrue extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_FALSE), new JavaVisitor<ExecutionContext>() {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -65,13 +67,11 @@ public class AssertFalseNegationToAssertTrue extends Recipe {
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .staticImports("org.junit.jupiter.api.Assertions.assertTrue")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .imports("org.junit.jupiter.api.Assertions")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
@@ -89,6 +89,6 @@ public class AssertFalseNegationToAssertTrue extends Recipe {
 
                 return false;
             }
-        };
+        });
     }
 }

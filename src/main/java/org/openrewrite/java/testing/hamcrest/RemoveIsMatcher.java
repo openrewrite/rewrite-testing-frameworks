@@ -37,7 +37,7 @@ public class RemoveIsMatcher extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(ASSERT_THAT_MATCHER), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(new UsesMethod<>(IS_MATCHER), new UsesMethod<>(ASSERT_THAT_MATCHER)), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
                 if (ASSERT_THAT_MATCHER.matches(mi)) {

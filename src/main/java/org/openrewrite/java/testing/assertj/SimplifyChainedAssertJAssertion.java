@@ -21,12 +21,14 @@ import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -38,6 +40,7 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNull;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -93,7 +96,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 new MethodMatcher("org.assertj.core.api.* overridingErrorMessage(..)")
         );
 
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(new UsesMethod<>(chainedAssertMatcher), new UsesMethod<>(assertToReplace)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
@@ -121,6 +124,10 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
                 J.MethodInvocation assertThatArg = (J.MethodInvocation) assertThat.getArguments().get(0);
                 if (!chainedAssertMatcher.matches(assertThatArg)) {
+                    return mi;
+                }
+                // Parameterized toString overloads have no equivalent hasToString assertion.
+                if ("toString".equals(chainedAssertion) && !(assertThatArg.getArguments().get(0) instanceof J.Empty)) {
                     return mi;
                 }
 
@@ -159,10 +166,17 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 arguments.add(actual);
 
                 String template = getStringTemplateAndAppendArguments(assertThatArg, mi, arguments);
-                J.MethodInvocation result = JavaTemplate.builder(String.format(template, dedicatedAssertion))
+                // The template calls the same assertThat as the replaced code
+                String assertions = requireNonNull(assertThat.getMethodType()).getDeclaringType().getFullyQualifiedName();
+                maybeAddImport(assertions, "assertThat");
+                JavaTemplate.Builder builder = JavaTemplate.builder(String.format(template, dedicatedAssertion))
                         .contextSensitive()
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"))
-                        .build()
+                        .staticImports(assertions + ".assertThat")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"));
+                if (template.contains("Path.of(")) {
+                    builder.imports("java.nio.file.Path");
+                }
+                J.MethodInvocation result = builder.build()
                         .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
 
                 // Splice intermediate methods (as, describedAs, etc.) back into the chain
@@ -216,6 +230,6 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
                 return "assertThat(#{any()}).%s(#{any()})";
             }
-        };
+        });
     }
 }

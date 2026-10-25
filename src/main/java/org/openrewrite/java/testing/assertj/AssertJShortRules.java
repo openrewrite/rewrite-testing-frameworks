@@ -25,8 +25,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
-      name = "Adopt AssertJ Short Assertions",
-      description = "Adopt AssertJ Short Assertions. Favor semantically explicit methods (e.g. " +
+      name = "Adopt AssertJ `Short` assertions",
+      description = "Adopt AssertJ `Short` assertions. Favor semantically explicit methods (e.g. " +
             "`myShort.isZero()` over `myShort.isEqualTo(0)`)."
 )
 public class AssertJShortRules {

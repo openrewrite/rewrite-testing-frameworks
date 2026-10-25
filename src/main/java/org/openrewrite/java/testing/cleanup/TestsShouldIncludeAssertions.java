@@ -60,6 +60,11 @@ public class TestsShouldIncludeAssertions extends Recipe {
             "reactor.test.StepVerifier"
     );
 
+    private static final List<MethodMatcher> ASSUMPTIONS = Arrays.asList(
+            new MethodMatcher("org.junit.jupiter.api.Assumptions *(..)"),
+            new MethodMatcher("org.junit.Assume *(..)")
+    );
+
     @Option(displayName = "Additional assertions",
             description = "A comma delimited list of packages and/or classes that will be identified as assertions. I.E. a common assertion utility `org.foo.TestUtil`.",
             example = "org.foo.TestUtil, org.bar",
@@ -69,7 +74,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
 
     String displayName = "Include an assertion in tests";
 
-    String description = "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`.";
+    String description = "For tests not having any assertions, wrap the statements with JUnit Jupiter's `Assertions#assertDoesNotThrow(..)`. Tests that make an assumption are left unchanged, as wrapping them would report a skipped test as a failure.";
 
     Set<String> tags = singleton("RSPEC-S2699");
 
@@ -154,19 +159,16 @@ public class TestsShouldIncludeAssertions extends Recipe {
         }
 
         private boolean methodHasAssertion(J.Block body) {
-            AtomicBoolean hasAssertion = new AtomicBoolean(Boolean.FALSE);
-            JavaIsoVisitor<AtomicBoolean> findAssertionVisitor = new JavaIsoVisitor<AtomicBoolean>() {
+            return new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
-                    J.MethodInvocation mi = super.visitMethodInvocation(method, atomicBoolean);
-                    if (isAssertion(mi)) {
-                        atomicBoolean.set(Boolean.TRUE);
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean hasAssertion) {
+                    J.MethodInvocation mi = super.visitMethodInvocation(method, hasAssertion);
+                    if (isAssertion(mi) || isAssumption(mi)) {
+                        hasAssertion.set(true);
                     }
                     return mi;
                 }
-            };
-            findAssertionVisitor.visit(body, hasAssertion);
-            return hasAssertion.get();
+            }.reduce(body, new AtomicBoolean()).get();
         }
 
         private boolean methodInvocationInBodyContainsAssertion() {
@@ -186,8 +188,7 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 }
             };
 
-            Set<MethodMatcher> methodMatchers = new HashSet<>();
-            findMethodDeclarationsVisitor.visit(classDeclaration, methodMatchers);
+            Set<MethodMatcher> methodMatchers = findMethodDeclarationsVisitor.reduce(classDeclaration, new HashSet<>());
             Set<J.Block> methodBodies = new HashSet<>();
 
             methodMatchers.forEach(matcher -> {
@@ -212,9 +213,11 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 }
             };
 
-            Set<J.Block> blocks = new HashSet<>();
-            findMethodDeclarationVisitor.visit(classDeclaration, blocks);
-            return blocks;
+            return findMethodDeclarationVisitor.reduce(classDeclaration, new HashSet<>());
+        }
+
+        private boolean isAssumption(J.MethodInvocation methodInvocation) {
+            return ASSUMPTIONS.stream().anyMatch(matcher -> matcher.matches(methodInvocation));
         }
 
         private boolean isAssertion(J.MethodInvocation methodInvocation) {

@@ -73,7 +73,7 @@ public class TestNgAssertThrowsToAssertThat extends Recipe {
                                     .apply(getCursor(), mi.getCoordinates().replace(), args.get(0));
                         }
 
-                        // assertThrows(Class, ThrowingRunnable) or expectThrows(Class, ThrowingRunnable)
+                        // assertThrows([String,] Class, ThrowingRunnable) or expectThrows([String,] Class, ThrowingRunnable)
                         Optional<Boolean> hasReturnType = hasReturnType();
                         if (!hasReturnType.isPresent()) {
                             return mi;
@@ -84,15 +84,20 @@ public class TestNgAssertThrowsToAssertThat extends Recipe {
                         maybeRemoveImport("org.testng.Assert.expectThrows");
                         maybeAddImport(ASSERTJ, "assertThatExceptionOfType");
 
-                        String code = "assertThatExceptionOfType(#{any(java.lang.Class)}).isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})";
+                        String code = "assertThatExceptionOfType(#{any(java.lang.Class<? extends java.lang.Throwable>)})";
+                        if (args.size() == 3) {
+                            code += ".as(#{any(java.lang.String)})";
+                        }
+                        code += ".isThrownBy(#{any(org.assertj.core.api.ThrowableAssert.ThrowingCallable)})";
                         if (hasReturnType.get()) {
                             code += ".actual()";
                         }
+                        Object[] templateArgs = args.size() == 3 ? new Object[]{args.get(1), args.get(0), args.get(2)} : new Object[]{args.get(0), args.get(1)};
                         return JavaTemplate.builder(code)
                                 .staticImports(ASSERTJ + ".assertThatExceptionOfType")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()
-                                .apply(getCursor(), mi.getCoordinates().replace(), args.get(0), args.get(1));
+                                .apply(getCursor(), mi.getCoordinates().replace(), templateArgs);
                     }
 
                     private Optional<Boolean> hasReturnType() {

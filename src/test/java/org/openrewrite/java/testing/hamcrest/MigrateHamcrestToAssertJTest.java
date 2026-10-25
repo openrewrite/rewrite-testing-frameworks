@@ -929,5 +929,32 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               )
             );
         }
+
+        @Test
+        void nestedMatchersAreNotPassedToAssertJ() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import java.util.List;
+                  import java.util.Map;
+
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.*;
+
+                  class A {
+                      void test(List<String> list, String[] array, Map<String, String> map) {
+                          assertThat(list, contains(equalTo("a"), startsWith("b")));
+                          assertThat(list, containsInAnyOrder(equalTo("a"), startsWith("b")));
+                          assertThat(list, hasItems(equalTo("a"), startsWith("b")));
+                          assertThat(list, not(hasItems(equalTo("a"), startsWith("b"))));
+                          assertThat(array, arrayContaining(equalTo("a"), startsWith("b")));
+                          assertThat(map, hasEntry(equalTo("a"), startsWith("b")));
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

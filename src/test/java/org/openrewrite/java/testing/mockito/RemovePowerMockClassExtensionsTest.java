@@ -81,4 +81,45 @@ class RemovePowerMockClassExtensionsTest implements RewriteTest {
               """
           ));
     }
+
+    @Test
+    void subclassOfOwnBaseClassKeepsExtension() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.powermock.modules.testng;
+
+              public class PowerMockTestCase {}
+              """
+          ),
+          java(
+            """
+              import org.powermock.modules.testng.PowerMockTestCase;
+
+              abstract class MyBaseTest extends PowerMockTestCase {
+                  protected int helper() {
+                      return 1;
+                  }
+              }
+              """,
+            """
+              abstract class MyBaseTest {
+                  protected int helper() {
+                      return 1;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class FooTest extends MyBaseTest {
+                  void test() {
+                      helper();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

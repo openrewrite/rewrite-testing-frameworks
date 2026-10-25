@@ -17,8 +17,10 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.tree.K;
@@ -27,16 +29,6 @@ import java.util.List;
 
 import static java.util.stream.Collectors.toList;
 
-/**
- * In Kotlin files, when both {@code import org.junit.jupiter.api.*} and static imports from
- * {@code org.junit.jupiter.api.Assertions} are present, the Kotlin compiler cannot resolve
- * which assertion method to use due to ambiguity between the Java static methods and the
- * Kotlin extension functions.
- * <p>
- * This recipe removes the static Assertions imports in Kotlin files when the wildcard import
- * {@code org.junit.jupiter.api.*} is present, allowing the Kotlin extension functions to be
- * used instead. The Kotlin extensions have better nullability handling for Kotlin code.
- */
 public class CleanupKotlinJUnit5AssertionImports extends Recipe {
 
     @Getter
@@ -50,7 +42,7 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new KotlinIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("org.junit.jupiter.api.Assertions", false), new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
                 // Check if there's a wildcard import for org.junit.jupiter.api.*
@@ -89,6 +81,6 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
 
                 return cu.withImports(filteredImports);
             }
-        };
+        });
     }
 }

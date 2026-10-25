@@ -50,6 +50,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
     private static final String MOCKITO_EXTENSION = "org.mockito.junit.jupiter.MockitoExtension";
     private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";
     private static final String JUPITER_BEFORE_EACH = "org.junit.jupiter.api.BeforeEach";
+    private static final String EXCEPTION_CLASS_NAME = "java.lang.Exception";
     private static final AnnotationMatcher BEFORE_EACH_MATCHER = new AnnotationMatcher("@" + JUPITER_BEFORE_EACH);
     private static final AnnotationMatcher AFTER_EACH_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.AfterEach");
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
@@ -79,7 +80,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                             }
                             J.ClassDeclaration after = JavaTemplate.apply("private AutoCloseable " + variableName + ";",
                                     getCursor(), cd.getBody().getCoordinates().firstStatement());
-                            return maybeAutoFormat(cd, after, ctx);
+                            return MockitoUtils.separateAddedMembers(cd, after);
                         }
                         return cd;
                     }
@@ -103,8 +104,6 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                     }
 
                     final TreeVisitor<J, ExecutionContext> updateJUnitLifecycleMethods = new JavaIsoVisitor<ExecutionContext>() {
-
-                        private final String EXCEPTION_CLASS_NAME = "java.lang.Exception";
 
                         private boolean isAnnotatedMethodPresent(J.ClassDeclaration cd, AnnotationMatcher beforeEachMatcher) {
                             return cd.getBody().getStatements().stream().anyMatch(
@@ -135,12 +134,7 @@ public class ReplaceInitMockToOpenMock extends Recipe {
                                 }
                             }
 
-                            cd = super.visitClassDeclaration(cd, ctx);
-                            if (getCursor().firstEnclosing(K.CompilationUnit.class) != null) {
-                                // Do not autoformat the whole class, as the Kotlin formatter would reformat unrelated code
-                                return cd;
-                            }
-                            return autoFormat(cd, ctx);
+                            return super.visitClassDeclaration(cd, ctx);
                         }
 
                         @Override

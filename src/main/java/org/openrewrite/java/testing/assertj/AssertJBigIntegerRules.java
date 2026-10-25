@@ -27,8 +27,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
-      name = "Adopt AssertJ BigInteger Assertions",
-      description = "Adopt AssertJ BigInteger Assertions. Favor semantically explicit methods (e.g. " +
+      name = "Adopt AssertJ `BigInteger` assertions",
+      description = "Adopt AssertJ `BigInteger` assertions. Favor semantically explicit methods (e.g. " +
             "`myBigInteger.isZero()` over `myBigInteger.isEqualTo(0)`)."
 )
 public class AssertJBigIntegerRules {

@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -74,7 +75,8 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
 
-              import static org.junit.jupiter.api.Assertions.*;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.fail;
 
               public class MathTest {
                   protected long value1;
@@ -176,6 +178,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   protected long value2;
 
                   @BeforeEach
+                  @Override
                   public void setUp() {
                       value1 = 2;
                       value2 = 3;
@@ -188,6 +191,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
 
                   @AfterEach
+                  @Override
                   public void tearDown() {
                       value1 = 0;
                       value2 = 0;
@@ -420,6 +424,287 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   @Test
                   public void testApp() {
                       assertTrue(true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeOverrideWhenAlreadyAnnotatedWithBefore() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              import org.junit.Before;
+
+              public class MathTest extends TestCase {
+                  protected long value1;
+
+                  @Override
+                  @Before
+                  public void setUp() {
+                      value1 = 2;
+                  }
+
+                  public void testAdd() {
+                      assertEquals(2, value1);
+                  }
+              }
+              """,
+            """
+              import org.junit.Before;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MathTest {
+                  protected long value1;
+
+                  @Before
+                  public void setUp() {
+                      value1 = 2;
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, value1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeOverrideFromOtherTestCaseMethods() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class MathTest extends TestCase {
+                  @Override
+                  public String getName() {
+                      return "math";
+                  }
+
+                  @Override
+                  public int countTestCases() {
+                      return 1;
+                  }
+
+                  public void testAdd() {
+                      assertEquals(2, 2);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MathTest {
+                  public String getName() {
+                      return "math";
+                  }
+
+                  public int countTestCases() {
+                      return 1;
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, 2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainOverrideOfObjectMethods() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class MathTest extends TestCase {
+                  @Override
+                  public String toString() {
+                      return "math";
+                  }
+
+                  @Override
+                  public boolean equals(Object other) {
+                      return other instanceof MathTest;
+                  }
+
+                  @Override
+                  public int hashCode() {
+                      return 42;
+                  }
+
+                  public void testAdd() {
+                      assertEquals(2, 2);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MathTest {
+                  @Override
+                  public String toString() {
+                      return "math";
+                  }
+
+                  @Override
+                  public boolean equals(Object other) {
+                      return other instanceof MathTest;
+                  }
+
+                  @Override
+                  public int hashCode() {
+                      return 42;
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, 2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainOverrideOfInterfaceMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.abc;
+              public interface Named {
+                  String describe();
+              }
+              """
+          ),
+          java(
+            """
+              package com.abc;
+              import junit.framework.TestCase;
+
+              public class MathTest extends TestCase implements Named {
+                  @Override
+                  public String describe() {
+                      return "math";
+                  }
+
+                  public void testAdd() {
+                      assertEquals(2, 2);
+                  }
+              }
+              """,
+            """
+              package com.abc;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class MathTest implements Named {
+                  @Override
+                  public String describe() {
+                      return "math";
+                  }
+
+                  @Test
+                  public void testAdd() {
+                      assertEquals(2, 2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainOverrideInAnonymousClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class MathTest extends TestCase {
+                  @Override
+                  public void setUp() {
+                      Runnable runnable = new Runnable() {
+                          @Override
+                          public void run() {
+                          }
+                      };
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class MathTest {
+                  @BeforeEach
+                  public void setUp() {
+                      Runnable runnable = new Runnable() {
+                          @Override
+                          public void run() {
+                          }
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1114")
+    @Test
+    void skipTestCaseOverridingRun() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.AssertionFailedError;
+              import junit.framework.TestCase;
+              import junit.framework.TestResult;
+
+              public class MultiThreadedTest extends TestCase {
+
+                  private TestResult testResult = null;
+
+                  @Override
+                  public void run(TestResult result) {
+                      this.testResult = result;
+                      super.run(result);
+                  }
+
+                  public void handleException(Throwable t) {
+                      if (t instanceof AssertionFailedError) {
+                          testResult.addFailure(this, (AssertionFailedError) t);
+                      } else {
+                          testResult.addError(this, t);
+                      }
+                  }
+
+                  public void testSomething() {
+                      assertEquals(2, 1 + 1);
                   }
               }
               """

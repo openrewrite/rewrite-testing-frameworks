@@ -25,8 +25,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
-      name = "Adopt AssertJ Integer Assertions",
-      description = "Adopt AssertJ Integer Assertions. Favor semantically explicit methods (e.g. " +
+      name = "Adopt AssertJ `Integer` assertions",
+      description = "Adopt AssertJ `Integer` assertions. Favor semantically explicit methods (e.g. " +
             "`myInteger.isZero()` over `myInteger.isEqualTo(0)`)."
 )
 public class AssertJIntegerRules {

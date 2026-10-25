@@ -49,10 +49,10 @@ public class JMockitMockUpToMockito extends Recipe {
     private static final String MOCKITO_CONSTRUCTION_IMPORT = "org.mockito.MockedConstruction";
 
     @Getter
-    final String displayName = "Rewrite JMockit MockUp to Mockito statements";
+    final String displayName = "Rewrite JMockit `MockUp` to Mockito statements";
 
     @Getter
-    final String description = "Rewrites JMockit `MockUp` blocks to Mockito statements. This recipe will not rewrite private methods in MockUp.";
+    final String description = "Rewrites JMockit `MockUp` blocks that are statements in a method body to Mockito `mockStatic` and `mockConstructionWithAnswer` calls. `@Mock` methods that fake a private method can not be stubbed with Mockito and are dropped.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -261,8 +261,8 @@ public class JMockitMockUpToMockito extends Recipe {
                     }
 
                     maybeAddImport(MOCKITO_CONSTRUCTION_IMPORT);
-                    maybeAddImport("org.mockito.Answers", "CALLS_REAL_METHODS", false);
-                    maybeAddImport("org.mockito.AdditionalAnswers", "delegatesTo", false);
+                    maybeAddImport("org.mockito.Answers", "CALLS_REAL_METHODS");
+                    maybeAddImport("org.mockito.AdditionalAnswers", "delegatesTo");
                 }
 
                 List<Statement> statements = md.getBody().getStatements();
@@ -300,15 +300,17 @@ public class JMockitMockUpToMockito extends Recipe {
 
             maybeRemoveImport(JMOCKIT_MOCK_IMPORT);
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
-            maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*", false);
+            maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*");
 
-            doAfterVisit(new LambdaBlockToExpression().getVisitor());
+            if (md != methodDecl) {
+                md = (J.MethodDeclaration) new LambdaBlockToExpression().getVisitor().visitNonNull(md, ctx, getCursor().getParentOrThrow());
+            }
             doAfterVisit(ShortenFullyQualifiedTypeReferences.modifyOnly(md));
             return maybeAutoFormat(methodDecl, md, ctx);
         }
 
         private String getMatcher(JavaType s) {
-            maybeAddImport(MOCKITO_MATCHER_IMPORT.replace(".*", ""), "*", false);
+            maybeAddImport(MOCKITO_MATCHER_IMPORT.replace(".*", ""), "*");
             if (s instanceof JavaType.Primitive) {
                 switch (s.toString()) {
                     case "int":
@@ -336,8 +338,7 @@ public class JMockitMockUpToMockito extends Recipe {
         }
 
         private String getAnswerBody(J.MethodDeclaration md) {
-            Set<String> usedVariables = new HashSet<>();
-            new JavaIsoVisitor<Set<String>>() {
+            Set<String> usedVariables = new JavaIsoVisitor<Set<String>>() {
                 @Override
                 public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> ctx) {
                     Cursor scope = getCursor().dropParentUntil(is -> is instanceof J.ClassDeclaration || is instanceof J.Block || is instanceof J.MethodDeclaration || is instanceof J.ForLoop || is instanceof J.ForEachLoop || is instanceof J.ForLoop.Control || is instanceof J.ForEachLoop.Control || is instanceof J.Case || is instanceof J.Try || is instanceof J.Try.Resource || is instanceof J.Try.Catch || is instanceof J.MultiCatch || is instanceof J.Lambda || is instanceof JavaSourceFile);
@@ -346,7 +347,7 @@ public class JMockitMockUpToMockito extends Recipe {
                     }
                     return super.visitVariable(variable, ctx);
                 }
-            }.visit(md, usedVariables);
+            }.reduce(md, new HashSet<>());
 
             StringBuilder sb = new StringBuilder();
             List<Statement> parameters = md.getParameters();

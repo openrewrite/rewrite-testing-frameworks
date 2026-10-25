@@ -429,6 +429,66 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void ignoreJupiterAssumption() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assumptions.assumeTrue;
+              class AaTest {
+                  @Test
+                  void onLinux() {
+                      assumeTrue(System.getProperty("os.name").contains("Linux"));
+                      System.out.println("start");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreJUnit4Assume() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Assume;
+              import org.junit.jupiter.api.Test;
+              class AaTest {
+                  @Test
+                  void onLinux() {
+                      Assume.assumeTrue(System.getProperty("os.name").contains("Linux"));
+                      System.out.println("start");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreAssertJAssumption() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.assertj.core.api.Assumptions.assumeThat;
+              class AaTest {
+                  @Test
+                  void onLinux() {
+                      assumeThat(System.getProperty("os.name")).contains("Linux");
+                      System.out.println("start");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void ignoreEmpty() {
         //language=java
         rewriteRun(

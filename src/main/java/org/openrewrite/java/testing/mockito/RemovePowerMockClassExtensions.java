@@ -55,7 +55,7 @@ public class RemovePowerMockClassExtensions extends Recipe {
 
                     private J.ClassDeclaration maybeRemoveExtension(J.ClassDeclaration classDecl, String extensionFQN) {
                         TypeTree extension = classDecl.getExtends();
-                        if (extension != null && TypeUtils.isAssignableTo(extensionFQN, extension.getType())) {
+                        if (extension != null && TypeUtils.isOfClassType(extension.getType(), extensionFQN)) {
                             classDecl = classDecl.withExtends(null);
                             maybeRemoveImport(extensionFQN);
                         }

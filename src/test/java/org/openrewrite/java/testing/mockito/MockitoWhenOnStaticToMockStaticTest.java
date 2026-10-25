@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -25,6 +26,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
 
+import static org.junit.jupiter.api.condition.JRE.JAVA_25;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
@@ -166,6 +168,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @EnabledForJreRange(min = JAVA_25)
     @Test
     void shouldRenameUnnamedVariableWhenReusingWrappingMockedStatic() {
         rewriteRun(
@@ -209,6 +212,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
         );
     }
 
+    @EnabledForJreRange(min = JAVA_25)
     @Test
     void shouldRenameMultipleUnnamedVariablesIndividually() {
         rewriteRun(
@@ -450,6 +454,258 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
                   void tearDown() {
                       assertEquals(A.getNumber(), -1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsThenAnswer() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenAnswer(invocation -> -1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenAnswer(invocation -> -1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsThenThrow() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenThrow(new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsAllConsecutiveReturnValues() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1, -2, -3);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1, -2, -3);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsThenCallRealMethodWithoutArguments() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenCallRealMethod();
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenCallRealMethod();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsStubbingMethodWhenReusingMockedStatic() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                      when(A.getNumber()).thenThrow(new IllegalStateException());
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          mockA1.when(() -> A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importsClassOfStaticallyImportedMethod() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> getNumber()).thenReturn(-1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importsClassOfStaticallyImportedMethodStubbedInBefore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Before;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  @Before
+                  public void setUp() {
+                      when(getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.junit.After;
+              import org.junit.Before;
+              import org.mockito.MockedStatic;
+
+              import static org.example.A.getNumber;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  private MockedStatic<A> mockA1;
+
+                  @Before
+                  public void setUp() {
+                      mockA1 = mockStatic(A.class);
+                      mockA1.when(() -> getNumber()).thenReturn(-1);
+                  }
+
+                  @After
+                  public void tearDown() {
+                      mockA1.close();
                   }
               }
               """
@@ -955,6 +1211,51 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
                       void test1() {
                           assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void retainsThenThrow_inBeforeEach() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import org.example.A;
+                  import org.junit.jupiter.api.BeforeEach;
+
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      @BeforeEach
+                      public void setUp() {
+                          when(A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+                  }
+                  """,
+                """
+                  import org.example.A;
+                  import org.junit.jupiter.api.AfterEach;
+                  import org.junit.jupiter.api.BeforeEach;
+                  import org.mockito.MockedStatic;
+
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      private MockedStatic<A> mockA1;
+
+                      @BeforeEach
+                      public void setUp() {
+                          mockA1 = mockStatic(A.class);
+                          mockA1.when(() -> A.getNumber()).thenThrow(new IllegalStateException());
+                      }
+
+                      @AfterEach
+                      public void tearDown() {
+                          mockA1.close();
                       }
                   }
                   """
@@ -2167,6 +2468,45 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
+    void shouldRetainKotlinStubbingMethodOtherThanThenReturn() {
+        rewriteRun(
+          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.`when`
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      mockStatic(Calendar::class.java).use {
+                          `when`(Calendar.getInstance()).thenThrow(IllegalStateException())
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test
+              import org.mockito.Mockito.mockStatic
+              import java.util.Calendar
+
+              class MyTest {
+                  @Test
+                  fun testStaticMethod() {
+                      mockStatic(Calendar::class.java).use {
+                          it.`when`<Calendar> { Calendar.getInstance() }.thenThrow(IllegalStateException())
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void shouldNotRewriteKotlinMockitoWhenWhenStaticClassDoesNotMatchUseReceiver() {
         rewriteRun(
           spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
@@ -2185,6 +2525,218 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                       mockStatic(Calendar::class.java).use {
                           `when`(UUID.randomUUID()).thenReturn(UUID.randomUUID())
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leavesStaticStubbingOnPowerMockStaticMocksAlone() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "mockito-core-3.12",
+              "powermock-api-mockito-1",
+              "powermock-core-1",
+              "powermock-module-junit4")
+            //language=java
+            .dependsOn(
+              """
+                package org.example;
+                public class A {
+                    public static Integer getNumber() {
+                        return 42;
+                    }
+                }
+                """
+            )),
+          //language=java
+          java(
+            """
+              import org.example.A;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static org.mockito.Mockito.when;
+              import static org.powermock.api.mockito.PowerMockito.mockStatic;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(A.class)
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      mockStatic(A.class);
+                      when(A.getNumber()).thenReturn(-1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsWhenOnExistingStaticMockOfMethodThrowingCheckedException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  static class Files {
+                      static String read() throws IOException {
+                          return "";
+                      }
+                  }
+
+                  private MockedStatic<Files> mockedFiles;
+
+                  void test() {
+                      try {
+                          when(Files.read()).thenThrow(new IOException());
+                      } catch (IOException e) {
+                          throw new AssertionError(e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsWhenInsideTryWithResourcesStaticMockOfMethodThrowingCheckedException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  static class Files {
+                      static String read() throws IOException {
+                          return "";
+                      }
+                  }
+
+                  void test() {
+                      try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
+                          try {
+                              when(Files.read()).thenThrow(new IOException());
+                          } catch (IOException e) {
+                              throw new AssertionError(e);
+                          }
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsWhenInBeforeOnExistingStaticMockOfMethodThrowingCheckedException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+
+              import org.junit.After;
+              import org.junit.Before;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mockStatic;
+
+              class Test {
+                  static class Files {
+                      static String read() throws IOException {
+                          return "";
+                      }
+                  }
+
+                  private MockedStatic<Files> mockedFiles;
+
+                  @Before
+                  public void setUp() throws Exception {
+                      mockedFiles = mockStatic(Files.class);
+                      Mockito.when(Files.read()).thenReturn("stubbed");
+                  }
+
+                  @After
+                  public void tearDown() {
+                      mockedFiles.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void reusesExistingStaticMockInBefore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+              import org.junit.After;
+              import org.junit.Before;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mockStatic;
+
+              class Test {
+                  private MockedStatic<A> mockedA;
+
+                  @Before
+                  public void setUp() {
+                      mockedA = mockStatic(A.class);
+                      Mockito.when(A.getNumber()).thenReturn(-1);
+                  }
+
+                  @After
+                  public void tearDown() {
+                      mockedA.close();
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.junit.After;
+              import org.junit.Before;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.mockStatic;
+
+              class Test {
+                  private MockedStatic<A> mockedA;
+
+                  @Before
+                  public void setUp() {
+                      mockedA = mockStatic(A.class);
+                      mockedA.when(() -> A.getNumber()).thenReturn(-1);
+                  }
+
+                  @After
+                  public void tearDown() {
+                      mockedA.close();
                   }
               }
               """

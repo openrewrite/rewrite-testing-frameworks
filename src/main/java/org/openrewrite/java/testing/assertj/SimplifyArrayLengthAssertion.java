@@ -30,6 +30,8 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
+import static java.util.Objects.requireNonNull;
+
 public class SimplifyArrayLengthAssertion extends Recipe {
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -107,8 +109,12 @@ public class SimplifyArrayLengthAssertion extends Recipe {
 
                         Object[] parameters = secondArgument == null ?
                                 new Object[]{array} : new Object[]{array, secondArgument};
+                        // The template calls the same assertThat as the replaced code
+                        String assertions = requireNonNull(assertThat.getMethodType()).getDeclaringType().getFullyQualifiedName();
+                        maybeAddImport(assertions, "assertThat");
                         return JavaTemplate.builder(template)
                                 .contextSensitive()
+                                .staticImports(assertions + ".assertThat")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), parameters);

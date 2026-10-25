@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -83,6 +84,7 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
 
         final String hamcrest, junitPositive, junitNegative, template, kotlinTemplate;
         final String argumentsMethod;
+        final MethodMatcher matcher;
 
         Replacement(String hamcrest, String junitPositive, String junitNegative, String template, String argumentsMethod) {
             this(hamcrest, junitPositive, junitNegative, template, template, argumentsMethod);
@@ -95,6 +97,16 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
             this.template = template;
             this.kotlinTemplate = kotlinTemplate;
             this.argumentsMethod = argumentsMethod;
+            this.matcher = new MethodMatcher("org.hamcrest..* " + hamcrest + "(..)");
+        }
+
+        static @Nullable Replacement of(J.MethodInvocation matcherInvocation) {
+            for (Replacement replacement : values()) {
+                if (replacement.matcher.matches(matcherInvocation)) {
+                    return replacement;
+                }
+            }
+            return null;
         }
 
         private static final Map<String, BiFunction<Expression, J.MethodInvocation, List<Expression>>> methods = new HashMap<>();
@@ -152,7 +164,9 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                     J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
                     maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
 
+                    boolean logicalContext = true;
                     while (RemoveNotMatcherVisitor.NOT_MATCHER.matches(matcherInvocation)) {
+                        logicalContext = !logicalContext;
                         maybeRemoveImport("org.hamcrest.Matchers.not");
                         maybeRemoveImport("org.hamcrest.CoreMatchers.not");
                         matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx, getCursor());
@@ -165,12 +179,8 @@ public class HamcrestMatcherToJUnit5 extends Recipe {
                         }
                     }
 
-                    boolean logicalContext = RemoveNotMatcherVisitor.getLogicalContext(matcherInvocation, ctx);
-
-                    Replacement replacement;
-                    try {
-                        replacement = Replacement.valueOf(matcherInvocation.getSimpleName().toUpperCase());
-                    } catch (IllegalArgumentException e) {
+                    Replacement replacement = Replacement.of(matcherInvocation);
+                    if (replacement == null) {
                         return mi;
                     }
                     boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;

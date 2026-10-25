@@ -18,7 +18,7 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit.JUnit6BestPractices
 displayName: JUnit 6 best practices
-description: Applies best practices to tests.
+description: Migrates JUnit 5 tests to JUnit 6 and applies the JUnit Jupiter best practices.
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -39,6 +39,10 @@ tags:
   - jupiter
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.testng
+      artifactIdPattern: testng*
+      invertMarking: true
   - org.openrewrite.java.search.DoesNotUseType:
       fullyQualifiedTypeName: org.testng..*
       includeImplicit: true
@@ -55,9 +59,7 @@ recipeList:
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.junit.platform
       artifactId: junit-platform-suite-commons
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: org.junit.jupiter
-      artifactId: junit-jupiter-migrationsupport
+  - org.openrewrite.java.testing.junit.RemoveJupiterMigrationSupport
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.junit
       artifactId: junit-bom
@@ -89,7 +91,7 @@ recipeList:
   - org.openrewrite.java.testing.junit6.MinimumJreConditions:
       javaVersion: 17
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.junit.jupiter.api.extension.ExtensionContext.Store getOrComputeIfAbsent((..))
+      methodPattern: org.junit.jupiter.api.extension.ExtensionContext.Store getOrComputeIfAbsent(..)
       newMethodName: computeIfAbsent
       matchOverrides: true
       ignoreDefinition: true
@@ -102,7 +104,6 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.junit.platform.testkit.engine.Executions started()
       newMethodName: finished
-      matchOverrides: false
       ignoreDefinition: true
   - org.openrewrite.properties.DeleteProperty:
       propertyKey: junit.jupiter.tempdir.scope

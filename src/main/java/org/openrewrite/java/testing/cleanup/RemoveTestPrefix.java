@@ -76,6 +76,12 @@ public class RemoveTestPrefix extends Recipe {
 
         private static final AnnotationMatcher ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.MethodSource");
         private static final String STATIC_IMPORTS = "STATIC_IMPORTS";
+        private static final List<AnnotationMatcher> JUNIT5_TEST_ANNOTATIONS = Arrays.asList(
+                new AnnotationMatcher("@org.junit.jupiter.api.Test"),
+                new AnnotationMatcher("@org.junit.jupiter.api.RepeatedTest"),
+                new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"),
+                new AnnotationMatcher("@org.junit.jupiter.api.TestFactory"),
+                new AnnotationMatcher("@org.junit.jupiter.api.TestTemplate"));
 
         @Override
         public J.Import visitImport(J.Import _import, ExecutionContext ctx) {
@@ -93,7 +99,6 @@ public class RemoveTestPrefix extends Recipe {
                                                           ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
-            // Quickly reject invalid methods
             String simpleName = method.getSimpleName();
             int nameLength = simpleName.length();
             if (nameLength < 5 ||
@@ -104,7 +109,6 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Reject invalid start character
             boolean snakecase = simpleName.charAt(4) == '_' &&
                     5 < nameLength &&
                     Character.isAlphabetic(simpleName.charAt(5));
@@ -112,7 +116,6 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Avoid reserved keywords
             String newMethodName = snakecase ?
                     NameCaseConvention.format(NameCaseConvention.LOWER_UNDERSCORE, simpleName.substring(5)) :
                     NameCaseConvention.format(NameCaseConvention.LOWER_CAMEL, simpleName.substring(4));
@@ -120,7 +123,6 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Prevent conflicts with existing methods
             JavaType.Method type = m.getMethodType();
             if (type == null || methodExists(type, newMethodName)) {
                 return m;
@@ -141,12 +143,10 @@ public class RemoveTestPrefix extends Recipe {
                     for (JavaType.Method declaredMethod : declaringType.getMethods()) {
                         if (declaredMethod.getName().equals(simpleName) &&
                                 declaredMethod.hasFlags(Flag.Static)) {
-                            // Check for conflict with source method's new name
                             if (TypeUtils.findDeclaredMethod(declaringType, newMethodName,
                                     declaredMethod.getParameterTypes()).isPresent()) {
                                 return m;
                             }
-                            // Rename the source method too
                             doAfterVisit(new ChangeMethodName(
                                     MethodMatcher.methodPattern(declaredMethod),
                                     newMethodName, false, false).getVisitor());
@@ -156,27 +156,24 @@ public class RemoveTestPrefix extends Recipe {
                 }
             }
 
-            // Skip when there's a conflicting static import
             if (getCursor().getNearestMessage(STATIC_IMPORTS, new HashSet<>()).contains(newMethodName)) {
                 return m;
             }
 
             // Skip when calling a similarly named method
-            AtomicBoolean skip = new AtomicBoolean(false);
-            new JavaIsoVisitor<AtomicBoolean>() {
+            AtomicBoolean skip = new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
                     if (method.getName().getSimpleName().equals(newMethodName) && method.getSelect() == null) {
-                        skip.set(true);
+                        found.set(true);
                     }
-                    return super.visitMethodInvocation(method, atomicBoolean);
+                    return super.visitMethodInvocation(method, found);
                 }
-            }.visit(m, skip, getCursor().getParentTreeCursor());
+            }.reduce(m, new AtomicBoolean(), getCursor().getParentTreeCursor());
             if (skip.get()) {
                 return m;
             }
 
-            // Rename method and return
             doAfterVisit(new ChangeMethodName(MethodMatcher.methodPattern(m), newMethodName, false, false).getVisitor());
             return m;
         }
@@ -187,12 +184,10 @@ public class RemoveTestPrefix extends Recipe {
 
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")) {
-                    return true;
+                for (AnnotationMatcher matcher : JUNIT5_TEST_ANNOTATIONS) {
+                    if (matcher.matches(a)) {
+                        return true;
+                    }
                 }
             }
             return false;

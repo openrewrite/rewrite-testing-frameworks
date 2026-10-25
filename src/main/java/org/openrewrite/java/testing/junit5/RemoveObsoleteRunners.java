@@ -18,8 +18,9 @@ package org.openrewrite.java.testing.junit5;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.RemoveAnnotation;
+import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
@@ -33,9 +34,9 @@ public class RemoveObsoleteRunners extends Recipe {
             example = "org.junit.runners.JUnit4")
     List<String> obsoleteRunners;
 
-    String displayName = "Remove JUnit 4 `@RunWith` annotations that do not require an `@ExtendsWith` replacement";
+    String displayName = "Remove JUnit 4 `@RunWith` annotations that do not require an `@ExtendWith` replacement";
 
-    String description = "Some JUnit 4 `@RunWith` annotations do not require replacement with an equivalent JUnit Jupiter `@ExtendsWith` annotation. " +
+    String description = "Some JUnit 4 `@RunWith` annotations do not require replacement with an equivalent JUnit Jupiter `@ExtendWith` annotation. " +
                 "This can be used to remove those runners that either do not have a JUnit Jupiter equivalent or do not require a replacement as part of JUnit 4 to 5 migration.";
 
     @Override
@@ -49,13 +50,13 @@ public class RemoveObsoleteRunners extends Recipe {
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = classDecl;
             for (String runner : obsoleteRunners) {
-                //noinspection ConstantConditions
-                doAfterVisit(new RemoveAnnotation("@org.junit.runner.RunWith(" + runner + ".class)").getVisitor());
+                cd = (J.ClassDeclaration) new RemoveAnnotationVisitor(new AnnotationMatcher("@org.junit.runner.RunWith(" + runner + ".class)")).visitNonNull(cd, ctx, getCursor().getParentOrThrow());
                 maybeRemoveImport(runner);
             }
             maybeRemoveImport("org.junit.runner.RunWith");
-            return classDecl;
+            return cd;
         }
     }
 }

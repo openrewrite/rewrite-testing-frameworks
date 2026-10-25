@@ -19,6 +19,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -129,6 +130,9 @@ class ArgumentMatchersRewriter {
         String argumentMatcher = null, template = null;
         List<Object> templateParams = new ArrayList<>();
         JavaType type = methodArgument.getType();
+        if (methodArgument instanceof J.TypeCast && isJmockitArgumentMatcher(methodArgument)) {
+            maybeRemoveImportsOf(((J.TypeCast) methodArgument).getClazz());
+        }
         if (type == JavaType.Primitive.Null) {
             // null to isNull()
             argumentMatcher = "isNull";
@@ -159,6 +163,20 @@ class ArgumentMatchersRewriter {
             return methodArgument;
         }
         return applyArgumentTemplate(methodArgument, argumentMatcher, template, templateParams);
+    }
+
+    // The matcher replacing a cast names at most the cast's raw type, so its other types may be left unused
+    private void maybeRemoveImportsOf(J castType) {
+        new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                JavaType.FullyQualified fq = TypeUtils.asFullyQualified(identifier.getType());
+                if (fq != null) {
+                    visitor.maybeRemoveImport(fq);
+                }
+                return identifier;
+            }
+        }.visit(castType, 0);
     }
 
     private Expression applyArgumentTemplate(Expression methodArgument, String argumentMatcher, String template,
@@ -257,6 +275,8 @@ class ArgumentMatchersRewriter {
             return false;
         }
         J.Identifier identifier = (J.Identifier) expression;
-        return JMOCKIT_ARGUMENT_MATCHERS.contains(identifier.getSimpleName());
+        return JMOCKIT_ARGUMENT_MATCHERS.contains(identifier.getSimpleName()) &&
+                identifier.getFieldType() != null &&
+                TypeUtils.isOfClassType(identifier.getFieldType().getOwner(), "mockit.Invocations");
     }
 }

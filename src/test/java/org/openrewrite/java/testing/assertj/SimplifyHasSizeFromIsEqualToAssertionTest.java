@@ -67,6 +67,35 @@ class SimplifyHasSizeFromIsEqualToAssertionTest implements RewriteTest {
     }
 
     @Test
+    void fullyQualifiedAssertThat() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              class MyTest {
+                  void testMethod(List<String> predecessors) {
+                      org.assertj.core.api.Assertions.assertThat(4).isEqualTo(predecessors.size());
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> predecessors) {
+                      assertThat(predecessors).hasSize(4);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void chainedIterableSize() {
         rewriteRun(
           //language=java
@@ -290,6 +319,41 @@ class SimplifyHasSizeFromIsEqualToAssertionTest implements RewriteTest {
               class MyTest {
                   void testMethod(List<String> list) {
                       assertThat(-1).isEqualTo(list.size());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void collectionOfClassDeclaredInTestFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(2).isEqualTo(items.size());
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(items).hasSize(2);
                   }
               }
               """

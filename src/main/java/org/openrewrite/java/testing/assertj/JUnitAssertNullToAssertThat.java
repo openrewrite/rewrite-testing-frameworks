@@ -51,7 +51,7 @@ public class JUnitAssertNullToAssertThat extends Recipe {
                 }
 
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
                 List<Expression> args = mi.getArguments();
                 Expression actual = args.get(0);

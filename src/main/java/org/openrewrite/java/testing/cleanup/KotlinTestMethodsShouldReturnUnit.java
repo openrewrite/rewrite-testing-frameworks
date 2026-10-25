@@ -16,19 +16,22 @@
 package org.openrewrite.java.testing.cleanup;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinVisitor;
-import org.openrewrite.kotlin.marker.KObject;
 import org.openrewrite.kotlin.marker.SingleExpressionBlock;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.kotlin.tree.KotlinTypeUtils;
 import org.openrewrite.marker.Markers;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 
@@ -51,18 +54,19 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
     @Getter
     final String description = "Kotlin test methods annotated with `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestTemplate` " +
             "should have `Unit` return type. Other return types can cause test discovery issues, " +
-            "and warnings as of JUnit 5.13+. This recipe changes the return type to `Unit` and removes `return` statements.";
+            "and warnings as of JUnit 5.13+. This recipe changes the return type to `Unit` and drops the returned values. Test methods that override a method or are called elsewhere in the same file are left unchanged.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true), new KotlinIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.or(new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true), new UsesType<>("org.testng.annotations.Test", true)), new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
                 // Skip invalid signatures or already-correct return types
+                J.Block body = m.getBody();
                 JavaType.Method methodType = m.getMethodType();
-                if (m.getBody() == null || methodType == null || KotlinTypeUtils.isKotlinUnit(methodType.getReturnType())) {
+                if (body == null || methodType == null || KotlinTypeUtils.isKotlinUnit(methodType.getReturnType())) {
                     return m;
                 }
 
@@ -74,13 +78,16 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
                     return m;
                 }
 
-                // Update method and method identifier type.
-                JavaType.Method newMethodType = methodType.withReturnType(KOTLIN_UNIT);
-                m = m.withMethodType(newMethodType).withName(m.getName().withType(newMethodType));
+                if (TypeUtils.isOverride(methodType) || isInvoked(getCursor().firstEnclosingOrThrow(K.CompilationUnit.class), m.getSimpleName())) {
+                    return m;
+                }
+
+                JavaType.Method unitMethodType = methodType.withReturnType(KOTLIN_UNIT);
+                J.MethodDeclaration unitMethod = m.withMethodType(unitMethodType).withName(m.getName().withType(unitMethodType));
 
                 // Add an explicit Unit return type
-                if (m.getBody() != null && m.getBody().getMarkers().findFirst(SingleExpressionBlock.class).isPresent()) {
-                    return m.withReturnTypeExpression(new J.Identifier(
+                if (body.getMarkers().findFirst(SingleExpressionBlock.class).isPresent()) {
+                    return unitMethod.withReturnTypeExpression(new J.Identifier(
                             Tree.randomId(),
                             Space.SINGLE_SPACE,
                             Markers.EMPTY,
@@ -90,41 +97,96 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
                             null));
                 }
 
-                // Otherwise, there's no need for a return type expression at all.
-                return m.withReturnTypeExpression(null)
-                        // Remove return statements that are not in nested classes, objects, or lambdas.
-                        .withBody((J.Block) new RemoveDirectReturns().visit(m.getBody(), ctx));
+                AtomicBoolean unsafeReturn = new AtomicBoolean();
+                J.Block withoutLastReturn = body.withStatements(ListUtils.mapLast(body.getStatements(), KotlinTestMethodsShouldReturnUnit::removeLastReturn));
+                J.Block newBody = (J.Block) new RemoveEarlyReturnValues(m.getSimpleName()).visitNonNull(withoutLastReturn, unsafeReturn, getCursor());
+                if (unsafeReturn.get()) {
+                    return m;
+                }
+                return unitMethod.withReturnTypeExpression(null).withBody(newBody);
             }
         });
     }
 
-    private static class RemoveDirectReturns extends KotlinVisitor<ExecutionContext> {
+    private static @Nullable Statement removeLastReturn(Statement statement) {
+        if (!(statement instanceof K.Return)) {
+            return statement;
+        }
+        Expression expression = ((K.Return) statement).getExpression().getExpression();
+        return expression instanceof Statement ? expression.withPrefix(statement.getPrefix()) : null;
+    }
+
+    @RequiredArgsConstructor
+    private static class RemoveEarlyReturnValues extends KotlinVisitor<AtomicBoolean> {
+        private final String methodName;
+
         @Override
-        public J visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
-            return classDeclaration.getMarkers().findFirst(KObject.class).isPresent() ?
-                    classDeclaration : // Retain nested object expressions
-                    super.visitClassDeclaration(classDeclaration, ctx);
+        public J visitClassDeclaration(J.ClassDeclaration classDeclaration, AtomicBoolean unsafeReturn) {
+            return classDeclaration;
         }
 
         @Override
-        public J.Lambda visitLambda(J.Lambda lambda, ExecutionContext ctx) {
-            return lambda; // Retain nested returns
+        public J visitMethodDeclaration(J.MethodDeclaration method, AtomicBoolean unsafeReturn) {
+            return method;
         }
 
         @Override
-        public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-            return newClass; // Retain nested returns
+        public J visitNewClass(J.NewClass newClass, AtomicBoolean unsafeReturn) {
+            return newClass;
         }
 
         @Override
-        public @Nullable J visitReturn(K.Return return_, ExecutionContext ctx) {
-            Expression returnExpr = return_.getExpression().getExpression();
-            //noinspection DataFlowIssue
-            return returnExpr instanceof Statement ?
-                    // Retain any side effects from statements in return expressions
-                    returnExpr.withPrefix(return_.getPrefix()) :
-                    // Remove any other return statements entirely
-                    null;
+        public J visitReturn(K.Return return_, AtomicBoolean unsafeReturn) {
+            if (getCursor().dropParentUntil(t -> t instanceof J.Lambda || t instanceof J.MethodDeclaration).getValue() instanceof J.Lambda) {
+                J.Identifier label = return_.getLabel();
+                if (label == null || methodName.equals(label.getSimpleName())) {
+                    unsafeReturn.set(true);
+                }
+                return return_;
+            }
+            Expression expression = return_.getExpression().getExpression();
+            if (expression == null) {
+                return return_;
+            }
+            if (hasSideEffects(expression)) {
+                unsafeReturn.set(true);
+            }
+            return return_.withExpression(return_.getExpression().withExpression(null));
         }
+    }
+
+    private static boolean hasSideEffects(Expression expression) {
+        return new KotlinIsoVisitor<AtomicBoolean>() {
+            @Override
+            public @Nullable J preVisit(J tree, AtomicBoolean found) {
+                if (tree instanceof J.MethodInvocation || tree instanceof J.NewClass ||
+                        tree instanceof J.Assignment || tree instanceof J.AssignmentOperation ||
+                        tree instanceof J.Unary && ((J.Unary) tree).getOperator().isModifying()) {
+                    found.set(true);
+                    stopAfterPreVisit();
+                }
+                return tree;
+            }
+        }.reduce(expression, new AtomicBoolean()).get();
+    }
+
+    private static boolean isInvoked(K.CompilationUnit cu, String methodName) {
+        return new KotlinIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                if (method.getSimpleName().equals(methodName)) {
+                    found.set(true);
+                }
+                return super.visitMethodInvocation(method, found);
+            }
+
+            @Override
+            public J.MemberReference visitMemberReference(J.MemberReference memberRef, AtomicBoolean found) {
+                if (memberRef.getReference().getSimpleName().equals(methodName)) {
+                    found.set(true);
+                }
+                return super.visitMemberReference(memberRef, found);
+            }
+        }.reduce(cu, new AtomicBoolean()).get();
     }
 }

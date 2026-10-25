@@ -62,14 +62,13 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             }
 
             // Skip if any return is found, since we can't return from `assertDoesNotThrow`
-            AtomicBoolean returnFound = new AtomicBoolean(false);
-            new JavaIsoVisitor<AtomicBoolean>() {
+            AtomicBoolean returnFound = new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
                 public J.Return visitReturn(J.Return _return, AtomicBoolean atomicBoolean) {
                     atomicBoolean.set(true);
                     return _return;
                 }
-            }.visit(try_, returnFound, getCursor().getParentOrThrow());
+            }.reduce(try_, new AtomicBoolean(false), getCursor().getParentOrThrow());
             if (returnFound.get()) {
                 return try_;
             }
@@ -130,7 +129,6 @@ public class RemoveTryCatchFailBlocks extends Recipe {
             maybeAddImport("org.junit.jupiter.api.Assertions");
             maybeRemoveCatchTypes(try_);
             return JavaTemplate.builder("Assertions.assertDoesNotThrow(() -> #{any()});")
-                    .contextSensitive()
                     .imports("org.junit.jupiter.api.Assertions")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                     .build()

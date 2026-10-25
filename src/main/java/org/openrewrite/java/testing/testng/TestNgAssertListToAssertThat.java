@@ -72,7 +72,7 @@ public class TestNgAssertListToAssertThat extends Recipe {
                         }
 
                         maybeRemoveImport("org.testng.Assert");
-                        maybeAddImport(ASSERTJ, "assertThat", false);
+                        maybeAddImport(ASSERTJ, "assertThat");
 
                         List<Expression> args = method.getArguments();
                         Expression list = args.get(0);

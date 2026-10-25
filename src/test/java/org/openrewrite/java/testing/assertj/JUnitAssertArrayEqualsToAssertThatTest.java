@@ -325,6 +325,36 @@ class JUnitAssertArrayEqualsToAssertThatTest implements RewriteTest {
     }
 
     @Test
+    void integerLiteralDelta() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
+              class MyTest {
+                  void test(double[] actual) {
+                      assertArrayEquals(new double[]{1.0d}, actual, 0);
+                      assertArrayEquals(new double[]{1.0d}, actual, 0, "Should match");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
+
+              class MyTest {
+                  void test(double[] actual) {
+                      assertThat(actual).containsExactly(new double[]{1.0d}, within((double) 0));
+                      assertThat(actual).as("Should match").containsExactly(new double[]{1.0d}, within((double) 0));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void fullyQualifiedMethodWithMessage() {
         //language=java
         rewriteRun(

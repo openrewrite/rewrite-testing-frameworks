@@ -57,7 +57,6 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
 
                 cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                     if (statement instanceof J.VariableDeclarations) {
-                        //noinspection ConstantConditions
                         if (TypeUtils.isOfClassType(((J.VariableDeclarations) statement).getTypeExpression().getType(),
                                 "org.junit.rules.Timeout")) {
                             List<J.VariableDeclarations.NamedVariable> variables = ((J.VariableDeclarations) statement).getVariables();
@@ -108,7 +107,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 return JavaTemplate.builder(template)
                         .javaParser(JavaParser.fromJavaVersion()
-                                .classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
+                                .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .imports("org.junit.jupiter.api.Timeout",
                                 "java.util.concurrent.TimeUnit")
                         .build()

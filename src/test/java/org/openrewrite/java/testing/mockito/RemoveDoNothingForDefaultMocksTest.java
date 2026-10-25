@@ -68,8 +68,6 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
               import java.io.BufferedWriter;
               import java.io.IOException;
 
-              import static org.mockito.ArgumentMatchers.anyString;
-
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
@@ -77,6 +75,72 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
 
                   @Test
                   public void test() throws IOException {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesImportsUsedOnlyInRemovedArguments() {
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              import org.mockito.Mock;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.Mockito.doNothing;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                      doNothing().when(consumer).accept(any(List.class));
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mock;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsArgumentImportsStillUsedByVerification() {
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              import org.mockito.Mock;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.verify;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                      doNothing().when(consumer).accept(any(List.class));
+                      verify(consumer).accept(any(List.class));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+              import org.mockito.Mock;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.Mockito.verify;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                      verify(consumer).accept(any(List.class));
                   }
               }
               """
@@ -115,13 +179,10 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
             """
               import org.junit.Test;
               import org.junit.runner.RunWith;
-              import org.mockito.ArgumentMatcher;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
               import java.io.BufferedWriter;
               import java.io.IOException;
-
-              import static org.mockito.ArgumentMatchers.argThat;
 
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
@@ -155,6 +216,215 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
 
                   void test() {
                       doNothing().when(spyList).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnMockCallingRealMethods() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Answers;
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock(answer = Answers.CALLS_REAL_METHODS)
+                  private ArrayList<String> partialMock;
+
+                  void test() {
+                      doNothing().when(partialMock).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnMockCallingRealMethodsWithStaticImport() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Answers.CALLS_REAL_METHODS;
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock(answer = CALLS_REAL_METHODS)
+                  private ArrayList<String> partialMock;
+
+                  void test() {
+                      doNothing().when(partialMock).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesDoNothingOnMockWithDeepStubs() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Answers;
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+                  private ArrayList<String> list;
+
+                  void test() {
+                      doNothing().when(list).clear();
+                  }
+              }
+              """,
+            """
+              import org.mockito.Answers;
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              class MyTest {
+                  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+                  private ArrayList<String> list;
+
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnMockFieldReassignedToSpy() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.spy;
+
+              class MyTest {
+                  @Mock
+                  private ArrayList<String> list;
+
+                  void setUp() {
+                      list = spy(new ArrayList<>());
+                  }
+
+                  void test() {
+                      doNothing().when(list).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesDoNothingOnMockFieldAccessedThroughThis() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+
+              class MyTest {
+                  @Mock
+                  private ArrayList<String> list;
+
+                  void test() {
+                      doNothing().when(this.list).clear();
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              class MyTest {
+                  @Mock
+                  private ArrayList<String> list;
+
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnMockFieldReassignedToSpyThroughThis() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.spy;
+
+              class MyTest {
+                  @Mock
+                  private ArrayList<String> list;
+
+                  void setUp() {
+                      this.list = spy(new ArrayList<>());
+                  }
+
+                  void test() {
+                      doNothing().when(list).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainsDoNothingOnLocalSpyShadowingMockField() {
+        rewriteRun(
+          //language=Java
+          java(
+            """
+              import org.mockito.Mock;
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.spy;
+
+              class MyTest {
+                  @Mock
+                  private List<String> list;
+
+                  void test() {
+                      List<String> list = spy(new ArrayList<>());
+                      doNothing().when(list).clear();
                   }
               }
               """
@@ -261,9 +531,6 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
               import org.mockito.junit.MockitoJUnitRunner;
               import java.io.BufferedWriter;
               import java.io.IOException;
-
-              import static org.mockito.ArgumentMatchers.anyString;
-              import static org.mockito.ArgumentMatchers.anyInt;
 
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {

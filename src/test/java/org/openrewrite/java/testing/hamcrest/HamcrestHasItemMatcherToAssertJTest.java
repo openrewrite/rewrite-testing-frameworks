@@ -155,4 +155,41 @@ class HamcrestHasItemMatcherToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void collectionOfClassDeclaredInTestFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasItem;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(items, hasItem(instanceOf(Item.class)));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(items).hasAtLeastOneElementOfType(Item.class);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

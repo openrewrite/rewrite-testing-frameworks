@@ -253,7 +253,7 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @EnabledOnJre(versions = {17, 21})
+                      @EnabledOnJre(versions = { 17, 21 })
                       void testOnJavaSomeJaveVersions() {
                           System.out.println("Java 17 and 21");
                       }
@@ -406,7 +406,7 @@ class MinimumJreConditionsTest implements RewriteTest {
 
                   class MyTest {
                       @Test
-                      @DisabledOnJre(versions = {17, 21})
+                      @DisabledOnJre(versions = { 17, 21 })
                       void testNotOnJava17() {
                           System.out.println("Not Java 17 or 21");
                       }
@@ -1143,6 +1143,207 @@ class MinimumJreConditionsTest implements RewriteTest {
                   @EnabledOnJre(JRE.OTHER)
                   void testOnOther() {
                       System.out.println("Other JRE");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void onlyCollapseTheRangeEndingOnMinimum() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledForJreRange;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledForJreRange(min = JRE.JAVA_11, max = JRE.JAVA_17)
+                  void testOnJava11To17() {
+                      System.out.println("Java 11-17");
+                  }
+
+                  @Test
+                  @EnabledForJreRange(min = JRE.JAVA_21)
+                  void testOnJava21AndLater() {
+                      System.out.println("Java 21+");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledForJreRange;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre(JRE.JAVA_17)
+                  void testOnJava11To17() {
+                      System.out.println("Java 11-17");
+                  }
+
+                  @Test
+                  @EnabledForJreRange(min = JRE.JAVA_21)
+                  void testOnJava21AndLater() {
+                      System.out.println("Java 21+");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void onlyCollapseTheRangeEndingOnMinimumWithVersions() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.DisabledForJreRange;
+
+              class MyTest {
+                  @Test
+                  @DisabledForJreRange(minVersion = 11, maxVersion = 17)
+                  void testNotOnJava11To17() {
+                      System.out.println("Not Java 11-17");
+                  }
+
+                  @Test
+                  @DisabledForJreRange(minVersion = 21, maxVersion = 25)
+                  void testNotOnJava21To25() {
+                      System.out.println("Not Java 21-25");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.DisabledForJreRange;
+              import org.junit.jupiter.api.condition.DisabledOnJre;
+
+              class MyTest {
+                  @Test
+                  @DisabledOnJre(versions = 17)
+                  void testNotOnJava11To17() {
+                      System.out.println("Not Java 11-17");
+                  }
+
+                  @Test
+                  @DisabledForJreRange(minVersion = 21, maxVersion = 25)
+                  void testNotOnJava21To25() {
+                      System.out.println("Not Java 21-25");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void collapseRangeWithStaticJreImport() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledForJreRange;
+
+              import static org.junit.jupiter.api.condition.JRE.*;
+
+              class MyTest {
+                  @Test
+                  @EnabledForJreRange(min = JAVA_11, max = JAVA_17)
+                  void testOnJava11To17() {
+                      System.out.println("Java 11-17");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+
+              import static org.junit.jupiter.api.condition.JRE.*;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre(JAVA_17)
+                  void testOnJava11To17() {
+                      System.out.println("Java 11-17");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void filterJreConstantsInValueAttribute() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre({JRE.JAVA_11, JRE.JAVA_17, JRE.JAVA_21})
+                  void testOnSomeJavaVersions() {
+                      System.out.println("Java 11, 17 and 21");
+                  }
+
+                  @Test
+                  @EnabledOnJre({JRE.JAVA_11, JRE.JAVA_17})
+                  void testOnJava11And17() {
+                      System.out.println("Java 11 and 17");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre({JRE.JAVA_17, JRE.JAVA_21})
+                  void testOnSomeJavaVersions() {
+                      System.out.println("Java 11, 17 and 21");
+                  }
+
+                  @Test
+                  @EnabledOnJre(JRE.JAVA_17)
+                  void testOnJava11And17() {
+                      System.out.println("Java 11 and 17");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void skipVersionsFromConstants() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledForJreRange;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+
+              class MyTest {
+                  static final int MIN = 11;
+
+                  @Test
+                  @EnabledOnJre(versions = MIN)
+                  void testOnMin() {
+                  }
+
+                  @Test
+                  @EnabledForJreRange(minVersion = MIN)
+                  void testFromMin() {
                   }
               }
               """
