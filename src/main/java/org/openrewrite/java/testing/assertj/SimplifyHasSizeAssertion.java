@@ -26,6 +26,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import static java.util.Collections.singletonList;
 
@@ -58,9 +59,10 @@ public class SimplifyHasSizeAssertion extends Recipe {
 
                         Expression expression = mi.getArguments().get(0);
                         if (expression instanceof J.MethodInvocation) {
-                            if (CHAR_SEQUENCE_LENGTH_MATCHER.matches(expression) ||
-                                    ITERABLE_SIZE_MATCHER.matches(expression) ||
-                                    MAP_SIZE_MATCHER.matches(expression)) {
+                            JavaType.FullyQualified assertType = mi.getMethodType().getDeclaringType();
+                            if (ITERABLE_SIZE_MATCHER.matches(expression) ||
+                                    CHAR_SEQUENCE_LENGTH_MATCHER.matches(expression) && TypeUtils.isAssignableTo("org.assertj.core.api.AbstractCharSequenceAssert", assertType) ||
+                                    MAP_SIZE_MATCHER.matches(expression) && TypeUtils.isAssignableTo("org.assertj.core.api.AbstractMapAssert", assertType)) {
                                 return updateMethodInvocation(mi, ((J.MethodInvocation) expression).getSelect());
                             }
                         } else if (expression instanceof J.FieldAccess) {
