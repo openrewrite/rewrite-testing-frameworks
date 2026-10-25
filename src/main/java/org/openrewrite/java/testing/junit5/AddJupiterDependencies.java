@@ -19,11 +19,10 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.gradle.IsBuildGradle;
 import org.openrewrite.gradle.marker.GradleDependencyConfiguration;
 import org.openrewrite.gradle.marker.GradleProject;
-import org.openrewrite.groovy.tree.G;
 import org.openrewrite.java.dependencies.AddDependency;
-import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.maven.MavenIsoVisitor;
 import org.openrewrite.maven.RemoveDependency;
 import org.openrewrite.maven.tree.ResolvedDependency;
@@ -75,7 +74,7 @@ public class AddJupiterDependencies extends ScanningRecipe<AddJupiterDependencie
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        AddJupiterGradle gv = new AddJupiterGradle(acc.jupiter);
+        TreeVisitor<?, ExecutionContext> gv = Preconditions.check(new IsBuildGradle<>(), new AddJupiterGradle(acc.jupiter));
         AddJupiterMaven mv = new AddJupiterMaven(acc);
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
@@ -84,9 +83,7 @@ public class AddJupiterDependencies extends ScanningRecipe<AddJupiterDependencie
                     return tree;
                 }
                 SourceFile s = (SourceFile) tree;
-                if (gv.isAcceptable(s, ctx)) {
-                    s = (SourceFile) gv.visitNonNull(s, ctx);
-                }
+                s = (SourceFile) gv.visitNonNull(s, ctx);
                 if (mv.isAcceptable(s, ctx)) {
                     s = (SourceFile) mv.visitNonNull(s, ctx);
                 }
@@ -122,11 +119,6 @@ public class AddJupiterDependencies extends ScanningRecipe<AddJupiterDependencie
     @EqualsAndHashCode(callSuper = false)
     private static class AddJupiterGradle extends TreeVisitor<Tree, ExecutionContext> {
         AddDependency.Accumulator acc;
-
-        @Override
-        public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-            return sourceFile instanceof G.CompilationUnit || sourceFile instanceof K.CompilationUnit;
-        }
 
         @Override
         public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
