@@ -24,12 +24,12 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.RemoveUnusedImports;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.HashSet;
 import java.util.List;
@@ -159,7 +159,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                             if (value instanceof J.Lambda || value instanceof J.Case && ((J.Case) value).getStatements().isEmpty()) {
                                 return mi;
                             }
-                            doAfterVisit(new RemoveUnusedImports().getVisitor());
+                            typesReferencedBy(mi).forEach(this::maybeRemoveImport);
                             return null;
                         }
                         return mi;
@@ -214,5 +214,19 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                     }
                 }
         );
+    }
+
+    private static Set<String> typesReferencedBy(J tree) {
+        return new JavaIsoVisitor<Set<String>>() {
+            @Override
+            public @Nullable JavaType visitType(@Nullable JavaType javaType, Set<String> types) {
+                JavaType owner = javaType instanceof JavaType.Method ? ((JavaType.Method) javaType).getDeclaringType() : javaType instanceof JavaType.Variable ? ((JavaType.Variable) javaType).getOwner() : javaType;
+                JavaType.FullyQualified type = TypeUtils.asFullyQualified(owner);
+                if (type != null) {
+                    types.add(type.getFullyQualifiedName());
+                }
+                return javaType;
+            }
+        }.reduce(tree, new HashSet<>());
     }
 }

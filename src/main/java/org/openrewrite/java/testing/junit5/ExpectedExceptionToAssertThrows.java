@@ -90,10 +90,6 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            // Only a migrated method can have produced the lambda that needs collapsing.
-            if (cd != classDecl) {
-                doAfterVisit(new LambdaBlockToExpression().getVisitor());
-            }
 
             // A method that could not be migrated still needs the rule, so leave the field and its imports in place.
             boolean cannotMigrate = getCursor().getMessage(CANNOT_MIGRATE) != null;
@@ -208,6 +204,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
             maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
             Statement firstExpectedExceptionMethodInvocation = getCursor().getMessage(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION);
+            int assertThrowsIndex = b.getStatements().indexOf(firstExpectedExceptionMethodInvocation);
             String templateString = exceptionClass instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             b = JavaTemplate.builder(templateString)
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "hamcrest-3"))
@@ -250,6 +247,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 }
                 return removeStatement.get() ? null : statement;
             }));
+            b = b.withStatements(ListUtils.map(b.getStatements(), (i, statement) -> i == assertThrowsIndex ? (Statement) new LambdaBlockToExpression().getVisitor().visitNonNull(statement, ctx, updateCursor) : statement));
             Statement lastStatement = b.getStatements().get(b.getStatements().size() - 1);
             if (!findSuccessorStatements(new Cursor(updateCursor(b), lastStatement)).isEmpty()) {
                 J.Return returnStatement = new J.Return(randomId(), b.getStatements().get(b.getStatements().size() - 1).getPrefix().withComments(emptyList()), Markers.EMPTY, null);

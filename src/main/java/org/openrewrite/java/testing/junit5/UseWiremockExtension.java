@@ -25,6 +25,10 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
+import java.util.List;
+
+import static java.util.Collections.singletonList;
+
 public class UseWiremockExtension extends Recipe {
 
     private static final String WIREMOCK_RULE = "com.github.tomakehurst.wiremock.junit.WireMockRule";
@@ -40,17 +44,13 @@ public class UseWiremockExtension extends Recipe {
     final String description = "As of 2.31.0, wiremock [supports JUnit 5](https://wiremock.org/docs/junit-jupiter/) via an extension.";
 
     @Override
+    public List<Recipe> getRecipeList() {
+        return singletonList(new ChangeType(WIREMOCK_RULE, WIREMOCK_EXTENSION, true));
+    }
+
+    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(WIREMOCK_RULE, false), new JavaVisitor<ExecutionContext>() {
-
-            @Override
-            public J preVisit(J tree, ExecutionContext ctx) {
-                if (tree instanceof JavaSourceFile) {
-                    doAfterVisit(new ChangeType(WIREMOCK_RULE, WIREMOCK_EXTENSION, true).getVisitor());
-                }
-                return tree;
-            }
-
             @Override
             public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                 J.VariableDeclarations vd = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);

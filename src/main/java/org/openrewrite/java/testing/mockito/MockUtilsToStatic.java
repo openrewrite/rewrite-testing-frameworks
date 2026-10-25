@@ -24,6 +24,10 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
+import java.util.List;
+
+import static java.util.Collections.singletonList;
+
 /**
  * In Mockito 1 you use a code snippet like:
  * <p>
@@ -45,19 +49,17 @@ public class MockUtilsToStatic extends Recipe {
     final String description = "Best-effort attempt to remove Mockito `MockUtil` instances.";
 
     @Override
+    public List<Recipe> getRecipeList() {
+        return singletonList(new ChangeMethodTargetToStatic("org.mockito.internal.util.MockUtil *(..)", "org.mockito.internal.util.MockUtil", null, null, false));
+    }
+
+    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>("org.mockito.internal.util.MockUtil", false), new MockUtilsToStaticVisitor());
     }
 
     public static class MockUtilsToStaticVisitor extends JavaVisitor<ExecutionContext> {
         private static final MethodMatcher METHOD_MATCHER = new MethodMatcher("org.mockito.internal.util.MockUtil <constructor>()");
-        private final ChangeMethodTargetToStatic changeMethodTargetToStatic = new ChangeMethodTargetToStatic("org.mockito.internal.util.MockUtil *(..)", "org.mockito.internal.util.MockUtil", null, null, false);
-
-        @Override
-        public J visitCompilationUnit(J.CompilationUnit compilationUnit, ExecutionContext ctx) {
-            J.CompilationUnit cu = (J.CompilationUnit) super.visitCompilationUnit(compilationUnit, ctx);
-            return (J.CompilationUnit) changeMethodTargetToStatic.getVisitor().visitNonNull(cu, ctx);
-        }
 
         @Override
         public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {

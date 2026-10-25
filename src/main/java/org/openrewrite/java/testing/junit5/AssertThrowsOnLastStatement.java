@@ -67,7 +67,6 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 if (m.getBody() == null) {
                     return m;
                 }
-                doAfterVisit(new LambdaBlockToExpression().getVisitor());
                 return m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
                     J statementToCheck = methodStatement;
                     final J.VariableDeclarations assertThrowsWithVarDec;
@@ -136,6 +135,9 @@ public class AssertThrowsOnLastStatement extends Recipe {
                                     return argument;
                                 })
                         );
+                        if (getCursor().firstEnclosing(J.CompilationUnit.class) != null) {
+                            newAssertThrows = (J.MethodInvocation) new LambdaBlockToExpression().getVisitor().visitNonNull(newAssertThrows, ctx, getCursor());
+                        }
 
                         if (assertThrowsWithVarDec == null) {
                             variableAssignments.add(newAssertThrows);

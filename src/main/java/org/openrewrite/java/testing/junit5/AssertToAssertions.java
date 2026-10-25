@@ -28,8 +28,11 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 
 public class AssertToAssertions extends Recipe {
@@ -47,6 +50,7 @@ public class AssertToAssertions extends Recipe {
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
+        private static final String ASSERT_METHOD_NAMES = "assertMethodNames";
 
         @Override
         public @Nullable J preVisit(J tree, ExecutionContext ctx) {
@@ -83,9 +87,7 @@ public class AssertToAssertions extends Recipe {
             if (!isJunitAssertMethod(m)) {
                 return m;
             }
-            doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
-                    "org.junit.jupiter.api.Assertions", null, null, true)
-                    .getVisitor());
+            changeTargetToAssertions(m.getSimpleName());
 
             List<JRightPadded<Expression>> args = m.getPadding().getArguments().getPadding().getElements();
             Expression firstArg = args.get(0).getElement();
@@ -142,11 +144,23 @@ public class AssertToAssertions extends Recipe {
         public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
             J.MemberReference mr = super.visitMemberReference(memberRef, ctx);
             if (isJunitAssertMethod(mr)) {
-                doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + mr.getReference().getSimpleName() + "(..)",
-                        "org.junit.jupiter.api.Assertions", null, null, true)
-                        .getVisitor());
+                changeTargetToAssertions(mr.getReference().getSimpleName());
             }
             return mr;
+        }
+
+        @Override
+        public J postVisit(J tree, ExecutionContext ctx) {
+            if (tree instanceof JavaSourceFile) {
+                for (String methodName : getCursor().<Set<String>>getMessage(ASSERT_METHOD_NAMES, emptySet())) {
+                    doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + methodName + "(..)", "org.junit.jupiter.api.Assertions", null, null, true).getVisitor());
+                }
+            }
+            return tree;
+        }
+
+        private void changeTargetToAssertions(String methodName) {
+            getCursor().dropParentUntil(JavaSourceFile.class::isInstance).computeMessageIfAbsent(ASSERT_METHOD_NAMES, k -> new LinkedHashSet<String>()).add(methodName);
         }
 
         private static boolean isJunitAssertMethod(MethodCall memberRef) {

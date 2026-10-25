@@ -81,7 +81,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                             .apply(getCursor(), mi.getCoordinates().replace(), args.toArray());
                 }
 
-                doAfterVisit(new RemoveUnusedImports().getVisitor());
+                maybeRemoveImport(JUNIT);
                 doAfterVisit(new UnqualifiedMethodInvocations());
                 return mi;
             }
