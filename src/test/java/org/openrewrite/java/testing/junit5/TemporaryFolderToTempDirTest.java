@@ -281,6 +281,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
                   void foo() throws IOException {
                       File file1 = tempDir1.newFolder();
+                      File file2 = tempDir1.newFolder();
                   }
               }
               """,
@@ -289,6 +290,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
               import java.io.File;
               import java.io.IOException;
+              import java.nio.file.Files;
 
               class MyTest {
 
@@ -296,16 +298,8 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                   File tempDir1;
 
                   void foo() throws IOException {
-                      File file1 = newFolder(tempDir1, "junit");
-                  }
-
-                  private static File newFolder(File root, String... subDirs) throws IOException {
-                      String subFolder = String.join("/", subDirs);
-                      File result = new File(root, subFolder);
-                      if (!result.mkdirs()) {
-                          throw new IOException("Couldn't create folders " + root);
-                      }
-                      return result;
+                      File file1 = Files.createTempDirectory(tempDir1.toPath(), "junit").toFile();
+                      File file2 = Files.createTempDirectory(tempDir1.toPath(), "junit").toFile();
                   }
               }
               """
@@ -600,6 +594,45 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     }
 
     @Test
+    void groovyNewFolderWithoutArguments() {
+        rewriteRun(
+          //language=groovy
+          groovy(
+            """
+              import org.junit.Rule
+              import org.junit.rules.TemporaryFolder
+
+              class AbstractIntegrationTest {
+                  @Rule
+                  TemporaryFolder temporaryFolder = new TemporaryFolder()
+
+                  def setup() {
+                      def first = temporaryFolder.newFolder()
+                      def second = temporaryFolder.newFolder()
+                  }
+              }
+              """,
+            """
+              import org.junit.Rule
+              import org.junit.rules.TemporaryFolder
+
+              import java.nio.file.Files
+
+              class AbstractIntegrationTest {
+                  @TempDir
+                  File temporaryFolder
+
+                  def setup() {
+                      def first = Files.createTempDirectory(temporaryFolder.toPath(), "junit").toFile()
+                      def second = Files.createTempDirectory(temporaryFolder.toPath(), "junit").toFile()
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void newTemporaryFolderInstanceAsArgument() {
         //language=java
         rewriteRun(
@@ -695,6 +728,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
             """
               import java.io.File;
               import java.io.IOException;
+              import java.nio.file.Files;
               import java.nio.file.Path;
               import org.junit.Test;
               import org.junit.jupiter.api.io.TempDir;
@@ -706,16 +740,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
                   @Test
                   public void testPath() throws IOException {
-                      Path newFolder = newFolder(folder, "junit").toPath();
-                  }
-
-                  private static File newFolder(File root, String... subDirs) throws IOException {
-                      String subFolder = String.join("/", subDirs);
-                      File result = new File(root, subFolder);
-                      if (!result.mkdirs()) {
-                          throw new IOException("Couldn't create folders " + root);
-                      }
-                      return result;
+                      Path newFolder = Files.createTempDirectory(folder.toPath(), "junit").toFile().toPath();
                   }
               }
               """
@@ -840,6 +865,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
 
               import java.io.File;
               import java.io.IOException;
+              import java.nio.file.Files;
 
               class MyTest {
 
@@ -847,18 +873,9 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                   File tempDir1;
 
                   void foo() throws IOException {
-                      File file1 = newFolder(tempDir1, "junit");
+                      File file1 = Files.createTempDirectory(tempDir1.toPath(), "junit").toFile();
                   }
                   class InnerClass { }
-
-                  private static File newFolder(File root, String... subDirs) throws IOException {
-                      String subFolder = String.join("/", subDirs);
-                      File result = new File(root, subFolder);
-                      if (!result.mkdirs()) {
-                          throw new IOException("Couldn't create folders " + root);
-                      }
-                      return result;
-                  }
               }
               """
           )

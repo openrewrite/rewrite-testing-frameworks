@@ -144,6 +144,13 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
                 case "newFile":
                     return convertToNewFile(mi, ctx);
                 case "newFolder":
+                    if (mi.getArguments().stream().allMatch(J.Empty.class::isInstance)) {
+                        maybeAddImport("java.nio.file.Files");
+                        return JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
+                                .imports("java.nio.file.Files")
+                                .build()
+                                .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File")));
+                    }
                     doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FOLDER, getCursor().firstEnclosing(J.ClassDeclaration.class)));
                     break;
                 case "create":
@@ -275,14 +282,6 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
     private J.MethodInvocation toNewFolder(J.MethodInvocation mi, ExecutionContext ctx) {
         J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
         List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(toList());
-        if (args.isEmpty()) {
-            return JavaTemplate.builder("newFolder(#{any(java.io.File)}, \"junit\")")
-                    .imports("java.io.File")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                    .build()
-                    .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir);
-        }
-
         if (args.size() == 1) {
             return JavaTemplate.builder("newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
                     .imports("java.io.File")
