@@ -106,7 +106,6 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.junit.platform.testkit.engine.Executions started()
       newMethodName: finished
-      matchOverrides: false
       ignoreDefinition: true
   - org.openrewrite.properties.DeleteProperty:
       propertyKey: junit.jupiter.tempdir.scope
