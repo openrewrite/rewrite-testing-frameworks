@@ -18,8 +18,9 @@ package org.openrewrite.java.testing.junit5;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.RemoveAnnotation;
+import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
@@ -49,12 +50,13 @@ public class RemoveObsoleteRunners extends Recipe {
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+            J.ClassDeclaration cd = classDecl;
             for (String runner : obsoleteRunners) {
-                doAfterVisit(new RemoveAnnotation("@org.junit.runner.RunWith(" + runner + ".class)").getVisitor());
+                cd = (J.ClassDeclaration) new RemoveAnnotationVisitor(new AnnotationMatcher("@org.junit.runner.RunWith(" + runner + ".class)")).visitNonNull(cd, ctx, getCursor().getParentOrThrow());
                 maybeRemoveImport(runner);
             }
             maybeRemoveImport("org.junit.runner.RunWith");
-            return classDecl;
+            return cd;
         }
     }
 }

@@ -302,7 +302,9 @@ public class JMockitMockUpToMockito extends Recipe {
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
             maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*");
 
-            doAfterVisit(new LambdaBlockToExpression().getVisitor());
+            if (md != methodDecl) {
+                md = (J.MethodDeclaration) new LambdaBlockToExpression().getVisitor().visitNonNull(md, ctx, getCursor().getParentOrThrow());
+            }
             doAfterVisit(ShortenFullyQualifiedTypeReferences.modifyOnly(md));
             return maybeAutoFormat(methodDecl, md, ctx);
         }

@@ -208,8 +208,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-            // Remove @RunWith(JUnitParamsRunner.class) annotation
-            doAfterVisit(new RemoveAnnotationVisitor(RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER));
+            cd = (J.ClassDeclaration) new RemoveAnnotationVisitor(RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER).visitNonNull(cd, ctx, getCursor().getParentOrThrow());
             List<String> methodNames = getCursor().getMessage(MakeMethodStatic.REFERENCED_METHODS, emptyList());
             if (cd.getType() != null && !methodNames.isEmpty()) {
                 doAfterVisit(new MakeMethodStatic(cd.getType(), methodNames));

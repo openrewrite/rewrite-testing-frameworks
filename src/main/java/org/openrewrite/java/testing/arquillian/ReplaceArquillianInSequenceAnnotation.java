@@ -26,6 +26,9 @@ import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.J;
 
 import java.util.Comparator;
+import java.util.List;
+
+import static java.util.Collections.singletonList;
 
 public class ReplaceArquillianInSequenceAnnotation extends Recipe {
     private static final String IN_SEQUENCE = "org.jboss.arquillian.junit.InSequence";
@@ -41,16 +44,15 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
     final String description = "Transforms the Arquillian JUnit 4 `@InSequence` to the JUnit Jupiter `@Order`.";
 
     @Override
+    public List<Recipe> getRecipeList() {
+        return singletonList(new ChangeType(IN_SEQUENCE, "org.junit.jupiter.api.Order", true));
+    }
+
+    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                new UsesType<>("org.jboss.arquillian.junit.InSequence", false),
+                new UsesType<>(IN_SEQUENCE, false),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    @Override
-                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                        doAfterVisit(new ChangeType(IN_SEQUENCE, "org.junit.jupiter.api.Order", true).getVisitor());
-                        return super.visitClassDeclaration(classDecl, ctx);
-                    }
-
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
