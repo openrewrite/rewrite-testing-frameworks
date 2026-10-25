@@ -23,7 +23,15 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import static java.util.Arrays.asList;
 
 public class SimplifyRedundantAssertJChains extends Recipe {
 
@@ -53,7 +61,8 @@ public class SimplifyRedundantAssertJChains extends Recipe {
             new MethodMatcher("org.assertj.core.api..* contains(..)"),
             new MethodMatcher("org.assertj.core.api..* startsWith(..)"),
             new MethodMatcher("org.assertj.core.api..* endsWith(..)"),
-            new MethodMatcher("org.assertj.core.api..* matches(..)"),
+            // Not AbstractAssert#matches(Predicate), which hands a null actual to the predicate
+            new MethodMatcher("org.assertj.core.api.AbstractCharSequenceAssert matches(..)", true),
             new MethodMatcher("org.assertj.core.api..* isEqualToIgnoringCase(..)"),
 
             // More assertions that imply non-null - using wildcards consistently
@@ -86,6 +95,9 @@ public class SimplifyRedundantAssertJChains extends Recipe {
     // Matcher for isNotEmpty() preceded by isNotEmpty()
     private static final MethodMatcher isNotEmptyMatcher = new MethodMatcher("org.assertj.core.api..* isNotEmpty()");
     private static final MethodMatcher containsMatcher = new MethodMatcher("org.assertj.core.api..* contains*(..)");
+    // These fail on an empty actual when given at least one value, which for a CharSequence must itself be non-empty
+    private static final Set<String> nonEmptyImplyingContains = new HashSet<>(asList("contains", "containsAnyOf", "containsEntries", "containsEntry", "containsExactly", "containsExactlyInAnyOrder", "containsKey", "containsKeys", "containsOnly", "containsOnlyKeys", "containsOnlyOnce", "containsSequence", "containsSubsequence", "containsValue", "containsValues"));
+    private static final MethodMatcher charSequenceContainsMatcher = new MethodMatcher("org.assertj.core.api.AbstractCharSequenceAssert contains*(..)", true);
     // Matcher for isPresent() preceded by another assertion
     private static final MethodMatcher isPresentMatcher = new MethodMatcher("org.assertj.core.api..* isPresent()");
 
@@ -121,7 +133,7 @@ public class SimplifyRedundantAssertJChains extends Recipe {
                 }
 
                 // Check for isNotEmpty() followed by contains()
-                if (isNotEmptyMatcher.matches(select) && containsMatcher.matches(mi)) {
+                if (isNotEmptyMatcher.matches(select) && impliesNotEmpty(mi)) {
                     // Remove the redundant isNotEmpty()
                     return mi.withSelect(select.getSelect());
                 }
@@ -141,5 +153,22 @@ public class SimplifyRedundantAssertJChains extends Recipe {
                 return mi;
             }
         });
+    }
+
+    private static boolean impliesNotEmpty(J.MethodInvocation mi) {
+        if (!containsMatcher.matches(mi) || !nonEmptyImplyingContains.contains(mi.getSimpleName()) || mi.getArguments().get(0) instanceof J.Empty) {
+            return false;
+        }
+        boolean charSequence = charSequenceContainsMatcher.matches(mi);
+        for (Expression arg : mi.getArguments()) {
+            if (arg.getType() instanceof JavaType.Array || TypeUtils.isAssignableTo("java.lang.Iterable", arg.getType())) {
+                return false;
+            }
+            Object literal = arg instanceof J.Literal ? ((J.Literal) arg).getValue() : null;
+            if (charSequence && !(literal instanceof String && !((String) literal).isEmpty())) {
+                return false;
+            }
+        }
+        return true;
     }
 }
