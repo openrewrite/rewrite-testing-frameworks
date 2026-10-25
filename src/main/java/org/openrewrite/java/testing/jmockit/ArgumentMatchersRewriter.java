@@ -275,6 +275,8 @@ class ArgumentMatchersRewriter {
             return false;
         }
         J.Identifier identifier = (J.Identifier) expression;
-        return JMOCKIT_ARGUMENT_MATCHERS.contains(identifier.getSimpleName());
+        return JMOCKIT_ARGUMENT_MATCHERS.contains(identifier.getSimpleName()) &&
+                identifier.getFieldType() != null &&
+                TypeUtils.isOfClassType(identifier.getFieldType().getOwner(), "mockit.Invocations");
     }
 }

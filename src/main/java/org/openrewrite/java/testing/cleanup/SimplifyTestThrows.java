@@ -19,6 +19,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -27,12 +28,19 @@ import org.openrewrite.marker.Markers;
 import java.time.Duration;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class SimplifyTestThrows extends Recipe {
 
     private static final String FQN_JAVA_LANG_EXCEPTION = "java.lang.Exception";
+    private static final List<AnnotationMatcher> JUNIT5_TEST_ANNOTATIONS = asList(
+            new AnnotationMatcher("@org.junit.jupiter.api.Test"),
+            new AnnotationMatcher("@org.junit.jupiter.api.TestTemplate"),
+            new AnnotationMatcher("@org.junit.jupiter.api.RepeatedTest"),
+            new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"),
+            new AnnotationMatcher("@org.junit.jupiter.api.TestFactory"));
 
     @Getter
     final String displayName = "Simplify `throws` statements of tests";
@@ -96,19 +104,17 @@ public class SimplifyTestThrows extends Recipe {
                                 (TypeUtils.isOfClassType(th.get(0).getType(), FQN_JAVA_LANG_EXCEPTION) ||
                                         TypeUtils.isOfClassType(th.get(0).getType(), "java.lang.Throwable"));
                     }
-
-                    private boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
-                        for (J.Annotation a : method.getLeadingAnnotations()) {
-                            if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
-                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate") ||
-                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
-                                TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory")) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
                 });
+    }
+
+    private static boolean hasJUnit5MethodAnnotation(J.MethodDeclaration method) {
+        for (J.Annotation a : method.getLeadingAnnotations()) {
+            for (AnnotationMatcher matcher : JUNIT5_TEST_ANNOTATIONS) {
+                if (matcher.matches(a)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
