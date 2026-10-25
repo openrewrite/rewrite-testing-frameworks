@@ -23,7 +23,6 @@ import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -134,6 +133,111 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
                     }
                 }
                 """
+              ));
+        }
+
+        @Test
+        void containsInAnyOrderWithObjectArray() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("containsInAnyOrder", "containsExactlyInAnyOrder", null)),
+              //language=java
+              java(
+                """
+                  import java.util.List;
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.containsInAnyOrder;
+
+                  class ATest {
+                      void test(List<String> list, List<String> states) {
+                          assertThat(list, containsInAnyOrder(states.toArray()));
+                      }
+                  }
+                  """
+              ));
+        }
+
+        @Test
+        void containsVarargsMatchers() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("contains", "containsExactly", null)),
+              //language=java
+              java(
+                """
+                  import java.util.List;
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.contains;
+                  import static org.hamcrest.Matchers.equalTo;
+                  import static org.hamcrest.Matchers.startsWith;
+
+                  class ATest {
+                      void test(List<String> list) {
+                          assertThat(list, contains(equalTo("a"), startsWith("b")));
+                          assertThat("reason", list, contains(equalTo("a"), startsWith("b")));
+                      }
+                  }
+                  """
+              ));
+        }
+
+        @Test
+        void containsListOfMatchers() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("contains", "containsExactly", null)),
+              //language=java
+              java(
+                """
+                  import java.util.List;
+                  import org.hamcrest.Matcher;
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.contains;
+
+                  class ATest {
+                      void test(List<String> list, List<Matcher<? super String>> matchers) {
+                          assertThat(list, contains(matchers));
+                      }
+                  }
+                  """
+              ));
+        }
+
+        @Test
+        void arrayContainingMatchers() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("arrayContaining", "containsExactly", null)),
+              //language=java
+              java(
+                """
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.arrayContaining;
+                  import static org.hamcrest.Matchers.equalTo;
+
+                  class ATest {
+                      void test(String[] array) {
+                          assertThat(array, arrayContaining(equalTo("a"), equalTo("b")));
+                      }
+                  }
+                  """
+              ));
+        }
+
+        @Test
+        void hasEntryMatchers() {
+            rewriteRun(
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("hasEntry", "containsEntry", null)),
+              //language=java
+              java(
+                """
+                  import java.util.Map;
+                  import static org.hamcrest.MatcherAssert.assertThat;
+                  import static org.hamcrest.Matchers.equalTo;
+                  import static org.hamcrest.Matchers.hasEntry;
+
+                  class ATest {
+                      void test(Map<String, String> map) {
+                          assertThat(map, hasEntry(equalTo("a"), equalTo("b")));
+                      }
+                  }
+                  """
               ));
         }
     }
@@ -383,45 +487,31 @@ class HamcrestMatcherToAssertJTest implements RewriteTest {
             );
         }
 
-        @SuppressWarnings("DataFlowIssue")
         @Test
         void containsInAnyOrderWithArray() {
             rewriteRun(
-              spec -> spec.recipe(new HamcrestMatcherToAssertJ("containsInAnyOrder", "containsExactlyInAnyOrder", null))
-                .afterTypeValidationOptions(TypeValidation.all().methodInvocations(false)),
+              spec -> spec.recipe(new HamcrestMatcherToAssertJ("containsInAnyOrder", "containsExactlyInAnyOrder", null)),
               //language=java
               java(
-                    """
-                  import org.junit.jupiter.api.Test;
-
-                  import java.util.ArrayList;
+                """
                   import java.util.List;
                   import static org.hamcrest.MatcherAssert.assertThat;
                   import static org.hamcrest.Matchers.containsInAnyOrder;
 
                   class ATest {
-                      @Test
-                      void test() {
-                          List<String> list = new ArrayList<>();
-                          List<String> states = null;
-                          assertThat(list, containsInAnyOrder(states.toArray()));
+                      void test(List<String> list, List<String> states) {
+                          assertThat(list, containsInAnyOrder(states.toArray(new String[0])));
                       }
                   }
                   """,
                 """
-                  import org.junit.jupiter.api.Test;
-
-                  import java.util.ArrayList;
                   import java.util.List;
 
                   import static org.assertj.core.api.Assertions.assertThat;
 
                   class ATest {
-                      @Test
-                      void test() {
-                          List<String> list = new ArrayList<>();
-                          List<String> states = null;
-                          assertThat(list).containsExactlyInAnyOrder(states.toArray());
+                      void test(List<String> list, List<String> states) {
+                          assertThat(list).containsExactlyInAnyOrder(states.toArray(new String[0]));
                       }
                   }
                   """
