@@ -32,15 +32,8 @@ import java.util.*;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 
-/**
- * Converts Pragmatists JUnitParamsRunner tests to their JUnit 5 ParameterizedTest and associated MethodSource equivalent
- * <a href="https://github.com/Pragmatists/JUnitParams">...</a>
- * Supports the following conversions
- * `@Parameters` annotation without arguments and default `parametersFor...` init-method exists
- * `@Parameters(method = "...")` annotation with defined method references
- * `@Parameters(named = "...")` and associated `@NamedParameter` init-method
- * Unsupported tests are identified with a comment on the associated `@Parameters(...)` annotation.
- */
+// Converts `@Parameters` without arguments (with a `parametersFor...` method), `@Parameters(method = "...")` and `@Parameters(named = "...")` with a `@NamedParameter` method.
+// Other `@Parameters(...)` annotations get a comment marking the test as unsupported.
 public class JUnitParamsRunnerToParameterized extends Recipe {
 
     private static final AnnotationMatcher RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.runner.RunWith(junitparams.JUnitParamsRunner.class)");
@@ -60,10 +53,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
 
     @Getter
-    final String displayName = "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@Parameterized` tests";
+    final String displayName = "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@ParameterizedTest` tests";
 
     @Getter
-    final String description = "Convert Pragmatists Parameterized test to the JUnit Jupiter ParameterizedTest equivalent.";
+    final String description = "Convert Pragmatists JUnitParams tests to the JUnit Jupiter `@ParameterizedTest` equivalent.";
 
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);

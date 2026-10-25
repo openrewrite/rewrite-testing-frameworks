@@ -19,7 +19,7 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.ReplacePowerMockito
 displayName: Replace PowerMock with raw Mockito
 description: >-
-  PowerMockito with raw Mockito; best executed as part of a Mockito upgrade.
+  Replace PowerMockito with raw Mockito; best executed as part of a Mockito upgrade.
 
 
   Tests that mock, stub or verify private members are disabled rather than migrated. Mockito does not support

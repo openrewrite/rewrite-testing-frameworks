@@ -40,22 +40,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 
-/**
- * Replace usages of JUnit 4's @Rule ExpectedException with JUnit 5 Assertions.
- * <p>
- * Supported ExpectedException methods:
- * expect(java.lang.Class)
- * expect(org.hamcrest.Matcher)
- * expectMessage(java.lang.String)
- * expectMessage(org.hamcrest.Matcher)
- * expectCause(org.hamcrest.Matcher)
- * <p>
- * Does not currently support migration of ExpectedException.isAnyExceptionExpected().
- */
+// ExpectedException.isAnyExceptionExpected() is not migrated.
 public class ExpectedExceptionToAssertThrows extends Recipe {
 
     @Getter
-    final String displayName = "JUnit 4 `ExpectedException` To JUnit Jupiter's `assertThrows()`";
+    final String displayName = "JUnit 4 `ExpectedException` to JUnit Jupiter's `assertThrows()`";
 
     @Getter
     final String description = "Replace usages of JUnit 4's `@Rule ExpectedException` with JUnit 5's `Assertions.assertThrows()`.";

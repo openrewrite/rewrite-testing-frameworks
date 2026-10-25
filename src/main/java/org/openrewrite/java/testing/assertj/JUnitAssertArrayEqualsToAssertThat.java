@@ -41,10 +41,10 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
     private static final MethodMatcher ASSERT_ARRAY_EQUALS_MATCHER = new MethodMatcher(JUNIT + " assertArrayEquals(..)", true);
 
     @Getter
-    final String displayName = "JUnit `assertArrayEquals` to assertJ";
+    final String displayName = "JUnit `assertArrayEquals` to AssertJ";
 
     @Getter
-    final String description = "Convert JUnit-style `assertArrayEquals()` to AssertJ's `assertThat().contains()` equivalents.";
+    final String description = "Convert JUnit-style `assertArrayEquals()` to AssertJ's `assertThat().containsExactly()` equivalents.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

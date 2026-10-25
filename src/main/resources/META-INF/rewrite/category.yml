@@ -26,6 +26,7 @@ tags:
 type: specs.openrewrite.org/v1beta/category
 name: AssertJ
 packageName: org.openrewrite.java.testing.assertj
+description: Recipes for migrating to [AssertJ](https://assertj.github.io/doc/) and adopting its more expressive assertions.
 tags:
   - testing
   - assertj
@@ -33,6 +34,7 @@ tags:
 type: specs.openrewrite.org/v1beta/category
 name: Mockito
 packageName: org.openrewrite.java.testing.mockito
+description: Recipes for upgrading [Mockito](https://site.mockito.org/), adopting its best practices and migrating from PowerMock.
 tags:
   - testing
   - mockito
@@ -40,6 +42,7 @@ tags:
 type: specs.openrewrite.org/v1beta/category
 name: Google Truth
 packageName: org.openrewrite.java.testing.truth
+description: Recipes for migrating from [Google Truth](https://truth.dev/) to AssertJ.
 tags:
   - testing
   - truth

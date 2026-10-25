@@ -45,6 +45,10 @@ public class MigrateJUnitTestCase extends Recipe {
     private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*After*");
     private static final AnnotationMatcher JUNIT_BEFORE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*Before*");
     private static final MethodMatcher TEST_CASE_RUN_MATCHER = new MethodMatcher("junit.framework.TestCase run(junit.framework.TestResult)", true);
+    private static final MethodMatcher SET_NAME_MATCHER = new MethodMatcher("junit.framework.TestCase setName(String)");
+    private static final MethodMatcher SET_UP_MATCHER = new MethodMatcher("junit.framework.TestCase setUp()");
+    private static final MethodMatcher TEAR_DOWN_MATCHER = new MethodMatcher("junit.framework.TestCase tearDown()");
+    private static final MethodMatcher SUITE_MATCHER = new MethodMatcher("*..* suite()");
 
     private static boolean isSupertypeTestCase(JavaType.@Nullable FullyQualified fullyQualified) {
         if (fullyQualified == null || fullyQualified.getSupertype() == null || "java.lang.Object".equals(fullyQualified.getFullyQualifiedName())) {
@@ -97,8 +101,7 @@ public class MigrateJUnitTestCase extends Recipe {
                         Space end = b.getEnd();
                         for (int i = statements.size() - 1; i >= 0; i--) {
                             Statement statement = statements.get(i);
-                            if (statement instanceof J.MethodInvocation && isTestCaseMethod((J.MethodInvocation) statement) &&
-                                "setName".equals(((J.MethodInvocation) statement).getSimpleName())) {
+                            if (statement instanceof J.MethodInvocation && SET_NAME_MATCHER.matches((J.MethodInvocation) statement)) {
                                 statements.remove(i);
                                 if (i < statements.size()) {
                                     statements.set(i, statements.get(i).withPrefix(commentOut(statement, statements.get(i).getPrefix())));
@@ -122,18 +125,12 @@ public class MigrateJUnitTestCase extends Recipe {
                     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                         // setUp and tearDown will be invoked via Before and After annotations
-                        if (isTestCaseMethod(mi) && ("setUp".equals(mi.getSimpleName()) || "tearDown".equals(mi.getSimpleName()))) {
+                        if (SET_UP_MATCHER.matches(mi) || TEAR_DOWN_MATCHER.matches(mi)) {
                             return null;
                         }
                         return mi;
                     }
                 });
-    }
-
-    @SuppressWarnings("ConstantConditions")
-    private static boolean isTestCaseMethod(J.MethodInvocation mi) {
-        return (mi.getSelect() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), "junit.framework.TestCase")) ||
-               (mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getMethodType().getDeclaringType(), "junit.framework.TestCase"));
     }
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -171,9 +168,8 @@ public class MigrateJUnitTestCase extends Recipe {
             }
 
             // Remove suite() methods that return junit.framework.Test or TestSuite
-            if ("suite".equals(md.getSimpleName()) &&
-                md.hasModifier(J.Modifier.Type.Static) &&
-                md.getMethodType() != null &&
+            if (md.hasModifier(J.Modifier.Type.Static) &&
+                SUITE_MATCHER.matches(md.getMethodType()) &&
                 (TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.Test") ||
                  TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.TestSuite"))) {
                 maybeRemoveImport("junit.framework.Test");
@@ -196,7 +192,6 @@ public class MigrateJUnitTestCase extends Recipe {
             // If the class no longer extends TestCase there should no longer be calls to TestCase.super()
             // Plenty of edge cases around classes which extend classes which extend TestCase this doesn't account for
             if (TEST_CASE_SUPER_MATCHER.matches(method)) {
-                //noinspection DataFlowIssue
                 return null;
             }
             return super.visitMethodInvocation(method, ctx);

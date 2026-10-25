@@ -40,7 +40,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
     private static final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
     @Option(displayName = "Hamcrest matcher",
-            description = "The Hamcrest `Matcher` to migrate to JUnit5.",
+            description = "The Hamcrest `Matcher` to migrate to AssertJ.",
             example = "equalTo",
             required = false)
     @Nullable

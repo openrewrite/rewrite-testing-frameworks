@@ -45,7 +45,6 @@ public class UseTestMethodOrder extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = classDecl;
 
-                //noinspection DataFlowIssue
                 Set<J.Annotation> methodOrders = FindAnnotations.find(cd.withBody(null), "@org.junit.FixMethodOrder");
 
                 if (!methodOrders.isEmpty()) {

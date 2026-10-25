@@ -25,8 +25,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
-      name = "Adopt AssertJ Byte Assertions",
-      description = "Adopt AssertJ Byte Assertions. Favor semantically explicit methods (e.g. " +
+      name = "Adopt AssertJ `Byte` assertions",
+      description = "Adopt AssertJ `Byte` assertions. Favor semantically explicit methods (e.g. " +
             "`myByte.isZero()` over `myByte.isEqualTo(0)`)."
 )
 public class AssertJByteRules {

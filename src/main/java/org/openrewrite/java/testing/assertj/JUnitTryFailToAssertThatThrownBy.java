@@ -17,12 +17,14 @@ package org.openrewrite.java.testing.assertj;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -48,7 +50,7 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.or(new UsesMethod<>(ASSERTJ_FAIL_MATCHER), new UsesMethod<>(JUPITER_FAIL_MATCHER), new UsesMethod<>(JUNIT4_FAIL_MATCHER), new UsesMethod<>(JUNIT_FAIL_MATCHER)), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitTry(J.Try tryBlock, ExecutionContext ctx) {
                 J.Try try_ = (J.Try) super.visitTry(tryBlock, ctx);
@@ -187,6 +189,6 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
 
                 return template.toString();
             }
-        };
+        });
     }
 }

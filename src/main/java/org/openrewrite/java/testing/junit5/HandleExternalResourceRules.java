@@ -34,12 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static java.lang.String.format;
 import static java.util.Comparator.comparing;
 
-/**
- * A recipe that handles the usage of the junit-4 ExternalResourceRule's by adding
- * the @ExtendWith(ExternalResourceSupport.class) annotation to the test class.
- * In declarative recipe list, this should be the last recipe, to handle any junit4 ExternalResourceRules, which
- * are not explicitly handled.
- */
+// Run this last in a declarative recipe list, so it only handles the ExternalResource rules no other recipe migrated.
 public class HandleExternalResourceRules extends Recipe {
 
     private static final AnnotationMatcher ANY_RULE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*Rule", true);
@@ -51,10 +46,10 @@ public class HandleExternalResourceRules extends Recipe {
     private static final String RULE = "org.junit.Rule";
 
     @Getter
-    final String displayName = "Handle the usage of ExternalResourceRule fields using @ExtendWith(ExternalResourceSupport.class)";
+    final String displayName = "Handle the usage of `ExternalResource` rule fields using `@ExtendWith(ExternalResourceSupport.class)`";
 
     @Getter
-    final String description = "Handles the usage of the ExternalResourceRule fields by adding the @ExtendWith(ExternalResourceSupport.class) annotation to the test class.";
+    final String description = "Handles the usage of `ExternalResource` rule fields by adding the `@ExtendWith(ExternalResourceSupport.class)` annotation to the test class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

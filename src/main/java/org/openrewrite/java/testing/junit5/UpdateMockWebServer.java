@@ -53,10 +53,10 @@ public class UpdateMockWebServer extends Recipe {
     private static final String AFTER_EACH_METHOD = "after-each-method";
 
     @Getter
-    final String displayName = "OkHttp 3.x `MockWebServer` `@Rule` To 4.x `MockWebServer`";
+    final String displayName = "OkHttp 3.x `MockWebServer` `@Rule` to 4.x `MockWebServer`";
 
     @Getter
-    final String description = "Replace usages of okhttp3 3.x `@Rule` MockWebServer with 4.x `MockWebServer`.";
+    final String description = "Replace usages of OkHttp 3.x `@Rule MockWebServer` with 4.x `MockWebServer`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

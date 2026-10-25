@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
@@ -62,7 +61,6 @@ class AssumeNotNullToAssumptionsTest implements RewriteTest {
         );
     }
 
-    @Disabled("Refaster fails to match multiple arguments into varargs for now")
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/886")
     @Test
     void twoArgs() {
@@ -74,7 +72,7 @@ class AssumeNotNullToAssumptionsTest implements RewriteTest {
 
               class Test {
                   void test(Object object1, Object object2) {
-                      Assume.assumeNotNull(new Object(), new Object());
+                      Assume.assumeNotNull(object1, object2);
                   }
               }
               """,

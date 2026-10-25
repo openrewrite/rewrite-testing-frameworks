@@ -49,10 +49,10 @@ public class JMockitMockUpToMockito extends Recipe {
     private static final String MOCKITO_CONSTRUCTION_IMPORT = "org.mockito.MockedConstruction";
 
     @Getter
-    final String displayName = "Rewrite JMockit MockUp to Mockito statements";
+    final String displayName = "Rewrite JMockit `MockUp` to Mockito statements";
 
     @Getter
-    final String description = "Rewrites JMockit `MockUp` blocks to Mockito statements. This recipe will not rewrite private methods in MockUp.";
+    final String description = "Rewrites JMockit `MockUp` blocks that are statements in a method body to Mockito `mockStatic` and `mockConstructionWithAnswer` calls. `@Mock` methods that fake a private method can not be stubbed with Mockito and are dropped.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

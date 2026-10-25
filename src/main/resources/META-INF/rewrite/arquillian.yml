@@ -17,7 +17,7 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.arquillian.ArquillianJUnit4ToArquillianJUnit5
-displayName: Use Arquillian JUnit 5 Extension
+displayName: Use Arquillian JUnit 5 extension
 description: Migrates Arquillian JUnit 4 to JUnit 5.
 preconditions:
   - org.openrewrite.Singleton
