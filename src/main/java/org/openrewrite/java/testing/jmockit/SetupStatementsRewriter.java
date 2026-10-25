@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.singletonList;
+import static org.openrewrite.java.testing.jmockit.JMockitUtils.isSameVariable;
 
 @AllArgsConstructor(access = AccessLevel.PACKAGE)
 class SetupStatementsRewriter {
@@ -42,10 +43,10 @@ class SetupStatementsRewriter {
                 continue;
             }
             J.NewClass nc = (J.NewClass) s;
-            Set<String> spies = new HashSet<>();
+            List<J.Identifier> spies = new ArrayList<>();
             for (Expression newClassArg : nc.getArguments()) {
                 if (newClassArg instanceof J.Identifier) {
-                    spies.add(((J.Identifier) newClassArg).getSimpleName());
+                    spies.add((J.Identifier) newClassArg);
                 }
             }
 
@@ -139,7 +140,7 @@ class SetupStatementsRewriter {
         methodBody = methodBody.withStatements(statements);
     }
 
-    private boolean isSetupStatement(Statement expectationStatement, Set<String> spies) {
+    private boolean isSetupStatement(Statement expectationStatement, List<J.Identifier> spies) {
         if (expectationStatement instanceof J.MethodInvocation) {
             // a method invocation on a mock is not a setup statement
             J.MethodInvocation methodInvocation = (J.MethodInvocation) expectationStatement;
@@ -179,8 +180,8 @@ class SetupStatementsRewriter {
         return identifier.getFieldType() != null ? identifier.getFieldType().getOwner() : identifier.getType();
     }
 
-    private static boolean isNotMockIdentifier(J.Identifier identifier, Set<String> spies) {
-        if (spies.contains(identifier.getSimpleName())) {
+    private static boolean isNotMockIdentifier(J.Identifier identifier, List<J.Identifier> spies) {
+        if (spies.stream().anyMatch(spy -> isSameVariable(spy, identifier))) {
             return false;
         }
         if (identifier.getType() instanceof JavaType.Method &&

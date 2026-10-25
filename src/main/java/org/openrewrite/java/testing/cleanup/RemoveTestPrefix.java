@@ -76,6 +76,12 @@ public class RemoveTestPrefix extends Recipe {
 
         private static final AnnotationMatcher ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.MethodSource");
         private static final String STATIC_IMPORTS = "STATIC_IMPORTS";
+        private static final List<AnnotationMatcher> JUNIT5_TEST_ANNOTATIONS = Arrays.asList(
+                new AnnotationMatcher("@org.junit.jupiter.api.Test"),
+                new AnnotationMatcher("@org.junit.jupiter.api.RepeatedTest"),
+                new AnnotationMatcher("@org.junit.jupiter.params.ParameterizedTest"),
+                new AnnotationMatcher("@org.junit.jupiter.api.TestFactory"),
+                new AnnotationMatcher("@org.junit.jupiter.api.TestTemplate"));
 
         @Override
         public J.Import visitImport(J.Import _import, ExecutionContext ctx) {
@@ -187,12 +193,10 @@ public class RemoveTestPrefix extends Recipe {
 
         private static boolean hasJUnit5MethodAnnotation(MethodDeclaration method) {
             for (J.Annotation a : method.getLeadingAnnotations()) {
-                if (TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.Test") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.RepeatedTest") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.params.ParameterizedTest") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestFactory") ||
-                        TypeUtils.isOfClassType(a.getType(), "org.junit.jupiter.api.TestTemplate")) {
-                    return true;
+                for (AnnotationMatcher matcher : JUNIT5_TEST_ANNOTATIONS) {
+                    if (matcher.matches(a)) {
+                        return true;
+                    }
                 }
             }
             return false;
