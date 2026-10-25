@@ -100,7 +100,6 @@ public class SimplifyAssertJInstanceOfAssertion extends Recipe {
                 TypedTree clazz = (TypedTree) instanceOf.getClazz();
                 TypedTree rawClazz = clazz instanceof J.ParameterizedType ? ((J.ParameterizedType) clazz).getClazz() : clazz;
                 return JavaTemplate.builder("#{any()}." + dedicatedAssertion + "(#{any(java.lang.Class)})")
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()
                         .apply(getCursor(), mi.getCoordinates().replace(), newAssertThat, toClassLiteral(rawClazz));

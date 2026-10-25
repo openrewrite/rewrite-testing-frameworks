@@ -884,7 +884,6 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         J.MethodDeclaration templated = JavaTemplate
                 .builder("try {\n} catch (ReflectiveOperationException e) {\n    throw new RuntimeException(e);\n}")
-                .contextSensitive()
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
                 .apply(updateCursor(md), md.getCoordinates().replaceBody());

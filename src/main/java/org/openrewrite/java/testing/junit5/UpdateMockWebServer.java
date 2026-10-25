@@ -95,7 +95,6 @@ public class UpdateMockWebServer extends Recipe {
                                 for (Statement statement : cd.getBody().getStatements()) {
                                     if (statement == afterEachMethod) {
                                         cd = JavaTemplate.builder("#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
-                                                .contextSensitive()
                                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                                 .javaParser(JavaParser.fromJavaVersion()
                                                         .classpathFromResources(ctx,

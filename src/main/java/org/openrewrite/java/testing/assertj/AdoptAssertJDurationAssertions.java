@@ -150,7 +150,6 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                     private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, String assertions, Object... parameters) {
                         maybeAddImport(assertions, "assertThat");
                         J.MethodInvocation invocation = JavaTemplate.builder(template)
-                                .contextSensitive()
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .staticImports(assertions + ".assertThat")
                                 .build()

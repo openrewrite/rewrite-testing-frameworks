@@ -64,13 +64,11 @@ public class AssertEqualsIntegralDeltaToAssertEquals extends Recipe {
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .imports("org.junit.jupiter.api.Assertions")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
@@ -88,13 +86,11 @@ public class AssertEqualsIntegralDeltaToAssertEquals extends Recipe {
                     JavaTemplate t;
                     if (mi.getSelect() == null) {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .staticImports("org.junit.jupiter.api.Assertions.assertEquals")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();
                     } else {
                         t = JavaTemplate.builder(sb.toString())
-                                .contextSensitive()
                                 .imports("org.junit.jupiter.api.Assertions")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                 .build();

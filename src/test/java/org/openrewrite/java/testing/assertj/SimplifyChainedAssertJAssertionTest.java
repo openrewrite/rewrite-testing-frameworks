@@ -871,4 +871,40 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void collectionOfClassDeclaredInTestFile() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.util.Collection")),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(items.isEmpty()).isTrue();
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(items).isEmpty();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
