@@ -38,10 +38,6 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
 import static org.openrewrite.Tree.randomId;
 
-/**
- * Wraps `MockedConstruction` variable declarations with explicit `.close()` calls
- * into try-with-resources blocks, removing the explicit close call.
- */
 public class MockConstructionToTryWithResources extends Recipe {
 
     private static final MethodMatcher MOCK_CONSTRUCTION_MATCHER = new MethodMatcher("org.mockito.Mockito mockConstruction(..)");

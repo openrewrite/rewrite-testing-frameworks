@@ -177,7 +177,7 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
         );
     }
 
-    @Disabled
+    @Disabled("`UpdateBeforeAfterAnnotations` keeps the `public` modifier and leaves the trailing comment on the annotation")
     @Issue("https://github.com/openrewrite/rewrite/issues/150")
     @Test
     void convertsToPackageVisibility() {

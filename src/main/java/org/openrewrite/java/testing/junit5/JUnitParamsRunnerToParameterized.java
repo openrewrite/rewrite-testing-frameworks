@@ -32,15 +32,8 @@ import java.util.*;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 
-/**
- * Converts Pragmatists JUnitParamsRunner tests to their JUnit 5 ParameterizedTest and associated MethodSource equivalent
- * <a href="https://github.com/Pragmatists/JUnitParams">...</a>
- * Supports the following conversions
- * `@Parameters` annotation without arguments and default `parametersFor...` init-method exists
- * `@Parameters(method = "...")` annotation with defined method references
- * `@Parameters(named = "...")` and associated `@NamedParameter` init-method
- * Unsupported tests are identified with a comment on the associated `@Parameters(...)` annotation.
- */
+// Converts `@Parameters` without arguments (with a `parametersFor...` method), `@Parameters(method = "...")` and `@Parameters(named = "...")` with a `@NamedParameter` method.
+// Other `@Parameters(...)` annotations get a comment marking the test as unsupported.
 public class JUnitParamsRunnerToParameterized extends Recipe {
 
     private static final AnnotationMatcher RUN_WITH_JUNIT_PARAMS_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.runner.RunWith(junitparams.JUnitParamsRunner.class)");

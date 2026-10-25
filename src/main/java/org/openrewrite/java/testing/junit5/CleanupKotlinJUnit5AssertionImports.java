@@ -27,16 +27,6 @@ import java.util.List;
 
 import static java.util.stream.Collectors.toList;
 
-/**
- * In Kotlin files, when both {@code import org.junit.jupiter.api.*} and static imports from
- * {@code org.junit.jupiter.api.Assertions} are present, the Kotlin compiler cannot resolve
- * which assertion method to use due to ambiguity between the Java static methods and the
- * Kotlin extension functions.
- * <p>
- * This recipe removes the static Assertions imports in Kotlin files when the wildcard import
- * {@code org.junit.jupiter.api.*} is present, allowing the Kotlin extension functions to be
- * used instead. The Kotlin extensions have better nullability handling for Kotlin code.
- */
 public class CleanupKotlinJUnit5AssertionImports extends Recipe {
 
     @Getter

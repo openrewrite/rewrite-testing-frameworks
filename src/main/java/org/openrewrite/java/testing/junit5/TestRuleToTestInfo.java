@@ -103,7 +103,6 @@ public class TestRuleToTestInfo extends Recipe {
         public  J.@Nullable NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
             J.NewClass nc = super.visitNewClass(newClass, ctx);
             if (TypeUtils.isOfClassType(nc.getType(), "org.junit.rules.TestName")) {
-                //noinspection ConstantConditions
                 return null;
             }
             return nc;
@@ -181,7 +180,6 @@ public class TestRuleToTestInfo extends Recipe {
                         .build()
                         .apply(updateCursor(md), md.getCoordinates().replaceParameters());
 
-                //noinspection ConstantConditions
                 md = maybeAutoFormat(
                         md,
                         JavaTemplate.builder(testMethodStatement)

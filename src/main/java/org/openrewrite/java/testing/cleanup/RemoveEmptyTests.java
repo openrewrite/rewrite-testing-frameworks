@@ -60,7 +60,6 @@ public class RemoveEmptyTests extends Recipe {
                             maybeRemoveImport(type);
                         }
                     }
-                    //noinspection ConstantConditions
                     return null;
                 }
                 return super.visitMethodDeclaration(method, ctx);

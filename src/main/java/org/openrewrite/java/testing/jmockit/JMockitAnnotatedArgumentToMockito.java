@@ -60,14 +60,11 @@ public class JMockitAnnotatedArgumentToMockito extends Recipe {
                             maybeRemoveImport("mockit.Mocked");
                             maybeAddImport("org.mockito.Mockito");
 
-                            // Create lists to store the mocked parameters and the new type parameters
                             List<J.VariableDeclarations> mockedParameter = new ArrayList<>();
 
-                            // Remove any mocked parameters from the method declaration
                             md = md.withParameters(ListUtils.map(parameters, parameter -> {
                                 if (parameter instanceof J.VariableDeclarations) {
                                     J.VariableDeclarations variableDeclarations = (J.VariableDeclarations) parameter;
-                                    // Check if the parameter has the annotation "mockit.Mocked or mockit.Injectable"
                                     if (!FindAnnotations.find(variableDeclarations, "mockit.Injectable").isEmpty() ||
                                         !FindAnnotations.find(variableDeclarations, "mockit.Mocked").isEmpty() ) {
                                         mockedParameter.add(variableDeclarations);
@@ -77,7 +74,6 @@ public class JMockitAnnotatedArgumentToMockito extends Recipe {
                                 return parameter;
                             }));
 
-                            // Add mocked parameters as statements to the method declaration
                             if (!mockedParameter.isEmpty()) {
                                 JavaTemplate addStatementsTemplate = JavaTemplate.builder("#{} #{} = Mockito.mock(#{}.class);\n")
                                         .javaParser(getJavaParser(ctx))
@@ -87,7 +83,6 @@ public class JMockitAnnotatedArgumentToMockito extends Recipe {
                                 // Retain argument order by iterating in reverse
                                 for (int i = mockedParameter.size() - 1; i >= 0; i--) {
                                     J.VariableDeclarations variableDeclarations = mockedParameter.get(i);
-                                    // Apply the template and update the method declaration
                                     md = addStatementsTemplate.apply(updateCursor(md),
                                             md.getBody().getCoordinates().firstStatement(),
                                             variableDeclarations.getTypeExpression().toString(),

@@ -66,7 +66,6 @@ public class CsvSourceToValueSource extends Recipe {
                         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
                         boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
 
-                        // Check if method has exactly one parameter
                         if (m.getParameters().size() != 1 || m.getParameters().get(0) instanceof J.Empty) {
                             return m;
                         }
@@ -78,11 +77,9 @@ public class CsvSourceToValueSource extends Recipe {
                             return m;
                         }
 
-                        // Find @CsvSource annotation
                         for (J.Annotation annotation : m.getLeadingAnnotations()) {
                             Optional<Annotated> annotated = new Annotated.Matcher(CSV_SOURCE_MATCHER).get(annotation, getCursor());
                             if (annotated.isPresent() && annotation.getArguments() != null && annotation.getArguments().size() == 1) {
-                                // Get the parameter type
                                 String paramType = getParameterType((J.VariableDeclarations) m.getParameters().get(0));
                                 if (paramType == null) {
                                     return m;
@@ -134,13 +131,11 @@ public class CsvSourceToValueSource extends Recipe {
                                     }
                                 }
 
-                                // Build a new ValueSource annotation
                                 String valueSourceAnnotationTemplate = buildValueSourceAnnotation(paramType, values, fromTextBlock, kotlin);
                                 if (valueSourceAnnotationTemplate == null) {
                                     return m;
                                 }
 
-                                // Replace the annotation
                                 maybeRemoveImport("org.junit.jupiter.params.provider.CsvSource");
                                 maybeAddImport("org.junit.jupiter.params.provider.ValueSource");
                                 J.MethodDeclaration replaced = applyValueSourceTemplate(valueSourceAnnotationTemplate, annotation, kotlin, ctx);
