@@ -196,7 +196,6 @@ public class MigrateJUnitTestCase extends Recipe {
             // If the class no longer extends TestCase there should no longer be calls to TestCase.super()
             // Plenty of edge cases around classes which extend classes which extend TestCase this doesn't account for
             if (TEST_CASE_SUPER_MATCHER.matches(method)) {
-                //noinspection DataFlowIssue
                 return null;
             }
             return super.visitMethodInvocation(method, ctx);

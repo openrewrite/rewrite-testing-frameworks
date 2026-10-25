@@ -29,9 +29,6 @@ import org.openrewrite.java.tree.J;
 
 import java.time.Duration;
 
-/**
- * Replace Mockito 1.x `anyString()` with `nullable(String.class)`
- */
 public class AnyStringToNullable extends Recipe {
     private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.Mockito anyString()");
 

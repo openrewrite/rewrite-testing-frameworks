@@ -147,7 +147,6 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
                     doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FOLDER, getCursor().firstEnclosing(J.ClassDeclaration.class)));
                     break;
                 case "create":
-                    //noinspection ConstantConditions
                     return null;
                 case "getRoot":
                     return mi.getSelect().withPrefix(mi.getPrefix());

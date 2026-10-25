@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -52,11 +51,10 @@ public class EnvironmentVariables extends Recipe {
             "library.";
 
     @Override
-    public @NonNull TreeVisitor<?, ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new UsesType<>(ENVIRONMENT_VARIABLES, false), new JavaVisitor<ExecutionContext>() {
             @Override
-            public @NonNull J visitCompilationUnit(
-                    J.@NonNull CompilationUnit cu, @NonNull ExecutionContext ctx) {
+            public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 maybeRemoveImport(RULE);
                 maybeRemoveImport(CLASS_RULE);
                 maybeRemoveImport(ENVIRONMENT_VARIABLES);
@@ -69,23 +67,20 @@ public class EnvironmentVariables extends Recipe {
             }
 
             @Override
-            public @NonNull J visitClassDeclaration(
-                    J.@NonNull ClassDeclaration classDecl, @NonNull ExecutionContext ctx) {
+            public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, ctx);
                 Boolean hasEnvVarRule = getCursor().getMessage(HAS_ENV_VAR_RULE);
 
                 if (!Boolean.TRUE.equals(hasEnvVarRule)) {
                     return cd;
                 }
-                // Add @ExtendWith(SystemStubsExtension.class) annotation to class.
                 return systemStubExtensionTemplate(ctx).apply(
                         updateCursor(cd),
                         cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
             }
 
             @Override
-            public @NonNull J visitVariableDeclarations(
-                    J.@NonNull VariableDeclarations variableDecls, @NonNull ExecutionContext ctx) {
+            public J visitVariableDeclarations(J.VariableDeclarations variableDecls, ExecutionContext ctx) {
                 // missing type attribution, possibly parsing error.
                 if (variableDecls.getType() == null || !TypeUtils.isAssignableTo(ENVIRONMENT_VARIABLES, variableDecls.getType())) {
                     return variableDecls;
@@ -100,7 +95,6 @@ public class EnvironmentVariables extends Recipe {
                         .visit(variableDecls, ctx, getCursor().getParentOrThrow());
 
                 if (variableDecls != vd) {
-                    // put message to first enclosing ClassDeclaration, to inform that we have an env var rule.
                     getCursor()
                             .dropParentUntil(J.ClassDeclaration.class::isInstance)
                             .putMessage(HAS_ENV_VAR_RULE, true);
@@ -110,11 +104,8 @@ public class EnvironmentVariables extends Recipe {
             }
 
             @Override
-            public @Nullable J visitMethodInvocation(
-                    J.@NonNull MethodInvocation method, @NonNull ExecutionContext ctx) {
-
+            public @Nullable J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                // Replace EnvironmentVariables.clear() with EnvironmentVariables.remove()
                 if (ENV_VAR_CLEAR.matches(method) && m.getSelect() != null /* NullAway */) {
                     int argCount = argCount(m);
                     J j =

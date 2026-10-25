@@ -126,7 +126,6 @@ public class ReplaceSettersWithTransform extends Recipe {
                                 continue;
                             }
 
-                            // Collect the longest run of setter calls on the same receiver that can be chained
                             List<SetterCall> run = new ArrayList<>();
                             run.add(first);
                             int next = i + 1;
@@ -151,7 +150,6 @@ public class ReplaceSettersWithTransform extends Recipe {
                         return changed ? b.withStatements(rewritten) : b;
                     }
 
-                    // Returns the setter call this recipe can rewrite, or null if the statement is to be left alone
                     private @Nullable SetterCall asConvertibleSetterCall(Statement statement) {
                         if (!(statement instanceof J.MethodInvocation)) {
                             return null;

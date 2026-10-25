@@ -93,7 +93,6 @@ public class RemoveTestPrefix extends Recipe {
                                                           ExecutionContext ctx) {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
-            // Quickly reject invalid methods
             String simpleName = method.getSimpleName();
             int nameLength = simpleName.length();
             if (nameLength < 5 ||
@@ -104,7 +103,6 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Reject invalid start character
             boolean snakecase = simpleName.charAt(4) == '_' &&
                     5 < nameLength &&
                     Character.isAlphabetic(simpleName.charAt(5));
@@ -112,7 +110,6 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Avoid reserved keywords
             String newMethodName = snakecase ?
                     NameCaseConvention.format(NameCaseConvention.LOWER_UNDERSCORE, simpleName.substring(5)) :
                     NameCaseConvention.format(NameCaseConvention.LOWER_CAMEL, simpleName.substring(4));
@@ -120,7 +117,6 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Prevent conflicts with existing methods
             JavaType.Method type = m.getMethodType();
             if (type == null || methodExists(type, newMethodName)) {
                 return m;
@@ -141,12 +137,10 @@ public class RemoveTestPrefix extends Recipe {
                     for (JavaType.Method declaredMethod : declaringType.getMethods()) {
                         if (declaredMethod.getName().equals(simpleName) &&
                                 declaredMethod.hasFlags(Flag.Static)) {
-                            // Check for conflict with source method's new name
                             if (TypeUtils.findDeclaredMethod(declaringType, newMethodName,
                                     declaredMethod.getParameterTypes()).isPresent()) {
                                 return m;
                             }
-                            // Rename the source method too
                             doAfterVisit(new ChangeMethodName(
                                     MethodMatcher.methodPattern(declaredMethod),
                                     newMethodName, false, false).getVisitor());
@@ -156,7 +150,6 @@ public class RemoveTestPrefix extends Recipe {
                 }
             }
 
-            // Skip when there's a conflicting static import
             if (getCursor().getNearestMessage(STATIC_IMPORTS, new HashSet<>()).contains(newMethodName)) {
                 return m;
             }
@@ -175,7 +168,6 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
-            // Rename method and return
             doAfterVisit(new ChangeMethodName(MethodMatcher.methodPattern(m), newMethodName, false, false).getVisitor());
             return m;
         }

@@ -1608,7 +1608,7 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
         );
     }
 
-    @Disabled // comment migration not supported yet
+    @Disabled("Comments inside an `Expectations` block are not migrated yet")
     @Test
     void whenComments() {
         //language=java
