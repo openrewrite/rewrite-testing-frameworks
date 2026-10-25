@@ -44,6 +44,10 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         put("org.junit.AfterClass", "org.junit.jupiter.api.AfterAll");
     }};
 
+    private static final Map<AnnotationMatcher, AnnotationMatcher> JUNIT4_TO_JUPITER_MATCHERS = new LinkedHashMap<AnnotationMatcher, AnnotationMatcher>() {{
+        JUNIT4_TO_JUPITER.forEach((junit4, jupiter) -> put(new AnnotationMatcher("@" + junit4), new AnnotationMatcher("@" + jupiter)));
+    }};
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.or(
@@ -73,9 +77,9 @@ public class UpdateBeforeAfterAnnotations extends Recipe {
         @Override
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-            for (Map.Entry<String, String> pair : JUNIT4_TO_JUPITER.entrySet()) {
-                AnnotationMatcher junit4 = new AnnotationMatcher("@" + pair.getKey());
-                AnnotationMatcher jupiter = new AnnotationMatcher("@" + pair.getValue());
+            for (Map.Entry<AnnotationMatcher, AnnotationMatcher> pair : JUNIT4_TO_JUPITER_MATCHERS.entrySet()) {
+                AnnotationMatcher junit4 = pair.getKey();
+                AnnotationMatcher jupiter = pair.getValue();
                 boolean hasJunit4 = md.getLeadingAnnotations().stream().anyMatch(junit4::matches);
                 boolean hasJupiter = md.getLeadingAnnotations().stream().anyMatch(jupiter::matches);
                 if (hasJunit4 && hasJupiter) {

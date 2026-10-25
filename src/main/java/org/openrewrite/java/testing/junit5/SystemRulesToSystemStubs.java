@@ -177,7 +177,7 @@ public class SystemRulesToSystemStubs extends Recipe {
                     return vd;
                 }
                 if (todos.containsKey(variable)) {
-                    return withTodo(vd, todos.get(variable));
+                    return withTodo(updateCursor(vd), todos.get(variable));
                 }
                 Migration migration = migrations.get(variable);
                 if (migration == null) {

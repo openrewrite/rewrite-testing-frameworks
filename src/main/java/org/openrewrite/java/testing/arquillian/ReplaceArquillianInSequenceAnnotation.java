@@ -28,9 +28,14 @@ import org.openrewrite.java.tree.J;
 import java.util.Comparator;
 
 public class ReplaceArquillianInSequenceAnnotation extends Recipe {
+    private static final String IN_SEQUENCE = "org.jboss.arquillian.junit.InSequence";
+    private static final String TEST_METHOD_ORDER = "org.junit.jupiter.api.TestMethodOrder";
+    private static final String METHOD_ORDERER = "org.junit.jupiter.api.MethodOrderer";
+    private static final AnnotationMatcher IN_SEQUENCE_MATCHER = new AnnotationMatcher("@" + IN_SEQUENCE);
+    private static final AnnotationMatcher TEST_METHOD_ORDER_MATCHER = new AnnotationMatcher("@" + TEST_METHOD_ORDER);
 
     @Getter
-    final String displayName = "Arquillian JUnit 4 `@InSequence` to JUnit Jupiter `@Order`";
+    final String displayName = "Replace Arquillian JUnit 4 `@InSequence` with JUnit Jupiter `@Order`";
 
     @Getter
     final String description = "Transforms the Arquillian JUnit 4 `@InSequence` to the JUnit Jupiter `@Order`.";
@@ -40,12 +45,6 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
         return Preconditions.check(
                 new UsesType<>("org.jboss.arquillian.junit.InSequence", false),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    private final String IN_SEQUENCE = "org.jboss.arquillian.junit.InSequence";
-                    private final String TEST_METHOD_ORDER = "org.junit.jupiter.api.TestMethodOrder";
-                    private final String METHOD_ORDERER = "org.junit.jupiter.api.MethodOrderer";
-                    private final AnnotationMatcher IN_SEQUENCE_MATCHER = new AnnotationMatcher("@" + IN_SEQUENCE);
-                    private final AnnotationMatcher TEST_METHOD_ORDER_MATCHER = new AnnotationMatcher("@" + TEST_METHOD_ORDER);
-
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         doAfterVisit(new ChangeType(IN_SEQUENCE, "org.junit.jupiter.api.Order", true).getVisitor());

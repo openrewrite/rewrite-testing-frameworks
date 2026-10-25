@@ -19,12 +19,14 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
@@ -57,7 +59,7 @@ public class MockConstructionToTryWithResources extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(MOCKED_CONSTRUCTION_CLOSE_MATCHER), new JavaVisitor<ExecutionContext>() {
 
             @Override
             public J visitTry(J.Try tryStatement, ExecutionContext ctx) {
@@ -186,6 +188,6 @@ public class MockConstructionToTryWithResources extends Recipe {
                 }
                 return -1;
             }
-        };
+        });
     }
 }

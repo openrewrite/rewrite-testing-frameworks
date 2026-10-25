@@ -23,6 +23,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.trait.Literal;
 import org.openrewrite.java.tree.Expression;
@@ -66,11 +67,11 @@ public class MinimumJreConditions extends Recipe {
 
     String displayName = "Migrate JUnit JRE conditions";
 
-    String description = "This recipe will:\n" + " - Remove tests that are only active on JREs that are below the specified version.\n" + " - Adjust ranges to use minimum the specified version.";
+    String description = "Remove tests that can not run on the specified minimum JRE version or later, and drop JRE versions below that minimum from the `@EnabledOnJre`, `@DisabledOnJre`, `@EnabledForJreRange` and `@DisabledForJreRange` conditions of the remaining tests.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.or(new UsesType<>(ENABLED_ON_JRE, false), new UsesType<>(DISABLED_ON_JRE, false), new UsesType<>(ENABLED_FOR_JRE_RANGE, false), new UsesType<>(DISABLED_FOR_JRE_RANGE, false)), new JavaIsoVisitor<ExecutionContext>() {
 
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -287,7 +288,7 @@ public class MinimumJreConditions extends Recipe {
                 }
                 return singletonList(expression.toString());
             }
-        };
+        });
     }
 
     private static Optional<Expression> getDefaultAttribute(Annotated annotated) {

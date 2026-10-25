@@ -36,21 +36,21 @@ public class RemoveTimesZeroAndOne extends Recipe {
     @Getter
     final String description = "Remove `Mockito.times(0)` and `Mockito.times(1)` from `Mockito.verify()` calls.";
 
-    private static final MethodMatcher verifyMatcher = new MethodMatcher("org.mockito.Mockito verify(..)", false);
-    private static final MethodMatcher timesMatcher = new MethodMatcher("org.mockito.Mockito times(int)", false);
+    private static final MethodMatcher VERIFY_MATCHER = new MethodMatcher("org.mockito.Mockito verify(..)", false);
+    private static final MethodMatcher TIMES_MATCHER = new MethodMatcher("org.mockito.Mockito times(int)", false);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.and(
-                        new UsesMethod<>(verifyMatcher),
-                        new UsesMethod<>(timesMatcher)
+                        new UsesMethod<>(VERIFY_MATCHER),
+                        new UsesMethod<>(TIMES_MATCHER)
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                        if (timesMatcher.matches(mi) && J.Literal.isLiteralValue(mi.getArguments().get(0), 0)) {
+                        if (TIMES_MATCHER.matches(mi) && J.Literal.isLiteralValue(mi.getArguments().get(0), 0)) {
                             maybeRemoveImport("org.mockito.Mockito.times");
                             maybeAddImport("org.mockito.Mockito", "never");
                             return JavaTemplate.builder("never()")
@@ -59,10 +59,10 @@ public class RemoveTimesZeroAndOne extends Recipe {
                                     .build()
                                     .apply(getCursor(), mi.getCoordinates().replace());
                         }
-                        if (verifyMatcher.matches(mi) && mi.getArguments().size() == 2 &&
+                        if (VERIFY_MATCHER.matches(mi) && mi.getArguments().size() == 2 &&
                                 mi.getArguments().get(1) instanceof J.MethodInvocation) {
                             J.MethodInvocation times = (J.MethodInvocation) mi.getArguments().get(1);
-                            if (timesMatcher.matches(times) && J.Literal.isLiteralValue(times.getArguments().get(0), 1)) {
+                            if (TIMES_MATCHER.matches(times) && J.Literal.isLiteralValue(times.getArguments().get(0), 1)) {
                                 maybeRemoveImport("org.mockito.Mockito.times");
                                 // Only update method type if parameter types are available
                                 JavaType.Method methodType = mi.getMethodType();

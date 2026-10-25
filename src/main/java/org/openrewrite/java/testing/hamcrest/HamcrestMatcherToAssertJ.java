@@ -35,9 +35,12 @@ import static java.util.stream.Collectors.joining;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HamcrestMatcherToAssertJ extends Recipe {
+    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
+    private static final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
+    private static final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
     @Option(displayName = "Hamcrest matcher",
-            description = "The Hamcrest `Matcher` to migrate to JUnit5.",
+            description = "The Hamcrest `Matcher` to migrate to AssertJ.",
             example = "equalTo",
             required = false)
     @Nullable
@@ -69,9 +72,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
     }
 
     private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher assertThatMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
         private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.*Matchers " + matcher + "(..)");
-        private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
         // AssertJ assertions that don't take any arguments - matcher arguments should be ignored
         private final Set<String> noArgAssertions = new HashSet<>(Arrays.asList("isNotNull", "isNull"));
@@ -79,7 +80,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (assertThatMatcher.matches(mi)) {
+            if (ASSERT_THAT_MATCHER.matches(mi)) {
                 return replace(mi, ctx);
             }
             return mi;
@@ -90,7 +91,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             Expression reasonArgument = mia.size() == 3 ? mia.get(0) : null;
             Expression actualArgument = mia.get(mia.size() - 2);
             Expression matcherArgument = mia.get(mia.size() - 1);
-            if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
+            if (!matchersMatcher.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
                 return mi;
             }
             if (argumentType != null && !TypeUtils.isAssignableTo(argumentType, actualArgument.getType())) {
@@ -142,8 +143,6 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             }
             return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
         }
-
-        private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
         private Expression ensureMatchingNumericType(Expression toleranceExpr, @Nullable JavaType actualType) {
             JavaType toleranceType = toleranceExpr.getType();

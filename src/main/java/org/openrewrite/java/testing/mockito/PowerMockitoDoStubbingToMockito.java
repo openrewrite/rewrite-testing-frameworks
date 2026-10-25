@@ -26,7 +26,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.trait.Comments;
 
 import java.util.List;
 
@@ -44,9 +44,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
     final String displayName = "Replace PowerMockito `doX().when(instance, \"method\")` with Mockito-compatible stubbing";
 
     @Getter
-    final String description = "Replaces PowerMockito's private method stubbing pattern " +
-            "`doNothing().when(instance, \"methodName\", args...)` with the standard Mockito pattern " +
-            "`doNothing().when(instance).methodName(args...)`.";
+    final String description = "Replaces PowerMockito's `doNothing().when(instance, \"methodName\", args...)` stubbing (and that of the other `doX()` methods) with the standard Mockito pattern `doNothing().when(instance).methodName(args...)`. Mockito can not stub private methods, so stubbing of a private method is left unchanged and gets a comment.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -86,12 +84,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                                 firstArg.getType(), targetMethodName, extraArgs.size());
                         if (targetMethod != null && targetMethod.getFlags().contains(Private)) {
                             String comment = " PowerMock private method stubbing is not supported by Mockito. Refactor the private method to package-private or extract to a collaborator.";
-                            if (mi.getPrefix().getComments().stream().noneMatch(c -> c.printComment(getCursor()).endsWith(comment.trim()))) {
-                                return mi.withPrefix(mi.getPrefix().withComments(ListUtils.concat(
-                                        mi.getPrefix().getComments(),
-                                        new TextComment(false, comment, "\n" + mi.getPrefix().getIndent(), Markers.EMPTY))));
-                            }
-                            return mi;
+                            return Comments.of(updateCursor(mi)).comment(comment, Comments.Placement.BEFORE, "\n" + mi.getPrefix().getIndent());
                         }
 
                         // Rewrite: doX().when(instance, "method", args...) → doX().when(instance).method(args...)

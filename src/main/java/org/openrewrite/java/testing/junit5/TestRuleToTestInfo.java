@@ -36,10 +36,10 @@ import java.util.List;
 public class TestRuleToTestInfo extends Recipe {
 
     @Getter
-    final String displayName = "JUnit TestName @Rule to JUnit Jupiter TestInfo";
+    final String displayName = "JUnit `TestName` `@Rule` to JUnit Jupiter `TestInfo`";
 
     @Getter
-    final String description = "Replace usages of JUnit 4's `@Rule TestName` with JUnit 5's TestInfo.";
+    final String description = "Replace usages of JUnit 4's `@Rule TestName` with JUnit 5's `TestInfo`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
