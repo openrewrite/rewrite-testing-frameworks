@@ -195,7 +195,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 exceptionClass = "Exception.class";
             }
 
-            maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
+            maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
             Statement firstExpectedExceptionMethodInvocation = getCursor().getMessage(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION);
             String templateString = exceptionClass instanceof String ? "#{}assertThrows(#{}, () -> #{any()});" : "#{}assertThrows(#{any()}, () -> #{any()});";
             b = JavaTemplate.builder(templateString)

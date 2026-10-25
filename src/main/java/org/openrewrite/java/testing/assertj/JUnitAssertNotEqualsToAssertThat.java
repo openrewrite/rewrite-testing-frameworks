@@ -57,7 +57,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                 }
 
                 maybeRemoveImport(JUNIT);
-                maybeAddImport(ASSERTJ, "assertThat", false);
+                maybeAddImport(ASSERTJ, "assertThat");
 
                 List<Expression> args = mi.getArguments();
                 Expression expected = args.get(0);
@@ -84,7 +84,7 @@ public class JUnitAssertNotEqualsToAssertThat extends Recipe {
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
                 }
 
-                maybeAddImport(ASSERTJ, "within", false);
+                maybeAddImport(ASSERTJ, "within");
                 Expression delta = args.get(2);
                 if (args.size() == 3) {
                     return JavaTemplate.builder("assertThat(" + widenedTo(deltaType, actual) + ").isNotCloseTo(#{any()}, within(" + widenedTo(deltaType, delta) + "));")

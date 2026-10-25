@@ -261,8 +261,8 @@ public class JMockitMockUpToMockito extends Recipe {
                     }
 
                     maybeAddImport(MOCKITO_CONSTRUCTION_IMPORT);
-                    maybeAddImport("org.mockito.Answers", "CALLS_REAL_METHODS", false);
-                    maybeAddImport("org.mockito.AdditionalAnswers", "delegatesTo", false);
+                    maybeAddImport("org.mockito.Answers", "CALLS_REAL_METHODS");
+                    maybeAddImport("org.mockito.AdditionalAnswers", "delegatesTo");
                 }
 
                 List<Statement> statements = md.getBody().getStatements();
@@ -300,7 +300,7 @@ public class JMockitMockUpToMockito extends Recipe {
 
             maybeRemoveImport(JMOCKIT_MOCK_IMPORT);
             maybeRemoveImport(JMOCKIT_MOCKUP_IMPORT);
-            maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*", false);
+            maybeAddImport(MOCKITO_ALL_IMPORT.replace(".*", ""), "*");
 
             doAfterVisit(new LambdaBlockToExpression().getVisitor());
             doAfterVisit(ShortenFullyQualifiedTypeReferences.modifyOnly(md));
@@ -308,7 +308,7 @@ public class JMockitMockUpToMockito extends Recipe {
         }
 
         private String getMatcher(JavaType s) {
-            maybeAddImport(MOCKITO_MATCHER_IMPORT.replace(".*", ""), "*", false);
+            maybeAddImport(MOCKITO_MATCHER_IMPORT.replace(".*", ""), "*");
             if (s instanceof JavaType.Primitive) {
                 switch (s.toString()) {
                     case "int":

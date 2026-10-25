@@ -64,7 +64,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                 }
 
                 maybeRemoveImport("org.testng.Assert");
-                maybeAddImport(ASSERTJ, "assertThat", false);
+                maybeAddImport(ASSERTJ, "assertThat");
 
                 if (args.size() == 2) {
                     method = JavaTemplate.builder("assertThat(#{any()}).isNotEqualTo(#{any()});")
@@ -87,7 +87,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                                 .build()
                                 .apply(getCursor(), method.getCoordinates().replace(), actual, expected);
                     } else {
-                        maybeAddImport(ASSERTJ, "within", false);
+                        maybeAddImport(ASSERTJ, "within");
                         method = JavaTemplate.builder("assertThat(#{any()}).isNotCloseTo(#{any()}, within(#{any()}));")
                                 .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
@@ -103,7 +103,7 @@ public class TestNgAssertNotEqualsToAssertThat extends Recipe {
                                 .build()
                                 .apply(getCursor(), method.getCoordinates().replace(), actual, message, expected);
                     } else {
-                        maybeAddImport(ASSERTJ, "within", false);
+                        maybeAddImport(ASSERTJ, "within");
                         method = JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isNotCloseTo(#{any()}, within(#{any()}));")
                                 .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))

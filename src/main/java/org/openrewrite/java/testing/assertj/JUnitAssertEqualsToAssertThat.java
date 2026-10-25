@@ -59,7 +59,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 }
 
                 maybeRemoveImport(JUNIT);
-                maybeAddImport(ASSERTJ, "assertThat", false);
+                maybeAddImport(ASSERTJ, "assertThat");
 
                 List<Expression> args = mi.getArguments();
                 Expression expected = args.get(0);
@@ -96,7 +96,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
                     }
-                    maybeAddImport(ASSERTJ, "within", false);
+                    maybeAddImport(ASSERTJ, "within");
                     return JavaTemplate.builder("assertThat(" + widenedTo(deltaType, actual) + ").isCloseTo(#{any()}, within(" + widenedTo(deltaType, delta) + "));")
                             .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
@@ -113,7 +113,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, message, expected);
                 }
-                maybeAddImport(ASSERTJ, "within", false);
+                maybeAddImport(ASSERTJ, "within");
                 return JavaTemplate.builder("assertThat(" + widenedTo(deltaType, actual) + ").as(#{any()}).isCloseTo(#{any()}, within(" + widenedTo(deltaType, delta) + "));")
                         .staticImports(ASSERTJ + ".assertThat", ASSERTJ + ".within")
                         .imports("java.util.function.Supplier")

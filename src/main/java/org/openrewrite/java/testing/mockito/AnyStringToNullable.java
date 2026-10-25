@@ -49,7 +49,7 @@ public class AnyStringToNullable extends Recipe {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (ANY_STRING.matches(mi)) {
                     maybeRemoveImport("org.mockito.Mockito.anyString");
-                    maybeAddImport("org.mockito.ArgumentMatchers", "nullable", false);
+                    maybeAddImport("org.mockito.ArgumentMatchers", "nullable");
                     return JavaTemplate.builder("nullable(String.class)")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                             .staticImports("org.mockito.ArgumentMatchers.nullable")

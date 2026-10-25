@@ -137,7 +137,7 @@ public class TestNgSoftAssertToAssertJ extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"));
                 if (usesWithin) {
                     builder.staticImports("org.assertj.core.api.Assertions.within");
-                    maybeAddImport("org.assertj.core.api.Assertions", "within", false);
+                    maybeAddImport("org.assertj.core.api.Assertions", "within");
                 }
                 return builder.build().apply(getCursor(), method.getCoordinates().replace(), params);
             }
