@@ -207,4 +207,36 @@ class HamcrestHasPropertyToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void classDeclaredInTestFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasProperty;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(Item item) {
+                      assertThat(item, hasProperty("class"));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(Item item) {
+                      assertThat(item).hasFieldOrProperty("class");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
