@@ -20,6 +20,7 @@ import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Parser;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.SourceFile;
@@ -28,17 +29,24 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.gradle.GradleParser;
 import org.openrewrite.gradle.IsBuildGradle;
 import org.openrewrite.gradle.marker.GradleProject;
-import org.openrewrite.groovy.GroovyIsoVisitor;
 import org.openrewrite.groovy.tree.G;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.tree.ParseError;
 
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.internal.ListUtils.concat;
 
@@ -49,56 +57,57 @@ public class GradleUseJunitJupiter extends Recipe {
 
     String description = "By default Gradle's `Test` tasks use JUnit 4. " +
                 "Gradle `Test` tasks must be configured with `useJUnitPlatform()` to run JUnit Jupiter tests. " +
-                "This recipe adds the `useJUnitPlatform()` method call to the `Test` task configuration.";
-
-    private static final String USE_JUNIT_PLATFORM_PATTERN = "org.gradle.api.tasks.testing.Test useJUnitPlatform()";
-    private static final MethodMatcher USE_JUNIT_PLATFORM_MATCHER = new MethodMatcher(USE_JUNIT_PLATFORM_PATTERN);
-    private static final MethodMatcher USE_JUNIT4_MATCHER = new MethodMatcher("org.gradle.api.tasks.testing.Test useJUnit()");
-    private static final MethodMatcher USE_JUNIT4_ALTERNATE_MATCHER = new MethodMatcher("RewriteTestSpec useJUnit()");
-    private static final MethodMatcher TEST_DSL_MATCHER = new MethodMatcher("RewriteGradleProject test(..)");
+                "This recipe adds the `useJUnitPlatform()` method call to the `Test` task configuration in `build.gradle` and `build.gradle.kts` files.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new IsBuildGradle<>(), new GroovyIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new IsBuildGradle<>(), new TreeVisitor<Tree, ExecutionContext>() {
             @Override
-            public G.CompilationUnit visitCompilationUnit(G.CompilationUnit compilationUnit, ExecutionContext ctx) {
-                if (!IsBuildGradle(compilationUnit) || !hasJavaBasePlugin(compilationUnit) || containsJUnitPlatformInvocation(compilationUnit)) {
+            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+                return sourceFile instanceof G.CompilationUnit || sourceFile instanceof K.CompilationUnit;
+            }
+
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (!(tree instanceof JavaSourceFile)) {
+                    return tree;
+                }
+                JavaSourceFile compilationUnit = (JavaSourceFile) tree;
+                if (!isBuildScript(compilationUnit) || !hasJavaBasePlugin(compilationUnit) || containsJUnitPlatformInvocation(compilationUnit)) {
                     return compilationUnit;
                 }
                 // If anywhere in the tree there is a useJunit() we can swap it out for useJUnitPlatform() and be done in one step
-                G.CompilationUnit cu = (G.CompilationUnit) new UpdateExistingUseJunit4()
-                        .visitNonNull(compilationUnit, ctx, requireNonNull(getCursor().getParent()));
+                JavaSourceFile cu = (JavaSourceFile) new UpdateExistingUseJunit4().visitNonNull(compilationUnit, ctx, getCursor());
                 if (cu != compilationUnit) {
                     return cu;
                 }
                 // No useJUnit(), but there might already be configuration of a Test task, add useJUnitPlatform() to it
-                cu = (G.CompilationUnit) new AddJUnitPlatformToExistingTestDsl()
-                        .visitNonNull(cu, ctx, requireNonNull(getCursor().getParent()));
+                cu = (JavaSourceFile) new AddJUnitPlatformToExistingTestDsl().visitNonNull(cu, ctx, getCursor());
                 if (cu != compilationUnit) {
                     return cu;
                 }
 
                 // No existing test task configuration seems to exist, add a whole new one
-                return (G.CompilationUnit) new AddUseJUnitPlatform()
-                        .visitNonNull(cu, ctx, getCursor().getParent());
+                return addUseJUnitPlatform(cu, new Cursor(getCursor(), cu), ctx);
             }
         });
     }
 
     // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
-    private static boolean IsBuildGradle(G.CompilationUnit compilationUnit) {
-        return compilationUnit.getSourcePath().toString().endsWith("build.gradle");
+    private static boolean isBuildScript(JavaSourceFile compilationUnit) {
+        String sourcePath = compilationUnit.getSourcePath().toString();
+        return sourcePath.endsWith("build.gradle") || sourcePath.endsWith("build.gradle.kts");
     }
 
-    private static Boolean hasJavaBasePlugin(G.CompilationUnit compilationUnit) {
+    private static Boolean hasJavaBasePlugin(JavaSourceFile compilationUnit) {
         return compilationUnit.getMarkers().findFirst(GradleProject.class)
                 .map(gp -> gp.getPlugins().stream().anyMatch(it ->
                         it.getFullyQualifiedClassName().contains("org.gradle.api.plugins.JavaBasePlugin")))
                 .orElse(false);
     }
 
-    private static boolean containsJUnitPlatformInvocation(G.CompilationUnit cu) {
-        return new GroovyIsoVisitor<AtomicBoolean>() {
+    private static boolean containsJUnitPlatformInvocation(JavaSourceFile cu) {
+        return new JavaIsoVisitor<AtomicBoolean>() {
             @Override
             public @Nullable J preVisit(J tree, AtomicBoolean found) {
                 if (found.get()) {
@@ -123,7 +132,7 @@ public class GradleUseJunitJupiter extends Recipe {
         }.reduce(cu, new AtomicBoolean(false)).get();
     }
 
-    private static class UpdateExistingUseJunit4 extends GroovyIsoVisitor<ExecutionContext> {
+    private static class UpdateExistingUseJunit4 extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
@@ -143,28 +152,38 @@ public class GradleUseJunitJupiter extends Recipe {
         }
     }
 
-    private static class AddUseJUnitPlatform extends GroovyIsoVisitor<ExecutionContext> {
-        @Override
-        public G.CompilationUnit visitCompilationUnit(G.CompilationUnit cu, ExecutionContext ctx) {
-            J.MethodInvocation task = createTaskUseJUnitPlatform(getCursor(), ctx, true).orElse(null);
-            return cu.withStatements(concat(cu.getStatements(), task));
+    private static JavaSourceFile addUseJUnitPlatform(JavaSourceFile cu, Cursor cursor, ExecutionContext ctx) {
+        J.MethodInvocation task = createTaskUseJUnitPlatform(cursor, ctx, true).orElse(null);
+        if (cu instanceof K.CompilationUnit) {
+            K.CompilationUnit kcu = (K.CompilationUnit) cu;
+            return kcu.withStatements(ListUtils.mapFirst(kcu.getStatements(), script -> ((J.Block) script).withStatements(concat(((J.Block) script).getStatements(), task))));
         }
+        G.CompilationUnit gcu = (G.CompilationUnit) cu;
+        return gcu.withStatements(concat(gcu.getStatements(), task));
     }
 
-    private static class AddJUnitPlatformToExistingTestDsl extends GroovyIsoVisitor<ExecutionContext> {
+    private static class AddJUnitPlatformToExistingTestDsl extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
             String mName = m.getSimpleName();
             // A non-exhaustive list of common ways by which the task may already be configured
             // test { }
+            // tasks.test { }
             // tasks.withType(Test) { }
+            // tasks.withType<Test> { }
             // tasks.withType(Test).configureEach { }
+            // tasks.withType<Test>().configureEach { }
             // tasks.named("test") { }
             // tasks.named("test", Test) { }
+            // tasks.named<Test>("test") { }
             switch (mName) {
                 case "test":
                     if (!(m.getArguments().size() == 1 && m.getArguments().get(0) instanceof J.Lambda)) {
+                        return m;
+                    }
+                    // Kotlin DSL `sourceSets.test { }` configures a source set rather than the task
+                    if (m.getSelect() != null && !isTasks(m.getSelect())) {
                         return m;
                     }
                     // Other DSLs may be named "test" so only assume it is `test {}` if it isn't enclosed in anything else
@@ -185,15 +204,7 @@ public class GradleUseJunitJupiter extends Recipe {
                     }
                     break;
                 case "withType":
-                    if (m.getSelect() == null) {
-                        return m;
-                    }
-                    if (!TypeUtils.isOfClassType(m.getSelect().getType(), "org.gradle.api.tasks.TaskContainer") &&
-                            // With Gradle 9 we saw the type change to Object, so fall back to checking simple name
-                            !(m.getSelect() instanceof J.Identifier && "tasks".equals(((J.Identifier) m.getSelect()).getSimpleName()))) {
-                        return m;
-                    }
-                    if (!(m.getArguments().get(0) instanceof J.Identifier && "Test".equals(((J.Identifier) m.getArguments().get(0)).getSimpleName()))) {
+                    if (m.getSelect() == null || !isTasks(m.getSelect()) || !isWithTypeTest(m)) {
                         return m;
                     }
                     break;
@@ -201,14 +212,7 @@ public class GradleUseJunitJupiter extends Recipe {
                     if (m.getArguments().size() != 1 || !(m.getArguments().get(0) instanceof J.Lambda)) {
                         return m;
                     }
-                    if (m.getSelect() == null || !(m.getSelect() instanceof J.MethodInvocation)) {
-                        return m;
-                    }
-                    J.MethodInvocation select = (J.MethodInvocation) m.getSelect();
-                    if (!"withType".equals(select.getSimpleName()) ||
-                            select.getArguments().size() != 1 ||
-                            !(select.getArguments().get(0) instanceof J.Identifier) ||
-                            !"Test".equals(((J.Identifier) select.getArguments().get(0)).getSimpleName())) {
+                    if (!(m.getSelect() instanceof J.MethodInvocation) || !isWithTypeTest((J.MethodInvocation) m.getSelect())) {
                         return m;
                     }
                     break;
@@ -221,17 +225,45 @@ public class GradleUseJunitJupiter extends Recipe {
         }
     }
 
-    private static class AddJUnitPlatformAsLastStatementInClosure extends GroovyIsoVisitor<ExecutionContext> {
+    private static boolean isTasks(Expression select) {
+        return TypeUtils.isOfClassType(select.getType(), "org.gradle.api.tasks.TaskContainer") ||
+                // With Gradle 9 we saw the type change to Object, so fall back to checking simple name
+                select instanceof J.Identifier && "tasks".equals(((J.Identifier) select).getSimpleName());
+    }
+
+    private static boolean isWithTypeTest(J.MethodInvocation withType) {
+        if (!"withType".equals(withType.getSimpleName())) {
+            return false;
+        }
+        List<Expression> typeParameters = withType.getTypeParameters();
+        if (typeParameters != null) {
+            return typeParameters.size() == 1 && isTestIdentifier(typeParameters.get(0));
+        }
+        Expression type = withType.getArguments().get(0);
+        if (type instanceof J.FieldAccess && "java".equals(((J.FieldAccess) type).getSimpleName())) {
+            type = ((J.FieldAccess) type).getTarget();
+        }
+        if (type instanceof J.MemberReference && "class".equals(((J.MemberReference) type).getReference().getSimpleName())) {
+            type = ((J.MemberReference) type).getContaining();
+        }
+        return isTestIdentifier(type);
+    }
+
+    private static boolean isTestIdentifier(Expression expression) {
+        return expression instanceof J.Identifier && "Test".equals(((J.Identifier) expression).getSimpleName());
+    }
+
+    private static class AddJUnitPlatformAsLastStatementInClosure extends JavaIsoVisitor<ExecutionContext> {
         @Override
         public J.Lambda visitLambda(J.Lambda l, ExecutionContext ctx) {
             if (!(l.getBody() instanceof J.Block)) {
                 return l;
             }
             return createTaskUseJUnitPlatform(getCursor(), ctx, false)
-                    .map(it -> (J.Lambda) it.getArguments().get(1))
-                    .map(it -> (J.Block) it.getBody())
-                    .map(it -> (J.Return) it.getStatements().get(0))
-                    .map(it -> ((J.MethodInvocation) it.getExpression()))
+                    .map(it -> (J.Lambda) it.getArguments().get(it.getArguments().size() - 1))
+                    .map(it -> ((J.Block) it.getBody()).getStatements().get(0))
+                    // Groovy closures wrap their last statement in an implicit return
+                    .map(it -> it instanceof J.Return ? (Statement) requireNonNull(((J.Return) it).getExpression()) : it)
                     .map(useJUnitPlatform -> {
                         J.Block b = (J.Block) l.getBody();
                         J.Lambda j = l.withBody(b.withStatements(concat(b.getStatements(), useJUnitPlatform)));
@@ -244,24 +276,22 @@ public class GradleUseJunitJupiter extends Recipe {
     private static final String TEMPLATE_KEY = GradleUseJunitJupiter.class.getName() + ".template.";
 
     private static Optional<J.MethodInvocation> createTaskUseJUnitPlatform(Cursor cursor, ExecutionContext ctx, boolean forEachInvocation) {
+        boolean kotlinDsl = cursor.firstEnclosing(K.CompilationUnit.class) != null;
         // Parsing is expensive, so cache once per cycle on the root cursor; not statically, to avoid retaining the LST.
-        J.MethodInvocation template = cursor.getRoot().computeMessageIfAbsent(TEMPLATE_KEY + forEachInvocation,
-                k -> parseTemplate(ctx, forEachInvocation));
+        J.MethodInvocation template = cursor.getRoot().computeMessageIfAbsent(TEMPLATE_KEY + forEachInvocation + kotlinDsl,
+                k -> parseTemplate(ctx, forEachInvocation, kotlinDsl));
         // Hand back a copy with fresh ids so reusing the cached template (across files, or across multiple matching
         // test blocks within one script) never produces colliding ids in the resulting tree.
         return template == null ? Optional.empty() : Optional.of(withNewIds(template));
     }
 
-    private static J.@Nullable MethodInvocation parseTemplate(ExecutionContext ctx, boolean forEachInvocation) {
-        String groovySnippet = "plugins {\n" +
-                "    id 'java'\n" +
-                "}\n" +
-                "tasks.withType(Test)" + (forEachInvocation ? ".configureEach" : "") + " {\n" +
-                "    useJUnitPlatform()\n" +
-                "}";
+    private static J.@Nullable MethodInvocation parseTemplate(ExecutionContext ctx, boolean forEachInvocation, boolean kotlinDsl) {
+        String plugins = kotlinDsl ? "plugins {\n    java\n}\n" : "plugins {\n    id 'java'\n}\n";
+        String testTasks = kotlinDsl ? "tasks.withType<Test>()" : "tasks.withType(Test)";
+        String snippet = plugins + testTasks + (forEachInvocation ? ".configureEach" : "") + " {\n    useJUnitPlatform()\n}";
         SourceFile sourceFile = GradleParser.builder()
                 .build()
-                .parse(ctx, groovySnippet)
+                .parseInputs(singletonList(Parser.Input.fromString(Paths.get(kotlinDsl ? "build.gradle.kts" : "build.gradle"), snippet)), null, ctx)
                 .findFirst()
                 .orElse(null);
         if (sourceFile == null) {
@@ -270,12 +300,12 @@ public class GradleUseJunitJupiter extends Recipe {
         if (sourceFile instanceof ParseError) {
             throw ((ParseError) sourceFile).toException();
         }
-        G.CompilationUnit cu = (G.CompilationUnit) sourceFile;
-        return (J.MethodInvocation) cu.getStatements().get(1);
+        List<Statement> statements = sourceFile instanceof K.CompilationUnit ? ((J.Block) ((K.CompilationUnit) sourceFile).getStatements().get(0)).getStatements() : ((G.CompilationUnit) sourceFile).getStatements();
+        return (J.MethodInvocation) statements.get(1);
     }
 
     private static J.MethodInvocation withNewIds(J.MethodInvocation template) {
-        return (J.MethodInvocation) new GroovyIsoVisitor<Integer>() {
+        return (J.MethodInvocation) new JavaIsoVisitor<Integer>() {
             @Override
             public @Nullable J visit(@Nullable Tree tree, Integer p) {
                 J j = super.visit(tree, p);
