@@ -17,22 +17,33 @@ package org.openrewrite.java.testing.junit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
-import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class RemoveJupiterMigrationSupportTest implements RewriteTest {
+
+    @Override
+    public void defaults(RecipeSpec spec) {
+        spec
+          .parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "junit-jupiter-api-5",
+              "junit-jupiter-migrationsupport-5"))
+          .recipe(new RemoveJupiterMigrationSupport());
+    }
 
     @DocumentExample
     @Test
     void removesDependencyFromMavenPomXml() {
         rewriteRun(
-          spec -> spec.recipeFromResource(
-            "/META-INF/rewrite/junit-jupiter.yml",
-            "org.openrewrite.java.testing.junit.RemoveJupiterMigrationSupport"),
           mavenProject("project",
             //language=xml
             pomXml(
@@ -68,9 +79,6 @@ class RemoveJupiterMigrationSupportTest implements RewriteTest {
     @Test
     void removesManagedDependency() {
         rewriteRun(
-          spec -> spec.recipeFromResource(
-            "/META-INF/rewrite/junit-jupiter.yml",
-            "org.openrewrite.java.testing.junit.RemoveJupiterMigrationSupport"),
           mavenProject("project",
             //language=xml
             pomXml(
@@ -107,11 +115,7 @@ class RemoveJupiterMigrationSupportTest implements RewriteTest {
     @Test
     void removesDependencyFromGradleBuild() {
         rewriteRun(
-          spec -> spec
-            .recipeFromResource(
-              "/META-INF/rewrite/junit-jupiter.yml",
-              "org.openrewrite.java.testing.junit.RemoveJupiterMigrationSupport")
-            .beforeRecipe(withToolingApi()),
+          spec -> spec.beforeRecipe(withToolingApi()),
           //language=groovy
           buildGradle(
             """
@@ -142,9 +146,6 @@ class RemoveJupiterMigrationSupportTest implements RewriteTest {
     @Test
     void noChangeWhenDependencyAbsent() {
         rewriteRun(
-          spec -> spec.recipeFromResource(
-            "/META-INF/rewrite/junit-jupiter.yml",
-            "org.openrewrite.java.testing.junit.RemoveJupiterMigrationSupport"),
           mavenProject("project",
             //language=xml
             pomXml(
@@ -158,6 +159,162 @@ class RemoveJupiterMigrationSupportTest implements RewriteTest {
                         <dependency>
                             <groupId>org.junit.jupiter</groupId>
                             <artifactId>junit-jupiter-api</artifactId>
+                            <version>5.9.3</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void keepsDependencyUsedByEnableRuleMigrationSupport() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.migrationsupport.rules.EnableRuleMigrationSupport;
+                  import org.junit.rules.TemporaryFolder;
+
+                  @EnableRuleMigrationSupport
+                  class FooTest {
+                      @Rule
+                      public TemporaryFolder folder = new TemporaryFolder();
+
+                      @Test
+                      void foo() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-migrationsupport</artifactId>
+                            <version>5.9.3</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void keepsManagedDependencyUsedByChildModule() {
+        rewriteRun(
+          mavenProject("parent",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                    <packaging>pom</packaging>
+                    <modules><module>child</module></modules>
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.junit.jupiter</groupId>
+                                <artifactId>junit-jupiter-migrationsupport</artifactId>
+                                <version>5.9.3</version>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                </project>
+                """
+            ),
+            mavenProject("child",
+              srcTestJava(
+                //language=java
+                java(
+                  """
+                    import org.junit.jupiter.api.extension.ExtendWith;
+                    import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+
+                    @ExtendWith(ExternalResourceSupport.class)
+                    class FooTest {
+                    }
+                    """
+                )
+              ),
+              //language=xml
+              pomXml(
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>com.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>1.0</version>
+                      </parent>
+                      <artifactId>child</artifactId>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.junit.jupiter</groupId>
+                              <artifactId>junit-jupiter-migrationsupport</artifactId>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void keepsDependencyForExternalResourceRuleOfJUnit4() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.rules.ExternalResource;
+
+                  class FooTest {
+                      @Rule
+                      public ExternalResource resource = new ExternalResource() {
+                      };
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-migrationsupport</artifactId>
                             <version>5.9.3</version>
                             <scope>test</scope>
                         </dependency>

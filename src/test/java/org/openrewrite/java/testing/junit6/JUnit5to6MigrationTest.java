@@ -225,6 +225,106 @@ class JUnit5to6MigrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void keepsMigrationSupportWhileUsed() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api-5",
+              "junit-jupiter-migrationsupport-5")),
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+
+                  @ExtendWith(ExternalResourceSupport.class)
+                  class FooTest {
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-migrationsupport</artifactId>
+                            <version>5.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-jupiter-migrationsupport</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void removesUnusedMigrationSupport() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  class FooTest {
+                      @Test
+                      void foo() {
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>project</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-api</artifactId>
+                            <version>5.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-migrationsupport</artifactId>
+                            <version>5.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-jupiter-api</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
+                .doesNotContain("junit-jupiter-migrationsupport")
+                .actual())
+            )
+          )
+        );
+    }
+
     //language=java
     private static final String JUNIT5_EXTENSION = """
       import org.junit.jupiter.api.extension.ExtensionContext;
