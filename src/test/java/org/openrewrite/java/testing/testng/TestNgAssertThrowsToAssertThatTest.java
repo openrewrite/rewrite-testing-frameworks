@@ -125,4 +125,66 @@ class TestNgAssertThrowsToAssertThatTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void assertThrowsWithMessage() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.testng.Assert.assertThrows;
+
+              class Test {
+                  void test() {
+                      assertThrows("should throw", IllegalStateException.class, () -> {
+                          throw new IllegalStateException();
+                      });
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              class Test {
+                  void test() {
+                      assertThatExceptionOfType(IllegalStateException.class).as("should throw").isThrownBy(() -> {
+                          throw new IllegalStateException();
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void expectThrowsWithMessageReturnsActual() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.testng.Assert.expectThrows;
+
+              class Test {
+                  void test() {
+                      IllegalStateException e = expectThrows("should throw", IllegalStateException.class, () -> {
+                          throw new IllegalStateException();
+                      });
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+              class Test {
+                  void test() {
+                      IllegalStateException e = assertThatExceptionOfType(IllegalStateException.class).as("should throw").isThrownBy(() -> {
+                          throw new IllegalStateException();
+                      }).actual();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
