@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -33,14 +34,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 
 @NoArgsConstructor
 @AllArgsConstructor
 public class HamcrestNotMatcherToAssertJ extends Recipe {
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
     private static final MethodMatcher NOT_MATCHER = new MethodMatcher("org.hamcrest.*Matchers not(org.hamcrest.Matcher)");
-    private static final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
     @Option(displayName = "Hamcrest Matcher",
             description = "The Hamcrest `not(Matcher)` to migrate to AssertJ.",
@@ -73,36 +72,29 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (ASSERT_THAT_MATCHER.matches(mi)) {
-                Expression notMethodInvocation = mi.getArguments().get(mi.getArguments().size() - 1);
-                if (!NOT_MATCHER.matches(notMethodInvocation)) {
-                    return mi;
-                }
-                Expression matcherArgument = ((J.MethodInvocation) notMethodInvocation).getArguments().get(0);
-                if (mi.getArguments().size() == 2) {
-                    return handleTwoArgumentCase(mi, matcherArgument, ctx);
-                }
-                if (mi.getArguments().size() == 3) {
-                    return handleThreeArgumentCase(mi, matcherArgument, ctx);
-                }
-            }
-            return mi;
-        }
-
-        private J.MethodInvocation handleTwoArgumentCase(J.MethodInvocation mi, Expression matcherArgument, ExecutionContext ctx) {
-            Expression actualArgument = mi.getArguments().get(0);
-            if (!matchersMatcher.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
+            if (!ASSERT_THAT_MATCHER.matches(mi)) {
                 return mi;
             }
-            String actual = typeToIndicator(actualArgument.getType());
-            List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
-                    .filter(a -> !(a instanceof J.Empty))
-                    .collect(toList());
+            List<Expression> mia = mi.getArguments();
+            Expression notMethodInvocation = mia.get(mia.size() - 1);
+            if (!NOT_MATCHER.matches(notMethodInvocation)) {
+                return mi;
+            }
+            Expression matcherArgument = ((J.MethodInvocation) notMethodInvocation).getArguments().get(0);
+            if (!matchersMatcher.matches(matcherArgument) || HamcrestMatcherToAssertJ.takesMatcher((J.MethodInvocation) matcherArgument)) {
+                return mi;
+            }
+            Expression reasonArgument = mia.size() == 3 ? mia.get(0) : null;
+            Expression actualArgument = mia.get(mia.size() - 2);
+            List<Expression> originalArguments = ListUtils.filter(((J.MethodInvocation) matcherArgument).getArguments(), a -> !(a instanceof J.Empty));
             String argumentsTemplate = originalArguments.stream()
                     .map(a -> typeToIndicator(a.getType()))
                     .collect(joining(", "));
-            JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).%s(%s)",
-                            actual, assertion, argumentsTemplate))
+            JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s)%s.%s(%s)",
+                            typeToIndicator(actualArgument.getType()),
+                            reasonArgument != null ? ".as(#{any(String)})" : "",
+                            assertion,
+                            argumentsTemplate))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                     .build();
@@ -116,37 +108,9 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
 
             List<Expression> templateArguments = new ArrayList<>();
             templateArguments.add(actualArgument);
-            templateArguments.addAll(originalArguments);
-            return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
-        }
-
-        private J.MethodInvocation handleThreeArgumentCase(J.MethodInvocation mi, Expression matcherArgument, ExecutionContext ctx) {
-            Expression reasonArgument = mi.getArguments().get(0);
-            Expression actualArgument = mi.getArguments().get(1);
-            if (!matchersMatcher.matches(matcherArgument) || SUB_MATCHER.matches(matcherArgument)) {
-                return mi;
+            if (reasonArgument != null) {
+                templateArguments.add(reasonArgument);
             }
-            String actual = typeToIndicator(actualArgument.getType());
-            List<Expression> originalArguments = ((J.MethodInvocation) matcherArgument).getArguments().stream()
-                    .filter(a -> !(a instanceof J.Empty))
-                    .collect(toList());
-            String argumentsTemplate = originalArguments.stream()
-                    .map(a -> typeToIndicator(a.getType()))
-                    .collect(joining(", "));
-            JavaTemplate template = JavaTemplate.builder(String.format("assertThat(%s).as(#{any(String)}).%s(%s)",
-                            actual, assertion, argumentsTemplate))
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                    .staticImports("org.assertj.core.api.Assertions.assertThat")
-                    .build();
-            maybeRemoveImport("org.hamcrest.Matchers.not");
-            maybeRemoveImport("org.hamcrest.Matchers." + notMatcher);
-            maybeRemoveImport("org.hamcrest.MatcherAssert");
-            maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
-            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-
-            List<Expression> templateArguments = new ArrayList<>();
-            templateArguments.add(actualArgument);
-            templateArguments.add(reasonArgument);
             templateArguments.addAll(originalArguments);
             return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
         }

@@ -157,4 +157,60 @@ class HamcrestNotMatcherToAssertJTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void notMatcherWithReasonFromCoreMatchers() {
+        rewriteRun(
+          spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("equalTo", "isNotEqualTo")),
+          //language=java
+          java(
+            """
+              import static org.hamcrest.CoreMatchers.equalTo;
+              import static org.hamcrest.CoreMatchers.not;
+              import static org.hamcrest.MatcherAssert.assertThat;
+
+              class ATest {
+                  void test(String str1, String str2) {
+                      assertThat("Reason", str1, not(equalTo(str2)));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class ATest {
+                  void test(String str1, String str2) {
+                      assertThat(str1).as("Reason").isNotEqualTo(str2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotConvertNestedMatchers() {
+        rewriteRun(
+          spec -> spec.recipe(new HamcrestNotMatcherToAssertJ("hasItems", "doesNotContain")),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.equalTo;
+              import static org.hamcrest.Matchers.hasItems;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.startsWith;
+
+              class ATest {
+                  void test(List<String> list) {
+                      assertThat(list, not(hasItems(equalTo("a"), startsWith("b"))));
+                      assertThat("Reason", list, not(hasItems(equalTo("a"), startsWith("b"))));
+                  }
+              }
+              """
+          )
+        );
+    }
 }
