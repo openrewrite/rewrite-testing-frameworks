@@ -162,16 +162,15 @@ public class RemoveTestPrefix extends Recipe {
             }
 
             // Skip when calling a similarly named method
-            AtomicBoolean skip = new AtomicBoolean(false);
-            new JavaIsoVisitor<AtomicBoolean>() {
+            AtomicBoolean skip = new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
                     if (method.getName().getSimpleName().equals(newMethodName) && method.getSelect() == null) {
-                        skip.set(true);
+                        found.set(true);
                     }
-                    return super.visitMethodInvocation(method, atomicBoolean);
+                    return super.visitMethodInvocation(method, found);
                 }
-            }.visit(m, skip, getCursor().getParentTreeCursor());
+            }.reduce(m, new AtomicBoolean(), getCursor().getParentTreeCursor());
             if (skip.get()) {
                 return m;
             }

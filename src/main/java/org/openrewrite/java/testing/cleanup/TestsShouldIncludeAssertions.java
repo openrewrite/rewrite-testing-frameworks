@@ -159,19 +159,16 @@ public class TestsShouldIncludeAssertions extends Recipe {
         }
 
         private boolean methodHasAssertion(J.Block body) {
-            AtomicBoolean hasAssertion = new AtomicBoolean(Boolean.FALSE);
-            JavaIsoVisitor<AtomicBoolean> findAssertionVisitor = new JavaIsoVisitor<AtomicBoolean>() {
+            return new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
-                    J.MethodInvocation mi = super.visitMethodInvocation(method, atomicBoolean);
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean hasAssertion) {
+                    J.MethodInvocation mi = super.visitMethodInvocation(method, hasAssertion);
                     if (isAssertion(mi) || isAssumption(mi)) {
-                        atomicBoolean.set(Boolean.TRUE);
+                        hasAssertion.set(true);
                     }
                     return mi;
                 }
-            };
-            findAssertionVisitor.visit(body, hasAssertion);
-            return hasAssertion.get();
+            }.reduce(body, new AtomicBoolean()).get();
         }
 
         private boolean methodInvocationInBodyContainsAssertion() {
