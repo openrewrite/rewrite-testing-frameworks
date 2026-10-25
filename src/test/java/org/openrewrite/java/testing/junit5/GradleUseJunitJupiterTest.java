@@ -17,8 +17,6 @@ package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -280,9 +278,14 @@ class GradleUseJunitJupiterTest implements RewriteTest {
         );
     }
 
-    @DisabledForJreRange(min = JRE.JAVA_25, disabledReason = "The Kotlin compiler embedded in Gradle 8.14 cannot parse the JDK 25 version string")
     @Nested
-    class KotlinDsl {
+    class KotlinDsl implements RewriteTest {
+
+        @Override
+        public void defaults(RecipeSpec spec) {
+            spec.recipe(new GradleUseJunitJupiter())
+              .beforeRecipe(withToolingApi("9.x"));
+        }
 
         @Test
         void addWhenMissing() {

@@ -17,8 +17,6 @@ package org.openrewrite.java.testing.junit5;
 
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledForJreRange;
-import org.junit.jupiter.api.condition.JRE;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
@@ -508,11 +506,10 @@ class AddJupiterDependenciesTest implements RewriteTest {
         );
     }
 
-    @DisabledForJreRange(min = JRE.JAVA_25, disabledReason = "The Kotlin compiler embedded in Gradle 8.14 cannot parse the JDK 25 version string")
     @Test
     void addToGradleKotlinDslBuild() {
         rewriteRun(
-          spec -> spec.beforeRecipe(withToolingApi()),
+          spec -> spec.beforeRecipe(withToolingApi("9.x")),
           mavenProject("project",
             srcTestJava(java(SOME_TEST)),
             //language=kotlin
