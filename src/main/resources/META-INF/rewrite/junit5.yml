@@ -161,11 +161,12 @@ recipeList:
   - org.openrewrite.java.testing.junit5.JUnitSoftAssertionsToSoftAssertionsExtension
   # Convert any leftover ExternalResource rules last, after more specific rules have already run
   - org.openrewrite.java.testing.junit5.HandleExternalResourceRules
+  - org.openrewrite.java.testing.junit5.AddJupiterMigrationSupport
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
 displayName: Exclude JUnit 4, unless a test library requires it
-description: Excludes JUnit 4 unless Testcontainers 1.x or Guava testlib requires it at runtime, even when tests use JUnit Jupiter.
+description: Excludes JUnit 4 unless Testcontainers 1.x, Guava testlib or JUnit Jupiter migrationsupport requires it at runtime, even when tests use JUnit Jupiter.
 preconditions:
   - org.openrewrite.Singleton
   - org.openrewrite.maven.search.DoesNotIncludeDependency:
@@ -175,6 +176,9 @@ preconditions:
   - org.openrewrite.maven.search.DoesNotIncludeDependency:
       groupId: com.google.guava
       artifactId: guava-testlib
+  - org.openrewrite.maven.search.DoesNotIncludeDependency:
+      groupId: org.junit.jupiter
+      artifactId: junit-jupiter-migrationsupport
 recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
