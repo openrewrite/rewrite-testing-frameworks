@@ -42,7 +42,6 @@ import static java.util.Objects.requireNonNull;
 
 public class TestMethodsShouldBeVoid extends Recipe {
 
-    private static final String TEST_ANNOTATION_TYPE_PATTERN = "org..*Test";
     private static final List<AnnotationMatcher> JUNIT5_TEST_ANNOTATIONS = asList(
             new AnnotationMatcher("@org.junit.jupiter.api.Test"),
             new AnnotationMatcher("@org.junit.jupiter.api.RepeatedTest"),
@@ -59,7 +58,14 @@ public class TestMethodsShouldBeVoid extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.and(new JavaFileChecker<>(), new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true)), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(
+                new JavaFileChecker<>(),
+                Preconditions.or(
+                        new UsesType<>("org.junit.jupiter.api.Test", false),
+                        new UsesType<>("org.junit.jupiter.api.RepeatedTest", false),
+                        new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false),
+                        new UsesType<>("org.junit.jupiter.api.TestTemplate", false))
+        ), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);

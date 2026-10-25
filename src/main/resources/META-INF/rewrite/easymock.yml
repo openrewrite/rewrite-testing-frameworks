@@ -33,6 +33,20 @@ recipeList:
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.easymock
       artifactId: easymock
+  - org.openrewrite.java.testing.easymock.EasyMockCodeToMockito
+  - org.openrewrite.java.testing.mockito.MockitoBestPractices
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.easymock.EasyMockCodeToMockito
+displayName: Migrate EasyMock code to Mockito
+description: Change EasyMock types, mock creation, expectations and argument matchers to their Mockito equivalents, and remove replay and verify calls.
+preconditions:
+  - org.openrewrite.java.search.HasType:
+      fullyQualifiedTypeName: org.easymock..*
+tags:
+  - testing
+  - easymock
+recipeList:
   - org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters times(..)
@@ -156,4 +170,3 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.easymock.TestSubject
       newFullyQualifiedTypeName: org.mockito.InjectMocks
-  - org.openrewrite.java.testing.mockito.MockitoBestPractices
