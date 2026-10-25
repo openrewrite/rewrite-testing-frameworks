@@ -116,29 +116,31 @@ class RemoveJupiterMigrationSupportTest implements RewriteTest {
     void removesDependencyFromGradleBuild() {
         rewriteRun(
           spec -> spec.beforeRecipe(withToolingApi()),
-          //language=groovy
-          buildGradle(
-            """
-              plugins {
-                  id 'java-library'
-              }
-              repositories {
-                  mavenCentral()
-              }
-              dependencies {
-                  testImplementation 'org.junit.jupiter:junit-jupiter-migrationsupport:5.9.3'
-              }
-              """,
-            """
-              plugins {
-                  id 'java-library'
-              }
-              repositories {
-                  mavenCentral()
-              }
-              dependencies {
-              }
+          mavenProject("project",
+            //language=groovy
+            buildGradle(
               """
+                plugins {
+                    id 'java-library'
+                }
+                repositories {
+                    mavenCentral()
+                }
+                dependencies {
+                    testImplementation 'org.junit.jupiter:junit-jupiter-migrationsupport:5.9.3'
+                }
+                """,
+              """
+                plugins {
+                    id 'java-library'
+                }
+                repositories {
+                    mavenCentral()
+                }
+                dependencies {
+                }
+                """
+            )
           )
         );
     }
