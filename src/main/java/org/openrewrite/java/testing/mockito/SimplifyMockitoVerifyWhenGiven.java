@@ -49,7 +49,7 @@ public class SimplifyMockitoVerifyWhenGiven extends Recipe {
     private static final MethodMatcher MOCKITO_EQ_MATCHER = new MethodMatcher("org.mockito.Mockito eq(..)");
 
     @Getter
-    final String displayName = "Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified";
+    final String displayName = "Remove `eq()` matchers from Mockito `verify`, `when` and `given` calls";
 
     @Getter
     final String description = "Fixes Sonar issue `java:S6068`: Call to Mockito method \"verify\", \"when\" or \"given\" should be simplified.";

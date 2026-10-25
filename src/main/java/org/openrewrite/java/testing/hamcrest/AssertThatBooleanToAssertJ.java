@@ -30,7 +30,7 @@ import org.openrewrite.java.tree.J;
 
 public class AssertThatBooleanToAssertJ extends Recipe {
     @Getter
-    final String displayName = "Migrate Hamcrest `assertThat(boolean, Matcher)` to AssertJ";
+    final String displayName = "Migrate Hamcrest `assertThat(String, boolean)` to AssertJ";
 
     @Getter
     final String description = "Replace Hamcrest `assertThat(String, boolean)` with AssertJ `assertThat(boolean).as(String).isTrue()`.";

@@ -59,7 +59,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
     final String displayName = "Migrate System Rules system property rules to JUnit Pioneer annotations";
 
     @Getter
-    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations. Only rules that take string literals and are not used elsewhere in the test are migrated; `SystemRulesToSystemStubs` handles the rest.";
+    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations. Only rules that take string literals and are not used elsewhere in the test are migrated; the others are left for the migration to System Stubs.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

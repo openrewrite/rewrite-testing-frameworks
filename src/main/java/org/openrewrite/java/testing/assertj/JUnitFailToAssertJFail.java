@@ -37,7 +37,7 @@ public class JUnitFailToAssertJFail extends Recipe {
     private static final MethodMatcher FAIL_MATCHER = new MethodMatcher(JUNIT + " fail(..)");
 
     @Getter
-    final String displayName = "JUnit fail to AssertJ";
+    final String displayName = "JUnit `fail` to AssertJ";
 
     @Getter
     final String description = "Convert JUnit-style `fail()` to AssertJ's `fail()`.";

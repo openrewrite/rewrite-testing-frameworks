@@ -53,10 +53,10 @@ public class SimplifySequencedCollectionAssertions extends Recipe {
     private static final MethodMatcher GET_LAST_MATCHER = new MethodMatcher("java.util.* getLast()");
 
     @Getter
-    final String displayName = "Simplify AssertJ assertions on SequencedCollection";
+    final String displayName = "Simplify AssertJ assertions on `SequencedCollection`";
 
     @Getter
-    final String description = "Simplify AssertJ assertions on SequencedCollection by using dedicated assertion methods. " +
+    final String description = "Simplify AssertJ assertions on `SequencedCollection` by using dedicated assertion methods. " +
             "For example, `assertThat(sequencedCollection.getLast())` can be simplified to `assertThat(sequencedCollection).last()`.";
 
     @Override

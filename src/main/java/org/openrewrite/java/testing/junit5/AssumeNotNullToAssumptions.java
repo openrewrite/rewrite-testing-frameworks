@@ -33,8 +33,8 @@ import java.util.stream.Stream;
 public class AssumeNotNullToAssumptions {
 
     @RecipeDescriptor(
-            name = "Transform singlar `assumeNotNull(object)` to `assumeFalse(object == null)`",
-            description = "Transform singlar `Assume.assumeNotNull(object)` to `Assumptions.assumeFalse(object == null)`.")
+            name = "Transform single-argument `assumeNotNull(object)` to `assumeFalse(object == null)`",
+            description = "Transform single-argument `Assume.assumeNotNull(object)` to `Assumptions.assumeFalse(object == null)`.")
     static class SingleArg {
         @BeforeTemplate
         void before(@Matches(SingleArgMatcher.class) Object object) {

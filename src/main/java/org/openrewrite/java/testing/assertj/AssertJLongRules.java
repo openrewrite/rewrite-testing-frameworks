@@ -25,8 +25,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
-      name = "Adopt AssertJ Long Assertions",
-      description = "Adopt AssertJ Long Assertions. Favor semantically explicit methods (e.g. " +
+      name = "Adopt AssertJ `Long` assertions",
+      description = "Adopt AssertJ `Long` assertions. Favor semantically explicit methods (e.g. " +
             "`myLong.isZero()` over `myLong.isEqualTo(0)`)."
 )
 public class AssertJLongRules {

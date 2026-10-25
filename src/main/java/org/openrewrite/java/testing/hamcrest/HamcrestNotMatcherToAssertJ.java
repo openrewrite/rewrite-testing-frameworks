@@ -43,7 +43,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
     private static final MethodMatcher SUB_MATCHER = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
     @Option(displayName = "Hamcrest Matcher",
-            description = "The Hamcrest `not(Matcher)` to migrate to JUnit5.",
+            description = "The Hamcrest `not(Matcher)` to migrate to AssertJ.",
             example = "equalTo",
             required = false)
     @Nullable
