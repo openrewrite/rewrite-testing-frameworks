@@ -61,19 +61,15 @@ public class GradleUseJunitJupiter extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new IsBuildGradle<>(), new TreeVisitor<Tree, ExecutionContext>() {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof G.CompilationUnit || sourceFile instanceof K.CompilationUnit;
-            }
-
+        // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
+        return Preconditions.check(new IsBuildGradle<>(true), new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
                 if (!(tree instanceof JavaSourceFile)) {
                     return tree;
                 }
                 JavaSourceFile compilationUnit = (JavaSourceFile) tree;
-                if (!isBuildScript(compilationUnit) || !hasJavaBasePlugin(compilationUnit) || containsJUnitPlatformInvocation(compilationUnit)) {
+                if (!hasJavaBasePlugin(compilationUnit) || containsJUnitPlatformInvocation(compilationUnit)) {
                     return compilationUnit;
                 }
                 // If anywhere in the tree there is a useJunit() we can swap it out for useJUnitPlatform() and be done in one step
@@ -91,12 +87,6 @@ public class GradleUseJunitJupiter extends Recipe {
                 return addUseJUnitPlatform(cu, new Cursor(getCursor(), cu), ctx);
             }
         });
-    }
-
-    // Avoid adding a new test configuration to script plugins as it may be added too broadly to all scripts
-    private static boolean isBuildScript(JavaSourceFile compilationUnit) {
-        String sourcePath = compilationUnit.getSourcePath().toString();
-        return sourcePath.endsWith("build.gradle") || sourcePath.endsWith("build.gradle.kts");
     }
 
     private static Boolean hasJavaBasePlugin(JavaSourceFile compilationUnit) {
