@@ -31,8 +31,11 @@ import java.util.List;
 import static java.util.Collections.singletonList;
 
 public class ReplaceArquillianInSequenceAnnotation extends Recipe {
-
     private static final String IN_SEQUENCE = "org.jboss.arquillian.junit.InSequence";
+    private static final String TEST_METHOD_ORDER = "org.junit.jupiter.api.TestMethodOrder";
+    private static final String METHOD_ORDERER = "org.junit.jupiter.api.MethodOrderer";
+    private static final AnnotationMatcher IN_SEQUENCE_MATCHER = new AnnotationMatcher("@" + IN_SEQUENCE);
+    private static final AnnotationMatcher TEST_METHOD_ORDER_MATCHER = new AnnotationMatcher("@" + TEST_METHOD_ORDER);
 
     @Getter
     final String displayName = "Arquillian JUnit 4 `@InSequence` to JUnit Jupiter `@Order`";
@@ -50,11 +53,6 @@ public class ReplaceArquillianInSequenceAnnotation extends Recipe {
         return Preconditions.check(
                 new UsesType<>(IN_SEQUENCE, false),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    private final String TEST_METHOD_ORDER = "org.junit.jupiter.api.TestMethodOrder";
-                    private final String METHOD_ORDERER = "org.junit.jupiter.api.MethodOrderer";
-                    private final AnnotationMatcher IN_SEQUENCE_MATCHER = new AnnotationMatcher("@" + IN_SEQUENCE);
-                    private final AnnotationMatcher TEST_METHOD_ORDER_MATCHER = new AnnotationMatcher("@" + TEST_METHOD_ORDER);
-
                     @Override
                     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                         J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);

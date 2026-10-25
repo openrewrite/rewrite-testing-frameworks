@@ -34,7 +34,7 @@ public class UseWiremockExtension extends Recipe {
     private static final String WIREMOCK_RULE = "com.github.tomakehurst.wiremock.junit.WireMockRule";
     private static final String WIREMOCK_EXTENSION = "com.github.tomakehurst.wiremock.junit5.WireMockExtension";
     private static final String REGISTER_EXTENSION = "org.junit.jupiter.api.extension.RegisterExtension";
-    private static final MethodMatcher newWiremockRule = new MethodMatcher(WIREMOCK_RULE + " <constructor>(..)");
+    private static final MethodMatcher NEW_WIREMOCK_RULE = new MethodMatcher(WIREMOCK_RULE + " <constructor>(..)");
     private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
 
     @Getter
@@ -79,7 +79,7 @@ public class UseWiremockExtension extends Recipe {
             @Override
             public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
-                if (newWiremockRule.matches(n)) {
+                if (NEW_WIREMOCK_RULE.matches(n)) {
                     maybeAddImport(WIREMOCK_EXTENSION);
 
                     Expression arg = n.getArguments().get(0);
