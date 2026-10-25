@@ -151,8 +151,6 @@ public class UpdateTestAnnotation extends Recipe {
                                 .apply(updateCursor(m), m.getCoordinates().replaceBody(), cta.expectedException, lambda);
                         // Only remove the throws clause for the specific exception being tested
                         m = removeSpecificThrowsClause(m, cta.expectedException);
-                        // Unconditionally add the import for assertThrows, got a report where the above template adds the method successfully
-                        // but with missing type attribution for assertThrows so the import was missing
                         maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                     }
                 }

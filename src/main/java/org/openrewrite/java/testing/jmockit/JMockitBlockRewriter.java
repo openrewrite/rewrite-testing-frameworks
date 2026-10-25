@@ -315,8 +315,6 @@ class JMockitBlockRewriter {
         }
 
         setNextStatementCoordinates(++numStatementsAdded);
-        // do this last making sure rewrite worked and specify onlyifReferenced=false because framework cannot find static
-        // reference for when method invocation when another static mockit reference is added
         visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "when");
         if (lenient) {
             visitor.maybeAddImport(MOCKITO_IMPORT_FQN_PREFX, "lenient");
