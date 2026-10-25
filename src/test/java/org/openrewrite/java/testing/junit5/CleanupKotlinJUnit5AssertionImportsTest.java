@@ -104,6 +104,34 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
     }
 
     @Test
+    void removesUnusedStaticAssertionsImportWhenApiWildcardPresent() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.*
+              import org.junit.jupiter.api.Assertions.assertNull
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.*
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void noChangeWhenOnlyApiWildcardImportPresent() {
         //language=kotlin
         rewriteRun(
