@@ -153,7 +153,7 @@ public class UpdateTestAnnotation extends Recipe {
                         m = removeSpecificThrowsClause(m, cta.expectedException);
                         // Unconditionally add the import for assertThrows, got a report where the above template adds the method successfully
                         // but with missing type attribution for assertThrows so the import was missing
-                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows", false);
+                        maybeAddImport("org.junit.jupiter.api.Assertions", "assertThrows");
                     }
                 }
                 if (cta.timeout != null) {

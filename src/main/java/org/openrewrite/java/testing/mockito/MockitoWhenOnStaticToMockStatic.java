@@ -238,8 +238,11 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         J.ClassDeclaration after = JavaTemplate
                                 .builder(String.format("private%s MockedStatic<%s> %s;", staticSetup ? " static" : "", className, variableName))
                                 .contextSensitive()
+                                .imports("org.mockito.MockedStatic")
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                                 .build()
                                 .apply(updateCursor(classDecl), classDecl.getBody().getCoordinates().firstStatement());
+                        maybeAddImport("org.mockito.MockedStatic");
 
                         List<Statement> afterStatements = after.getBody().getStatements();
                         AnnotationMatcher specificBeforeMatcher = new AnnotationMatcher(matchedAnnotation);
@@ -298,7 +301,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                 if (((J.MethodInvocation) requireNonNull(stubbing.getSelect())).getSelect() != null) {
                     maybeRemoveImport("org.mockito.Mockito");
                 }
-                maybeAddImport("org.mockito.MockedStatic", false);
+                maybeAddImport("org.mockito.MockedStatic");
                 maybeAddImport("org.mockito.Mockito", "mockStatic");
                 return JavaTemplate.builder(code)
                         .contextSensitive()

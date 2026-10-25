@@ -51,7 +51,7 @@ public class TestNgAssertSameToAssertThat extends Recipe {
                 }
 
                 maybeRemoveImport("org.testng.Assert");
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
                 List<Expression> args = method.getArguments();
                 Expression actual = args.get(0);

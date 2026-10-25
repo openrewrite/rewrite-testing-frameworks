@@ -194,17 +194,17 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             // TODO look into possibly employing `TypeUtils.toString()` here, possibly with some changes upstream allowing for non-fully-qualified names
                             variableTypeShort = buildParameterizedTypeName(paramType);
                             variableTypeFqn = paramType;
-                            maybeAddImport(paramType.getFullyQualifiedName(), false);
+                            maybeAddImport(paramType.getFullyQualifiedName());
                             for (JavaType typeParam : paramType.getTypeParameters()) {
                                 if (typeParam instanceof JavaType.FullyQualified) {
-                                    maybeAddImport(((JavaType.FullyQualified) typeParam).getFullyQualifiedName(), false);
+                                    maybeAddImport(((JavaType.FullyQualified) typeParam).getFullyQualifiedName());
                                 }
                             }
                         } else if (type instanceof JavaType.FullyQualified) {
                             JavaType.FullyQualified aClass = (JavaType.FullyQualified) type;
                             variableTypeShort = aClass.getClassName();
                             variableTypeFqn = aClass;
-                            maybeAddImport(aClass.getFullyQualifiedName(), false);
+                            maybeAddImport(aClass.getFullyQualifiedName());
                         }
 
                         Cursor blockCursor = new Cursor(getCursor(), body);

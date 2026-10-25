@@ -50,7 +50,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                 }
 
                 maybeRemoveImport("org.junit.jupiter.api.Assertions");
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
                 Expression expected = mi.getArguments().get(0);
                 Expression actual = mi.getArguments().get(1);

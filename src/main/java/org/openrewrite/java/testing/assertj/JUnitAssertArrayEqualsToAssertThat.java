@@ -57,7 +57,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                 }
 
                 maybeRemoveImport(JUNIT);
-                maybeAddImport(ASSERTJ, "assertThat", false);
+                maybeAddImport(ASSERTJ, "assertThat");
 
                 List<Expression> args = md.getArguments();
                 Expression expected = args.get(0);
@@ -79,7 +79,7 @@ public class JUnitAssertArrayEqualsToAssertThat extends Recipe {
                             .apply(getCursor(), md.getCoordinates().replace(), actual, message, expected);
                 }
 
-                maybeAddImport(ASSERTJ, "within", false);
+                maybeAddImport(ASSERTJ, "within");
                 Expression delta = args.get(2);
                 if (args.size() == 3) {
                     return JavaTemplate.builder("assertThat(#{anyArray()}).containsExactly(#{anyArray()}, within(" + widenedTo(deltaType, delta) + "));")

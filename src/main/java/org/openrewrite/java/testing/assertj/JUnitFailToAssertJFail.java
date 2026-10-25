@@ -97,7 +97,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     }
 
                     maybeRemoveImport(JUNIT + ".fail");
-                    maybeAddImport(ASSERTJ, "fail", false);
+                    maybeAddImport(ASSERTJ, "fail");
 
                     List<Expression> arguments = mi.getArguments();
                     String anyArgs = String.join(",", nCopies(arguments.size(), "#{any()}"));
