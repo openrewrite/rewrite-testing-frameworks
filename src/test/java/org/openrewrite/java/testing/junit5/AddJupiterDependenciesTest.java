@@ -25,6 +25,9 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.Assertions.buildGradleKts;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -474,6 +477,54 @@ class AddJupiterDependenciesTest implements RewriteTest {
                           .contains("junit-jupiter")
                           .doesNotContain("<scope>test</scope>").actual();
               })
+            )
+          )
+        );
+    }
+
+    @Test
+    void addToGradleBuild() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          mavenProject("project",
+            srcTestJava(java(SOME_TEST)),
+            //language=groovy
+            buildGradle(
+              """
+                plugins {
+                    id 'java'
+                }
+                repositories {
+                    mavenCentral()
+                }
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("testImplementation [\"']org\\.junit\\.jupiter:junit-jupiter:5\\.\\d+\\.\\d+[\"']")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void addToGradleKotlinDslBuild() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi("9.x")),
+          mavenProject("project",
+            srcTestJava(java(SOME_TEST)),
+            //language=kotlin
+            buildGradleKts(
+              """
+                plugins {
+                    java
+                }
+                repositories {
+                    mavenCentral()
+                }
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("testImplementation\\(\"org\\.junit\\.jupiter:junit-jupiter:5\\.\\d+\\.\\d+\"\\)")
+                .actual())
             )
           )
         );
