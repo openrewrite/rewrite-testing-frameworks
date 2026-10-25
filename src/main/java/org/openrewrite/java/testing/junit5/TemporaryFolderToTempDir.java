@@ -22,6 +22,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
@@ -108,6 +109,9 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             return mv;
         }
         mv = mv.withTypeExpression(toFileIdentifier(mv.getTypeExpression()));
+        if (mv.getLeadingAnnotations().stream().anyMatch(anno -> CLASS_RULE.matches(anno) || RULE.matches(anno))) {
+            mv = mv.withVariables(ListUtils.map(mv.getVariables(), v -> v.withInitializer(null)));
+        }
         return (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule")
                 .asVisitor(a -> JavaTemplate.builder("@TempDir")
                         .imports(TEMP_DIR)
@@ -120,13 +124,13 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     @Override
     public @Nullable J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
         if (NEW_TEMPORARY_FOLDER.matches(newClass)) {
-            return hasRuleAnnotation() ? null : JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
+            return JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
                     .imports("java.nio.file.Files")
                     .build()
                     .apply(getCursor(), newClass.getCoordinates().replace());
         }
         if (NEW_TEMPORARY_FOLDER_WITH_ARG.matches(newClass)) {
-            return hasRuleAnnotation() ? null : JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
+            return JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
                     .imports("java.nio.file.Files")
                     .build()
                     .apply(getCursor(), newClass.getCoordinates().replace(), newClass.getArguments().get(0));
@@ -167,14 +171,6 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     private J.Identifier toFileIdentifier(TypeTree typeTree) {
         JavaType.ShallowClass fileType = JavaType.ShallowClass.build("java.io.File");
         return new J.Identifier(randomId(), typeTree.getPrefix(), Markers.EMPTY, emptyList(), fileType.getClassName(), fileType, null);
-    }
-
-    private boolean hasRuleAnnotation() {
-        J.VariableDeclarations vd = getCursor().firstEnclosing(J.VariableDeclarations.class);
-        if (vd == null) {
-            return false;
-        }
-        return vd.getLeadingAnnotations().stream().anyMatch(anno -> CLASS_RULE.matches(anno) || RULE.matches(anno));
     }
 
     private J convertToNewFile(J.MethodInvocation mi, ExecutionContext ctx) {

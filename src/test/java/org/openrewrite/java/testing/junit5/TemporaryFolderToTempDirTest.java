@@ -594,6 +594,34 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     }
 
     @Test
+    void ruleBuiltWithBuilder() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TemporaryFolder;
+
+              class MyTest {
+                  @Rule
+                  TemporaryFolder folder = TemporaryFolder.builder().assureDeletion().build();
+              }
+              """,
+            """
+              import org.junit.jupiter.api.io.TempDir;
+
+              import java.io.File;
+
+              class MyTest {
+                  @TempDir
+                  File folder;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void groovyNewFolderWithoutArguments() {
         rewriteRun(
           //language=groovy
