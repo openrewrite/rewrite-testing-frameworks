@@ -268,9 +268,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
         }
         if (mi.getSelect() != null) {
             mi = fileOrFolder == FileOrFolder.FOLDER ? toNewFolder(mi, ctx) : toNewFile(mi, ctx);
-            mi = mi.withMethodType(newMethodType);
-            J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
-            mi = mi.withName(mi.getName().withType(parentClass.getType()));
+            mi = mi.withMethodType(newMethodType).withName(mi.getName().withType(newMethodType));
         }
         return mi;
     }
