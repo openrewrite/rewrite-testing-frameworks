@@ -113,6 +113,7 @@ public class SimplifyArrayLengthAssertion extends Recipe {
                         String assertions = requireNonNull(assertThat.getMethodType()).getDeclaringType().getFullyQualifiedName();
                         maybeAddImport(assertions, "assertThat");
                         return JavaTemplate.builder(template)
+                                .contextSensitive()
                                 .staticImports(assertions + ".assertThat")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()

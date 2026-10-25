@@ -168,6 +168,7 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 String assertions = requireNonNull(assertThat.getMethodType()).getDeclaringType().getFullyQualifiedName();
                 maybeAddImport(assertions, "assertThat");
                 JavaTemplate.Builder builder = JavaTemplate.builder(String.format(template, dedicatedAssertion))
+                        .contextSensitive()
                         .staticImports(assertions + ".assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"));
                 if (template.contains("Path.of(")) {
