@@ -34,6 +34,24 @@ recipeList:
       onlyIfUsing: com.google.common.truth.*
       acceptTransitive: true
 
+  - org.openrewrite.java.testing.truth.TruthCodeToAssertJ
+
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: com.google.truth
+      artifactId: truth
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.truth.TruthCodeToAssertJ
+displayName: Migrate Google Truth code to AssertJ
+description: Convert Google Truth assertions, subject types and their methods to AssertJ equivalents.
+preconditions:
+  - org.openrewrite.java.search.HasType:
+      fullyQualifiedTypeName: com.google.common.truth..*
+tags:
+  - testing
+  - truth
+  - assertj
+recipeList:
   # Handle Truth's assert_() static method
   - org.openrewrite.java.testing.truth.TruthAssertToAssertThat
   # Handle assertWithMessage conversions
@@ -220,7 +238,3 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.google.common.truth.Truth
       newFullyQualifiedTypeName: org.assertj.core.api.Assertions
-
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: com.google.truth
-      artifactId: truth

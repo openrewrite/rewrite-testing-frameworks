@@ -625,6 +625,8 @@ displayName: Testcontainers 2 container classes
 description: Change Testcontainers container classes to their new package locations in Testcontainers 2.x.
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.java.search.HasType:
+      fullyQualifiedTypeName: org.testcontainers..*
 recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.BigQueryEmulatorContainer

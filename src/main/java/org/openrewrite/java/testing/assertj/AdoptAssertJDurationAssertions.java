@@ -32,6 +32,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.*;
 
 import static java.util.Objects.requireNonNull;
+import static org.openrewrite.Preconditions.and;
 import static org.openrewrite.Preconditions.or;
 
 public class AdoptAssertJDurationAssertions extends Recipe {
@@ -74,13 +75,16 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                or(
-                        new UsesMethod<>(INTEGER_ASSERT_IS_EQUAL_TO, true),
-                        new UsesMethod<>(INTEGER_ASSERT_IS_GREATER_THAN, true),
-                        new UsesMethod<>(INTEGER_ASSERT_IS_LESS_THAN, true),
-                        new UsesMethod<>(LONG_ASSERT_IS_EQUAL_TO, true),
-                        new UsesMethod<>(LONG_ASSERT_IS_GREATER_THAN, true),
-                        new UsesMethod<>(LONG_ASSERT_IS_LESS_THAN, true)
+                and(
+                        new UsesMethod<>("java.time.Duration *(..)"),
+                        or(
+                                new UsesMethod<>(INTEGER_ASSERT_IS_EQUAL_TO, true),
+                                new UsesMethod<>(INTEGER_ASSERT_IS_GREATER_THAN, true),
+                                new UsesMethod<>(INTEGER_ASSERT_IS_LESS_THAN, true),
+                                new UsesMethod<>(LONG_ASSERT_IS_EQUAL_TO, true),
+                                new UsesMethod<>(LONG_ASSERT_IS_GREATER_THAN, true),
+                                new UsesMethod<>(LONG_ASSERT_IS_LESS_THAN, true)
+                        )
                 ), new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {

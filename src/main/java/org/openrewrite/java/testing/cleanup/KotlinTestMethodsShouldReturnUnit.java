@@ -58,7 +58,7 @@ public class KotlinTestMethodsShouldReturnUnit extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true), new KotlinIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.or(new UsesType<>(TEST_ANNOTATION_TYPE_PATTERN, true), new UsesType<>("org.testng.annotations.Test", true)), new KotlinIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);

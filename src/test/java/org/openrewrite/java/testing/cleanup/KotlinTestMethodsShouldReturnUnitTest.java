@@ -108,6 +108,39 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
     }
 
     @Test
+    void removeReturnTypeFromTestNGTestMethod() {
+        //language=kotlin
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "testng-7")),
+          kotlin(
+            """
+              import org.testng.annotations.Test
+
+              class ATest {
+                  @Test
+                  fun myTest(): String {
+                      println("test")
+                      return "done"
+                  }
+              }
+              """,
+            """
+              import org.testng.annotations.Test
+
+              class ATest {
+                  @Test
+                  fun myTest() {
+                      println("test")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void removeReturnTypeAndPreserveReturnStatement() {
         //language=kotlin
         rewriteRun(
