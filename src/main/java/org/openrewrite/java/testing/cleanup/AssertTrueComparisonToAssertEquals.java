@@ -35,10 +35,10 @@ public class AssertTrueComparisonToAssertEquals extends Recipe {
             "org.junit.jupiter.api.Assertions assertTrue(..)");
 
     @Getter
-    final String displayName = "Junit `assertTrue(a == b)` to `assertEquals(a,b)`";
+    final String displayName = "Replace JUnit `assertTrue(a == b)` with `assertEquals(a, b)`";
 
     @Getter
-    final String description = "Using `assertEquals(a,b)` is simpler and more clear.";
+    final String description = "Using `assertEquals(a, b)` is simpler and more clear.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

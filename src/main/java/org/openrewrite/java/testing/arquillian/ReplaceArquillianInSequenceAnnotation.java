@@ -30,7 +30,7 @@ import java.util.Comparator;
 public class ReplaceArquillianInSequenceAnnotation extends Recipe {
 
     @Getter
-    final String displayName = "Arquillian JUnit 4 `@InSequence` to JUnit Jupiter `@Order`";
+    final String displayName = "Replace Arquillian JUnit 4 `@InSequence` with JUnit Jupiter `@Order`";
 
     @Getter
     final String description = "Transforms the Arquillian JUnit 4 `@InSequence` to the JUnit Jupiter `@Order`.";

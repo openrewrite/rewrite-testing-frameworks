@@ -40,7 +40,7 @@ public class AssertTrueInstanceofToAssertInstanceOf extends Recipe {
     final String displayName = "`assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`";
 
     @Getter
-    final String description = "Migration of JUnit4 (or potentially JUnit5) test case in form of assertTrue(x instanceof y) to assertInstanceOf(y.class, x).";
+    final String description = "Migrate JUnit 4 (or JUnit 5) assertions in the form of `assertTrue(x instanceof y)` to `assertInstanceOf(y.class, x)`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

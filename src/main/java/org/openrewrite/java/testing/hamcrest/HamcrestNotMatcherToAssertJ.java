@@ -40,7 +40,7 @@ import static java.util.stream.Collectors.toList;
 public class HamcrestNotMatcherToAssertJ extends Recipe {
 
     @Option(displayName = "Hamcrest Matcher",
-            description = "The Hamcrest `not(Matcher)` to migrate to JUnit5.",
+            description = "The Hamcrest `not(Matcher)` to migrate to AssertJ.",
             example = "equalTo",
             required = false)
     @Nullable

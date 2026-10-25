@@ -44,9 +44,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
     final String displayName = "Replace PowerMockito `doX().when(instance, \"method\")` with Mockito-compatible stubbing";
 
     @Getter
-    final String description = "Replaces PowerMockito's private method stubbing pattern " +
-            "`doNothing().when(instance, \"methodName\", args...)` with the standard Mockito pattern " +
-            "`doNothing().when(instance).methodName(args...)`.";
+    final String description = "Replaces PowerMockito's `doNothing().when(instance, \"methodName\", args...)` stubbing (and that of the other `doX()` methods) with the standard Mockito pattern `doNothing().when(instance).methodName(args...)`. Mockito can not stub private methods, so stubbing of a private method is left unchanged and gets a comment.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

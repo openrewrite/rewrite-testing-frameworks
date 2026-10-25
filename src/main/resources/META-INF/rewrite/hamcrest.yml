@@ -24,7 +24,6 @@ preconditions:
 tags:
   - testing
   - hamcrest
-  - assertj
 recipeList:
   # First change `is(..)` to `Matchers.is(..)` for consistent matching
   - org.openrewrite.java.ChangeMethodTargetToStatic:
@@ -46,7 +45,7 @@ preconditions:
 tags:
   - testing
   - hamcrest
-  - assertj
+  - junit
 recipeList:
   # First change `is(..)` to `Matchers.is(..)` for consistent matching
   - org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports

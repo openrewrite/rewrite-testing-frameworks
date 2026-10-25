@@ -47,10 +47,10 @@ public class LifecycleNonPrivate extends Recipe {
             Preconditions.or(ANNOTATION_TYPES.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
 
     @Getter
-    final String displayName = "Make lifecycle methods non private";
+    final String displayName = "Make lifecycle methods non-private";
 
     @Getter
-    final String description = "Make JUnit 5's `@AfterAll`, `@AfterEach`, `@BeforeAll` and `@BeforeEach` non private.";
+    final String description = "Make JUnit 5's `@AfterAll`, `@AfterEach`, `@BeforeAll` and `@BeforeEach` methods non-private.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

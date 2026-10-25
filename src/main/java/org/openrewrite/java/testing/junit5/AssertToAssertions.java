@@ -35,7 +35,7 @@ import static java.util.stream.Collectors.toList;
 public class AssertToAssertions extends Recipe {
 
     @Getter
-    final String displayName = "JUnit 4 `Assert` To JUnit Jupiter `Assertions`";
+    final String displayName = "JUnit 4 `Assert` to JUnit Jupiter `Assertions`";
 
     @Getter
     final String description = "Change JUnit 4's `org.junit.Assert` into JUnit Jupiter's `org.junit.jupiter.api.Assertions`.";

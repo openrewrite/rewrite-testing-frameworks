@@ -51,10 +51,10 @@ public class HandleExternalResourceRules extends Recipe {
     private static final String RULE = "org.junit.Rule";
 
     @Getter
-    final String displayName = "Handle the usage of ExternalResourceRule fields using @ExtendWith(ExternalResourceSupport.class)";
+    final String displayName = "Handle the usage of `ExternalResource` rule fields using `@ExtendWith(ExternalResourceSupport.class)`";
 
     @Getter
-    final String description = "Handles the usage of the ExternalResourceRule fields by adding the @ExtendWith(ExternalResourceSupport.class) annotation to the test class.";
+    final String description = "Handles the usage of `ExternalResource` rule fields by adding the `@ExtendWith(ExternalResourceSupport.class)` annotation to the test class.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

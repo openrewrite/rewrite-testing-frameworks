@@ -60,10 +60,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
 
     @Getter
-    final String displayName = "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@Parameterized` tests";
+    final String displayName = "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@ParameterizedTest` tests";
 
     @Getter
-    final String description = "Convert Pragmatists Parameterized test to the JUnit Jupiter ParameterizedTest equivalent.";
+    final String description = "Convert Pragmatists JUnitParams tests to the JUnit Jupiter `@ParameterizedTest` equivalent.";
 
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);

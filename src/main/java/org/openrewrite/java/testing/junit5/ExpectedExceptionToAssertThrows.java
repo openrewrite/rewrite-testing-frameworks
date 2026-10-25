@@ -55,7 +55,7 @@ import static org.openrewrite.Tree.randomId;
 public class ExpectedExceptionToAssertThrows extends Recipe {
 
     @Getter
-    final String displayName = "JUnit 4 `ExpectedException` To JUnit Jupiter's `assertThrows()`";
+    final String displayName = "JUnit 4 `ExpectedException` to JUnit Jupiter's `assertThrows()`";
 
     @Getter
     final String description = "Replace usages of JUnit 4's `@Rule ExpectedException` with JUnit 5's `Assertions.assertThrows()`.";

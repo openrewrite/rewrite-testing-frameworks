@@ -30,10 +30,10 @@ public class RemoveExtendsEasyMockSupport extends Recipe {
     private static final String EASYMOCK = "org.easymock.EasyMockSupport";
 
     @Getter
-    final String displayName = "Migrate Test classes that extend `org.easymock.EasyMockSupport` to use Mockito";
+    final String displayName = "Remove `extends EasyMockSupport` from test classes";
 
     @Getter
-    final String description = "Modify test classes by removing extends EasyMockSupport and replacing EasyMock methods with Mockito equivalents.";
+    final String description = "Remove the `extends` clause from test classes that extend `org.easymock.EasyMockSupport` or one of its subclasses. Calls to the inherited EasyMock methods are left to the other EasyMock to Mockito recipes.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

@@ -33,10 +33,10 @@ public class TempDirNonFinal extends Recipe {
             "@org.junit.jupiter.api.io.TempDir");
 
     @Getter
-    final String displayName = "Make `@TempDir` fields non final";
+    final String displayName = "Make `@TempDir` fields non-final";
 
     @Getter
-    final String description = "Make JUnit 5's `org.junit.jupiter.api.io.TempDir` fields non final.";
+    final String description = "Make JUnit 5's `org.junit.jupiter.api.io.TempDir` fields non-final.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
