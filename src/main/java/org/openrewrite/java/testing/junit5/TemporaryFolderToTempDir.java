@@ -22,8 +22,10 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
@@ -79,8 +81,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
 
     private static final String TEMPORARY_FOLDER = "org.junit.rules.TemporaryFolder";
     private static final String TEMP_DIR = "org.junit.jupiter.api.io.TempDir";
-    private static final AnnotationMatcher CLASS_RULE = new AnnotationMatcher("@org.junit.ClassRule");
-    private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
+    private static final AnnotationMatcher ANY_RULE = new AnnotationMatcher("@org.junit.*Rule");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + " <init>()");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + " <init>(java.io.File)");
 
@@ -108,7 +109,10 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             return mv;
         }
         mv = mv.withTypeExpression(toFileIdentifier(mv.getTypeExpression()));
-        return (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule")
+        if (service(AnnotationService.class).matches(getCursor(), ANY_RULE)) {
+            mv = mv.withVariables(ListUtils.map(mv.getVariables(), v -> v.withInitializer(null)));
+        }
+        return (J.VariableDeclarations) new Annotated.Matcher(ANY_RULE)
                 .asVisitor(a -> JavaTemplate.builder("@TempDir")
                         .imports(TEMP_DIR)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
@@ -120,13 +124,13 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     @Override
     public @Nullable J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
         if (NEW_TEMPORARY_FOLDER.matches(newClass)) {
-            return hasRuleAnnotation() ? null : JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
+            return JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
                     .imports("java.nio.file.Files")
                     .build()
                     .apply(getCursor(), newClass.getCoordinates().replace());
         }
         if (NEW_TEMPORARY_FOLDER_WITH_ARG.matches(newClass)) {
-            return hasRuleAnnotation() ? null : JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
+            return JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
                     .imports("java.nio.file.Files")
                     .build()
                     .apply(getCursor(), newClass.getCoordinates().replace(), newClass.getArguments().get(0));
@@ -144,6 +148,13 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
                 case "newFile":
                     return convertToNewFile(mi, ctx);
                 case "newFolder":
+                    if (mi.getArguments().stream().allMatch(J.Empty.class::isInstance)) {
+                        maybeAddImport("java.nio.file.Files");
+                        return JavaTemplate.builder("Files.createTempDirectory(#{any(java.io.File)}.toPath(), \"junit\").toFile()")
+                                .imports("java.nio.file.Files")
+                                .build()
+                                .apply(getCursor(), mi.getCoordinates().replace(), mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File")));
+                    }
                     doAfterVisit(new AddNewFolderOrFileMethod(mi, FileOrFolder.FOLDER, getCursor().firstEnclosing(J.ClassDeclaration.class)));
                     break;
                 case "create":
@@ -160,14 +171,6 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     private J.Identifier toFileIdentifier(TypeTree typeTree) {
         JavaType.ShallowClass fileType = JavaType.ShallowClass.build("java.io.File");
         return new J.Identifier(randomId(), typeTree.getPrefix(), Markers.EMPTY, emptyList(), fileType.getClassName(), fileType, null);
-    }
-
-    private boolean hasRuleAnnotation() {
-        J.VariableDeclarations vd = getCursor().firstEnclosing(J.VariableDeclarations.class);
-        if (vd == null) {
-            return false;
-        }
-        return vd.getLeadingAnnotations().stream().anyMatch(anno -> CLASS_RULE.matches(anno) || RULE.matches(anno));
     }
 
     private J convertToNewFile(J.MethodInvocation mi, ExecutionContext ctx) {
@@ -265,9 +268,7 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
         }
         if (mi.getSelect() != null) {
             mi = fileOrFolder == FileOrFolder.FOLDER ? toNewFolder(mi, ctx) : toNewFile(mi, ctx);
-            mi = mi.withMethodType(newMethodType);
-            J.ClassDeclaration parentClass = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).getValue();
-            mi = mi.withName(mi.getName().withType(parentClass.getType()));
+            mi = mi.withMethodType(newMethodType).withName(mi.getName().withType(newMethodType));
         }
         return mi;
     }
@@ -275,14 +276,6 @@ class TranslateNewFolderOrFileMethodInvocation extends JavaVisitor<ExecutionCont
     private J.MethodInvocation toNewFolder(J.MethodInvocation mi, ExecutionContext ctx) {
         J tempDir = mi.getSelect().withType(JavaType.ShallowClass.build("java.io.File"));
         List<Expression> args = mi.getArguments().stream().filter(arg -> !(arg instanceof J.Empty)).collect(toList());
-        if (args.isEmpty()) {
-            return JavaTemplate.builder("newFolder(#{any(java.io.File)}, \"junit\")")
-                    .imports("java.io.File")
-                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
-                    .build()
-                    .apply(updateCursor(mi), mi.getCoordinates().replace(), tempDir);
-        }
-
         if (args.size() == 1) {
             return JavaTemplate.builder("newFolder(#{any(java.io.File)}, #{any(java.lang.String)})")
                     .imports("java.io.File")
