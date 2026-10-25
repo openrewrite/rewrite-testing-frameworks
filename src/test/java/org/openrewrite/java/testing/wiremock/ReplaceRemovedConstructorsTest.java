@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.wiremock;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -124,38 +125,6 @@ class ReplaceRemovedConstructorsTest implements RewriteTest {
 
               class Client {
                   WireMock remote = WireMock.create().host("localhost").port(8080).urlPathPrefix("/wm").build();
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void wireMockPortOnlyIsStillSupportedIn4x() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.client.WireMock;
-
-              class Client {
-                  WireMock remote = new WireMock(8080);
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void wireMockSchemeAndHostIsLeftAloneBecauseThePortWouldChange() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.client.WireMock;
-
-              class Client {
-                  WireMock remote = new WireMock("https", "example.org");
               }
               """
           )
@@ -342,46 +311,6 @@ class ReplaceRemovedConstructorsTest implements RewriteTest {
     }
 
     @Test
-    void anonymousSubclassIsLeftAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.http.ResponseDefinition;
-
-              class Responses {
-                  ResponseDefinition custom = new ResponseDefinition(200, "hello") {
-                      @Override
-                      public String toString() {
-                          return "custom";
-                      }
-                  };
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void constructorsRetainedIn4xAreLeftAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.client.WireMock;
-              import com.github.tomakehurst.wiremock.core.Admin;
-
-              class Client {
-                  WireMock remote(Admin admin) {
-                      return new WireMock(admin);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void wrappedAdminClientFoldsIntoBuilder() {
         rewriteRun(
           //language=java
@@ -491,55 +420,130 @@ class ReplaceRemovedConstructorsTest implements RewriteTest {
         );
     }
 
-    @Test
-    void wrappedAdminClientSchemeAndHostIsLeftAloneBecauseThePortWouldChange() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.client.HttpAdminClient;
-              import com.github.tomakehurst.wiremock.client.WireMock;
+    @Nested
+    class NoChange {
+        @Test
+        void wireMockPortOnlyIsStillSupportedIn4x() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.client.WireMock;
 
-              class Client {
-                  WireMock remote = new WireMock(new HttpAdminClient("https", "example.org"));
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void bareAdminClientIsLeftForTheDeveloper() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.client.HttpAdminClient;
-
-              class Client {
-                  HttpAdminClient admin = new HttpAdminClient("localhost", 8080);
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void wireMockFromAnArbitraryAdminIsLeftAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.client.WireMock;
-              import com.github.tomakehurst.wiremock.core.Admin;
-
-              class Client {
-                  WireMock remote(Admin admin) {
-                      return new WireMock(admin);
+                  class Client {
+                      WireMock remote = new WireMock(8080);
                   }
-              }
-              """
-          )
-        );
+                  """
+              )
+            );
+        }
+
+        @Test
+        void wireMockSchemeAndHostIsLeftAloneBecauseThePortWouldChange() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.client.WireMock;
+
+                  class Client {
+                      WireMock remote = new WireMock("https", "example.org");
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void anonymousSubclassIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.http.ResponseDefinition;
+
+                  class Responses {
+                      ResponseDefinition custom = new ResponseDefinition(200, "hello") {
+                          @Override
+                          public String toString() {
+                              return "custom";
+                          }
+                      };
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void constructorsRetainedIn4xAreLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.client.WireMock;
+                  import com.github.tomakehurst.wiremock.core.Admin;
+
+                  class Client {
+                      WireMock remote(Admin admin) {
+                          return new WireMock(admin);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void wrappedAdminClientSchemeAndHostIsLeftAloneBecauseThePortWouldChange() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.client.HttpAdminClient;
+                  import com.github.tomakehurst.wiremock.client.WireMock;
+
+                  class Client {
+                      WireMock remote = new WireMock(new HttpAdminClient("https", "example.org"));
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void bareAdminClientIsLeftForTheDeveloper() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.client.HttpAdminClient;
+
+                  class Client {
+                      HttpAdminClient admin = new HttpAdminClient("localhost", 8080);
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void wireMockFromAnArbitraryAdminIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.client.WireMock;
+                  import com.github.tomakehurst.wiremock.core.Admin;
+
+                  class Client {
+                      WireMock remote(Admin admin) {
+                          return new WireMock(admin);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

@@ -264,7 +264,6 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                             .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx,
                                     "junit-jupiter-api-5",
-                                    "hamcrest-3",
                                     "junit-jupiter-params-5"))
                             .imports("org.junit.jupiter.params.ParameterizedTest").build()
                             .apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace());
@@ -273,7 +272,6 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx,
                                 "junit-jupiter-api-5",
-                                "hamcrest-3",
                                 "junit-jupiter-params-5"))
                         .imports("org.junit.jupiter.params.ParameterizedTest").build()
                         .apply(anno, ((J.Annotation) anno.getValue()).getCoordinates().replace(),
@@ -289,7 +287,6 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion()
                             .classpathFromResources(ctx,
                                 "junit-jupiter-api-5",
-                                "hamcrest-3",
                                 "junit-jupiter-params-5"))
                         .imports("org.junit.jupiter.params.provider.MethodSource").build();
                 if (initMethods.contains(initMethodName)) {

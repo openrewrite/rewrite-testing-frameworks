@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.wiremock;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -287,84 +288,87 @@ class MigrateStubMappingUuidToIdTest implements RewriteTest {
         );
     }
 
-    @Test
-    void unrelatedJsonIsUntouched() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "uuid": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
-                "name": "some domain object",
-                "enabled": true
-              }
-              """,
-            spec -> spec.path("src/test/resources/fixtures/thing.json")
-          )
-        );
-    }
+    @Nested
+    class NoChange {
+        @Test
+        void unrelatedJsonIsUntouched() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "uuid": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+                    "name": "some domain object",
+                    "enabled": true
+                  }
+                  """,
+                spec -> spec.path("src/test/resources/fixtures/thing.json")
+              )
+            );
+        }
 
-    @Test
-    void stubShapedJsonOutsideMappingsIsUntouched() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "uuid": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
-                "request": {
-                  "method": "GET",
-                  "url": "/user"
-                },
-                "response": {
-                  "status": 200
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/fixtures/recorded-call.json")
-          )
-        );
-    }
+        @Test
+        void stubShapedJsonOutsideMappingsIsUntouched() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "uuid": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+                    "request": {
+                      "method": "GET",
+                      "url": "/user"
+                    },
+                    "response": {
+                      "status": 200
+                    }
+                  }
+                  """,
+                spec -> spec.path("src/test/resources/fixtures/recorded-call.json")
+              )
+            );
+        }
 
-    @Test
-    void uuidThatIsNotAUuidIsUntouched() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "uuid": "not-a-uuid",
-                "request": {
-                  "method": "GET"
-                },
-                "response": {
-                  "status": 200
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/mappings/odd.json")
-          )
-        );
-    }
+        @Test
+        void uuidThatIsNotAUuidIsUntouched() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "uuid": "not-a-uuid",
+                    "request": {
+                      "method": "GET"
+                    },
+                    "response": {
+                      "status": 200
+                    }
+                  }
+                  """,
+                spec -> spec.path("src/test/resources/mappings/odd.json")
+              )
+            );
+        }
 
-    @Test
-    void stubMappingAlreadyOnIdOnly() {
-        rewriteRun(
-          //language=json
-          json(
-            """
-              {
-                "id": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
-                "request": {
-                  "method": "GET"
-                },
-                "response": {
-                  "status": 200
-                }
-              }
-              """,
-            spec -> spec.path("src/test/resources/mappings/get-user.json")
-          )
-        );
+        @Test
+        void stubMappingAlreadyOnIdOnly() {
+            rewriteRun(
+              //language=json
+              json(
+                """
+                  {
+                    "id": "8f4c3b1e-5d2a-4f6b-9c8d-1a2b3c4d5e6f",
+                    "request": {
+                      "method": "GET"
+                    },
+                    "response": {
+                      "status": 200
+                    }
+                  }
+                  """,
+                spec -> spec.path("src/test/resources/mappings/get-user.json")
+              )
+            );
+        }
     }
 }

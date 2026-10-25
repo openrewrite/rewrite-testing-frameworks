@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.wiremock;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -278,104 +279,6 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
     }
 
     @Test
-    void setterWithoutBuilderEquivalentIsLeftForTheCompiler() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
-
-              class Stubs {
-                  void soil(StubMapping mapping) {
-                      mapping.setDirty(true);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void finalReceiverIsLeftAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
-
-              class Stubs {
-                  void describe(final StubMapping mapping) {
-                      mapping.setName("get user");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void finalFieldReceiverIsLeftAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
-
-              class Stubs {
-                  private final StubMapping mapping = new StubMapping();
-
-                  void describe() {
-                      this.mapping.setName("get user");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void capturedLocalInsideLambdaIsLeftAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
-
-              import java.util.List;
-
-              class Stubs {
-                  void describe(List<String> names, StubMapping mapping) {
-                      names.forEach(name -> mapping.setName(name));
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void nonAssignableReceiverIsLeftAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
-
-              class Stubs {
-                  StubMapping current() {
-                      return null;
-                  }
-
-                  void describe() {
-                      current().setName("get user");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void argumentReadingALocalReceiverIsLeftAlone() {
         rewriteRun(
           //language=java
@@ -435,5 +338,106 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void setterWithoutBuilderEquivalentIsLeftForTheCompiler() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+                  class Stubs {
+                      void soil(StubMapping mapping) {
+                          mapping.setDirty(true);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void finalReceiverIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+                  class Stubs {
+                      void describe(final StubMapping mapping) {
+                          mapping.setName("get user");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void finalFieldReceiverIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+                  class Stubs {
+                      private final StubMapping mapping = new StubMapping();
+
+                      void describe() {
+                          this.mapping.setName("get user");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void capturedLocalInsideLambdaIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+                  import java.util.List;
+
+                  class Stubs {
+                      void describe(List<String> names, StubMapping mapping) {
+                          names.forEach(name -> mapping.setName(name));
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void nonAssignableReceiverIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+                  class Stubs {
+                      StubMapping current() {
+                          return null;
+                      }
+
+                      void describe() {
+                          current().setName("get user");
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }
