@@ -108,7 +108,7 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
                     return null;
                 }
                 if (todos.containsKey(variable)) {
-                    return withTodo(vd, todos.get(variable));
+                    return withTodo(updateCursor(vd), todos.get(variable));
                 }
                 return vd;
             }

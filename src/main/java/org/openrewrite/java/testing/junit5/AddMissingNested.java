@@ -22,6 +22,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -111,7 +112,7 @@ public class AddMissingNested extends Recipe {
                     .imports(NESTED)
                     .build()
                     .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(Comparator.comparing(J.Annotation::getSimpleName)));
-            cd.getModifiers().removeIf(modifier -> modifier.getType() == J.Modifier.Type.Static);
+            cd = cd.withModifiers(ListUtils.filter(cd.getModifiers(), modifier -> modifier.getType() != J.Modifier.Type.Static));
             return maybeAutoFormat(classDecl, cd, cd.getName(), ctx, getCursor().getParentTreeCursor());
         }
 

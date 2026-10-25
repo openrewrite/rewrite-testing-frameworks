@@ -22,7 +22,7 @@ import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.trait.Comments;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -133,17 +133,11 @@ final class SystemRules {
         return invocation.getParentTreeCursor().getValue() instanceof J.Block;
     }
 
-    static J.VariableDeclarations withTodo(J.VariableDeclarations field, String todo) {
-        Space prefix = field.getPrefix();
-        for (Comment comment : prefix.getComments()) {
-            if (comment instanceof TextComment && todo.equals(((TextComment) comment).getText())) {
-                return field;
-            }
-        }
+    static J.VariableDeclarations withTodo(Cursor field, String todo) {
+        Space prefix = field.<J.VariableDeclarations>getValue().getPrefix();
         String whitespace = prefix.getComments().isEmpty() ? prefix.getWhitespace() :
                 prefix.getComments().get(prefix.getComments().size() - 1).getSuffix();
         String indent = whitespace.substring(Math.max(0, whitespace.lastIndexOf('\n')));
-        return field.withPrefix(prefix.withComments(ListUtils.concat(prefix.getComments(),
-                new TextComment(false, todo, indent, Markers.EMPTY))));
+        return Comments.of(field).comment(todo, Comments.Placement.BEFORE, indent);
     }
 }

@@ -32,10 +32,7 @@ import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-
-import static java.util.Collections.emptyList;
 
 public class UpdateTestAnnotation extends Recipe {
 
@@ -185,34 +182,15 @@ public class UpdateTestAnnotation extends Recipe {
                 return method;
             }
 
-            // Extract the exception type from the expected exception expression
             // This should always be a `J.FieldAccess` of the form MyException.class
-            JavaType expectedType = null;
-            if (expectedException instanceof J.FieldAccess) {
-                J.FieldAccess fa = (J.FieldAccess) expectedException;
-                expectedType = fa.getTarget().getType();
+            if (!(expectedException instanceof J.FieldAccess)) {
+                return method;
             }
-
+            JavaType expectedType = ((J.FieldAccess) expectedException).getTarget().getType();
             if (expectedType == null) {
                 return method;
             }
-
-            // Filter out only the exception that matches the expected exception
-            final JavaType finalExpectedType = expectedType;
-            List<NameTree> filteredThrows = ListUtils.map(thrown, throwClause -> {
-                JavaType throwType = throwClause.getType();
-                if (throwType != null && TypeUtils.isAssignableTo(finalExpectedType, throwType)) {
-                    return null;
-                }
-                return throwClause;
-            });
-
-            // If all throws were removed, return empty list, otherwise keep the remaining ones
-            if (filteredThrows.isEmpty() || filteredThrows.stream().allMatch(Objects::isNull)) {
-                return method.withThrows(emptyList());
-            }
-
-            return method.withThrows(filteredThrows);
+            return method.withThrows(ListUtils.filter(thrown, throwClause -> throwClause.getType() == null || !TypeUtils.isAssignableTo(expectedType, throwClause.getType())));
         }
 
         private static class ChangeTestAnnotation extends JavaIsoVisitor<ExecutionContext> {
