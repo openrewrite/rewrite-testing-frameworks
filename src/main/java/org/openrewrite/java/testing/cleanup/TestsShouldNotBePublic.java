@@ -32,6 +32,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.*;
@@ -71,9 +72,31 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
                 if (cd.getExtends() != null) {
-                    acc.extendedClasses.add(String.valueOf(cd.getExtends().getType()));
+                    addExtendedClasses(cd.getExtends().getType());
                 }
                 return cd;
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass n = super.visitNewClass(newClass, ctx);
+                if (n.getBody() != null && n.getClazz() != null) {
+                    addExtendedClasses(n.getClazz().getType());
+                }
+                return n;
+            }
+
+            private void addExtendedClasses(@Nullable JavaType type) {
+                JavaType.FullyQualified superclass = TypeUtils.asFullyQualified(type);
+                if (superclass == null) {
+                    acc.extendedClasses.add(className(type));
+                    return;
+                }
+                Set<String> seen = new HashSet<>();
+                while (superclass != null && seen.add(superclass.getFullyQualifiedName())) {
+                    acc.extendedClasses.add(superclass.getFullyQualifiedName());
+                    superclass = superclass.getSupertype();
+                }
             }
         };
     }
@@ -85,6 +108,11 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
 
     public static class Accumulator {
         Set<String> extendedClasses = new HashSet<>();
+    }
+
+    private static String className(@Nullable JavaType type) {
+        JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
+        return fq == null ? String.valueOf(type) : fq.getFullyQualifiedName();
     }
 
     @RequiredArgsConstructor
@@ -99,7 +127,7 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface &&
                     c.hasModifier(J.Modifier.Type.Public) &&
                     !c.hasModifier(J.Modifier.Type.Abstract) &&
-                    !acc.extendedClasses.contains(String.valueOf(c.getType()))) {
+                    !acc.extendedClasses.contains(className(c.getType()))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
@@ -148,7 +176,8 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             if (method.getMethodType() == null ||
-                    method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public)) {
+                    method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public) ||
+                    acc.extendedClasses.contains(className(method.getMethodType().getDeclaringType()))) {
                 return m;
             }
 
