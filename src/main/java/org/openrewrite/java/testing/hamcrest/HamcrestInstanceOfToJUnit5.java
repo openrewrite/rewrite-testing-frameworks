@@ -69,16 +69,29 @@ public class HamcrestInstanceOfToJUnit5 extends Recipe {
                         return mi;
                     }
 
-                    J.MethodInvocation matcherInvocation = (J.MethodInvocation) hamcrestMatcher;
+                    Expression matcherExpression = hamcrestMatcher;
                     boolean logicalContext = true;
-                    while (RemoveNotMatcherVisitor.NOT_MATCHER.matches(matcherInvocation)) {
+                    boolean hasNotMatcher = false;
+                    while (matcherExpression instanceof J.MethodInvocation &&
+                           RemoveNotMatcherVisitor.NOT_MATCHER.matches((J.MethodInvocation) matcherExpression)) {
+                        J.MethodInvocation notMatcher = (J.MethodInvocation) matcherExpression;
+                        if (notMatcher.getArguments().size() != 1) {
+                            return super.visitMethodInvocation(mi, ctx);
+                        }
                         logicalContext = !logicalContext;
-                        maybeRemoveImport("org.hamcrest.Matchers.not");
-                        maybeRemoveImport("org.hamcrest.CoreMatchers.not");
-                        matcherInvocation = (J.MethodInvocation) new RemoveNotMatcherVisitor().visit(matcherInvocation, ctx, getCursor());
+                        hasNotMatcher = true;
+                        matcherExpression = notMatcher.getArguments().get(0);
+                    }
+                    if (!(matcherExpression instanceof J.MethodInvocation)) {
+                        return super.visitMethodInvocation(mi, ctx);
                     }
 
+                    J.MethodInvocation matcherInvocation = (J.MethodInvocation) matcherExpression;
                     if (INSTANCE_OF_MATCHER.matches(matcherInvocation) || IS_A_MATCHER.matches(matcherInvocation)) {
+                        if (hasNotMatcher) {
+                            maybeRemoveImport("org.hamcrest.Matchers.not");
+                            maybeRemoveImport("org.hamcrest.CoreMatchers.not");
+                        }
                         String templateString = (logicalContext ?
                                 "assertInstanceOf(#{any(java.lang.Class)}, #{any(java.lang.Object)}" :
                                 "assertFalse(#{any(java.lang.Class)}.isAssignableFrom(#{any(java.lang.Object)}.getClass())") +
