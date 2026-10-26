@@ -114,6 +114,7 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-properties")
     testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testRuntimeOnly(gradleApi())
+    testRuntimeOnly("org.hamcrest:hamcrest-library:1.3")
 
     testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
     testRuntimeOnly("com.github.javafaker:javafaker:latest.release") {
