@@ -209,4 +209,306 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void retainMatcherIdentifier() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class Example {
+                  void test(Object actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat(actual, matcher);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainMatcherField() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class Example {
+                  private final Matcher<Object> matcher = instanceOf(String.class);
+
+                  void test(Object actual) {
+                      assertThat(actual, this.matcher);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainParenthesizedMatcher() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class Example {
+                  void test(Object actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat(actual, (matcher));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainCastMatcher() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class Example {
+                  void test(Object actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat(actual, (Matcher<Object>) matcher);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainNotWrappedMatcher() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.not;
+
+              class Example {
+                  void test(Object actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat(actual, not(matcher));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainNestedNotWrappedMatcher() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.not;
+
+              class Example {
+                  void test(Object actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat(actual, not(not(matcher)));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainOpaqueMatcherWithLiteralReason() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class Example {
+                  void test(Object actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat("literal reason", actual, matcher);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migrateSupportedMatchersBesideOpaqueMatcher() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.isA;
+
+              class Example {
+                  void test(String actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat(actual, matcher);
+                      assertThat(actual, instanceOf(CharSequence.class));
+                      assertThat(actual, isA(String.class));
+                  }
+              }
+              """,
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class Example {
+                  void test(String actual) {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat(actual, matcher);
+                      assertInstanceOf(CharSequence.class, actual);
+                      assertInstanceOf(String.class, actual);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainNullMatcher() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class Example {
+                  void test() {
+                      Matcher<Object> applicability = instanceOf(String.class);
+                      Matcher<Object> matcher = null;
+                      assertThat("value", matcher);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainNullActualWithOpaqueNegation() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.not;
+
+              class Example {
+                  void test() {
+                      Matcher<Object> matcher = instanceOf(String.class);
+                      assertThat((Object) null, not(matcher));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainObservableMatcherEvaluation() {
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Matcher;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+
+              class Example {
+                  private final StringBuilder trace = new StringBuilder();
+
+                  void test() {
+                      assertThat(reason(), actual(), matcher());
+                  }
+
+                  String reason() {
+                      trace.append("R");
+                      return "literal reason";
+                  }
+
+                  Object actual() {
+                      trace.append("A");
+                      return "value";
+                  }
+
+                  Matcher<Object> matcher() {
+                      trace.append("M");
+                      return instanceOf(String.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveNestedDirectNotParity() {
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.instanceOf;
+              import static org.hamcrest.Matchers.not;
+
+              class Example {
+                  void test(String actual) {
+                      assertThat(actual, not(not(instanceOf(String.class))));
+                      assertThat("literal reason", actual, not(not(not(instanceOf(Integer.class)))));
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertFalse;
+              import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+              class Example {
+                  void test(String actual) {
+                      assertInstanceOf(String.class, actual);
+                      assertFalse(Integer.class.isAssignableFrom(actual.getClass()), "literal reason");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
