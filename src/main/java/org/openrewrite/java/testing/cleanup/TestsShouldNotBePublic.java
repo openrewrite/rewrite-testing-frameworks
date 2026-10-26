@@ -98,7 +98,7 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                     String packageName = cu.getPackageDeclaration() == null ? "" :
                             cu.getPackageDeclaration().getPackageName();
                     if (!packageName.equals(i.getPackageName())) {
-                        String name = (i.isStatic() ? i.getQualid().printTrimmed(getCursor()) : i.getTypeName())
+                        String name = (i.isStatic() ? staticImportName(i) : i.getTypeName())
                                 .replace('$', '.');
                         while (name.contains(".")) {
                             acc.referencedFromOtherPackages.add(name);
@@ -156,6 +156,20 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
     private static String className(@Nullable JavaType type) {
         JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
         return fq == null ? String.valueOf(type) : fq.getFullyQualifiedName();
+    }
+
+    private static String staticImportName(J.Import anImport) {
+        Deque<String> names = new ArrayDeque<>();
+        J target = anImport.getQualid();
+        while (target instanceof J.FieldAccess) {
+            J.FieldAccess fieldAccess = (J.FieldAccess) target;
+            names.addFirst(fieldAccess.getSimpleName());
+            target = fieldAccess.getTarget();
+        }
+        if (target instanceof J.Identifier) {
+            names.addFirst(((J.Identifier) target).getSimpleName());
+        }
+        return String.join(".", names);
     }
 
     @RequiredArgsConstructor
