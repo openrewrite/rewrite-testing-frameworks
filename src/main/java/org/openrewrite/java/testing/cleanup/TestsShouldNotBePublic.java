@@ -32,6 +32,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.*;
@@ -71,7 +72,7 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
                 if (cd.getExtends() != null) {
-                    acc.extendedClasses.add(String.valueOf(cd.getExtends().getType()));
+                    acc.extendedClasses.add(className(cd.getExtends().getType()));
                 }
                 return cd;
             }
@@ -87,6 +88,11 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
         Set<String> extendedClasses = new HashSet<>();
     }
 
+    private static String className(@Nullable JavaType type) {
+        JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
+        return fq == null ? String.valueOf(type) : fq.getFullyQualifiedName();
+    }
+
     @RequiredArgsConstructor
     private static final class TestsNotPublicVisitor extends JavaIsoVisitor<ExecutionContext> {
         private final Boolean orProtected;
@@ -99,7 +105,7 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface &&
                     c.hasModifier(J.Modifier.Type.Public) &&
                     !c.hasModifier(J.Modifier.Type.Abstract) &&
-                    !acc.extendedClasses.contains(String.valueOf(c.getType()))) {
+                    !acc.extendedClasses.contains(className(c.getType()))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
@@ -148,7 +154,8 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
 
             if (method.getMethodType() == null ||
-                    method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public)) {
+                    method.getMethodType().getDeclaringType().hasFlags(Flag.Abstract, Flag.Public) ||
+                    acc.extendedClasses.contains(className(method.getMethodType().getDeclaringType()))) {
                 return m;
             }
 
