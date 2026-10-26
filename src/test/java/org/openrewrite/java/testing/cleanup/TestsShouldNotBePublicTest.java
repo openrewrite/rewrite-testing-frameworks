@@ -1255,7 +1255,23 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         preserveNestedClassUsedByStaticImport(true, false);
     }
 
+    @Test
+    void preserveNestedClassImportedWithCommentWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false,
+          "fixture.OuterTest./* imported type */NestedTest");
+    }
+
+    @Test
+    void preserveNestedClassImportedWithWhitespaceWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false, "fixture . OuterTest . NestedTest");
+    }
+
     private void preserveNestedClassUsedByStaticImport(boolean clearImportTypes, boolean includeJavadoc) {
+        preserveNestedClassUsedByStaticImport(clearImportTypes, includeJavadoc, "fixture.OuterTest.NestedTest");
+    }
+
+    private void preserveNestedClassUsedByStaticImport(boolean clearImportTypes, boolean includeJavadoc,
+                                                      String importedType) {
         rewriteRun(
           java(
             """
@@ -1280,12 +1296,12 @@ class TestsShouldNotBePublicTest implements RewriteTest {
             """
               package consumer;
 
-              import static fixture.OuterTest.NestedTest;
+              import static %s;
 
               %s
               class Reference {
               }
-              """.formatted(includeJavadoc ? "/** See {@link NestedTest}. */" : ""),
+              """.formatted(importedType, includeJavadoc ? "/** See {@link NestedTest}. */" : ""),
             spec -> {
                 if (clearImportTypes) {
                     spec.mapBeforeRecipe(cu -> cu.withImports(cu.getImports().stream()
