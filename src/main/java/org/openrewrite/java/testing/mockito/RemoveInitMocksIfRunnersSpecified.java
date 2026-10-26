@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
@@ -32,6 +32,7 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
@@ -39,12 +40,15 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class RemoveInitMocksIfRunnersSpecified extends Recipe {
+public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInitMocksIfRunnersSpecified.FieldReferences> {
 
     @Getter
     final String displayName = "Remove `MockitoAnnotations.initMocks(this)` and `openMocks(this)` if JUnit runners specified";
@@ -77,7 +81,36 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     );
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public FieldReferences getInitialValue(ExecutionContext ctx) {
+        return new FieldReferences();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(FieldReferences fields) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
+                record(identifier.getFieldType(), false);
+                return identifier;
+            }
+
+            @Override
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, ExecutionContext ctx) {
+                record(variable.getVariableType(), true);
+                return super.visitVariable(variable, ctx);
+            }
+
+            private void record(JavaType.@Nullable Variable variable, boolean declaration) {
+                JavaSourceFile source = getCursor().firstEnclosing(JavaSourceFile.class);
+                if (source != null && variable != null && variable.getOwner() instanceof JavaType.FullyQualified) {
+                    fields.record(source.getId(), variable, declaration);
+                }
+            }
+        };
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(FieldReferences fields) {
         return Preconditions.check(
                 Preconditions.and(
                         Preconditions.or(
@@ -108,7 +141,9 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 return super.visitAssignment(assignment, variables);
                             }
                         }.reduce(cd, new ArrayList<>(), getCursor().getParentOrThrow());
-                        closeables.removeIf(variable -> !hasOnlyRemovableHandleUses(cd, variable, getCursor().getParentOrThrow()));
+                        JavaSourceFile source = getCursor().firstEnclosing(JavaSourceFile.class);
+                        closeables.removeIf(variable -> source == null || !fields.canRemove(source.getId(), variable) ||
+                                !hasOnlyRemovableHandleUses(source, variable));
 
                         J.ClassDeclaration modifiedCd = (J.ClassDeclaration) new JavaIsoVisitor<ExecutionContext>() {
 
@@ -460,7 +495,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 expression instanceof J.FieldAccess ? ((J.FieldAccess) expression).getName().getFieldType() : null;
                     }
 
-                    private boolean hasOnlyRemovableHandleUses(J.ClassDeclaration cd, JavaType.Variable variable, Cursor parent) {
+                    private boolean hasOnlyRemovableHandleUses(JavaSourceFile source, JavaType.Variable variable) {
                         return !new JavaIsoVisitor<AtomicBoolean>() {
                             @Override
                             public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean unsafe) {
@@ -500,7 +535,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 }
                                 return identifier;
                             }
-                        }.reduce(cd, new AtomicBoolean(), parent).get();
+                        }.reduce(source, new AtomicBoolean()).get();
                     }
 
                     private boolean isNullGuardedCleanup(Cursor reference, JavaType.Variable variable) {
@@ -533,5 +568,36 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                     }
                 }
         );
+    }
+
+    public static class FieldReferences {
+        private final Map<UUID, List<JavaType.Variable>> references = new HashMap<>();
+        private final Map<UUID, List<JavaType.Variable>> declarations = new HashMap<>();
+
+        private synchronized void record(UUID source, JavaType.Variable variable, boolean declaration) {
+            add(references, source, variable);
+            if (declaration) {
+                add(declarations, source, variable);
+            }
+        }
+
+        private void add(Map<UUID, List<JavaType.Variable>> fields, UUID source, JavaType.Variable variable) {
+            List<JavaType.Variable> variables = fields.computeIfAbsent(source, id -> new ArrayList<>());
+            // JavaType.Variable has value equality but must not be used as a hash key.
+            if (variables.stream().noneMatch(variable::equals)) {
+                variables.add(variable);
+            }
+        }
+
+        private synchronized boolean canRemove(UUID source, JavaType.Variable variable) {
+            if (variable.getOwner() instanceof JavaType.Method) {
+                return true;
+            }
+            // Retain inherited/binary handles whose declaration is outside this file, and fields observed by other inputs.
+            List<JavaType.Variable> declaredHere = declarations.get(source);
+            return declaredHere != null && declaredHere.stream().anyMatch(variable::equals) &&
+                   references.entrySet().stream().noneMatch(entry -> !entry.getKey().equals(source) &&
+                           entry.getValue().stream().anyMatch(variable::equals));
+        }
     }
 }
