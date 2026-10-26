@@ -1647,4 +1647,216 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void preserveHandleWithUnusedExplicitStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.importonly;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              public class StaticHandleTest {
+                  public static AutoCloseable mocks;
+
+                  @BeforeEach void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test void works() {
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/importonly/StaticHandleTest.java")
+          ),
+          java(
+            """
+              package review.f7.importonly;
+
+              import static review.f7.importonly.StaticHandleTest.mocks;
+
+              final class UnusedFieldImport {
+              }
+              """,
+            spec -> spec.path("review/f7/importonly/UnusedFieldImport.java")
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleReadThroughExplicitStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.imported;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              public class StaticHandleTest {
+                  public static AutoCloseable mocks;
+
+                  @BeforeEach void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test void handleRemainsObservable() {
+                      assertNotNull(ImportedHandleReader.read());
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/StaticHandleTest.java")
+          ),
+          java(
+            """
+              package review.f7.imported;
+
+              import static review.f7.imported.StaticHandleTest.mocks;
+
+              final class ImportedHandleReader {
+                  static AutoCloseable read() {
+                      return mocks;
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/ImportedHandleReader.java")
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleReadThroughWildcardStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.imported;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              public class StaticHandleTest {
+                  public static AutoCloseable mocks;
+
+                  @BeforeEach void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test void handleRemainsObservable() {
+                      assertNotNull(ImportedHandleReader.read());
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/StaticHandleTest.java")
+          ),
+          java(
+            """
+              package review.f7.imported;
+
+              import static review.f7.imported.StaticHandleTest.*;
+
+              final class ImportedHandleReader {
+                  static AutoCloseable read() {
+                      return mocks;
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/ImportedHandleReader.java")
+          )
+        );
+    }
+
+    @Test
+    void unrelatedStaticFieldImportDoesNotPreventCleanup() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.unrelatedimport;
+
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private AutoCloseable mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """,
+            """
+              package review.f7.unrelatedimport;
+
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+
+                  void setup() {
+                  }
+
+                  void teardown() throws Exception {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package review.f7.unrelatedimport;
+
+              public class UnrelatedOwner {
+                  public static AutoCloseable mocks;
+              }
+              """
+          ),
+          java(
+            """
+              package review.f7.unrelatedimport;
+
+              import static review.f7.unrelatedimport.UnrelatedOwner.mocks;
+
+              class UnusedFieldImport {
+              }
+              """
+          )
+        );
+    }
 }
