@@ -1235,4 +1235,76 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         );
     }
 
+    @Test
+    void preserveNestedClassUsedByStaticJavadocImport() {
+        preserveNestedClassUsedByStaticImport(false, true);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticJavadocImportWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, true);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticImport() {
+        preserveNestedClassUsedByStaticImport(false, false);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticImportWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false);
+    }
+
+    private void preserveNestedClassUsedByStaticImport(boolean clearImportTypes, boolean includeJavadoc) {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class OuterTest {
+                  @Test
+                  void outer() {
+                  }
+
+                  public static class NestedTest {
+                      @Test
+                      void inner() {
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import static fixture.OuterTest.NestedTest;
+
+              %s
+              class Reference {
+              }
+              """.formatted(includeJavadoc ? "/** See {@link NestedTest}. */" : ""),
+            spec -> {
+                if (clearImportTypes) {
+                    spec.mapBeforeRecipe(cu -> cu.withImports(cu.getImports().stream()
+                      .map(i -> (J.Import) new JavaIsoVisitor<Integer>() {
+                          @Override
+                          public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                              return super.visitIdentifier(identifier, p).withType(null);
+                          }
+
+                          @Override
+                          public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
+                              return super.visitFieldAccess(fieldAccess, p).withType(null);
+                          }
+                      }.visit(i, 0))
+                      .collect(Collectors.toList())));
+                }
+            }
+          )
+        );
+    }
+
 }
