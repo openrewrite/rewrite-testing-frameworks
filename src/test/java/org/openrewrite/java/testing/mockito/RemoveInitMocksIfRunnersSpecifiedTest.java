@@ -1859,4 +1859,229 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void removeManagedInitializationAssignedToObjectField() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+
+                  void setup() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveObjectHandleReadInAnotherSourceFile() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class Reader {
+                  Object read(ManagedOwner owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInheritedObjectHandle() {
+        rewriteRun(
+          java(
+            """
+              class Parent {
+                  protected Object mocks;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class Child extends Parent {
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInheritedGenericHandle() {
+        rewriteRun(
+          java(
+            """
+              class GenericParent<T> {
+                  protected T mocks;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class Child extends GenericParent<Object> {
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveObjectHandleWithUnusedExplicitStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.objectimport;
+
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              public class ManagedOwner {
+                  public static Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/objectimport/ManagedOwner.java")
+          ),
+          java(
+            """
+              package review.f7.objectimport;
+
+              import static review.f7.objectimport.ManagedOwner.mocks;
+
+              class ImportOnly {
+              }
+              """,
+            spec -> spec.path("review/f7/objectimport/ImportOnly.java")
+          )
+        );
+    }
+
+    @Test
+    void unrelatedObjectFieldWithSameNameDoesNotPreventCleanup() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+
+                  void setup() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class UnrelatedOwner {
+                  Object mocks;
+
+                  Object read() {
+                      return mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveObjectHandleRegardlessOfSourceOrder() {
+        String owner = """
+          import org.junit.jupiter.api.extension.ExtendWith;
+          import org.mockito.MockitoAnnotations;
+          import org.mockito.junit.jupiter.MockitoExtension;
+
+          @ExtendWith(MockitoExtension.class)
+          class ManagedOwner {
+              Object mocks;
+
+              void setup() {
+                  mocks = MockitoAnnotations.openMocks(this);
+              }
+          }
+          """;
+        String reader = """
+          class Reader {
+              Object read(ManagedOwner owner) {
+                  return owner.mocks;
+              }
+          }
+          """;
+        rewriteRun(java(owner), java(reader));
+        rewriteRun(java(reader), java(owner));
+    }
 }
