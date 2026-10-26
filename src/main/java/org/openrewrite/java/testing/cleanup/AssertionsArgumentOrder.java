@@ -38,7 +38,7 @@ import static java.util.Collections.singleton;
 
 public class AssertionsArgumentOrder extends Recipe {
 
-    private static final MethodMatcher[] jupiterAssertionMatchers = new MethodMatcher[]{
+    private static final MethodMatcher[] JUPITER_ASSERTION_MATCHERS = new MethodMatcher[]{
             new MethodMatcher("org.junit.jupiter.api.Assertions assertArrayEquals(..)"),
             new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)"),
             new MethodMatcher("org.junit.jupiter.api.Assertions assertNotEquals(..)"),
@@ -46,7 +46,7 @@ public class AssertionsArgumentOrder extends Recipe {
             new MethodMatcher("org.junit.jupiter.api.Assertions assertNotSame(..)")
     };
 
-    private static final MethodMatcher[] junitAssertMatchers = new MethodMatcher[]{
+    private static final MethodMatcher[] JUNIT_ASSERT_MATCHERS = new MethodMatcher[]{
             new MethodMatcher("org.junit.Assert assertEquals(..)"),
             new MethodMatcher("org.junit.Assert assertEquals(..)"),
             new MethodMatcher("org.junit.Assert assertArrayEquals(..)"),
@@ -55,17 +55,17 @@ public class AssertionsArgumentOrder extends Recipe {
             new MethodMatcher("org.junit.Assert assert*Null(String, Object)")
     };
 
-    private static final MethodMatcher[] junitAssertWithMessageMatchers = new MethodMatcher[]{
+    private static final MethodMatcher[] JUNIT_ASSERT_WITH_MESSAGE_MATCHERS = new MethodMatcher[]{
             new MethodMatcher("org.junit.Assert assertEquals(String, ..)"),
             new MethodMatcher("org.junit.Assert assertArrayEquals(String, ..)")
     };
-    private static final MethodMatcher jupiterAssertIterableEqualsMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
+    private static final MethodMatcher JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
 
     // `assertNull("message", result())` should be `assertNull(result(), "message")`
-    private static final MethodMatcher jupiterAssertNullMatcher = new MethodMatcher("org.junit.jupiter.api.Assertions assert*Null(Object, String)");
+    private static final MethodMatcher JUPITER_ASSERT_NULL_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assert*Null(Object, String)");
 
     // Moving a null literal into the expected position short circuits the equality check, rather than calling equals
-    private static final MethodMatcher[] equalityMatchers = new MethodMatcher[]{
+    private static final MethodMatcher[] EQUALITY_MATCHERS = new MethodMatcher[]{
             new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)"),
             new MethodMatcher("org.junit.jupiter.api.Assertions assertNotEquals(..)"),
             new MethodMatcher("org.junit.Assert assertEquals(..)"),
@@ -74,24 +74,30 @@ public class AssertionsArgumentOrder extends Recipe {
             new MethodMatcher("org.testng.Assert assertNotEquals(..)")
     };
 
-    private static final MethodMatcher[] testNgMatcher = new MethodMatcher[]{
+    private static final MethodMatcher[] TESTNG_MATCHERS = new MethodMatcher[]{
             new MethodMatcher("org.testng.Assert assertSame(..)"),
             new MethodMatcher("org.testng.Assert assertNotSame(..)"),
             new MethodMatcher("org.testng.Assert assertEquals(..)"),
             new MethodMatcher("org.testng.Assert assertNotEquals(..)")
     };
 
-    private static final TreeVisitor<?, ExecutionContext> precondition;
+    private static final MethodMatcher[] NEW_LIST_MATCHERS = new MethodMatcher[]{
+            new MethodMatcher("java.util.List of(..)"),
+            new MethodMatcher("java.util.Collections singleton(..)"),
+            new MethodMatcher("java.util.Collections empty()"),
+            new MethodMatcher("java.util.Arrays asList(..)"),
+    };
+
+    private static final TreeVisitor<?, ExecutionContext> PRECONDITION;
 
     static {
-        List<MethodMatcher> matchers = new ArrayList<>(Arrays.asList(jupiterAssertionMatchers));
-        matchers.addAll(Arrays.asList(junitAssertMatchers));
-        matchers.addAll(Arrays.asList(junitAssertWithMessageMatchers));
-        matchers.add(jupiterAssertIterableEqualsMatcher);
-        matchers.add(jupiterAssertNullMatcher);
-        matchers.addAll(Arrays.asList(testNgMatcher));
-        //noinspection unchecked
-        precondition = Preconditions.or(matchers.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new));
+        List<MethodMatcher> matchers = new ArrayList<>(Arrays.asList(JUPITER_ASSERTION_MATCHERS));
+        matchers.addAll(Arrays.asList(JUNIT_ASSERT_MATCHERS));
+        matchers.addAll(Arrays.asList(JUNIT_ASSERT_WITH_MESSAGE_MATCHERS));
+        matchers.add(JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER);
+        matchers.add(JUPITER_ASSERT_NULL_MATCHER);
+        matchers.addAll(Arrays.asList(TESTNG_MATCHERS));
+        PRECONDITION = Preconditions.or(matchers.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new));
     }
 
     @Getter
@@ -105,17 +111,10 @@ public class AssertionsArgumentOrder extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(precondition, new AssertionsArgumentOrderVisitor());
+        return Preconditions.check(PRECONDITION, new AssertionsArgumentOrderVisitor());
     }
 
     private static class AssertionsArgumentOrderVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher[] newListMatchers = new MethodMatcher[]{
-                new MethodMatcher("java.util.List of(..)"),
-                new MethodMatcher("java.util.Collections singleton(..)"),
-                new MethodMatcher("java.util.Collections empty()"),
-                new MethodMatcher("java.util.Arrays asList(..)"),
-        };
-
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
@@ -154,7 +153,7 @@ public class AssertionsArgumentOrder extends Recipe {
         }
 
         private boolean isEqualityAssertion(J.MethodInvocation mi) {
-            for (MethodMatcher equalityMatcher : equalityMatchers) {
+            for (MethodMatcher equalityMatcher : EQUALITY_MATCHERS) {
                 if (equalityMatcher.matches(mi)) {
                     return true;
                 }
@@ -171,7 +170,7 @@ public class AssertionsArgumentOrder extends Recipe {
         }
 
         private boolean isCorrectOrder(Expression expected, Expression actual, J.MethodInvocation mi) {
-            if (jupiterAssertNullMatcher.matches(mi)) {
+            if (JUPITER_ASSERT_NULL_MATCHER.matches(mi)) {
                 return isConstant(actual, mi) || !isConstant(expected, mi);
             }
             return isConstant(expected, mi) || !isConstant(actual, mi);
@@ -197,8 +196,8 @@ public class AssertionsArgumentOrder extends Recipe {
                 return var.hasFlags(Flag.Static, Flag.Final);
             }
 
-            if (jupiterAssertIterableEqualsMatcher.matches(mi)) {
-                for (MethodMatcher iterableMatcher : newListMatchers) {
+            if (JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER.matches(mi)) {
+                for (MethodMatcher iterableMatcher : NEW_LIST_MATCHERS) {
                     if (iterableMatcher.matches(expression)) {
                         return true;
                     }
@@ -208,16 +207,16 @@ public class AssertionsArgumentOrder extends Recipe {
         }
 
         private boolean isJupiterAssertion(J.MethodInvocation mi) {
-            for (MethodMatcher assertionMethodMatcher : jupiterAssertionMatchers) {
+            for (MethodMatcher assertionMethodMatcher : JUPITER_ASSERTION_MATCHERS) {
                 if (assertionMethodMatcher.matches(mi)) {
                     return true;
                 }
             }
-            return jupiterAssertIterableEqualsMatcher.matches(mi) || jupiterAssertNullMatcher.matches(mi);
+            return JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER.matches(mi) || JUPITER_ASSERT_NULL_MATCHER.matches(mi);
         }
 
         private boolean isTestNgAssertion(J.MethodInvocation mi) {
-            for (MethodMatcher actExpMatcher : testNgMatcher) {
+            for (MethodMatcher actExpMatcher : TESTNG_MATCHERS) {
                 if (actExpMatcher.matches(mi)) {
                     return true;
                 }
@@ -226,7 +225,7 @@ public class AssertionsArgumentOrder extends Recipe {
         }
 
         private boolean isJunitAssertion(J.MethodInvocation mi) {
-            for (MethodMatcher assertionMethodMatcher : junitAssertMatchers) {
+            for (MethodMatcher assertionMethodMatcher : JUNIT_ASSERT_MATCHERS) {
                 if (assertionMethodMatcher.matches(mi)) {
                     return true;
                 }
@@ -235,7 +234,7 @@ public class AssertionsArgumentOrder extends Recipe {
         }
 
         private boolean isJunitAssertEqualsWithMessage(J.MethodInvocation mi) {
-            for (MethodMatcher actExpMatcher : junitAssertWithMessageMatchers) {
+            for (MethodMatcher actExpMatcher : JUNIT_ASSERT_WITH_MESSAGE_MATCHERS) {
                 if (actExpMatcher.matches(mi)) {
                     return true;
                 }

@@ -22,7 +22,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
-import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -37,6 +36,7 @@ import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.*;
 
@@ -59,16 +59,11 @@ public class SystemPropertyRulesToPioneer extends Recipe {
     final String displayName = "Migrate System Rules system property rules to JUnit Pioneer annotations";
 
     @Getter
-    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations. Only rules that take string literals and are not used elsewhere in the test are migrated; `SystemRulesToSystemStubs` handles the rest.";
+    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations. Only rules that take string literals and are not used elsewhere in the test are migrated; the others are left for the migration to System Stubs.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(PACKAGE + ".*", false), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
-            }
-
+        return Preconditions.check(Preconditions.and(new JavaFileChecker<>(), new UsesType<>(PACKAGE + ".*", false)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);

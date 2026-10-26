@@ -35,7 +35,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to5Migration
-displayName: Mockito 5.x upgrade
+displayName: Upgrade to Mockito 5.x
 description: Upgrade Mockito from 1.x to 5.x.
 preconditions:
   - org.openrewrite.Singleton
@@ -73,7 +73,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to4Migration
-displayName: Mockito 4.x upgrade
+displayName: Upgrade to Mockito 4.x
 description: Upgrade Mockito from 1.x to 4.x.
 preconditions:
   - org.openrewrite.Singleton
@@ -96,7 +96,7 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.Mockito1to3Migration
-displayName: Mockito 3.x migration from 1.x
+displayName: Upgrade Mockito from 1.x to 3.x
 description: Upgrade Mockito from 1.x to 3.x.
 preconditions:
   - org.openrewrite.Singleton

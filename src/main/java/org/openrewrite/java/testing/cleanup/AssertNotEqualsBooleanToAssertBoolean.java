@@ -17,12 +17,14 @@ package org.openrewrite.java.testing.cleanup;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -39,12 +41,12 @@ public class AssertNotEqualsBooleanToAssertBoolean extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(ASSERT_NOT_EQUALS), new JavaVisitor<ExecutionContext>() {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
-                if (ASSERT_NOT_EQUALS.matches(mi) && isBooleanLiteral(mi)) {
+                if (ASSERT_NOT_EQUALS.matches(mi) && isBooleanLiteral(mi) && JavaType.Primitive.Boolean == mi.getArguments().get(1).getType()) {
                     StringBuilder sb = new StringBuilder();
                     String assertMethod = Boolean.parseBoolean(((J.Literal) mi.getArguments().get(0)).getValueSource()) ?
                             "assertFalse" : "assertTrue";
@@ -89,6 +91,6 @@ public class AssertNotEqualsBooleanToAssertBoolean extends Recipe {
 
                 return false;
             }
-        };
+        });
     }
 }

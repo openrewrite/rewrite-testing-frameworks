@@ -145,4 +145,35 @@ class SimplifyArrayLengthAssertionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void arrayOfClassDeclaredInTestFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(Item[] items) {
+                      assertThat(items.length).isEqualTo(2);
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(Item[] items) {
+                      assertThat(items).hasSize(2);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.assertj;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -152,25 +153,6 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
     }
 
     @Test
-    void canBeRerun() {
-        rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3-*")),
-          // language=java
-          java(
-            """
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Test {
-                  void test() {
-                      assertThat(4).isInstanceOf(Integer.class);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void doesNotConvertAnyOtherMethods() {
         rewriteRun(
           // language=java
@@ -228,5 +210,105 @@ class JUnitAssertInstanceOfToAssertThatTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+
+        @Test
+        void canBeRerun() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3-*")),
+              // language=java
+              java(
+                """
+                  import static org.assertj.core.api.Assertions.assertThat;
+
+                  class Test {
+                      void test() {
+                          assertThat(4).isInstanceOf(Integer.class);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void returnValueAssignedToVariable() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                  import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+                  class Test {
+                      void test(Object o) {
+                          Integer i = assertInstanceOf(Integer.class, o);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void returnValueReturned() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                  import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+                  class Test {
+                      Integer test(Object o) {
+                          return assertInstanceOf(Integer.class, o);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void returnValuePassedAsArgument() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                  import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+                  class Test {
+                      void test(Object o) {
+                          use(assertInstanceOf(Integer.class, o));
+                      }
+
+                      void use(Integer i) {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void returnValueOfLambda() {
+            rewriteRun(
+              // language=java
+              java(
+                """
+                  import java.util.function.Supplier;
+
+                  import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+                  class Test {
+                      void test(Object o) {
+                          Supplier<Integer> s = () -> assertInstanceOf(Integer.class, o);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

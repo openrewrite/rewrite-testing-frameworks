@@ -800,6 +800,8 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             new AnnotationMatcher("@org.testng.annotations.BeforeClass"),
             new AnnotationMatcher("@org.testng.annotations.AfterClass"));
 
+    private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
+
     private static boolean isTestOrFixtureMethod(J.MethodDeclaration md) {
         for (J.Annotation annotation : md.getLeadingAnnotations()) {
             for (AnnotationMatcher matcher : TEST_OR_FIXTURE) {
@@ -822,7 +824,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             return true; // unknown type: assume the signature is load-bearing
         }
         for (J.Annotation annotation : md.getLeadingAnnotations()) {
-            if ("Override".equals(annotation.getSimpleName())) {
+            if (OVERRIDE_ANNOTATION_MATCHER.matches(annotation)) {
                 return true;
             }
         }
@@ -882,7 +884,6 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         J.MethodDeclaration templated = JavaTemplate
                 .builder("try {\n} catch (ReflectiveOperationException e) {\n    throw new RuntimeException(e);\n}")
-                .contextSensitive()
                 .javaParser(JavaParser.fromJavaVersion())
                 .build()
                 .apply(updateCursor(md), md.getCoordinates().replaceBody());

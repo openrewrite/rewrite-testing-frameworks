@@ -75,6 +75,102 @@ recipeList:
       artifactId: jetty-xml
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.xml.*
+  - org.openrewrite.java.testing.wiremock.Wiremock4RelocatedTypes
+  - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
+  - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
+  - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
+  - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
+  - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.github.tomakehurst.wiremock.stubbing.StubMapping getUuid()
+      newMethodName: getId
+  # `value()` widened its return type to `Object` in 4.x; `getName()` still answers a `String`
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
+      newMethodName: getName
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
+displayName: Keep a single `Content-Type` response header while still on WireMock 3
+description: >-
+  Collapse duplicate `Content-Type` response headers in both stub files and the Java DSL, but only where the
+  module still depends on WireMock 3.x. Jetty 11 already served a single value there, so dropping the rest
+  changes nothing; against 4.x the extra values really do reach the client, and removing them would.
+tags:
+  - testing
+  - wiremock
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.wiremock
+      artifactIdPattern: wiremock*
+      version: 3.x
+recipeList:
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
+  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.wiremock.MigrateJettyEE10ToEE11
+displayName: Move Jetty EE10 usages to EE11 alongside `wiremock-jetty12`
+description: >-
+  WireMock 3's `wiremock-jetty12` module ran on Jetty's EE10 servlet environment, whereas WireMock 4.x runs on EE11,
+  so EE10 types such as the `ServletContextHandler` handed to `NotFoundHandler` no longer line up. Move EE10 packages
+  and dependencies over to their EE11 counterparts, but only in modules depending on `wiremock-jetty12`, where EE10
+  arrived through WireMock in the first place.
+tags:
+  - testing
+  - wiremock
+  - jetty
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.wiremock
+      artifactIdPattern: wiremock-jetty12
+recipeList:
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.eclipse.jetty.ee10
+      newPackageName: org.eclipse.jetty.ee11
+      recursive: true
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.eclipse.jetty.ee10
+      oldArtifactId: jetty-ee10-servlet
+      newGroupId: org.eclipse.jetty.ee11
+      newArtifactId: jetty-ee11-servlet
+      newVersion: 12.1.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.eclipse.jetty.ee10
+      oldArtifactId: jetty-ee10-servlets
+      newGroupId: org.eclipse.jetty.ee11
+      newArtifactId: jetty-ee11-servlets
+      newVersion: 12.1.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.eclipse.jetty.ee10
+      oldArtifactId: jetty-ee10-webapp
+      newGroupId: org.eclipse.jetty.ee11
+      newArtifactId: jetty-ee11-webapp
+      newVersion: 12.1.x
+  # WireMock 4.x only puts these on the runtime classpath. `onlyIfUsing` is matched against the sources as they
+  # were before `ChangePackage` ran, hence the EE10 packages.
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.eclipse.jetty.ee11
+      artifactId: jetty-ee11-webapp
+      version: 12.1.x
+      onlyIfUsing: org.eclipse.jetty.ee10.webapp.*
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.eclipse.jetty.ee11
+      artifactId: jetty-ee11-servlets
+      version: 12.1.x
+      onlyIfUsing: org.eclipse.jetty.ee10.servlets.*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.wiremock.Wiremock4RelocatedTypes
+displayName: Move WireMock types to their 4.x packages
+description: Change WireMock types that moved packages in WireMock 4.x, such as the Jetty, servlet and Apache HTTP client classes.
+preconditions:
+  - org.openrewrite.java.search.HasType:
+      fullyQualifiedTypeName: com.github.tomakehurst.wiremock..*
+tags:
+  - testing
+  - wiremock
+recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: com.github.tomakehurst.wiremock.jetty11.CertificateGeneratingSslContextFactory
       newFullyQualifiedTypeName: com.github.tomakehurst.wiremock.jetty.ssl.CertificateGeneratingSslContextFactory
@@ -215,86 +311,3 @@ recipeList:
       oldFullyQualifiedTypeName: com.github.tomakehurst.wiremock.http.MimeType
       newFullyQualifiedTypeName: com.github.tomakehurst.wiremock.common.entity.MimeType
       ignoreDefinition: true
-  - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
-  - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
-  - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
-  - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
-  - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: com.github.tomakehurst.wiremock.stubbing.StubMapping getUuid()
-      newMethodName: getId
-  # `value()` widened its return type to `Object` in 4.x; `getName()` still answers a `String`
-  - org.openrewrite.java.ChangeMethodName:
-      methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
-      newMethodName: getName
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
-displayName: Keep a single `Content-Type` response header while still on WireMock 3
-description: >-
-  Collapse duplicate `Content-Type` response headers in both stub files and the Java DSL, but only where the
-  module still depends on WireMock 3.x. Jetty 11 already served a single value there, so dropping the rest
-  changes nothing; against 4.x the extra values really do reach the client, and removing them would.
-tags:
-  - testing
-  - wiremock
-preconditions:
-  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
-      groupIdPattern: org.wiremock
-      artifactIdPattern: wiremock*
-      version: 3.x
-recipeList:
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeader
-  - org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeStubHeader
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.wiremock.MigrateJettyEE10ToEE11
-displayName: Move Jetty EE10 usages to EE11 alongside `wiremock-jetty12`
-description: >-
-  WireMock 3's `wiremock-jetty12` module ran on Jetty's EE10 servlet environment, whereas WireMock 4.x runs on EE11,
-  so EE10 types such as the `ServletContextHandler` handed to `NotFoundHandler` no longer line up. Move EE10 packages
-  and dependencies over to their EE11 counterparts, but only in modules depending on `wiremock-jetty12`, where EE10
-  arrived through WireMock in the first place.
-tags:
-  - testing
-  - wiremock
-  - jetty
-preconditions:
-  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
-      groupIdPattern: org.wiremock
-      artifactIdPattern: wiremock-jetty12
-recipeList:
-  - org.openrewrite.java.ChangePackage:
-      oldPackageName: org.eclipse.jetty.ee10
-      newPackageName: org.eclipse.jetty.ee11
-      recursive: true
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.eclipse.jetty.ee10
-      oldArtifactId: jetty-ee10-servlet
-      newGroupId: org.eclipse.jetty.ee11
-      newArtifactId: jetty-ee11-servlet
-      newVersion: 12.1.x
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.eclipse.jetty.ee10
-      oldArtifactId: jetty-ee10-servlets
-      newGroupId: org.eclipse.jetty.ee11
-      newArtifactId: jetty-ee11-servlets
-      newVersion: 12.1.x
-  - org.openrewrite.java.dependencies.ChangeDependency:
-      oldGroupId: org.eclipse.jetty.ee10
-      oldArtifactId: jetty-ee10-webapp
-      newGroupId: org.eclipse.jetty.ee11
-      newArtifactId: jetty-ee11-webapp
-      newVersion: 12.1.x
-  # WireMock 4.x only puts these on the runtime classpath. `onlyIfUsing` is matched against the sources as they
-  # were before `ChangePackage` ran, hence the EE10 packages.
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.eclipse.jetty.ee11
-      artifactId: jetty-ee11-webapp
-      version: 12.1.x
-      onlyIfUsing: org.eclipse.jetty.ee10.webapp.*
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: org.eclipse.jetty.ee11
-      artifactId: jetty-ee11-servlets
-      version: 12.1.x
-      onlyIfUsing: org.eclipse.jetty.ee10.servlets.*

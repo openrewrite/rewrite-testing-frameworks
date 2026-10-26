@@ -360,6 +360,38 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
         );
     }
 
+    @Test
+    void deltaTypeFollowsResolvedOverload() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+              class MyTest {
+                  void test(double d, int count) {
+                      assertNotEquals(0.0, d, 0);
+                      assertNotEquals(5, count, 1.0);
+                      assertNotEquals(5, count, 1.0, "Should differ");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.assertj.core.api.Assertions.within;
+
+              class MyTest {
+                  void test(double d, int count) {
+                      assertThat(d).isNotCloseTo(0.0, within((double) 0));
+                      assertThat((double) count).isNotCloseTo(5, within(1.0));
+                      assertThat((double) count).as("Should differ").isNotCloseTo(5, within(1.0));
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/492")
     @Test
     void nullArgumentAssertedOnNonNullArgument() {

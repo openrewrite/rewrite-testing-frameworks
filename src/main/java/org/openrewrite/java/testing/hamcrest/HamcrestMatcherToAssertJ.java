@@ -35,9 +35,12 @@ import static java.util.stream.Collectors.joining;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HamcrestMatcherToAssertJ extends Recipe {
+    private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
+    private static final String HAMCREST_MATCHER = "org.hamcrest.Matcher";
+    private static final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
     @Option(displayName = "Hamcrest matcher",
-            description = "The Hamcrest `Matcher` to migrate to JUnit5.",
+            description = "The Hamcrest `Matcher` to migrate to AssertJ.",
             example = "equalTo",
             required = false)
     @Nullable
@@ -69,9 +72,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
     }
 
     private class MigrateToAssertJVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final MethodMatcher assertThatMatcher = new MethodMatcher("org.hamcrest.MatcherAssert assertThat(..)");
         private final MethodMatcher matchersMatcher = new MethodMatcher("org.hamcrest.*Matchers " + matcher + "(..)");
-        private final MethodMatcher subMatcher = new MethodMatcher("org.hamcrest.*Matchers *(org.hamcrest.Matcher)");
 
         // AssertJ assertions that don't take any arguments - matcher arguments should be ignored
         private final Set<String> noArgAssertions = new HashSet<>(Arrays.asList("isNotNull", "isNull"));
@@ -79,7 +80,7 @@ public class HamcrestMatcherToAssertJ extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (assertThatMatcher.matches(mi)) {
+            if (ASSERT_THAT_MATCHER.matches(mi)) {
                 return replace(mi, ctx);
             }
             return mi;
@@ -90,10 +91,13 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             Expression reasonArgument = mia.size() == 3 ? mia.get(0) : null;
             Expression actualArgument = mia.get(mia.size() - 2);
             Expression matcherArgument = mia.get(mia.size() - 1);
-            if (!matchersMatcher.matches(matcherArgument) || subMatcher.matches(matcherArgument)) {
+            if (!matchersMatcher.matches(matcherArgument) || takesMatcher((J.MethodInvocation) matcherArgument)) {
                 return mi;
             }
             if (argumentType != null && !TypeUtils.isAssignableTo(argumentType, actualArgument.getType())) {
+                return mi;
+            }
+            if (passesIncompatibleVarargsArray((J.MethodInvocation) matcherArgument, actualArgument.getType())) {
                 return mi;
             }
 
@@ -106,7 +110,6 @@ public class HamcrestMatcherToAssertJ extends Recipe {
                             (reasonArgument != null ? ".as(#{any(String)})" : "") +
                             ".%s(%s)",
                             actual, assertion, argsTemplate))
-                    .contextSensitive()
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                     .staticImports(
                             "org.assertj.core.api.Assertions.assertThat",
@@ -142,8 +145,6 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             }
             return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
         }
-
-        private final MethodMatcher CLOSE_TO_MATCHER = new MethodMatcher("org.hamcrest.Matchers closeTo(..)");
 
         private Expression ensureMatchingNumericType(Expression toleranceExpr, @Nullable JavaType actualType) {
             JavaType toleranceType = toleranceExpr.getType();
@@ -195,5 +196,42 @@ public class HamcrestMatcherToAssertJ extends Recipe {
             }
             return "#{any(java.lang.Object)}";
         }
+    }
+
+    static boolean takesMatcher(J.MethodInvocation method) {
+        JavaType.Method methodType = method.getMethodType();
+        return (methodType != null && methodType.getParameterTypes().stream().anyMatch(HamcrestMatcherToAssertJ::isOrHoldsMatcher)) ||
+               method.getArguments().stream().anyMatch(arg -> isOrHoldsMatcher(arg.getType()));
+    }
+
+    private static boolean isOrHoldsMatcher(@Nullable JavaType type) {
+        if (type instanceof JavaType.Array) {
+            return isOrHoldsMatcher(((JavaType.Array) type).getElemType());
+        }
+        if (type instanceof JavaType.Parameterized && TypeUtils.isAssignableTo("java.lang.Iterable", type)) {
+            return ((JavaType.Parameterized) type).getTypeParameters().stream().anyMatch(param -> TypeUtils.isAssignableTo(HAMCREST_MATCHER, param));
+        }
+        return TypeUtils.isAssignableTo(HAMCREST_MATCHER, type);
+    }
+
+    private static boolean passesIncompatibleVarargsArray(J.MethodInvocation matcher, @Nullable JavaType actualType) {
+        JavaType.Method methodType = matcher.getMethodType();
+        JavaType elementType = elementType(actualType);
+        if (methodType == null || !methodType.hasFlags(Flag.Varargs) || elementType == null) {
+            return false;
+        }
+        JavaType lastArgumentType = matcher.getArguments().get(matcher.getArguments().size() - 1).getType();
+        return lastArgumentType instanceof JavaType.Array && !TypeUtils.isAssignableTo(elementType, ((JavaType.Array) lastArgumentType).getElemType());
+    }
+
+    private static @Nullable JavaType elementType(@Nullable JavaType type) {
+        if (type instanceof JavaType.Array) {
+            return ((JavaType.Array) type).getElemType();
+        }
+        if (type instanceof JavaType.Parameterized && TypeUtils.isAssignableTo("java.lang.Iterable", type)) {
+            List<JavaType> typeParameters = ((JavaType.Parameterized) type).getTypeParameters();
+            return typeParameters.size() == 1 ? typeParameters.get(0) : null;
+        }
+        return null;
     }
 }

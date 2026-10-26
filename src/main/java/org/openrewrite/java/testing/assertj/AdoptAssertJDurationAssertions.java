@@ -16,7 +16,6 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -28,18 +27,16 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
-import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
 import java.util.*;
 
 import static java.util.Objects.requireNonNull;
+import static org.openrewrite.Preconditions.and;
 import static org.openrewrite.Preconditions.or;
 
 public class AdoptAssertJDurationAssertions extends Recipe {
 
-    private static final String DURATION_ASSERT_HAS_LONG = "org.assertj.core.api.AbstractDurationAssert has*(long)";
     private static final String INTEGER_ASSERT_IS_EQUAL_TO = "org.assertj.core.api.AbstractIntegerAssert isEqualTo(..)";
     private static final String INTEGER_ASSERT_IS_GREATER_THAN = "org.assertj.core.api.AbstractIntegerAssert isGreaterThan(..)";
     private static final String INTEGER_ASSERT_IS_LESS_THAN = "org.assertj.core.api.AbstractIntegerAssert isLessThan(..)";
@@ -48,10 +45,9 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     private static final String LONG_ASSERT_IS_EQUAL_TO = "org.assertj.core.api.AbstractLongAssert isEqualTo(..)";
 
     private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
-    private static final MethodMatcher GET_NANO_MATCHER = new MethodMatcher("java.time.Duration getNano()");
     private static final MethodMatcher GET_SECONDS_MATCHER = new MethodMatcher("java.time.Duration getSeconds()");
     private static final MethodMatcher AS_MATCHER = new MethodMatcher("org.assertj.core.api.AbstractObjectAssert as(..)");
-    private static final MethodMatcher TIME_UNIT_MATCHERS = new MethodMatcher(DURATION_ASSERT_HAS_LONG, true);
+    private static final MethodMatcher LONG_IS_EQUAL_TO_MATCHER = new MethodMatcher(LONG_ASSERT_IS_EQUAL_TO, true);
 
     private static final List<MethodMatcher> IS_MATCHERS = Arrays.asList(
             new MethodMatcher(INTEGER_ASSERT_IS_EQUAL_TO, true),
@@ -65,14 +61,6 @@ public class AdoptAssertJDurationAssertions extends Recipe {
 
     private static final Map<String, String> METHOD_MAP = new HashMap<String, String>() {{
         put("getSeconds", "hasSeconds");
-        put("getNano", "hasNanos");
-
-        put("hasNanos", "hasMillis");
-        put("hasMillis", "hasSeconds");
-        put("hasSeconds", "hasMinutes");
-        put("hasMinutes", "hasHours");
-        put("hasHours", "hasDays");
-
         put("isGreaterThan", "isPositive");
         put("isLessThan", "isNegative");
         put("isEqualTo", "isZero");
@@ -87,21 +75,20 @@ public class AdoptAssertJDurationAssertions extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                or(
-                        new UsesMethod<>(TIME_UNIT_MATCHERS),
-                        new UsesMethod<>(INTEGER_ASSERT_IS_EQUAL_TO, true),
-                        new UsesMethod<>(INTEGER_ASSERT_IS_GREATER_THAN, true),
-                        new UsesMethod<>(INTEGER_ASSERT_IS_LESS_THAN, true),
-                        new UsesMethod<>(LONG_ASSERT_IS_EQUAL_TO, true),
-                        new UsesMethod<>(LONG_ASSERT_IS_GREATER_THAN, true),
-                        new UsesMethod<>(LONG_ASSERT_IS_LESS_THAN, true)
+                and(
+                        new UsesMethod<>("java.time.Duration *(..)"),
+                        or(
+                                new UsesMethod<>(INTEGER_ASSERT_IS_EQUAL_TO, true),
+                                new UsesMethod<>(INTEGER_ASSERT_IS_GREATER_THAN, true),
+                                new UsesMethod<>(INTEGER_ASSERT_IS_LESS_THAN, true),
+                                new UsesMethod<>(LONG_ASSERT_IS_EQUAL_TO, true),
+                                new UsesMethod<>(LONG_ASSERT_IS_GREATER_THAN, true),
+                                new UsesMethod<>(LONG_ASSERT_IS_LESS_THAN, true)
+                        )
                 ), new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                        if (TIME_UNIT_MATCHERS.matches(mi)) {
-                            return simplifyTimeUnits(mi, ctx);
-                        }
                         if (IS_MATCHERS.stream().anyMatch(matcher -> matcher.matches(mi))) {
                             return simplifyMultipleAssertions(mi, ctx);
                         }
@@ -139,7 +126,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                             return applyTemplate(ctx, m, formatted_template, assertions, templateParameters.toArray());
                         }
 
-                        if (GET_NANO_MATCHER.matches(assertThatArg) || GET_SECONDS_MATCHER.matches(assertThatArg)) {
+                        if (LONG_IS_EQUAL_TO_MATCHER.matches(m) && GET_SECONDS_MATCHER.matches(assertThatArg)) {
                             Expression assertThatArgSelect = assertThatArg.getSelect();
                             String methodName = assertThatArg.getSimpleName();
                             String formatted_template = formatTemplate("assertThat(#{any()}).%s(#{any()});", methodName, asDescription);
@@ -160,55 +147,12 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         return false;
                     }
 
-                    private J.MethodInvocation simplifyTimeUnits(J.MethodInvocation m, ExecutionContext ctx) {
-                        Expression arg = m.getArguments().get(0);
-                        Long argValue = SimplifyDurationCreationUnits.getConstantIntegralValue(arg);
-                        if (argValue == null) {
-                            return m;
-                        }
-
-                        List<Object> unitInfo = getUnitInfo(m.getSimpleName(), Math.toIntExact(argValue));
-                        String methodName = (String) unitInfo.get(0);
-                        int methodArg = (int) unitInfo.get(1);
-                        if (!m.getSimpleName().equals(methodName)) {
-                            // update method invocation with new name and arg
-                            String template = String.format("#{any()}.%s(%d)", methodName, methodArg);
-                            return applyTemplate(ctx, m, template, null, m.getSelect());
-                        }
-
-                        return m;
-                    }
-
-                    private List<Object> getUnitInfo(String name, int argValue) {
-                        final int timeLength;
-                        if ("hasSeconds".equals(name) || "hasMinutes".equals(name)) {
-                            timeLength = 60;
-                        } else if ("hasNanos".equals(name) || "hasMillis".equals(name)) {
-                            timeLength = 1000;
-                        } else if ("hasHours".equals(name)) {
-                            timeLength = 24;
-                        } else {
-                            return Arrays.asList(name, argValue);
-                        }
-
-                        if (argValue % timeLength == 0) {
-                            String newName = METHOD_MAP.get(name);
-                            return getUnitInfo(newName, argValue / timeLength);
-                        }
-                        // returning name, newArg
-                        return Arrays.asList(name, argValue);
-                    }
-
-                    private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template,
-                                                             @Nullable String assertions, Object... parameters) {
-                        JavaTemplate.Builder builder = JavaTemplate.builder(template)
-                                .contextSensitive()
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"));
-                        if (assertions != null) {
-                            builder.staticImports(assertions + ".assertThat");
-                            maybeAddImport(assertions, "assertThat");
-                        }
-                        J.MethodInvocation invocation = builder.build()
+                    private J.MethodInvocation applyTemplate(ExecutionContext ctx, J.MethodInvocation m, String template, String assertions, Object... parameters) {
+                        maybeAddImport(assertions, "assertThat");
+                        J.MethodInvocation invocation = JavaTemplate.builder(template)
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                                .staticImports(assertions + ".assertThat")
+                                .build()
                                 .apply(getCursor(), m.getCoordinates().replace(), parameters);
 
                         // retain whitespace formatting
@@ -223,13 +167,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                     }
 
                     private boolean checkIfRelatedToDuration(J.MethodInvocation argument) {
-                        if (argument.getSelect() != null) {
-                            if (argument.getSelect() instanceof J.MethodInvocation) {
-                                J.MethodInvocation selectMethod = (J.MethodInvocation) argument.getSelect();
-                                return TypeUtils.isOfType(selectMethod.getType(), JavaType.buildType("java.time.Duration"));
-                            }
-                        }
-                        return false;
+                        return argument.getSelect() != null && TypeUtils.isOfClassType(argument.getSelect().getType(), "java.time.Duration");
                     }
 
                     @SuppressWarnings("ConstantValue")

@@ -37,7 +37,7 @@ public class JUnitFailToAssertJFail extends Recipe {
     private static final MethodMatcher FAIL_MATCHER = new MethodMatcher(JUNIT + " fail(..)");
 
     @Getter
-    final String displayName = "JUnit fail to AssertJ";
+    final String displayName = "JUnit `fail` to AssertJ";
 
     @Getter
     final String description = "Convert JUnit-style `fail()` to AssertJ's `fail()`.";
@@ -81,7 +81,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                             .apply(getCursor(), mi.getCoordinates().replace(), args.toArray());
                 }
 
-                doAfterVisit(new RemoveUnusedImports().getVisitor());
+                maybeRemoveImport(JUNIT);
                 doAfterVisit(new UnqualifiedMethodInvocations());
                 return mi;
             }
@@ -97,7 +97,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     }
 
                     maybeRemoveImport(JUNIT + ".fail");
-                    maybeAddImport(ASSERTJ, "fail", false);
+                    maybeAddImport(ASSERTJ, "fail");
 
                     List<Expression> arguments = mi.getArguments();
                     String anyArgs = String.join(",", nCopies(arguments.size(), "#{any()}"));

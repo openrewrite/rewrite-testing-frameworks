@@ -28,6 +28,8 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -55,21 +57,16 @@ public class AssertThrowsOnLastStatement extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         MethodMatcher assertThrowsMatcher = new MethodMatcher(
                 "org.junit.jupiter.api.Assertions assertThrows(java.lang.Class, org.junit.jupiter.api.function.Executable, ..)");
-        return Preconditions.check(new UsesMethod<>(assertThrowsMatcher), new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+        return Preconditions.check(Preconditions.and(
                 // Only Java and Kotlin are supported, as the extracted variable declaration is rendered per language
-                return (sourceFile instanceof J.CompilationUnit || sourceFile instanceof K.CompilationUnit) &&
-                        super.isAcceptable(sourceFile, ctx);
-            }
-
+                Preconditions.or(new JavaFileChecker<>(), new KotlinFileChecker<>()),
+                new UsesMethod<>(assertThrowsMatcher)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration methodDecl, ExecutionContext ctx) {
                 J.MethodDeclaration m = super.visitMethodDeclaration(methodDecl, ctx);
                 if (m.getBody() == null) {
                     return m;
                 }
-                doAfterVisit(new LambdaBlockToExpression().getVisitor());
                 return m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
                     J statementToCheck = methodStatement;
                     final J.VariableDeclarations assertThrowsWithVarDec;
@@ -138,6 +135,9 @@ public class AssertThrowsOnLastStatement extends Recipe {
                                     return argument;
                                 })
                         );
+                        if (getCursor().firstEnclosing(J.CompilationUnit.class) != null) {
+                            newAssertThrows = (J.MethodInvocation) new LambdaBlockToExpression().getVisitor().visitNonNull(newAssertThrows, ctx, getCursor());
+                        }
 
                         if (assertThrowsWithVarDec == null) {
                             variableAssignments.add(newAssertThrows);
@@ -196,17 +196,17 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             // TODO look into possibly employing `TypeUtils.toString()` here, possibly with some changes upstream allowing for non-fully-qualified names
                             variableTypeShort = buildParameterizedTypeName(paramType);
                             variableTypeFqn = paramType;
-                            maybeAddImport(paramType.getFullyQualifiedName(), false);
+                            maybeAddImport(paramType.getFullyQualifiedName());
                             for (JavaType typeParam : paramType.getTypeParameters()) {
                                 if (typeParam instanceof JavaType.FullyQualified) {
-                                    maybeAddImport(((JavaType.FullyQualified) typeParam).getFullyQualifiedName(), false);
+                                    maybeAddImport(((JavaType.FullyQualified) typeParam).getFullyQualifiedName());
                                 }
                             }
                         } else if (type instanceof JavaType.FullyQualified) {
                             JavaType.FullyQualified aClass = (JavaType.FullyQualified) type;
                             variableTypeShort = aClass.getClassName();
                             variableTypeFqn = aClass;
-                            maybeAddImport(aClass.getFullyQualifiedName(), false);
+                            maybeAddImport(aClass.getFullyQualifiedName());
                         }
 
                         Cursor blockCursor = new Cursor(getCursor(), body);

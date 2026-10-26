@@ -25,6 +25,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.search.FindEmptyMethods;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.J.MethodDeclaration;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.time.Duration;
@@ -53,7 +54,12 @@ public class RemoveEmptyTests extends Recipe {
             @Override
             public @Nullable J visitMethodDeclaration(MethodDeclaration method, ExecutionContext ctx) {
                 if (hasTestAnnotation(method) && isEmptyMethod(method)) {
-                    //noinspection ConstantConditions
+                    for (J.Annotation annotation : method.getLeadingAnnotations()) {
+                        JavaType.FullyQualified type = TypeUtils.asFullyQualified(annotation.getType());
+                        if (type != null) {
+                            maybeRemoveImport(type);
+                        }
+                    }
                     return null;
                 }
                 return super.visitMethodDeclaration(method, ctx);

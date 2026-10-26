@@ -473,6 +473,86 @@ class SimplifyRedundantAssertJChainsTest implements RewriteTest {
     }
 
     @Test
+    void doesNotSimplifyIsNotEmptyBeforeAssertionsThatPassOnEmpty() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.*;
+
+              class Test {
+                  void test(List<String> list, List<String> expected, String[] values, String str, String part) {
+                      assertThat(list).isNotEmpty().containsAll(expected);
+                      assertThat(list).isNotEmpty().containsAnyElementsOf(expected);
+                      assertThat(list).isNotEmpty().containsSequence(expected);
+                      assertThat(list).isNotEmpty().contains(values);
+                      assertThat(str).isNotEmpty().contains(part);
+                      assertThat(str).isNotEmpty().contains("");
+                      assertThat(str).isNotEmpty().containsPattern("a*");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void simplifyIsNotEmptyBeforeContainsWithValues() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.*;
+
+              class Test {
+                  void test(List<String> list, Map<String, String> map, String str) {
+                      assertThat(list).isNotEmpty().containsOnly("a", "b");
+                      assertThat(list).isNotEmpty().containsSequence("a", "b");
+                      assertThat(map).isNotEmpty().containsEntry("key", "value");
+                      assertThat(str).isNotEmpty().contains("text");
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.*;
+
+              class Test {
+                  void test(List<String> list, Map<String, String> map, String str) {
+                      assertThat(list).containsOnly("a", "b");
+                      assertThat(list).containsSequence("a", "b");
+                      assertThat(map).containsEntry("key", "value");
+                      assertThat(str).contains("text");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotSimplifyIsNotNullBeforeMatchesPredicate() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import java.util.Objects;
+
+              class Test {
+                  void test(Object obj, String str) {
+                      assertThat(obj).isNotNull().matches(Objects::isNull);
+                      assertThat(str).isNotNull().matches(s -> s == null || s.isEmpty());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void simplifyHasSizeBeforeContainsExactly() {
         rewriteRun(
           //language=java

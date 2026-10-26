@@ -27,6 +27,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.MavenResolutionResult;
 import org.openrewrite.maven.tree.ResolvedDependency;
 import org.openrewrite.maven.tree.Scope;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -2094,6 +2095,8 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Test
     void unsupportedUsageIsCommentedOutSoPowerMockCanStillBeRemoved() {
         rewriteRun(
+          // DisableUnsupportedPowerMockTests keeps the imports of the code it comments out
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().removeUnusedImports(false).build()),
           mavenProject("unsupported",
             //language=xml
             pomXml(

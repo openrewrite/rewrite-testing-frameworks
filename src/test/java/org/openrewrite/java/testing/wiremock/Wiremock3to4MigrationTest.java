@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.wiremock;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -172,56 +173,6 @@ class Wiremock3to4MigrationTest implements RewriteTest {
             spec -> spec.after(after -> assertThat(after)
               .containsPattern(gradleDependency("wiremock"))
               .actual())
-          )
-        );
-    }
-
-    @Test
-    void otherDependenciesAreUntouched() {
-        rewriteRun(
-          //language=xml
-          pomXml(
-            """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>demo</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter-api</artifactId>
-                        <version>5.10.1</version>
-                        <scope>test</scope>
-                    </dependency>
-                </dependencies>
-              </project>
-              """
-          )
-        );
-    }
-
-    @Test
-    void alreadyOnWiremock4NoChange() {
-        rewriteRun(
-          //language=xml
-          pomXml(
-            """
-              <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>com.example</groupId>
-                <artifactId>demo</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.wiremock</groupId>
-                        <artifactId>wiremock</artifactId>
-                        <version>%s</version>
-                        <scope>test</scope>
-                    </dependency>
-                </dependencies>
-              </project>
-              """.formatted(WIREMOCK_4_VERSION)
           )
         );
     }
@@ -780,47 +731,6 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     }
 
     @Test
-    void duplicateContentTypeHeadersSurviveOnWiremock4() {
-        rewriteRun(
-          mavenProject("project",
-            //language=xml
-            pomXml(
-              """
-                <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>demo</artifactId>
-                  <version>0.0.1-SNAPSHOT</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.wiremock</groupId>
-                          <artifactId>wiremock</artifactId>
-                          <version>%s</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-                </project>
-                """.formatted(WIREMOCK_4_VERSION)
-            ),
-            //language=json
-            json(
-              """
-                {
-                  "response": {
-                    "status": 200,
-                    "headers": {
-                      "Content-Type": [ "text/plain", "application/json" ]
-                    }
-                  }
-                }
-                """,
-              spec -> spec.path("src/test/resources/mappings/get-user.json")
-            )
-          )
-        );
-    }
-
-    @Test
     void constructAndMutateBecomesBuilderAndTransform() {
         rewriteRun(
           //language=java
@@ -918,25 +828,119 @@ class Wiremock3to4MigrationTest implements RewriteTest {
         );
     }
 
-    @Test
-    void valueOnAnUnrelatedTypeIsUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              class Methods {
-                  static class Token {
-                      String value() {
-                          return "x";
+    @Nested
+    class NoChange {
+        @Test
+        void otherDependenciesAreUntouched() {
+            rewriteRun(
+              //language=xml
+              pomXml(
+                """
+                  <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-api</artifactId>
+                            <version>5.10.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                  </project>
+                  """
+              )
+            );
+        }
+
+        @Test
+        void alreadyOnWiremock4NoChange() {
+            rewriteRun(
+              //language=xml
+              pomXml(
+                """
+                  <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.wiremock</groupId>
+                            <artifactId>wiremock</artifactId>
+                            <version>%s</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                  </project>
+                  """.formatted(WIREMOCK_4_VERSION)
+              )
+            );
+        }
+
+        @Test
+        void duplicateContentTypeHeadersSurviveOnWiremock4() {
+            rewriteRun(
+              mavenProject("project",
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <groupId>com.example</groupId>
+                      <artifactId>demo</artifactId>
+                      <version>0.0.1-SNAPSHOT</version>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.wiremock</groupId>
+                              <artifactId>wiremock</artifactId>
+                              <version>%s</version>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                    </project>
+                    """.formatted(WIREMOCK_4_VERSION)
+                ),
+                //language=json
+                json(
+                  """
+                    {
+                      "response": {
+                        "status": 200,
+                        "headers": {
+                          "Content-Type": [ "text/plain", "application/json" ]
+                        }
+                      }
+                    }
+                    """,
+                  spec -> spec.path("src/test/resources/mappings/get-user.json")
+                )
+              )
+            );
+        }
+
+        @Test
+        void valueOnAnUnrelatedTypeIsUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  class Methods {
+                      static class Token {
+                          String value() {
+                              return "x";
+                          }
+                      }
+
+                      String describe(Token token) {
+                          return token.value();
                       }
                   }
-
-                  String describe(Token token) {
-                      return token.value();
-                  }
-              }
-              """
-          )
-        );
+                  """
+              )
+            );
+        }
     }
 }

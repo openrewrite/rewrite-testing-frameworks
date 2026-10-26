@@ -24,6 +24,7 @@ import org.openrewrite.java.format.ShiftFormat;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,15 +53,10 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>(EXPECTED_SYSTEM_EXIT, false), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(new JavaFileChecker<>(), new UsesType<>(EXPECTED_SYSTEM_EXIT, false)), new JavaVisitor<ExecutionContext>() {
             private final Set<JavaType.Variable> migrated = new HashSet<>();
             private final Map<JavaType.Variable, String> todos = new HashMap<>();
             private final Map<UUID, ExitPlan> plans = new HashMap<>();
-
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
-            }
 
             @Override
             public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -112,7 +108,7 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
                     return null;
                 }
                 if (todos.containsKey(variable)) {
-                    return withTodo(vd, todos.get(variable));
+                    return withTodo(updateCursor(vd), todos.get(variable));
                 }
                 return vd;
             }

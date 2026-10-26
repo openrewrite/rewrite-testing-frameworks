@@ -63,7 +63,7 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
 
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertWithMessage");
-                            maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                            maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
 
                             if (messageArgs.size() == 1) {
                                 // Simple message

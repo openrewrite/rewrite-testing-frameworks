@@ -143,7 +143,6 @@ public class PowerMockWhiteboxSetInternalStateToInjectMocks extends Recipe {
                 J.VariableDeclarations withoutInitializer = multiVariable.withVariables(
                         ListUtils.map(multiVariable.getVariables(), v -> v.withInitializer(null)));
                 J.VariableDeclarations annotated = JavaTemplate.builder("@InjectMocks")
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                         .imports(INJECT_MOCKS)
                         .build()

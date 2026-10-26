@@ -2722,7 +2722,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               import org.junit.After;
               import org.junit.Before;
               import org.mockito.MockedStatic;
-              import org.mockito.Mockito;
 
               import static org.mockito.Mockito.mockStatic;
 

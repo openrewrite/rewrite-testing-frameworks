@@ -26,7 +26,6 @@ import org.openrewrite.test.RewriteTest;
 import java.util.concurrent.TimeUnit;
 
 import static org.openrewrite.java.Assertions.java;
-import static org.openrewrite.test.TypeValidation.all;
 
 class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
     @Override
@@ -34,8 +33,7 @@ class HamcrestInstanceOfToJUnit5Test implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3"))
-          .recipe(new HamcrestInstanceOfToJUnit5())
-          .typeValidationOptions(all().immutableExecutionContext(false));
+          .recipe(new HamcrestInstanceOfToJUnit5());
     }
 
     @DocumentExample

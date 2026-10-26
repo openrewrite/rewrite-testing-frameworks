@@ -265,4 +265,63 @@ class SimplifyHasSizeAssertionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noChangeWhenAssertTypeLacksMatchingHasSameSizeAs() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list, Map<String, String> map, Integer[] array, String str) {
+                      assertThat(list).hasSize(str.length());
+                      assertThat(list).hasSize(map.size());
+                      assertThat(array).hasSize(str.length());
+                      assertThat(str).hasSize(map.size());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void iterableSizeOnOtherAssertTypes() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list, Map<String, String> map, String str) {
+                      assertThat(str).hasSize(list.size());
+                      assertThat(map).hasSize(list.size());
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+              import java.util.Map;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(List<String> list, Map<String, String> map, String str) {
+                      assertThat(str).hasSameSizeAs(list);
+                      assertThat(map).hasSameSizeAs(list);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

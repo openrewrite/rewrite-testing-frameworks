@@ -362,7 +362,6 @@ final class ScopedMocks {
             J.MethodDeclaration m = (J.MethodDeclaration) statements.get(i);
             if (m.getBody() != null && m.getLeadingAnnotations().stream().anyMatch(matcher::matches)) {
                 m = JavaTemplate.builder(code)
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                         .build()
                         .apply(new Cursor(bodyCursor, m), m.getBody().getCoordinates().lastStatement(), parameters);

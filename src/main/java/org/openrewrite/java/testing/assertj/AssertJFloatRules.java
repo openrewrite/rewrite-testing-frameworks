@@ -26,8 +26,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @RecipeDescriptor(
-      name = "Adopt AssertJ Float Assertions",
-      description = "Adopt AssertJ Float Assertions. Favor semantically explicit methods (e.g. " +
+      name = "Adopt AssertJ `Float` assertions",
+      description = "Adopt AssertJ `Float` assertions. Favor semantically explicit methods (e.g. " +
             "`myFloat.isZero()` over `myFloat.isEqualTo(0.0f)`)."
 )
 public class AssertJFloatRules {
