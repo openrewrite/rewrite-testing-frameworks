@@ -72,9 +72,31 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDeclaration, ctx);
                 if (cd.getExtends() != null) {
-                    acc.extendedClasses.add(className(cd.getExtends().getType()));
+                    addExtendedClasses(cd.getExtends().getType());
                 }
                 return cd;
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass n = super.visitNewClass(newClass, ctx);
+                if (n.getBody() != null && n.getClazz() != null) {
+                    addExtendedClasses(n.getClazz().getType());
+                }
+                return n;
+            }
+
+            private void addExtendedClasses(@Nullable JavaType type) {
+                JavaType.FullyQualified superclass = TypeUtils.asFullyQualified(type);
+                if (superclass == null) {
+                    acc.extendedClasses.add(className(type));
+                    return;
+                }
+                Set<String> seen = new HashSet<>();
+                while (superclass != null && seen.add(superclass.getFullyQualifiedName())) {
+                    acc.extendedClasses.add(superclass.getFullyQualifiedName());
+                    superclass = superclass.getSupertype();
+                }
             }
         };
     }
