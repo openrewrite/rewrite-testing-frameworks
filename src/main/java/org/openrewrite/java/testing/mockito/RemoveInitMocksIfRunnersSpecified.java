@@ -17,31 +17,38 @@ package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.format.ShiftFormat;
-import org.openrewrite.java.search.SemanticallyEqual;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class RemoveInitMocksIfRunnersSpecified extends Recipe {
+public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInitMocksIfRunnersSpecified.FieldReferences> {
 
     @Getter
     final String displayName = "Remove `MockitoAnnotations.initMocks(this)` and `openMocks(this)` if JUnit runners specified";
@@ -58,9 +65,11 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     private static final String MOCKITO_JUNIT_RUNNER = "org.mockito.junit.MockitoJUnitRunner";
     private static final AnnotationMatcher MOCKITO_EXTENSION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.extension.ExtendWith(" + MOCKITO_EXTENSION + ".class)");
     private static final AnnotationMatcher MOCKITO_JUNIT_MATCHER = new AnnotationMatcher("@org.junit.runner.RunWith(" + MOCKITO_JUNIT_RUNNER + ".class)");
+    private static final AnnotationMatcher NESTED_MATCHER = new AnnotationMatcher("@org.junit.jupiter.api.Nested");
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
     private static final MethodMatcher OPEN_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations openMocks(..)", false);
     private static final MethodMatcher CLOSEABLE_MATCHER = new MethodMatcher("java.lang.AutoCloseable close()", false);
+    private static final JavaType.FullyQualified AUTO_CLOSEABLE = JavaType.ShallowClass.build("java.lang.AutoCloseable");
     private static final List<AnnotationMatcher> BEFORE_AND_AFTER_MATCHERS = Arrays.asList(
             new AnnotationMatcher("@org.junit.jupiter.api.BeforeAll"),
             new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach"),
@@ -73,7 +82,59 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
     );
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public FieldReferences getInitialValue(ExecutionContext ctx) {
+        return new FieldReferences();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(FieldReferences fields) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.Import visitImport(J.Import anImport, ExecutionContext ctx) {
+                if (anImport.isStatic() && !"*".equals(anImport.getQualid().getSimpleName())) {
+                    // An unused explicit field import still requires the field, but its terminal identifier may lack a field type.
+                    JavaType.FullyQualified importedType = TypeUtils.asFullyQualified(anImport.getQualid().getTarget().getType());
+                    if (importedType != null) {
+                        importedType.getVisibleMembers().forEachRemaining(variable -> {
+                            if (variable.getName().equals(anImport.getQualid().getSimpleName()) && canReceiveHandle(variable.getType())) {
+                                fields.recordImport(variable);
+                            }
+                        });
+                    }
+                }
+                return super.visitImport(anImport, ctx);
+            }
+
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
+                record(identifier.getFieldType(), false);
+                return identifier;
+            }
+
+            @Override
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, ExecutionContext ctx) {
+                record(variable.getVariableType(), true);
+                return super.visitVariable(variable, ctx);
+            }
+
+            private void record(JavaType.@Nullable Variable variable, boolean declaration) {
+                JavaSourceFile source = getCursor().firstEnclosing(JavaSourceFile.class);
+                if (source != null && variable != null && variable.getOwner() instanceof JavaType.FullyQualified &&
+                    canReceiveHandle(variable.getType())) {
+                    fields.record(source.getId(), variable, declaration);
+                }
+            }
+        };
+    }
+
+    private static boolean canReceiveHandle(@Nullable JavaType type) {
+        // openMocks returns AutoCloseable: retain possible receivers, including Object and incomplete/generic types.
+        return type == null || type instanceof JavaType.Unknown || type instanceof JavaType.GenericTypeVariable ||
+               TypeUtils.isAssignableTo(type, AUTO_CLOSEABLE);
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(FieldReferences fields) {
         return Preconditions.check(
                 Preconditions.and(
                         Preconditions.or(
@@ -90,28 +151,38 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                        Set<Expression> closeables = new JavaIsoVisitor<Set<Expression>>() {
+                        // A handle can be removed only when all of its uses belong to removable initializations/close calls.
+                        // In particular, sharing it with a helper's openMocks call must retain its declaration and cleanup.
+                        List<JavaType.Variable> closeables = new JavaIsoVisitor<List<JavaType.Variable>>() {
                             @Override
-                            public J.Assignment visitAssignment(J.Assignment assignment, Set<Expression> exprSet) {
-                                J.Assignment as = super.visitAssignment(assignment, exprSet);
-
-                                if (isMockitoOpenMocksCall(assignment.getAssignment())) {
-                                    exprSet.add(assignment.getVariable());
+                            public J.Assignment visitAssignment(J.Assignment assignment, List<JavaType.Variable> variables) {
+                                JavaType.Variable variable = referencedVariable(assignment.getVariable());
+                                if (variable != null && isMockitoOpenMocksCall(assignment.getAssignment(), getCursor()) &&
+                                    isSimpleHandle(assignment.getVariable()) && isBlockStatement(getCursor()) &&
+                                    variables.stream().noneMatch(variable::equals)) {
+                                    variables.add(variable);
                                 }
-                                return as;
+                                return super.visitAssignment(assignment, variables);
                             }
-                        }.reduce(cd, new HashSet<>());
+                        }.reduce(cd, new ArrayList<>(), getCursor().getParentOrThrow());
+                        JavaSourceFile source = getCursor().firstEnclosing(JavaSourceFile.class);
+                        closeables.removeIf(variable -> source == null || !fields.canRemove(source.getId(), variable) ||
+                                !hasOnlyRemovableHandleUses(source, variable));
 
                         J.ClassDeclaration modifiedCd = (J.ClassDeclaration) new JavaIsoVisitor<ExecutionContext>() {
 
                             @Override
                             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                                if (service(AnnotationService.class).matches(getCursor(), MOCKITO_EXTENSION_MATCHER) ||
-                                        service(AnnotationService.class).matches(getCursor(), MOCKITO_JUNIT_MATCHER) ||
-                                        getCursor().getParentTreeCursor().firstEnclosing(J.ClassDeclaration.class) != null) {
+                                if (isManagedClass(getCursor())) {
                                     return super.visitClassDeclaration(classDecl, ctx);
                                 }
                                 return classDecl;
+                            }
+
+                            @Override
+                            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                                // Anonymous-class this is a different instance. A lambda, in contrast, retains lexical this.
+                                return newClass.getBody() == null ? super.visitNewClass(newClass, ctx) : newClass;
                             }
 
                             @Override
@@ -120,7 +191,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 List<J.Try.Resource> resources = t.getResources();
                                 if (resources != null) {
                                     // Drop `try (AutoCloseable mocks = MockitoAnnotations.openMocks(this))` resources
-                                    List<J.Try.Resource> kept = ListUtils.filter(resources, r -> !isRemovableMockInitResource(r, tryable.getBody()));
+                                    List<J.Try.Resource> kept = ListUtils.filter(resources, r -> !isRemovableMockInitResource(r, tryable.getBody(), resources));
                                     if (kept != resources) {
                                         boolean nothingLeft = kept.isEmpty() && t.getCatches().isEmpty() && t.getFinally() == null;
                                         if (nothingLeft && !parentCanCollapseNeuteredTry()) {
@@ -262,7 +333,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 return declared.stream().anyMatch(usedLater::contains);
                             }
 
-                            private boolean isRemovableMockInitResource(J.Try.Resource resource, J.Block body) {
+                            private boolean isRemovableMockInitResource(J.Try.Resource resource, J.Block body, List<J.Try.Resource> resources) {
                                 if (!(resource.getVariableDeclarations() instanceof J.VariableDeclarations)) {
                                     return false;
                                 }
@@ -272,12 +343,13 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 }
                                 // `initMocks` returns void so cannot appear as a resource initializer; only `openMocks` is reachable here
                                 Expression initializer = variables.get(0).getInitializer();
-                                if (!isMockitoOpenMocksCall(initializer)) {
+                                if (!isMockitoOpenMocksCall(initializer, getCursor())) {
                                     return false;
                                 }
-                                // Keep the resource when the body still uses the variable
+                                // Keep the resource when the body or another resource initializer still uses the variable.
                                 String name = variables.get(0).getSimpleName();
-                                return !new JavaIsoVisitor<AtomicBoolean>() {
+                                AtomicBoolean referenced = new AtomicBoolean();
+                                JavaIsoVisitor<AtomicBoolean> references = new JavaIsoVisitor<AtomicBoolean>() {
                                     @Override
                                     public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean referenced) {
                                         if (identifier.getSimpleName().equals(name)) {
@@ -285,14 +357,22 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                         }
                                         return identifier;
                                     }
-                                }.reduce(body, new AtomicBoolean()).get();
+                                };
+                                references.reduce(body, referenced);
+                                for (J.Try.Resource other : resources) {
+                                    if (other != resource) {
+                                        references.reduce(other.getVariableDeclarations(), referenced);
+                                    }
+                                }
+                                return !referenced.get();
                             }
 
                             @Override
                             public  J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
                                 J.Assignment a = super.visitAssignment(assignment, ctx);
-                                // Remove assignments where RHS is initMocks/openMocks
-                                if (isMockitoInitMocksCall(assignment.getAssignment()) || isMockitoOpenMocksCall(assignment.getAssignment())) {
+                                JavaType.Variable variable = referencedVariable(assignment.getVariable());
+                                if (variable != null && closeables.stream().anyMatch(variable::equals) &&
+                                    isMockitoOpenMocksCall(assignment.getAssignment(), getCursor()) && isBlockStatement(getCursor())) {
                                     maybeRemoveImport("org.mockito.MockitoAnnotations");
                                     return null;
                                 }
@@ -302,12 +382,14 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             @Override
                             public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                                if ((OPEN_MOCKS_MATCHER.matches(mi) || INIT_MOCKS_MATCHER.matches(mi)) &&
-                                    // A variable initializer cannot be dropped; the try-with-resources case is handled in visitTry
-                                    !(getCursor().getParentTreeCursor().getValue() instanceof J.VariableDeclarations.NamedVariable)) {
+                                // Value-producing contexts and assignments are handled separately or conservatively retained.
+                                if ((isMockitoOpenMocksCall(mi, getCursor()) || isMockitoInitMocksCall(mi, getCursor())) &&
+                                    isBlockStatement(getCursor())) {
                                     return null;
                                 }
-                                if (CLOSEABLE_MATCHER.matches(mi) && mi.getSelect() != null && closeables.stream().anyMatch(it -> SemanticallyEqual.areEqual(it, mi.getSelect()))) {
+                                JavaType.Variable variable = referencedVariable(mi.getSelect());
+                                if (CLOSEABLE_MATCHER.matches(mi) && variable != null &&
+                                    closeables.stream().anyMatch(variable::equals) && isBlockStatement(getCursor())) {
                                     return null;
                                 }
                                 return mi;
@@ -316,13 +398,14 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             @Override
                             public  J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                                 J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
-                                // Remove field declarations for fields that store openMocks result
-                                for (J.VariableDeclarations.NamedVariable variable : vd.getVariables()) {
-                                    if (closeables.stream().anyMatch(it -> SemanticallyEqual.areEqual(it, variable.getDeclarator()))) {
-                                        return null;
-                                    }
+                                if (!(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
+                                    // A handle may be a formal parameter. Keep its declaration and the method's signature intact.
+                                    return vd;
                                 }
-                                return vd;
+                                // Retain unrelated siblings in declarations such as `AutoCloseable managed, foreign`.
+                                List<J.VariableDeclarations.NamedVariable> variables = ListUtils.filter(vd.getVariables(),
+                                        variable -> closeables.stream().noneMatch(it -> it.equals(variable.getVariableType())));
+                                return variables.isEmpty() ? null : vd.withVariables(variables);
                             }
 
                             @Override
@@ -366,14 +449,187 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                         return modifiedCd;
                     }
 
-                    private boolean isMockitoOpenMocksCall(Expression expr) {
-                        return expr instanceof J.MethodInvocation && OPEN_MOCKS_MATCHER.matches((J.MethodInvocation)expr);
+                    private boolean isMockitoOpenMocksCall(Expression expr, Cursor cursor) {
+                        return expr instanceof J.MethodInvocation && OPEN_MOCKS_MATCHER.matches((J.MethodInvocation) expr) &&
+                               initializesManagedThis((J.MethodInvocation) expr, cursor);
                     }
 
-                    private boolean isMockitoInitMocksCall(Expression expr) {
-                        return expr instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation)expr);
+                    private boolean isMockitoInitMocksCall(Expression expr, Cursor cursor) {
+                        return expr instanceof J.MethodInvocation && INIT_MOCKS_MATCHER.matches((J.MethodInvocation) expr) &&
+                               initializesManagedThis((J.MethodInvocation) expr, cursor);
+                    }
+
+                    private boolean initializesManagedThis(J.MethodInvocation method, Cursor cursor) {
+                        if (method.getArguments().size() != 1 || !(method.getArguments().get(0) instanceof J.Identifier) ||
+                            !"this".equals(((J.Identifier) method.getArguments().get(0)).getSimpleName())) {
+                            return false;
+                        }
+                        Cursor owner = instanceOwner(cursor);
+                        return owner != null && isManagedClass(owner) &&
+                               ((J.ClassDeclaration) owner.getValue()).getType() != null &&
+                               TypeUtils.isOfType(method.getArguments().get(0).getType(), ((J.ClassDeclaration) owner.getValue()).getType());
+                    }
+
+                    private @Nullable Cursor instanceOwner(Cursor cursor) {
+                        for (Cursor c = cursor; c != null; c = c.getParent()) {
+                            if (c.getValue() instanceof J.NewClass && ((J.NewClass) c.getValue()).getBody() != null) {
+                                return null;
+                            }
+                            if (c.getValue() instanceof J.ClassDeclaration) {
+                                return c;
+                            }
+                        }
+                        return null;
+                    }
+
+                    private boolean isManagedClass(Cursor cursor) {
+                        return service(AnnotationService.class).matches(cursor, MOCKITO_JUNIT_MATCHER) || hasMockitoExtension(cursor);
+                    }
+
+                    private boolean hasMockitoExtension(Cursor cursor) {
+                        if (service(AnnotationService.class).matches(cursor, MOCKITO_EXTENSION_MATCHER)) {
+                            return true;
+                        }
+                        J.ClassDeclaration cd = cursor.getValue();
+                        if (cd.hasModifier(J.Modifier.Type.Static) || !service(AnnotationService.class).matches(cursor, NESTED_MATCHER)) {
+                            return false;
+                        }
+                        Cursor body = cursor.getParentTreeCursor();
+                        if (!(body.getValue() instanceof J.Block)) {
+                            return false;
+                        }
+                        Cursor enclosing = body.getParentTreeCursor();
+                        // Only genuine member @Nested chains inherit the enclosing Jupiter extension.
+                        return enclosing.getValue() instanceof J.ClassDeclaration &&
+                               ((J.ClassDeclaration) enclosing.getValue()).getBody() == body.getValue() && hasMockitoExtension(enclosing);
+                    }
+
+                    private boolean isBlockStatement(Cursor cursor) {
+                        return cursor.getParentTreeCursor().getValue() instanceof J.Block;
+                    }
+
+                    private boolean isSimpleHandle(Expression expression) {
+                        return expression instanceof J.Identifier || expression instanceof J.FieldAccess &&
+                               ((J.FieldAccess) expression).getTarget() instanceof J.Identifier &&
+                               "this".equals(((J.Identifier) ((J.FieldAccess) expression).getTarget()).getSimpleName());
+                    }
+
+                    private JavaType.@Nullable Variable referencedVariable(@Nullable Expression expression) {
+                        return expression instanceof J.Identifier ? ((J.Identifier) expression).getFieldType() :
+                                expression instanceof J.FieldAccess ? ((J.FieldAccess) expression).getName().getFieldType() : null;
+                    }
+
+                    private boolean hasOnlyRemovableHandleUses(JavaSourceFile source, JavaType.Variable variable) {
+                        return !new JavaIsoVisitor<AtomicBoolean>() {
+                            @Override
+                            public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean unsafe) {
+                                if (!variable.equals(identifier.getFieldType())) {
+                                    return identifier;
+                                }
+                                Cursor reference = getCursor();
+                                Cursor containing = reference.getParentTreeCursor();
+                                Object tree = containing.getValue();
+                                if (tree instanceof J.VariableDeclarations.NamedVariable &&
+                                    ((J.VariableDeclarations.NamedVariable) tree).getName() == identifier) {
+                                    if (((J.VariableDeclarations.NamedVariable) tree).getInitializer() != null) {
+                                        unsafe.set(true);
+                                    }
+                                    return identifier;
+                                }
+                                if (tree instanceof J.FieldAccess && ((J.FieldAccess) tree).getName() == identifier) {
+                                    reference = containing;
+                                    containing = reference.getParentTreeCursor();
+                                    tree = containing.getValue();
+                                }
+                                Expression expression = reference.getValue();
+                                Cursor owner = instanceOwner(reference);
+                                if (owner == null || !isManagedClass(owner) || !isSimpleHandle(expression)) {
+                                    unsafe.set(true);
+                                } else if (tree instanceof J.Assignment && ((J.Assignment) tree).getVariable() == expression &&
+                                           isBlockStatement(containing) && isMockitoOpenMocksCall(((J.Assignment) tree).getAssignment(), containing)) {
+                                    // A removable initialization of this exact handle.
+                                } else if (tree instanceof J.MethodInvocation && ((J.MethodInvocation) tree).getSelect() == expression &&
+                                           CLOSEABLE_MATCHER.matches((J.MethodInvocation) tree) && isBlockStatement(containing)) {
+                                    // Its standalone cleanup.
+                                } else if (isNullGuardedCleanup(reference, variable)) {
+                                    // The existing empty-if cleanup removes this pure guard together with its only close call.
+                                } else {
+                                    // Escaping, reassigned, foreign-owner or otherwise ambiguous handles must remain intact.
+                                    unsafe.set(true);
+                                }
+                                return identifier;
+                            }
+                        }.reduce(source, new AtomicBoolean()).get();
+                    }
+
+                    private boolean isNullGuardedCleanup(Cursor reference, JavaType.Variable variable) {
+                        Cursor binaryCursor = reference.getParentTreeCursor();
+                        if (!(binaryCursor.getValue() instanceof J.Binary)) {
+                            return false;
+                        }
+                        J.Binary binary = binaryCursor.getValue();
+                        Expression other = binary.getLeft() == reference.getValue() ? binary.getRight() : binary.getLeft();
+                        if (binary.getOperator() != J.Binary.Type.NotEqual || !(other instanceof J.Literal) ||
+                            ((J.Literal) other).getValue() != null) {
+                            return false;
+                        }
+                        Cursor condition = binaryCursor.getParentTreeCursor();
+                        if (!(condition.getValue() instanceof J.ControlParentheses) ||
+                            !(condition.getParentTreeCursor().getValue() instanceof J.If)) {
+                            return false;
+                        }
+                        J.If iff = condition.getParentTreeCursor().getValue();
+                        if (iff.getIfCondition() != condition.getValue() || iff.getElsePart() != null || !(iff.getThenPart() instanceof J.Block)) {
+                            return false;
+                        }
+                        List<Statement> statements = ((J.Block) iff.getThenPart()).getStatements();
+                        if (statements.size() != 1 || !(statements.get(0) instanceof J.MethodInvocation)) {
+                            return false;
+                        }
+                        J.MethodInvocation close = (J.MethodInvocation) statements.get(0);
+                        return CLOSEABLE_MATCHER.matches(close) && close.getSelect() != null &&
+                               isSimpleHandle(close.getSelect()) && variable.equals(referencedVariable(close.getSelect()));
                     }
                 }
         );
+    }
+
+    public static class FieldReferences {
+        private final Map<UUID, List<JavaType.Variable>> references = new HashMap<>();
+        private final Map<UUID, List<JavaType.Variable>> declarations = new HashMap<>();
+        private final List<JavaType.Variable> importedFields = new ArrayList<>();
+
+        private synchronized void recordImport(JavaType.Variable variable) {
+            if (importedFields.stream().noneMatch(variable::equals)) {
+                importedFields.add(variable);
+            }
+        }
+
+        private synchronized void record(UUID source, JavaType.Variable variable, boolean declaration) {
+            add(references, source, variable);
+            if (declaration) {
+                add(declarations, source, variable);
+            }
+        }
+
+        private void add(Map<UUID, List<JavaType.Variable>> fields, UUID source, JavaType.Variable variable) {
+            List<JavaType.Variable> variables = fields.computeIfAbsent(source, id -> new ArrayList<>());
+            // JavaType.Variable has value equality but must not be used as a hash key.
+            if (variables.stream().noneMatch(variable::equals)) {
+                variables.add(variable);
+            }
+        }
+
+        private synchronized boolean canRemove(UUID source, JavaType.Variable variable) {
+            if (variable.getOwner() instanceof JavaType.Method) {
+                return true;
+            }
+            // Retain inherited/binary handles whose declaration is outside this file, and fields observed by other inputs.
+            List<JavaType.Variable> declaredHere = declarations.get(source);
+            return declaredHere != null && declaredHere.stream().anyMatch(variable::equals) &&
+                   importedFields.stream().noneMatch(variable::equals) &&
+                   references.entrySet().stream().noneMatch(entry -> !entry.getKey().equals(source) &&
+                           entry.getValue().stream().anyMatch(variable::equals));
+        }
     }
 }
