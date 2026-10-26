@@ -100,7 +100,8 @@ public class HamcrestHasPropertyToAssertJ extends Recipe {
                 Expression value;
                 if (EQUAL_TO_MATCHER.matches(valueMatcher)) {
                     value = ((J.MethodInvocation) valueMatcher).getArguments().get(0);
-                } else if (IS_MATCHER.matches(valueMatcher) && !IS_NESTED_MATCHER.matches(valueMatcher)) {
+                } else if (IS_MATCHER.matches(valueMatcher) && !IS_NESTED_MATCHER.matches(valueMatcher) &&
+                           !HamcrestMatcherUtils.isLegacyClassMatcher(valueMatcher)) {
                     value = ((J.MethodInvocation) valueMatcher).getArguments().get(0);
                 } else {
                     // Unknown matcher, don't convert
