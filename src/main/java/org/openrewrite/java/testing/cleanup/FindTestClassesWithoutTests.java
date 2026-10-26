@@ -19,29 +19,25 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ScanningRecipe;
-import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.marker.JavaSourceSet;
+import org.openrewrite.java.search.IsLikelyTest;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.SearchResult;
+import org.openrewrite.staticanalysis.groovy.GroovyFileChecker;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
+import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
+import static org.openrewrite.Preconditions.*;
 
 public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesWithoutTests.Accumulator> {
 
@@ -82,6 +78,12 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
             "au.com.dius.pact.provider.junit.PactRunner",
             "com.intuit.karate.junit4.Karate");
 
+    // Specifications that declare their tests in a DSL rather than in annotated methods
+    private static final List<String> SPECIFICATIONS = Arrays.asList(
+            "io.kotest.core.spec.Spec",
+            "org.spekframework.spek2.Spek",
+            "spock.lang.Specification");
+
     @Getter
     final String displayName = "Find test classes without tests";
 
@@ -97,6 +99,8 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
         final Set<String> mayHideTests = new HashSet<>();
         // Types do not list their member classes
         final Map<String, List<JavaType.FullyQualified>> nestedClasses = new HashMap<>();
+        // A missing supertype on these means it was not resolved; Kotlin omits it when a class only implements interfaces
+        final Set<String> declaredInSources = new HashSet<>();
     }
 
     @Override
@@ -106,16 +110,12 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
-            }
-
+        return check(jvmSourceFiles(), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 JavaType.FullyQualified type = classDecl.getType();
                 if (type != null) {
+                    acc.declaredInSources.add(type.getFullyQualifiedName());
                     if (hasUnresolvedTestTypes(classDecl)) {
                         acc.mayHideTests.add(type.getFullyQualifiedName());
                     }
@@ -130,19 +130,12 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
                 }
                 return super.visitClassDeclaration(classDecl, ctx);
             }
-        };
+        });
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit && sourceFile.getMarkers().findFirst(JavaSourceSet.class)
-                        .filter(s -> s.getName().toLowerCase(Locale.ROOT).contains("test"))
-                        .isPresent();
-            }
-
+        return check(and(jvmSourceFiles(), new IsLikelyTest().getVisitor()), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 // Only top-level classes; `@Nested` classes count towards their enclosing class
@@ -151,12 +144,19 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
                 }
                 return classDecl;
             }
-        };
+        });
+    }
+
+    private static TreeVisitor<?, ExecutionContext> jvmSourceFiles() {
+        return or(new JavaFileChecker<>(), new KotlinFileChecker<>(), new GroovyFileChecker<>());
     }
 
     private static boolean isTestClass(J.ClassDeclaration cd) {
         if (cd.getKind() != J.ClassDeclaration.Kind.Type.Class || cd.hasModifier(J.Modifier.Type.Abstract) ||
-                cd.getType() == null || isSuite(cd.getType())) {
+                // Kotlin's sealed classes are abstract, and their modifier is a language extension
+                cd.getModifiers().stream().anyMatch(m -> m.getType() == J.Modifier.Type.Sealed || "sealed".equals(m.getKeyword())) ||
+                cd.getType() == null || isSuite(cd.getType()) ||
+                SPECIFICATIONS.stream().anyMatch(fqn -> TypeUtils.isAssignableTo(fqn, cd.getType()))) {
             return false;
         }
         String name = cd.getSimpleName();
@@ -204,7 +204,9 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
             return false;
         }
         // Unresolved test-like annotations, interfaces or superclass are not in the type; assume tests
-        if (acc.mayHideTests.contains(type.getFullyQualifiedName()) || type.getSupertype() == null) {
+        if (acc.mayHideTests.contains(type.getFullyQualifiedName()) ||
+                (type.getSupertype() == null && type.getKind() == JavaType.FullyQualified.Kind.Class &&
+                        !acc.declaredInSources.contains(type.getFullyQualifiedName()))) {
             return true;
         }
         return type.getMethods().stream().anyMatch(m -> isTestMethod(m, junit3TestCase, testNgClassLevelTest, acc.mayHideTests)) ||
@@ -243,7 +245,8 @@ public class FindTestClassesWithoutTests extends ScanningRecipe<FindTestClassesW
     }
 
     private static boolean hasUnresolvedTestTypes(J.ClassDeclaration cd) {
-        if (cd.getImplements() != null && cd.getImplements().stream().anyMatch(i -> TypeUtils.asFullyQualified(i.getType()) == null)) {
+        if ((cd.getExtends() != null && TypeUtils.asFullyQualified(cd.getExtends().getType()) == null) ||
+                (cd.getImplements() != null && cd.getImplements().stream().anyMatch(i -> TypeUtils.asFullyQualified(i.getType()) == null))) {
             return true;
         }
         return new JavaIsoVisitor<AtomicBoolean>() {

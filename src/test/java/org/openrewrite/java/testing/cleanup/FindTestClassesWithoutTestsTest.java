@@ -19,7 +19,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -143,6 +145,37 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
                 }
                 """
             ))
+          .parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5")
+            //language=kotlin
+            .dependsOn(
+              """
+                package kotlin.test
+
+                typealias Test = org.junit.jupiter.api.Test
+                """,
+              """
+                package io.kotest.core.spec
+
+                abstract class Spec
+                """,
+              """
+                package io.kotest.core.spec.style
+
+                import io.kotest.core.spec.Spec
+
+                abstract class StringSpec(body: StringSpec.() -> Unit = {}) : Spec() {
+                    operator fun String.invoke(test: () -> Unit) {}
+                }
+                """,
+              """
+                package org.spekframework.spek2
+
+                abstract class Spek(val root: () -> Unit)
+                """
+            ))
+          .parser(GroovyParser.builder()
+            .classpathFromResource(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new FindTestClassesWithoutTests());
     }
 
@@ -449,6 +482,44 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
                     }
                     """
                 )
+              )
+            );
+        }
+
+        @Test
+        void kotlinAndGroovy() {
+            rewriteRun(
+              srcTestJava(
+                //language=kotlin
+                kotlin("class KotlinCalculatorTest", "class /*~~>*/KotlinCalculatorTest"),
+                //language=kotlin
+                kotlin(
+                  """
+                    import org.junit.jupiter.api.BeforeEach
+
+                    class SetUpOnlyTest {
+                        @BeforeEach
+                        fun setUp() {
+                        }
+                    }
+                    """,
+                  """
+                    import org.junit.jupiter.api.BeforeEach
+
+                    class /*~~>*/SetUpOnlyTest {
+                        @BeforeEach
+                        fun setUp() {
+                        }
+                    }
+                    """
+                ),
+                //language=kotlin
+                kotlin(
+                  "class SerializableTest : java.io.Serializable",
+                  "class /*~~>*/SerializableTest : java.io.Serializable"
+                ),
+                //language=groovy
+                groovy("class GroovyCalculatorTests {}", "class /*~~>*/GroovyCalculatorTests {}")
               )
             );
         }
@@ -998,6 +1069,54 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         }
 
         @Test
+        void kotlinTests() {
+            rewriteRun(
+              srcTestJava(
+                //language=kotlin
+                kotlin(
+                  """
+                    import org.junit.jupiter.api.Test
+
+                    class JupiterTest {
+                        @Test
+                        fun add() {
+                        }
+                    }
+                    """
+                ),
+                //language=kotlin
+                kotlin(
+                  """
+                    import kotlin.test.Test
+
+                    class KotlinTestTest {
+                        @Test
+                        fun add() {
+                        }
+                    }
+                    """
+                ),
+                //language=kotlin
+                kotlin(
+                  """
+                    import org.junit.jupiter.api.Nested
+                    import org.junit.jupiter.api.Test
+
+                    class NestedTest {
+                        @Nested
+                        inner class Add {
+                            @Test
+                            fun positive() {
+                            }
+                        }
+                    }
+                    """
+                )
+              )
+            );
+        }
+
+        @Test
         void nestedClasses() {
             rewriteRun(
               srcTestJava(
@@ -1165,17 +1284,70 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         }
 
         @Test
-        void otherSources() {
+        void mainSources() {
             rewriteRun(
               srcMainJava(
                 //language=java
                 java("public class CalculatorTest {}")
+              )
+            );
+        }
+
+        @Test
+        void kotlinSealedClass() {
+            rewriteRun(
+              srcTestJava(
+                //language=kotlin
+                kotlin("sealed class CalculatorTest")
+              )
+            );
+        }
+
+        @Test
+        void specifications() {
+            rewriteRun(
+              //language=groovy
+              groovy(
+                """
+                  package spock.lang
+
+                  abstract class Specification {
+                  }
+                  """
               ),
               srcTestJava(
                 //language=kotlin
-                kotlin("class KotlinCalculatorTest"),
+                kotlin(
+                  """
+                    import io.kotest.core.spec.style.StringSpec
+
+                    class KotestTest : StringSpec({
+                        "adds" { }
+                    })
+                    """
+                ),
+                //language=kotlin
+                kotlin(
+                  """
+                    import org.spekframework.spek2.Spek
+
+                    class SpekTest : Spek({
+                    })
+                    """
+                ),
                 //language=groovy
-                groovy("class GroovyCalculatorTests {}")
+                groovy(
+                  """
+                    import spock.lang.Specification
+
+                    class SpockTest extends Specification {
+                        def "adds"() {
+                            expect:
+                            1 + 1 == 2
+                        }
+                    }
+                    """
+                )
               )
             );
         }
