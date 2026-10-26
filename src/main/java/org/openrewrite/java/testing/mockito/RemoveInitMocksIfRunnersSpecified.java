@@ -132,7 +132,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 List<J.Try.Resource> resources = t.getResources();
                                 if (resources != null) {
                                     // Drop `try (AutoCloseable mocks = MockitoAnnotations.openMocks(this))` resources
-                                    List<J.Try.Resource> kept = ListUtils.filter(resources, r -> !isRemovableMockInitResource(r, tryable.getBody()));
+                                    List<J.Try.Resource> kept = ListUtils.filter(resources, r -> !isRemovableMockInitResource(r, tryable.getBody(), resources));
                                     if (kept != resources) {
                                         boolean nothingLeft = kept.isEmpty() && t.getCatches().isEmpty() && t.getFinally() == null;
                                         if (nothingLeft && !parentCanCollapseNeuteredTry()) {
@@ -274,7 +274,7 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 return declared.stream().anyMatch(usedLater::contains);
                             }
 
-                            private boolean isRemovableMockInitResource(J.Try.Resource resource, J.Block body) {
+                            private boolean isRemovableMockInitResource(J.Try.Resource resource, J.Block body, List<J.Try.Resource> resources) {
                                 if (!(resource.getVariableDeclarations() instanceof J.VariableDeclarations)) {
                                     return false;
                                 }
@@ -287,9 +287,10 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                 if (!isMockitoOpenMocksCall(initializer, getCursor())) {
                                     return false;
                                 }
-                                // Keep the resource when the body still uses the variable
+                                // Keep the resource when the body or another resource initializer still uses the variable.
                                 String name = variables.get(0).getSimpleName();
-                                return !new JavaIsoVisitor<AtomicBoolean>() {
+                                AtomicBoolean referenced = new AtomicBoolean();
+                                JavaIsoVisitor<AtomicBoolean> references = new JavaIsoVisitor<AtomicBoolean>() {
                                     @Override
                                     public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean referenced) {
                                         if (identifier.getSimpleName().equals(name)) {
@@ -297,7 +298,14 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                                         }
                                         return identifier;
                                     }
-                                }.reduce(body, new AtomicBoolean()).get();
+                                };
+                                references.reduce(body, referenced);
+                                for (J.Try.Resource other : resources) {
+                                    if (other != resource) {
+                                        references.reduce(other.getVariableDeclarations(), referenced);
+                                    }
+                                }
+                                return !referenced.get();
                             }
 
                             @Override
@@ -331,6 +339,10 @@ public class RemoveInitMocksIfRunnersSpecified extends Recipe {
                             @Override
                             public  J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                                 J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
+                                if (!(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
+                                    // A handle may be a formal parameter. Keep its declaration and the method's signature intact.
+                                    return vd;
+                                }
                                 // Retain unrelated siblings in declarations such as `AutoCloseable managed, foreign`.
                                 List<J.VariableDeclarations.NamedVariable> variables = ListUtils.filter(vd.getVariables(),
                                         variable -> closeables.stream().noneMatch(it -> it.equals(variable.getVariableType())));
