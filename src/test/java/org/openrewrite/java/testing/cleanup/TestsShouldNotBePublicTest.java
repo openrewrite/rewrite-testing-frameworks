@@ -570,4 +570,45 @@ class TestsShouldNotBePublicTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1211")
+    @Test
+    void preserveLifecycleMethodForCrossPackageSubclass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends BaseTest {
+                  @Override
+                  @BeforeEach
+                  public void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
