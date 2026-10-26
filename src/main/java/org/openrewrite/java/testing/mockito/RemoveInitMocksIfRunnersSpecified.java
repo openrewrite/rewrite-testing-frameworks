@@ -89,6 +89,22 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
     public TreeVisitor<?, ExecutionContext> getScanner(FieldReferences fields) {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
+            public J.Import visitImport(J.Import anImport, ExecutionContext ctx) {
+                if (anImport.isStatic() && !"*".equals(anImport.getQualid().getSimpleName())) {
+                    // An unused explicit field import still requires the field, but its terminal identifier may lack a field type.
+                    JavaType.FullyQualified importedType = TypeUtils.asFullyQualified(anImport.getQualid().getTarget().getType());
+                    if (importedType != null) {
+                        importedType.getVisibleMembers().forEachRemaining(variable -> {
+                            if (variable.getName().equals(anImport.getQualid().getSimpleName())) {
+                                fields.recordImport(variable);
+                            }
+                        });
+                    }
+                }
+                return super.visitImport(anImport, ctx);
+            }
+
+            @Override
             public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
                 record(identifier.getFieldType(), false);
                 return identifier;
@@ -573,6 +589,13 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
     public static class FieldReferences {
         private final Map<UUID, List<JavaType.Variable>> references = new HashMap<>();
         private final Map<UUID, List<JavaType.Variable>> declarations = new HashMap<>();
+        private final List<JavaType.Variable> importedFields = new ArrayList<>();
+
+        private synchronized void recordImport(JavaType.Variable variable) {
+            if (importedFields.stream().noneMatch(variable::equals)) {
+                importedFields.add(variable);
+            }
+        }
 
         private synchronized void record(UUID source, JavaType.Variable variable, boolean declaration) {
             add(references, source, variable);
@@ -596,6 +619,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
             // Retain inherited/binary handles whose declaration is outside this file, and fields observed by other inputs.
             List<JavaType.Variable> declaredHere = declarations.get(source);
             return declaredHere != null && declaredHere.stream().anyMatch(variable::equals) &&
+                   importedFields.stream().noneMatch(variable::equals) &&
                    references.entrySet().stream().noneMatch(entry -> !entry.getKey().equals(source) &&
                            entry.getValue().stream().anyMatch(variable::equals));
         }
