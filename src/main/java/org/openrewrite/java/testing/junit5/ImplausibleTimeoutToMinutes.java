@@ -23,6 +23,7 @@ import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -32,8 +33,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -75,22 +75,18 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
 
                 Long seconds = null;
                 boolean defaultUnit = true;
+                boolean hasUnit = false;
                 for (Expression arg : a.getArguments()) {
-                    if (arg instanceof J.Assignment) {
-                        J.Assignment assignment = (J.Assignment) arg;
-                        String name = ((J.Identifier) assignment.getVariable()).getSimpleName();
-                        if ("value".equals(name)) {
-                            seconds = longValue(assignment.getAssignment());
-                        } else if ("unit".equals(name)) {
-                            defaultUnit = isSeconds(assignment.getAssignment());
-                        }
-                    } else {
-                        seconds = longValue(arg);
+                    String name = attributeName(arg);
+                    if ("value".equals(name)) {
+                        seconds = longValue(arg instanceof J.Assignment ? ((J.Assignment) arg).getAssignment() : arg);
+                    } else if ("unit".equals(name)) {
+                        defaultUnit = isSeconds(((J.Assignment) arg).getAssignment());
+                        hasUnit = true;
                     }
                 }
 
                 if (seconds == null || !defaultUnit || seconds < threshold || seconds % 60 != 0) {
-                    // Only whole minutes are equivalent; rounding would change the timeout
                     return a;
                 }
 
@@ -102,47 +98,28 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
                         .apply(getCursor(), a.getCoordinates().replace());
                 maybeAddImport("java.util.concurrent.TimeUnit");
                 maybeRemoveImport("java.util.concurrent.TimeUnit.SECONDS");
-                if (a.getArguments().size() == 1 && !(a.getArguments().get(0) instanceof J.Assignment)) {
-                    // A positional value can't be combined with other attributes
-                    return generated;
-                }
 
-                // Edit the existing arguments in place, so other attributes such as `threadMode` are kept
                 J.Assignment minutesValue = (J.Assignment) generated.getArguments().get(0);
                 J.Assignment minutesUnit = (J.Assignment) generated.getArguments().get(1);
-                boolean hasUnit = false;
-                List<Expression> arguments = new ArrayList<>();
-                for (Expression arg : a.getArguments()) {
-                    J.Assignment assignment = (J.Assignment) arg;
-                    String name = ((J.Identifier) assignment.getVariable()).getSimpleName();
+                boolean addUnit = !hasUnit;
+                return a.withArguments(ListUtils.flatMap(a.getArguments(), arg -> {
+                    String name = attributeName(arg);
                     if ("value".equals(name)) {
-                        arguments.add(withValue(assignment, minutesValue));
-                    } else if ("unit".equals(name)) {
-                        arguments.add(withValue(assignment, minutesUnit));
-                        hasUnit = true;
-                    } else {
-                        arguments.add(arg);
+                        J.Assignment value = arg instanceof J.Assignment ?
+                                withValue((J.Assignment) arg, minutesValue) :
+                                minutesValue.withPrefix(arg.getPrefix());
+                        return addUnit ? Arrays.asList(value, minutesUnit.withPrefix(Space.SINGLE_SPACE)) : value;
                     }
-                }
-                if (!hasUnit) {
-                    int valueIndex = indexOfValue(arguments);
-                    arguments.add(valueIndex + 1, minutesUnit.withPrefix(Space.SINGLE_SPACE));
-                }
-                return a.withArguments(arguments);
+                    return "unit".equals(name) ? withValue((J.Assignment) arg, minutesUnit) : arg;
+                }));
+            }
+
+            private String attributeName(Expression arg) {
+                return arg instanceof J.Assignment ? ((J.Identifier) ((J.Assignment) arg).getVariable()).getSimpleName() : "value";
             }
 
             private J.Assignment withValue(J.Assignment original, J.Assignment replacement) {
                 return original.withAssignment(replacement.getAssignment().withPrefix(original.getAssignment().getPrefix()));
-            }
-
-            private int indexOfValue(List<Expression> arguments) {
-                for (int i = 0; i < arguments.size(); i++) {
-                    J.Assignment assignment = (J.Assignment) arguments.get(i);
-                    if ("value".equals(((J.Identifier) assignment.getVariable()).getSimpleName())) {
-                        return i;
-                    }
-                }
-                return arguments.size() - 1;
             }
 
             private @Nullable Long longValue(Expression expr) {
