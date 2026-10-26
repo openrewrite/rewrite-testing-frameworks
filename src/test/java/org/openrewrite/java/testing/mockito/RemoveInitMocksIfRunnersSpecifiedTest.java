@@ -1625,6 +1625,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
 
               @ExtendWith(MockitoExtension.class)
               class ManagedOwner {
+
                   void setup() {
                   }
 
