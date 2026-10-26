@@ -69,6 +69,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
     private static final MethodMatcher INIT_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations initMocks(..)", false);
     private static final MethodMatcher OPEN_MOCKS_MATCHER = new MethodMatcher("org.mockito.MockitoAnnotations openMocks(..)", false);
     private static final MethodMatcher CLOSEABLE_MATCHER = new MethodMatcher("java.lang.AutoCloseable close()", false);
+    private static final JavaType.FullyQualified AUTO_CLOSEABLE = JavaType.ShallowClass.build("java.lang.AutoCloseable");
     private static final List<AnnotationMatcher> BEFORE_AND_AFTER_MATCHERS = Arrays.asList(
             new AnnotationMatcher("@org.junit.jupiter.api.BeforeAll"),
             new AnnotationMatcher("@org.junit.jupiter.api.BeforeEach"),
@@ -95,7 +96,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                     JavaType.FullyQualified importedType = TypeUtils.asFullyQualified(anImport.getQualid().getTarget().getType());
                     if (importedType != null) {
                         importedType.getVisibleMembers().forEachRemaining(variable -> {
-                            if (variable.getName().equals(anImport.getQualid().getSimpleName())) {
+                            if (variable.getName().equals(anImport.getQualid().getSimpleName()) && canReceiveHandle(variable.getType())) {
                                 fields.recordImport(variable);
                             }
                         });
@@ -118,11 +119,18 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
 
             private void record(JavaType.@Nullable Variable variable, boolean declaration) {
                 JavaSourceFile source = getCursor().firstEnclosing(JavaSourceFile.class);
-                if (source != null && variable != null && variable.getOwner() instanceof JavaType.FullyQualified) {
+                if (source != null && variable != null && variable.getOwner() instanceof JavaType.FullyQualified &&
+                    canReceiveHandle(variable.getType())) {
                     fields.record(source.getId(), variable, declaration);
                 }
             }
         };
+    }
+
+    private static boolean canReceiveHandle(@Nullable JavaType type) {
+        // openMocks returns AutoCloseable: retain possible receivers, including Object and incomplete/generic types.
+        return type == null || type instanceof JavaType.Unknown || type instanceof JavaType.GenericTypeVariable ||
+               TypeUtils.isAssignableTo(type, AUTO_CLOSEABLE);
     }
 
     @Override
