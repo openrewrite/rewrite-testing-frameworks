@@ -98,7 +98,8 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                     String packageName = cu.getPackageDeclaration() == null ? "" :
                             cu.getPackageDeclaration().getPackageName();
                     if (!packageName.equals(i.getPackageName())) {
-                        String name = i.getTypeName().replace('$', '.');
+                        String name = (i.isStatic() ? i.getQualid().printTrimmed(getCursor()) : i.getTypeName())
+                                .replace('$', '.');
                         while (name.contains(".")) {
                             acc.referencedFromOtherPackages.add(name);
                             name = name.substring(0, name.lastIndexOf('.'));
