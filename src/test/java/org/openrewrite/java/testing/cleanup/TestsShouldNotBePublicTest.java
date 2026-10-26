@@ -15,7 +15,9 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
@@ -23,6 +25,15 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import javax.tools.JavaCompiler;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
+import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 
 class TestsShouldNotBePublicTest implements RewriteTest {
@@ -702,4 +713,197 @@ class TestsShouldNotBePublicTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void preserveLifecycleMethodForAnonymousSubclass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+
+                  public void helper() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest {
+                  @Test
+                  void works() {
+                      new BaseTest() {
+                          @Override
+                          @BeforeEach
+                          public void setUp() {
+                              super.setUp();
+                          }
+                      }.setUp();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservePublicClassForAnonymousSubclass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest {
+                  @Test
+                  void works() {
+                      new BaseTest() {}.setUp();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveLifecycleMethodThroughBinaryIntermediateClass(@TempDir Path tempDir) throws Exception {
+        String baseSource = """
+          package base;
+
+          import org.junit.jupiter.api.BeforeEach;
+
+          public class BaseTest<T> {
+              @BeforeEach
+              public void setUp() {
+              }
+
+              public void helper() {
+              }
+          }
+          """;
+        Path baseFile = tempDir.resolve("base/BaseTest.java");
+        Path middleFile = tempDir.resolve("middle/MiddleTest.java");
+        Path classes = tempDir.resolve("classes");
+        Files.createDirectories(baseFile.getParent());
+        Files.createDirectories(middleFile.getParent());
+        Files.createDirectories(classes);
+        Files.writeString(baseFile, baseSource);
+        Files.writeString(middleFile, """
+          package middle;
+
+          public class MiddleTest extends base.BaseTest<String> {
+          }
+          """);
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        assertThat(compiler).isNotNull();
+        StringWriter diagnostics = new StringWriter();
+        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null)) {
+            assertThat(compiler.getTask(diagnostics, fileManager, null,
+              List.of("-classpath", Path.of(BeforeEach.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toString(),
+                "-d", classes.toString()), null,
+              fileManager.getJavaFileObjects(baseFile, middleFile)).call())
+              .as("Compile the actual base and intermediate fixtures: %s", diagnostics)
+              .isTrue();
+        }
+        byte[] middleClass = Files.readAllBytes(classes.resolve("middle/MiddleTest.class"));
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")
+            .classpath(middleClass)),
+          java(baseSource),
+          java(
+            """
+              package child;
+
+              import middle.MiddleTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends MiddleTest {
+                  @Override
+                  @BeforeEach
+                  public void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """,
+            spec -> spec.beforeRecipe(cu -> {
+                assertThat(cu.getClasses().get(0).getType().getSupertype().getFullyQualifiedName())
+                  .isEqualTo("middle.MiddleTest");
+                assertThat(cu.getClasses().get(0).getType().getSupertype().getSupertype().getFullyQualifiedName())
+                  .isEqualTo("base.BaseTest");
+            })
+          )
+        );
+    }
+
+    @Test
+    void removeVisibilityWhenOnlyInstantiated() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              public class ATest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+
+                  @Test
+                  public void works() {
+                      new ATest();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @BeforeEach
+                  void setUp() {
+                  }
+
+                  @Test
+                  void works() {
+                      new ATest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }
