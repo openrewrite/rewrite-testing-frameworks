@@ -22,6 +22,8 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -32,6 +34,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
@@ -902,6 +905,420 @@ class TestsShouldNotBePublicTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/458")
+    @Test
+    void preserveClassReferencedFromAnotherPackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  public void works() {
+                  }
+              }
+              """,
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/458")
+    @Test
+    void preserveClassImportedForJavadocInAnotherPackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              /**
+               * See {@link FixtureTest}.
+               */
+              class Reference {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassReferencedByFullyQualifiedName() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              class Reference {
+                  Class<?> fixtureType = fixture.FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassReferencedThroughWildcardImport() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.*;
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveEnclosingClassOfReferencedNestedTest() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+
+              public class OuterTest {
+                  @Test
+                  void outer() {
+                  }
+
+                  @Nested
+                  public class NestedTest {
+                      @Test
+                      void inner() {
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.OuterTest.NestedTest;
+
+              class Reference {
+                  Class<?> fixtureType = NestedTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassUsedByStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  public static final int VALUE = 1;
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import static fixture.FixtureTest.VALUE;
+
+              class Reference {
+                  int value = VALUE;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removePublicClassWhenOnlyReferencedInSamePackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """,
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package fixture;
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreDifferentTypeWithSameSimpleName() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """,
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              class FixtureTest {
+              }
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassImportedWithoutTypeMetadata() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              class Reference {
+              }
+              """,
+            spec -> spec.mapBeforeRecipe(cu -> cu.withImports(cu.getImports().stream()
+              .map(i -> (J.Import) new JavaIsoVisitor<Integer>() {
+                  @Override
+                  public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                      return super.visitIdentifier(identifier, p).withType(null);
+                  }
+
+                  @Override
+                  public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
+                      return super.visitFieldAccess(fieldAccess, p).withType(null);
+                  }
+              }.visit(i, 0))
+              .collect(Collectors.toList())))
+          )
+        );
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticJavadocImport() {
+        preserveNestedClassUsedByStaticImport(false, true);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticJavadocImportWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, true);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticImport() {
+        preserveNestedClassUsedByStaticImport(false, false);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticImportWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false);
+    }
+
+    @Test
+    void preserveNestedClassImportedWithCommentWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false,
+          "fixture.OuterTest./* imported type */NestedTest");
+    }
+
+    @Test
+    void preserveNestedClassImportedWithWhitespaceWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false, "fixture . OuterTest . NestedTest");
+    }
+
+    private void preserveNestedClassUsedByStaticImport(boolean clearImportTypes, boolean includeJavadoc) {
+        preserveNestedClassUsedByStaticImport(clearImportTypes, includeJavadoc, "fixture.OuterTest.NestedTest");
+    }
+
+    private void preserveNestedClassUsedByStaticImport(boolean clearImportTypes, boolean includeJavadoc,
+                                                      String importedType) {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class OuterTest {
+                  @Test
+                  void outer() {
+                  }
+
+                  public static class NestedTest {
+                      @Test
+                      void inner() {
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import static %s;
+
+              %s
+              class Reference {
+              }
+              """.formatted(importedType, includeJavadoc ? "/** See {@link NestedTest}. */" : ""),
+            spec -> {
+                if (clearImportTypes) {
+                    spec.mapBeforeRecipe(cu -> cu.withImports(cu.getImports().stream()
+                      .map(i -> (J.Import) new JavaIsoVisitor<Integer>() {
+                          @Override
+                          public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                              return super.visitIdentifier(identifier, p).withType(null);
+                          }
+
+                          @Override
+                          public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
+                              return super.visitFieldAccess(fieldAccess, p).withType(null);
+                          }
+                      }.visit(i, 0))
+                      .collect(Collectors.toList())));
+                }
+            }
           )
         );
     }

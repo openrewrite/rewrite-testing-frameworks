@@ -32,6 +32,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -86,6 +87,47 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                 return n;
             }
 
+            @Override
+            public J.Import visitImport(J.Import anImport, ExecutionContext ctx) {
+                J.Import i = super.visitImport(anImport, ctx);
+                if (!i.isStatic() && "*".equals(i.getQualid().getSimpleName())) {
+                    return i;
+                }
+                JavaSourceFile cu = getCursor().firstEnclosing(JavaSourceFile.class);
+                if (cu != null) {
+                    String packageName = cu.getPackageDeclaration() == null ? "" :
+                            cu.getPackageDeclaration().getPackageName();
+                    if (!packageName.equals(i.getPackageName())) {
+                        String name = (i.isStatic() ? staticImportName(i) : i.getTypeName())
+                                .replace('$', '.');
+                        while (name.contains(".")) {
+                            acc.referencedFromOtherPackages.add(name);
+                            name = name.substring(0, name.lastIndexOf('.'));
+                        }
+                    }
+                }
+                return i;
+            }
+
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
+                J.Identifier id = super.visitIdentifier(identifier, ctx);
+                JavaType.FullyQualified referenced = TypeUtils.asFullyQualified(id.getType());
+                JavaSourceFile cu = getCursor().firstEnclosing(JavaSourceFile.class);
+                if (referenced != null && cu != null) {
+                    String packageName = cu.getPackageDeclaration() == null ? "" :
+                            cu.getPackageDeclaration().getPackageName();
+                    if (!packageName.equals(referenced.getPackageName())) {
+                        Set<String> seen = new HashSet<>();
+                        while (referenced != null && seen.add(referenced.getFullyQualifiedName())) {
+                            acc.referencedFromOtherPackages.add(referenced.getFullyQualifiedName().replace('$', '.'));
+                            referenced = referenced.getOwningClass();
+                        }
+                    }
+                }
+                return id;
+            }
+
             private void addExtendedClasses(@Nullable JavaType type) {
                 JavaType.FullyQualified superclass = TypeUtils.asFullyQualified(type);
                 if (superclass == null) {
@@ -108,11 +150,26 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
 
     public static class Accumulator {
         Set<String> extendedClasses = new HashSet<>();
+        Set<String> referencedFromOtherPackages = new HashSet<>();
     }
 
     private static String className(@Nullable JavaType type) {
         JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
         return fq == null ? String.valueOf(type) : fq.getFullyQualifiedName();
+    }
+
+    private static String staticImportName(J.Import anImport) {
+        Deque<String> names = new ArrayDeque<>();
+        J target = anImport.getQualid();
+        while (target instanceof J.FieldAccess) {
+            J.FieldAccess fieldAccess = (J.FieldAccess) target;
+            names.addFirst(fieldAccess.getSimpleName());
+            target = fieldAccess.getTarget();
+        }
+        if (target instanceof J.Identifier) {
+            names.addFirst(((J.Identifier) target).getSimpleName());
+        }
+        return String.join(".", names);
     }
 
     @RequiredArgsConstructor
@@ -126,8 +183,10 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
 
             if (c.getKind() != J.ClassDeclaration.Kind.Type.Interface &&
                     c.hasModifier(J.Modifier.Type.Public) &&
+                    c.getType() != null &&
                     !c.hasModifier(J.Modifier.Type.Abstract) &&
-                    !acc.extendedClasses.contains(className(c.getType()))) {
+                    !acc.extendedClasses.contains(className(c.getType())) &&
+                    !acc.referencedFromOtherPackages.contains(className(c.getType()).replace('$', '.'))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
                         .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
