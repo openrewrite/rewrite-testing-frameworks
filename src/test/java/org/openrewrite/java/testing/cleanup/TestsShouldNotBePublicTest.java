@@ -906,4 +906,79 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/458")
+    @Test
+    void preserveClassReferencedFromAnotherPackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  public void works() {
+                  }
+              }
+              """,
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/458")
+    @Test
+    void preserveClassImportedForJavadocInAnotherPackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              /**
+               * See {@link FixtureTest}.
+               */
+              class Reference {
+              }
+              """
+          )
+        );
+    }
+
 }
