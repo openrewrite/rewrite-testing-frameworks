@@ -45,7 +45,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import org.junit.jupiter.api.Timeout;
 
               class MyTest {
-                  @Timeout(10000)
+                  @Timeout(7200)
                   void test() {
                   }
               }
@@ -56,7 +56,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import java.util.concurrent.TimeUnit;
 
               class MyTest {
-                  @Timeout(value = 167, unit = TimeUnit.MINUTES)
+                  @Timeout(value = 120, unit = TimeUnit.MINUTES)
                   void test() {
                   }
               }
@@ -74,7 +74,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import org.junit.jupiter.api.Timeout;
 
               class MyTest {
-                  @Timeout(value = 1000)
+                  @Timeout(value = 1200)
                   void test() {
                   }
               }
@@ -85,7 +85,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import java.util.concurrent.TimeUnit;
 
               class MyTest {
-                  @Timeout(value = 17, unit = TimeUnit.MINUTES)
+                  @Timeout(value = 20, unit = TimeUnit.MINUTES)
                   void test() {
                   }
               }
@@ -105,7 +105,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import java.util.concurrent.TimeUnit;
 
               class MyTest {
-                  @Timeout(value = 10000, unit = TimeUnit.SECONDS)
+                  @Timeout(value = 6000, unit = TimeUnit.SECONDS)
                   void test() {
                   }
               }
@@ -116,7 +116,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import java.util.concurrent.TimeUnit;
 
               class MyTest {
-                  @Timeout(value = 167, unit = TimeUnit.MINUTES)
+                  @Timeout(value = 100, unit = TimeUnit.MINUTES)
                   void test() {
                   }
               }
@@ -134,7 +134,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import org.junit.jupiter.api.Timeout;
 
               class MyTest {
-                  @Timeout(10000L)
+                  @Timeout(6000L)
                   void test() {
                   }
               }
@@ -145,7 +145,7 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               import java.util.concurrent.TimeUnit;
 
               class MyTest {
-                  @Timeout(value = 167, unit = TimeUnit.MINUTES)
+                  @Timeout(value = 100, unit = TimeUnit.MINUTES)
                   void test() {
                   }
               }
@@ -215,6 +215,119 @@ class ImplausibleTimeoutToMinutesTest implements RewriteTest {
               class MyTest {
                   @Timeout(value = 10, unit = TimeUnit.MINUTES)
                   void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsThreadMode() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              class MyTest {
+                  @Timeout(value = 3600, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              import java.util.concurrent.TimeUnit;
+
+              class MyTest {
+                  @Timeout(value = 60, unit = TimeUnit.MINUTES, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsThreadModeAndArgumentOrder() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              import java.util.concurrent.TimeUnit;
+
+              class MyTest {
+                  @Timeout(threadMode = Timeout.ThreadMode.SEPARATE_THREAD, unit = TimeUnit.SECONDS, value = 3600)
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              import java.util.concurrent.TimeUnit;
+
+              class MyTest {
+                  @Timeout(threadMode = Timeout.ThreadMode.SEPARATE_THREAD, unit = TimeUnit.MINUTES, value = 60)
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void staticallyImportedSeconds() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              import static java.util.concurrent.TimeUnit.SECONDS;
+
+              class MyTest {
+                  @Timeout(value = 3600, unit = SECONDS)
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              import java.util.concurrent.TimeUnit;
+
+              class MyTest {
+                  @Timeout(value = 60, unit = TimeUnit.MINUTES)
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void notWholeMinutesUnchanged() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              class MyTest {
+                  @Timeout(10000)
+                  void a() {
+                  }
+
+                  @Timeout(value = 1000, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+                  void b() {
                   }
               }
               """

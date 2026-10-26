@@ -3391,7 +3391,7 @@ examples:
       import org.junit.jupiter.api.Timeout;
 
       class MyTest {
-          @Timeout(10000)
+          @Timeout(7200)
           void test() {
           }
       }
@@ -3401,7 +3401,7 @@ examples:
       import java.util.concurrent.TimeUnit;
 
       class MyTest {
-          @Timeout(value = 167, unit = TimeUnit.MINUTES)
+          @Timeout(value = 120, unit = TimeUnit.MINUTES)
           void test() {
           }
       }
