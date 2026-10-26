@@ -43,6 +43,11 @@ final class HamcrestMatcherUtils {
             !TypeUtils.isOfClassType(parameter, "java.lang.Class")) {
             return false;
         }
+        if (TypeUtils.isOfClassType(parameter, "java.lang.Class") &&
+            (!(parameter instanceof JavaType.Parameterized) || !(argument instanceof JavaType.Parameterized) ||
+             !parameter.equals(argument))) {
+            return true;
+        }
         // is(Class<T>) returns Matcher<T>; value equality is(T) returns Matcher<T>
         // whose value type matches its parameter, including a Class-valued T.
         if (parameter instanceof JavaType.GenericTypeVariable ||

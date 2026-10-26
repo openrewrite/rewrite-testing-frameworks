@@ -316,6 +316,99 @@ class HamcrestClassOverloadTest implements RewriteTest {
           matcherClass(method).withMethods(Collections.emptyList())));
     }
 
+    @Test
+    void retainLegacyClassObjectMatcherWithErasedParameter() {
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.CoreMatchers.is;
+
+              class Example {
+                  void check() {
+                      assertThat(String.class, is(Class.class));
+                  }
+              }
+              """,
+            spec -> spec.mapBeforeRecipe(HamcrestClassOverloadTest::withErasedClassParameter)
+          )
+        );
+    }
+
+    @Test
+    void retainLegacyPropertyClassObjectMatcherWithErasedParameter() {
+        rewriteRun(
+          spec -> spec.recipe(new HamcrestHasPropertyToAssertJ()),
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.hasProperty;
+              import static org.hamcrest.Matchers.is;
+
+              class Example {
+                  public Class<?> getType() {
+                      return String.class;
+                  }
+
+                  void check() {
+                      assertThat(this, hasProperty("type", is(Class.class)));
+                  }
+              }
+              """,
+            spec -> spec.mapBeforeRecipe(HamcrestClassOverloadTest::withErasedClassParameter)
+          )
+        );
+    }
+
+    @Test
+    void retainLegacyRawClassVariableMatcher() {
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.CoreMatchers.is;
+
+              class Example {
+                  void check() {
+                      Class actual = String.class;
+                      Class expected = Class.class;
+                      assertThat(actual, is(expected));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainLegacyGenericClassVariableMatcher() {
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.is;
+
+              class Example {
+                  void check() {
+                      Class<String> expected = String.class;
+                      assertThat("value", is(expected));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    private static J.CompilationUnit withErasedClassParameter(J.CompilationUnit cu) {
+        return mutateMatcherMethods(cu, method -> {
+            JavaType parameter = method.getParameterTypes().get(0);
+            if (!(parameter instanceof JavaType.Parameterized)) {
+                throw new IllegalStateException("The fixture must have a parameterized Class parameter");
+            }
+            return method.withParameterTypes(Collections.singletonList(((JavaType.Parameterized) parameter).getType()));
+        });
+    }
+
     private static J.CompilationUnit withoutClassOverloadDeclaration(J.CompilationUnit cu) {
         MethodMatcher classOverload = new MethodMatcher("org.hamcrest.*Matchers is(java.lang.Class)");
         return mutateMatcherMethods(cu, method -> {
