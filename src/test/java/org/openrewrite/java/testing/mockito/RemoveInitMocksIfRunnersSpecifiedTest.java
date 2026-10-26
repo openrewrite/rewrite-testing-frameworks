@@ -1374,4 +1374,72 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void preserveFormalParameterWhenRemovingManagedInitialization() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ParameterHandleTest {
+                  void initialize(AutoCloseable mocks) throws Exception {
+                      mocks = MockitoAnnotations.openMocks(this);
+                      mocks.close();
+                  }
+
+                  @Test
+                  void works() throws Exception {
+                      initialize(null);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ParameterHandleTest {
+                  void initialize(AutoCloseable mocks) throws Exception {
+                  }
+
+                  @Test
+                  void works() throws Exception {
+                      initialize(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveManagedResourceUsedByAnotherResource() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class DependentResourceTest {
+                  @Test
+                  void works() throws Exception {
+                      try (AutoCloseable managed = MockitoAnnotations.openMocks(this);
+                           AutoCloseable dependent = managed) {
+                          System.out.println("body");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
