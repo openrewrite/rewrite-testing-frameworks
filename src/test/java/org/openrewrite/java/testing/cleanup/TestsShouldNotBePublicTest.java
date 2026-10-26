@@ -611,4 +611,95 @@ class TestsShouldNotBePublicTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void preserveLifecycleMethodThroughGenericIntermediateClass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class GenericBase<T> {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package middle;
+
+              import base.GenericBase;
+
+              public class MiddleTest extends GenericBase<String> {
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import middle.MiddleTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends MiddleTest {
+                  @Override
+                  @BeforeEach
+                  public void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveProtectedLifecycleMethodForCrossPackageSubclass() {
+        rewriteRun(
+          spec -> spec.recipe(new TestsShouldNotBePublic(true)),
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  protected void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends BaseTest {
+                  @Override
+                  @BeforeEach
+                  protected void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
