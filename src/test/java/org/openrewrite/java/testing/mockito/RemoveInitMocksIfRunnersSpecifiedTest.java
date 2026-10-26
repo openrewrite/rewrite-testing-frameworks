@@ -860,4 +860,87 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void preserveHelperInitializationAndClose() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class HelperInitializationTest {
+                  @Mock
+                  Runnable managed;
+                  final Helper helper = new Helper();
+                  AutoCloseable helperMocks;
+
+                  @BeforeEach
+                  void setUp() {
+                      helperMocks = MockitoAnnotations.openMocks(helper);
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      helperMocks.close();
+                  }
+
+                  @Test
+                  void helperIsInitialized() {
+                      assertNotNull(managed, "extension initializes the managed instance");
+                      assertNotNull(helper.value, "manual initialization of helper must remain");
+                  }
+
+                  static class Helper {
+                      @Mock
+                      Runnable value;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInitializationInOrdinaryStaticFixtureConstructor() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class FixtureInitializationTest {
+                  @Test
+                  void fixtureIsInitialized() {
+                      assertNotNull(new Fixture().value);
+                  }
+
+                  static class Fixture {
+                      @Mock
+                      Runnable value;
+
+                      Fixture() {
+                          MockitoAnnotations.openMocks(this);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }
