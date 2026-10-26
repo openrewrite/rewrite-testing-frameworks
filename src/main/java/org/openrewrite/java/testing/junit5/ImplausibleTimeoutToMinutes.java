@@ -30,6 +30,10 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -40,7 +44,8 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
 
     @Option(displayName = "Threshold in seconds",
             description = "Timeouts of at least this many seconds (when the time unit is the default `SECONDS`) are " +
-                    "considered implausibly long and are rewritten to the equivalent number of minutes. " +
+                    "considered implausibly long and are rewritten to the equivalent number of minutes, when they are " +
+                    "a whole number of minutes. " +
                     "Defaults to `1000` seconds, about 17 minutes.",
             required = false,
             example = "1000")
@@ -49,11 +54,13 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
 
     String displayName = "Make implausibly long `@Timeout` values explicit in minutes";
 
-    String description = "JUnit Jupiter's `@Timeout` defaults to `TimeUnit.SECONDS`, so a value such as `@Timeout(10000)` is " +
-            "interpreted as almost three hours, which is most likely a mistake where milliseconds were intended. " +
+    String description = "JUnit Jupiter's `@Timeout` defaults to `TimeUnit.SECONDS`, so a value such as `@Timeout(7200)` is " +
+            "interpreted as two hours, which is most likely a mistake where milliseconds were intended. " +
             "This recipe rewrites such implausibly large second-based timeouts to the equivalent number of minutes, " +
-            "for instance `@Timeout(value = 167, unit = TimeUnit.MINUTES)`, preserving the original (likely " +
-            "erroneous) semantics while making the mistake far more visible for review.";
+            "for instance `@Timeout(value = 120, unit = TimeUnit.MINUTES)`, preserving the original (likely " +
+            "erroneous) semantics while making the mistake far more visible for review. Other attributes such as " +
+            "`threadMode` are kept, and values that are not a whole number of minutes are left unchanged, since " +
+            "rounding them would change the timeout.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -82,18 +89,60 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
                     }
                 }
 
-                if (seconds == null || !defaultUnit || seconds < threshold) {
+                if (seconds == null || !defaultUnit || seconds < threshold || seconds % 60 != 0) {
+                    // Only whole minutes are equivalent; rounding would change the timeout
                     return a;
                 }
 
-                long minutes = Math.round(seconds / 60.0);
-                maybeAddImport("java.util.concurrent.TimeUnit");
-                return JavaTemplate.builder("@Timeout(value = " + minutes + ", unit = TimeUnit.MINUTES)")
+                J.Annotation generated = JavaTemplate.builder("@Timeout(value = " + seconds / 60 + ", unit = TimeUnit.MINUTES)")
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .imports(TIMEOUT, "java.util.concurrent.TimeUnit")
                         .build()
                         .apply(getCursor(), a.getCoordinates().replace());
+                maybeAddImport("java.util.concurrent.TimeUnit");
+                maybeRemoveImport("java.util.concurrent.TimeUnit.SECONDS");
+                if (a.getArguments().size() == 1 && !(a.getArguments().get(0) instanceof J.Assignment)) {
+                    // A positional value can't be combined with other attributes
+                    return generated;
+                }
+
+                // Edit the existing arguments in place, so other attributes such as `threadMode` are kept
+                J.Assignment minutesValue = (J.Assignment) generated.getArguments().get(0);
+                J.Assignment minutesUnit = (J.Assignment) generated.getArguments().get(1);
+                boolean hasUnit = false;
+                List<Expression> arguments = new ArrayList<>();
+                for (Expression arg : a.getArguments()) {
+                    J.Assignment assignment = (J.Assignment) arg;
+                    String name = ((J.Identifier) assignment.getVariable()).getSimpleName();
+                    if ("value".equals(name)) {
+                        arguments.add(withValue(assignment, minutesValue));
+                    } else if ("unit".equals(name)) {
+                        arguments.add(withValue(assignment, minutesUnit));
+                        hasUnit = true;
+                    } else {
+                        arguments.add(arg);
+                    }
+                }
+                if (!hasUnit) {
+                    int valueIndex = indexOfValue(arguments);
+                    arguments.add(valueIndex + 1, minutesUnit.withPrefix(Space.SINGLE_SPACE));
+                }
+                return a.withArguments(arguments);
+            }
+
+            private J.Assignment withValue(J.Assignment original, J.Assignment replacement) {
+                return original.withAssignment(replacement.getAssignment().withPrefix(original.getAssignment().getPrefix()));
+            }
+
+            private int indexOfValue(List<Expression> arguments) {
+                for (int i = 0; i < arguments.size(); i++) {
+                    J.Assignment assignment = (J.Assignment) arguments.get(i);
+                    if ("value".equals(((J.Identifier) assignment.getVariable()).getSimpleName())) {
+                        return i;
+                    }
+                }
+                return arguments.size() - 1;
             }
 
             private @Nullable Long longValue(Expression expr) {
