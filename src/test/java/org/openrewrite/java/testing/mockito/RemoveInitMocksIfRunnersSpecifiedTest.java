@@ -1442,4 +1442,208 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void preserveHandleReadByAnotherTopLevelClass() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class ExternalHandleTest {
+                  AutoCloseable mocks;
+
+                  @BeforeEach
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test
+                  void handleRemainsObservable() {
+                      assertNotNull(new HandleReader().read(this));
+                  }
+              }
+
+              class HandleReader {
+                  AutoCloseable read(ExternalHandleTest owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleReadInAnotherSourceFile() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class ExternalHandleTest {
+                  AutoCloseable mocks;
+
+                  @BeforeEach
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test
+                  void handleRemainsObservable() {
+                      assertNotNull(new HandleReader().read(this));
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class HandleReader {
+                  AutoCloseable read(ExternalHandleTest owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservePrivateNestedHandleReadByEnclosingClass() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              class Container {
+                  @ExtendWith(MockitoExtension.class)
+                  static class ManagedOwner {
+                      private AutoCloseable mocks;
+
+                      void setup() {
+                          mocks = MockitoAnnotations.openMocks(this);
+                      }
+
+                      void teardown() throws Exception {
+                          mocks.close();
+                      }
+                  }
+
+                  AutoCloseable read(ManagedOwner owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInheritedHandleDeclaredInAnotherSourceFile() {
+        rewriteRun(
+          java(
+            """
+              class Parent {
+                  protected AutoCloseable mocks;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class Child extends Parent {
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unrelatedFieldWithSameNameDoesNotPreventCleanup() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private AutoCloseable mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  void setup() {
+                  }
+
+                  void teardown() throws Exception {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class UnrelatedOwner {
+                  AutoCloseable mocks;
+
+                  AutoCloseable read() {
+                      return mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
 }
