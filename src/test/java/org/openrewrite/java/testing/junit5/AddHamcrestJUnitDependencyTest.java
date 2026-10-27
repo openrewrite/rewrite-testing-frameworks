@@ -72,7 +72,7 @@ class AddHamcrestJUnitDependencyTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddHamcrestJUnitDependency())
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "hamcrest",
+            "hamcrest-3",
             "junit-4"));
 
     }
