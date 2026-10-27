@@ -36,6 +36,7 @@ import org.openrewrite.java.tree.JLeftPadded;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -335,11 +336,11 @@ public class ReplaceSettersWithTransform extends Recipe {
                     // Whether `select` is the builder the lambda received, or an earlier call chained on it.
                     private boolean onBuilder(@Nullable Expression select, JavaType.Class builderType) {
                         if (select instanceof J.Identifier) {
-                            return builderType.equals(((J.Identifier) select).getType());
+                            return TypeUtils.isOfType(builderType, ((J.Identifier) select).getType());
                         }
                         return select instanceof J.MethodInvocation &&
                                 ((J.MethodInvocation) select).getMethodType() != null &&
-                                builderType.equals(((J.MethodInvocation) select).getMethodType().getDeclaringType());
+                                TypeUtils.isOfType(builderType, ((J.MethodInvocation) select).getMethodType().getDeclaringType());
                     }
 
                     // The receiver appears twice in the output, and every element of an LST needs its own id.

@@ -103,7 +103,7 @@ final class SystemRules {
         return new JavaIsoVisitor<List<Cursor>>() {
             @Override
             public J.Identifier visitIdentifier(J.Identifier identifier, List<Cursor> references) {
-                if (field.equals(identifier.getFieldType())) {
+                if (TypeUtils.isOfType(field, identifier.getFieldType())) {
                     Cursor parentCursor = getCursor().getParentTreeCursor();
                     Object parentTree = parentCursor.getValue();
                     if (parentTree instanceof J.VariableDeclarations.NamedVariable &&
