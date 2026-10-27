@@ -185,9 +185,6 @@ public class UpdateBeforeAfterAnnotations extends ScanningRecipe<UpdateBeforeAft
         private J.ClassDeclaration consolidateLifecycleMethods(J.ClassDeclaration cd, AnnotationMatcher matcher,
                                                                String jupiterAnnotation, String consolidatedMethodName,
                                                                String junit4AnnotationFqn, ExecutionContext ctx) {
-            // Save original for autoformat comparison
-            J.ClassDeclaration original = cd;
-
             // Find all methods with the target annotation
             List<J.MethodDeclaration> targetMethods = cd.getBody().getStatements().stream()
                     .filter(stmt -> stmt instanceof J.MethodDeclaration)
@@ -204,23 +201,11 @@ public class UpdateBeforeAfterAnnotations extends ScanningRecipe<UpdateBeforeAft
             maybeRemoveImport(junit4AnnotationFqn);
             maybeAddImport("org.junit.jupiter.api." + jupiterAnnotation);
 
-            // Remove the annotations from original methods - DON'T change spacing yet
-            cd = cd.withBody(cd.getBody().withStatements(
-                    ListUtils.map(cd.getBody().getStatements(), stmt -> {
-                        if (stmt instanceof J.MethodDeclaration) {
-                            J.MethodDeclaration method = (J.MethodDeclaration) stmt;
-                            if (method.getLeadingAnnotations().stream().anyMatch(matcher::matches)) {
-                                // Remove the annotation but keep the prefix
-                                return method.withLeadingAnnotations(
-                                        method.getLeadingAnnotations().stream()
-                                                .filter(ann -> !matcher.matches(ann))
-                                                .collect(Collectors.toList())
-                                );
-                            }
-                        }
-                        return stmt;
-                    })
-            ));
+            // Remove the annotations from original methods using RemoveAnnotationVisitor
+            // which properly handles spacing
+            for (J.MethodDeclaration targetMethod : targetMethods) {
+                doAfterVisit(new RemoveAnnotationVisitor(matcher));
+            }
 
             // Create consolidated method
             String methodBody = targetMethods.stream()
@@ -239,23 +224,8 @@ public class UpdateBeforeAfterAnnotations extends ScanningRecipe<UpdateBeforeAft
                     .imports("org.junit.jupiter.api." + jupiterAnnotation)
                     .build();
 
-            cd = template.apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
-
-            // Manually fix spacing: ALL members should have a blank line before them
-            cd = cd.withBody(cd.getBody().withStatements(
-                    ListUtils.map(cd.getBody().getStatements(), stmt -> {
-                        String whitespace = stmt.getPrefix().getWhitespace();
-                        // Extract just the indentation from the last line
-                        int lastNewline = whitespace.lastIndexOf('\n');
-                        String indent = lastNewline >= 0 ? whitespace.substring(lastNewline + 1) : whitespace;
-
-                        // All statements: two newlines (creating a blank line) + indent
-                        return stmt.withPrefix(stmt.getPrefix().withWhitespace("\n\n" + indent));
-                    })
-            ));
-
-            // Apply autoformat to clean up any trailing spaces on blank lines
-            return maybeAutoFormat(original, cd, ctx);
+            // JavaTemplate already formats what it inserts, no need for additional formatting
+            return template.apply(updateCursor(cd), cd.getBody().getCoordinates().firstStatement());
         }
     }
 
