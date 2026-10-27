@@ -109,7 +109,7 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
             .logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
-              "mockito-core",
+              "mockito-core-3",
               "powermock-module-junit4")),
           java(
             """

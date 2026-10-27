@@ -29,7 +29,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-                "mockito-core",
+                "mockito-core-3",
                 "mockito-junit-jupiter",
                 "junit-4",
                 "junit-jupiter-api-5"))
