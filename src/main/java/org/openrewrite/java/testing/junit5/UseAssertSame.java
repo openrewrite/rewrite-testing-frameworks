@@ -26,6 +26,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.ArrayList;
@@ -99,7 +100,7 @@ public class UseAssertSame extends Recipe {
                 JavaType.FullyQualified assertions = assertTrue.getDeclaringType();
                 for (JavaType.Method method : assertions.getMethods()) {
                     if ("assertSame".equals(method.getName()) && method.getParameterNames().size() == parameterCount + 1 &&
-                        assertTrue.getParameterTypes().get(parameterCount - 1).equals(method.getParameterTypes().get(parameterCount))) {
+                        TypeUtils.isOfType(assertTrue.getParameterTypes().get(parameterCount - 1), method.getParameterTypes().get(parameterCount))) {
                         return method;
                     }
                 }

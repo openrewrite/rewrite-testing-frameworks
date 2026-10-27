@@ -45,7 +45,7 @@ final class HamcrestMatcherUtils {
         }
         if (TypeUtils.isOfClassType(parameter, "java.lang.Class") &&
             (!(parameter instanceof JavaType.Parameterized) || !(argument instanceof JavaType.Parameterized) ||
-             !parameter.equals(argument))) {
+             !TypeUtils.isOfType(parameter, argument))) {
             return true;
         }
         // is(Class<T>) returns Matcher<T>; value equality is(T) returns Matcher<T>
@@ -56,6 +56,6 @@ final class HamcrestMatcherUtils {
             return true;
         }
         JavaType.Parameterized matcher = (JavaType.Parameterized) method.getReturnType();
-        return matcher.getTypeParameters().size() != 1 || !parameter.equals(matcher.getTypeParameters().get(0));
+        return matcher.getTypeParameters().size() != 1 || !TypeUtils.isOfType(parameter, matcher.getTypeParameters().get(0));
     }
 }

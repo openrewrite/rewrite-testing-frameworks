@@ -429,7 +429,7 @@ public class JMockitMockUpToMockito extends Recipe {
                     .filter(m -> !m.isConstructor())
                     .filter(m -> !m.getFlags().contains(Private))
                     .filter(m -> m.getFlags().contains(Static))
-                    .filter(m -> !mockedMethods.containsValue(m))
+                    .filter(m -> mockedMethods.values().stream().noneMatch(mocked -> TypeUtils.isOfType(mocked, m)))
                     .forEach(m -> tpl.append("mockStatic").append(className).append(".when(() -> ")
                             .append(className).append(".").append(m.getName())
                             .append(getCallRealMethod(m))

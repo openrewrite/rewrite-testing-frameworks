@@ -159,7 +159,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                                 JavaType.Variable variable = referencedVariable(assignment.getVariable());
                                 if (variable != null && isMockitoOpenMocksCall(assignment.getAssignment(), getCursor()) &&
                                     isSimpleHandle(assignment.getVariable()) && isBlockStatement(getCursor()) &&
-                                    variables.stream().noneMatch(variable::equals)) {
+                                    variables.stream().noneMatch(it -> TypeUtils.isOfType(variable, it))) {
                                     variables.add(variable);
                                 }
                                 return super.visitAssignment(assignment, variables);
@@ -371,7 +371,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                             public  J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
                                 J.Assignment a = super.visitAssignment(assignment, ctx);
                                 JavaType.Variable variable = referencedVariable(assignment.getVariable());
-                                if (variable != null && closeables.stream().anyMatch(variable::equals) &&
+                                if (variable != null && closeables.stream().anyMatch(it -> TypeUtils.isOfType(variable, it)) &&
                                     isMockitoOpenMocksCall(assignment.getAssignment(), getCursor()) && isBlockStatement(getCursor())) {
                                     maybeRemoveImport("org.mockito.MockitoAnnotations");
                                     return null;
@@ -389,7 +389,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                                 }
                                 JavaType.Variable variable = referencedVariable(mi.getSelect());
                                 if (CLOSEABLE_MATCHER.matches(mi) && variable != null &&
-                                    closeables.stream().anyMatch(variable::equals) && isBlockStatement(getCursor())) {
+                                    closeables.stream().anyMatch(it -> TypeUtils.isOfType(variable, it)) && isBlockStatement(getCursor())) {
                                     return null;
                                 }
                                 return mi;
@@ -404,7 +404,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                                 }
                                 // Retain unrelated siblings in declarations such as `AutoCloseable managed, foreign`.
                                 List<J.VariableDeclarations.NamedVariable> variables = ListUtils.filter(vd.getVariables(),
-                                        variable -> closeables.stream().noneMatch(it -> it.equals(variable.getVariableType())));
+                                        variable -> closeables.stream().noneMatch(it -> TypeUtils.isOfType(it, variable.getVariableType())));
                                 return variables.isEmpty() ? null : vd.withVariables(variables);
                             }
 
@@ -523,7 +523,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                         return !new JavaIsoVisitor<AtomicBoolean>() {
                             @Override
                             public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean unsafe) {
-                                if (!variable.equals(identifier.getFieldType())) {
+                                if (!TypeUtils.isOfType(variable, identifier.getFieldType())) {
                                     return identifier;
                                 }
                                 Cursor reference = getCursor();
@@ -588,7 +588,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                         }
                         J.MethodInvocation close = (J.MethodInvocation) statements.get(0);
                         return CLOSEABLE_MATCHER.matches(close) && close.getSelect() != null &&
-                               isSimpleHandle(close.getSelect()) && variable.equals(referencedVariable(close.getSelect()));
+                               isSimpleHandle(close.getSelect()) && TypeUtils.isOfType(variable, referencedVariable(close.getSelect()));
                     }
                 }
         );
@@ -600,7 +600,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
         private final List<JavaType.Variable> importedFields = new ArrayList<>();
 
         private synchronized void recordImport(JavaType.Variable variable) {
-            if (importedFields.stream().noneMatch(variable::equals)) {
+            if (importedFields.stream().noneMatch(it -> TypeUtils.isOfType(variable, it))) {
                 importedFields.add(variable);
             }
         }
@@ -614,8 +614,8 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
 
         private void add(Map<UUID, List<JavaType.Variable>> fields, UUID source, JavaType.Variable variable) {
             List<JavaType.Variable> variables = fields.computeIfAbsent(source, id -> new ArrayList<>());
-            // JavaType.Variable has value equality but must not be used as a hash key.
-            if (variables.stream().noneMatch(variable::equals)) {
+            // A hash set would match variables by identity, so the list is scanned with isOfType.
+            if (variables.stream().noneMatch(it -> TypeUtils.isOfType(variable, it))) {
                 variables.add(variable);
             }
         }
@@ -626,10 +626,10 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
             }
             // Retain inherited/binary handles whose declaration is outside this file, and fields observed by other inputs.
             List<JavaType.Variable> declaredHere = declarations.get(source);
-            return declaredHere != null && declaredHere.stream().anyMatch(variable::equals) &&
-                   importedFields.stream().noneMatch(variable::equals) &&
+            return declaredHere != null && declaredHere.stream().anyMatch(it -> TypeUtils.isOfType(variable, it)) &&
+                   importedFields.stream().noneMatch(it -> TypeUtils.isOfType(variable, it)) &&
                    references.entrySet().stream().noneMatch(entry -> !entry.getKey().equals(source) &&
-                           entry.getValue().stream().anyMatch(variable::equals));
+                           entry.getValue().stream().anyMatch(it -> TypeUtils.isOfType(variable, it)));
         }
     }
 }

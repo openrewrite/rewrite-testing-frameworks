@@ -411,7 +411,7 @@ public class SystemRulesToSystemStubs extends Recipe {
             if (statement == invocation) {
                 seen = true;
             } else if (statement instanceof J.MethodInvocation &&
-                       Objects.equals(field, referencedField(((J.MethodInvocation) statement).getSelect())) &&
+                       TypeUtils.isOfType(field, referencedField(((J.MethodInvocation) statement).getSelect())) &&
                        ((J.MethodInvocation) statement).getSimpleName().startsWith("provide")) {
                 if (seen) {
                     return false;
