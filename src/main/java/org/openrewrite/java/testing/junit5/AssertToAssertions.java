@@ -80,7 +80,11 @@ public class AssertToAssertions extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             if (cd.getExtends() != null && TypeUtils.isOfType(ASSERTION_TYPE, cd.getExtends().getType())) {
+                JavaType.FullyQualified assertType = TypeUtils.asFullyQualified(cd.getExtends().getType());
                 cd = cd.withExtends(null);
+                if (cd.getType() instanceof JavaType.Class && assertType != null) {
+                    cd = cd.withType(((JavaType.Class) cd.getType()).withSupertype(assertType.getSupertype()));
+                }
                 maybeRemoveImport("org.junit.Assert");
             }
             return cd;
@@ -153,7 +157,7 @@ public class AssertToAssertions extends Recipe {
         public J postVisit(J tree, ExecutionContext ctx) {
             if (tree instanceof JavaSourceFile) {
                 for (String methodName : getCursor().<Set<String>>getMessage(ASSERT_METHOD_NAMES, emptySet())) {
-                    doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + methodName + "(..)", "org.junit.jupiter.api.Assertions", null, null, true).getVisitor());
+                    doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + methodName + "(..)", "org.junit.jupiter.api.Assertions", null, null, false).getVisitor());
                 }
             }
             return tree;
