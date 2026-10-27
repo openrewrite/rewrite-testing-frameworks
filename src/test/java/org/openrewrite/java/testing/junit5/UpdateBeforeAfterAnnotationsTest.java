@@ -290,4 +290,276 @@ class UpdateBeforeAfterAnnotationsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void consolidateMultipleBeforeMethods() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+
+              class MyTest {
+                  @Before
+                  void setup1() {
+                      System.out.println("setup1");
+                  }
+
+                  @Before
+                  void setup2() {
+                      System.out.println("setup2");
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class MyTest {
+
+                  @BeforeEach
+                  void setUp() {
+                      setup1();
+                      setup2();
+                  }
+
+                  void setup1() {
+                      System.out.println("setup1");
+                  }
+
+                  void setup2() {
+                      System.out.println("setup2");
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void consolidateMultipleAfterMethods() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.After;
+              import org.junit.Test;
+
+              class MyTest {
+                  @After
+                  void cleanup1() {
+                      System.out.println("cleanup1");
+                  }
+
+                  @After
+                  void cleanup2() {
+                      System.out.println("cleanup2");
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.AfterEach;
+
+              class MyTest {
+
+                  @AfterEach
+                  void tearDown() {
+                      cleanup1();
+                      cleanup2();
+                  }
+
+                  void cleanup1() {
+                      System.out.println("cleanup1");
+                  }
+
+                  void cleanup2() {
+                      System.out.println("cleanup2");
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void consolidateBothBeforeAndAfterMethods() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.After;
+              import org.junit.Test;
+
+              class MyTest {
+                  @Before
+                  void setup1() {
+                  }
+
+                  @Before
+                  void setup2() {
+                  }
+
+                  @After
+                  void cleanup1() {
+                  }
+
+                  @After
+                  void cleanup2() {
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class MyTest {
+
+                  @AfterEach
+                  void tearDown() {
+                      cleanup1();
+                      cleanup2();
+                  }
+
+                  @BeforeEach
+                  void setUp() {
+                      setup1();
+                      setup2();
+                  }
+
+                  void setup1() {
+                  }
+
+                  void setup2() {
+                  }
+
+                  void cleanup1() {
+                  }
+
+                  void cleanup2() {
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noBeforeOrAfterAnnotations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void onlyBeforeAnnotation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+
+              class MyTest {
+                  @Before
+                  void setup() {
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class MyTest {
+                  @BeforeEach
+                  void setup() {
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void onlyAfterAnnotation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.After;
+              import org.junit.Test;
+
+              class MyTest {
+                  @After
+                  void cleanup() {
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.AfterEach;
+
+              class MyTest {
+                  @AfterEach
+                  void cleanup() {
+                  }
+
+                  @Test
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
