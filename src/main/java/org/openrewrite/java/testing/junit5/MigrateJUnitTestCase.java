@@ -67,7 +67,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
     final String description = "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
 
     static class Constructors {
-        final Map<String, J.MethodDeclaration> declarations = new HashMap<>();
+        final Map<String, ConstructorInfo> declarations = new HashMap<>();
         final Set<String> referencedUnsafely = new HashSet<>();
 
         Set<String> removable() {
@@ -75,15 +75,8 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
             boolean changed;
             do {
                 changed = false;
-                for (Map.Entry<String, J.MethodDeclaration> entry : declarations.entrySet()) {
-                    J.Block body = entry.getValue().getBody();
-                    if (body == null) {
-                        continue;
-                    }
-                    List<Statement> statements = body.getStatements();
-                    if (statements.isEmpty() || statements.size() == 1 &&
-                            statements.get(0) instanceof J.MethodInvocation &&
-                            redundantDelegation((J.MethodInvocation) statements.get(0), removed)) {
+                for (Map.Entry<String, ConstructorInfo> entry : declarations.entrySet()) {
+                    if (entry.getValue().isRedundant(removed)) {
                         changed |= removed.add(entry.getKey());
                     }
                 }
@@ -95,25 +88,49 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
                 Set<String> retainedClasses = new HashSet<>();
                 for (String constructor : declarations.keySet()) {
                     if (!removed.contains(constructor) || referencedUnsafely.contains(constructor)) {
-                        retainedClasses.add(declarations.get(constructor).getMethodType().getDeclaringType().getFullyQualifiedName());
+                        retainedClasses.add(declarations.get(constructor).declaringType);
                     }
                 }
                 changed = removed.removeIf(constructor -> {
-                    if (retainedClasses.contains(declarations.get(constructor).getMethodType().getDeclaringType().getFullyQualifiedName())) {
+                    if (retainedClasses.contains(declarations.get(constructor).declaringType)) {
                         return true;
                     }
-                    J.Block body = declarations.get(constructor).getBody();
-                    return body != null && !body.getStatements().isEmpty() &&
-                           !redundantDelegation((J.MethodInvocation) body.getStatements().get(0), removed);
+                    return !declarations.get(constructor).isRedundant(removed);
                 });
             } while (changed);
             return removed;
         }
+    }
 
-        private static boolean redundantDelegation(J.MethodInvocation invocation, Set<String> removed) {
-            return ("super".equals(invocation.getSimpleName()) || "this".equals(invocation.getSimpleName())) &&
-                   safeToDiscard(invocation.getArguments()) &&
-                   (TestCaseVisitor.TEST_CASE_SUPER_MATCHER.matches(invocation) || removed.contains(signature(invocation.getMethodType())));
+    // Summarize each declaration while scanning rather than retaining its tree for
+    // every source file until the migration cycle ends.
+    private static class ConstructorInfo {
+        final String declaringType;
+        final boolean removableBody;
+        final @Nullable String delegatedConstructor;
+
+        ConstructorInfo(J.MethodDeclaration method, JavaType.Method type) {
+            declaringType = type.getDeclaringType().getFullyQualifiedName();
+            J.Block body = method.getBody();
+            List<Statement> statements = body == null ? emptyList() : body.getStatements();
+            boolean removable = body != null && statements.isEmpty();
+            String delegated = null;
+            if (statements.size() == 1 && statements.get(0) instanceof J.MethodInvocation) {
+                J.MethodInvocation invocation = (J.MethodInvocation) statements.get(0);
+                if (("super".equals(invocation.getSimpleName()) || "this".equals(invocation.getSimpleName())) &&
+                        safeToDiscard(invocation.getArguments())) {
+                    removable = true;
+                    if (!TestCaseVisitor.TEST_CASE_SUPER_MATCHER.matches(invocation)) {
+                        delegated = signature(invocation.getMethodType());
+                    }
+                }
+            }
+            removableBody = removable;
+            delegatedConstructor = delegated;
+        }
+
+        boolean isRedundant(Set<String> removed) {
+            return removableBody && (delegatedConstructor == null || removed.contains(delegatedConstructor));
         }
     }
 
@@ -158,7 +175,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Co
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 JavaType.Method type = method.getMethodType();
                 if (method.isConstructor() && type != null && isSupertypeTestCase(type.getDeclaringType())) {
-                    acc.declarations.put(signature(type), method);
+                    acc.declarations.put(signature(type), new ConstructorInfo(method, type));
                     if (untouched || method.getThrows() != null && !method.getThrows().isEmpty() ||
                             !method.getLeadingAnnotations().isEmpty()) {
                         acc.referencedUnsafely.add(signature(type));
