@@ -38,8 +38,8 @@ class HamcrestClassOverloadTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new HamcrestIsMatcherToAssertJ())
-          .parser(JavaParser.fromJavaVersion().classpath(
-            "hamcrest-core-1.3", "hamcrest-library-1.3", "assertj-core"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "hamcrest-core-1.3", "hamcrest-library-1.3", "assertj-core-3"));
     }
 
     @Test
