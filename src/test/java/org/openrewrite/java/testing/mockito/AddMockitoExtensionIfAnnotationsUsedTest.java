@@ -37,10 +37,10 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
               "junit-4",
               "junit-jupiter-api",
               "mockito-junit-jupiter",
-              "mockito-core")
+              "mockito-core-3")
             .dependsOn("public class Service {}"))
           .parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core-3")
             .dependsOn("class Service"));
     }
 
@@ -261,7 +261,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api",
               "mockito-junit-jupiter",
-              "mockito-core",
+              "mockito-core-3",
               "spring-test-6.1")
             .dependsOn("public class Service {}")),
           //language=java
@@ -400,7 +400,7 @@ class AddMockitoExtensionIfAnnotationsUsedTest implements RewriteTest {
     void doNotAddIfPresentInKotlinWithJUnit5() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api", "mockito-junit-jupiter", "mockito-core-3")),
           //language=kotlin
           kotlin(
             """

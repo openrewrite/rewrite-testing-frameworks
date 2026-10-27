@@ -28,7 +28,7 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core", "junit-4"))
+        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core-5", "junit-4"))
           .recipe(new RemoveDoNothingForDefaultMocks());
     }
 

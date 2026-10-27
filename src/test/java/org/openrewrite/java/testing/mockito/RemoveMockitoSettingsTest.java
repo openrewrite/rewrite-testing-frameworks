@@ -31,7 +31,7 @@ class RemoveMockitoSettingsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "mockito-core",
+              "mockito-core-5",
               "mockito-junit-jupiter",
               "junit-jupiter-api"))
           .recipeFromResources("org.openrewrite.java.testing.mockito.MockitoBestPractices");
