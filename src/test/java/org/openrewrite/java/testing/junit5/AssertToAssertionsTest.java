@@ -164,6 +164,40 @@ class AssertToAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void commentWithMessage() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import static org.junit.Assert.assertTrue;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertTrue("a message", true//a weird comment
+                      );
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      assertTrue(true, "a message"//a weird comment
+                      );
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void assertWithoutMessage() {
         //language=java
         rewriteRun(
