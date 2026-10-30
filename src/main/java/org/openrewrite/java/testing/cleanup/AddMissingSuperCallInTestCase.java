@@ -149,9 +149,9 @@ public class AddMissingSuperCallInTestCase extends ScanningRecipe<Set<String>> {
                     return md;
                 }
                 boolean setUp = SET_UP.matches(methodType);
-                if (!setUp && !TEAR_DOWN.matches(methodType) ||
+                if ((!setUp && !TEAR_DOWN.matches(methodType)) ||
                         callsSuper(body, methodType.getName()) ||
-                        !setUp && !reachableAfter(body)) {
+                        (!setUp && !reachableAfter(body))) {
                     return md;
                 }
                 JavaType.Method inherited = inheritedImplementation(methodType.getDeclaringType(), methodType.getName());
