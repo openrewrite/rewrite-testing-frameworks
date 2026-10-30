@@ -161,12 +161,13 @@ public class CollapseConsecutiveAssertThatStatements extends Recipe {
                     J.MethodInvocation assertThat = (J.MethodInvocation) assertion.getSelect();
                     assert assertThat != null;
                     J.MethodInvocation newSelect = collapsed == null ? assertThat : collapsed;
+                    List<Comment> chainedComments = collapsed == null ? emptyList() : st.getPrefix().getComments();
 
                     collapsed = assertion.getPadding().withSelect(JRightPadded
                             .build((Expression) newSelect.withPrefix(Space.EMPTY))
-                            .withAfter(Space.build(chainedIndent, ListUtils.map(st.getPrefix().getComments(), c -> c.withSuffix(chainedIndent)))));
+                            .withAfter(Space.build(chainedIndent, ListUtils.map(chainedComments, c -> c.withSuffix(chainedIndent)))));
                 }
-                return requireNonNull(collapsed).withPrefix(originalPrefix.withComments(emptyList()));
+                return requireNonNull(collapsed).withPrefix(originalPrefix);
             }
         });
     }

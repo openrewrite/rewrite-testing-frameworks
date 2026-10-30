@@ -53,7 +53,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
           spec -> spec
             .parser(JavaParser.fromJavaVersion()
               .classpathFromResources(new InMemoryExecutionContext(),
-                "mockito-core",
+                "mockito-core-3",
                 "junit-4",
                 "hamcrest-3",
                 "junit-jupiter-api-5")),
@@ -265,8 +265,7 @@ class JunitMockitoUpgradeIntegrationTest implements RewriteTest {
 
               @MockitoSettings(strictness = Strictness.WARN)
               @ExtendWith(MockitoExtension.class)
-              public class ExampleTest {
-              }
+              public class ExampleTest {}
               """
           )
         );

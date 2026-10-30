@@ -26,6 +26,8 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +100,7 @@ public class UseAssertSame extends Recipe {
                 JavaType.FullyQualified assertions = assertTrue.getDeclaringType();
                 for (JavaType.Method method : assertions.getMethods()) {
                     if ("assertSame".equals(method.getName()) && method.getParameterNames().size() == parameterCount + 1 &&
-                        assertTrue.getParameterTypes().get(parameterCount - 1).equals(method.getParameterTypes().get(parameterCount))) {
+                        TypeUtils.isOfType(assertTrue.getParameterTypes().get(parameterCount - 1), method.getParameterTypes().get(parameterCount))) {
                         return method;
                     }
                 }
@@ -106,10 +108,13 @@ public class UseAssertSame extends Recipe {
                 return assertTrue.withName(newMethodName);
             }
         };
+        // Kotlin and Groovy `==` calls `equals`, so only Java's `==` means `assertSame`
         return Preconditions.check(
-                Preconditions.or(
-                        new UsesMethod<>(ASSERT_TRUE_MATCHER),
-                        new UsesMethod<>(ASSERT_FALSE_MATCHER)),
+                Preconditions.and(
+                        new JavaFileChecker<>(),
+                        Preconditions.or(
+                                new UsesMethod<>(ASSERT_TRUE_MATCHER),
+                                new UsesMethod<>(ASSERT_FALSE_MATCHER))),
                 visitor);
     }
 

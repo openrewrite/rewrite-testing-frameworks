@@ -20,19 +20,22 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
-import org.openrewrite.java.dependencies.UpgradeDependencyVersion;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.List;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class UseWiremockExtension extends Recipe {
 
-    private static final MethodMatcher newWiremockRule = new MethodMatcher("com.github.tomakehurst.wiremock.junit.WireMockRule <constructor>(..)");
+    private static final String WIREMOCK_RULE = "com.github.tomakehurst.wiremock.junit.WireMockRule";
+    private static final String WIREMOCK_EXTENSION = "com.github.tomakehurst.wiremock.junit5.WireMockExtension";
+    private static final String REGISTER_EXTENSION = "org.junit.jupiter.api.extension.RegisterExtension";
+    private static final MethodMatcher NEW_WIREMOCK_RULE = new MethodMatcher(WIREMOCK_RULE + " <constructor>(..)");
+    private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
 
     @Getter
     final String displayName = "Use wiremock extension";
@@ -41,26 +44,43 @@ public class UseWiremockExtension extends Recipe {
     final String description = "As of 2.31.0, wiremock [supports JUnit 5](https://wiremock.org/docs/junit-jupiter/) via an extension.";
 
     @Override
+    public List<Recipe> getRecipeList() {
+        return singletonList(new ChangeType(WIREMOCK_RULE, WIREMOCK_EXTENSION, true));
+    }
+
+    @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("com.github.tomakehurst.wiremock.junit.WireMockRule", false), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>(WIREMOCK_RULE, false), new JavaVisitor<ExecutionContext>() {
+            @Override
+            public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                J.VariableDeclarations vd = (J.VariableDeclarations) super.visitVariableDeclarations(multiVariable, ctx);
+                if (multiVariable.getVariables().stream().noneMatch(v -> TypeUtils.isOfClassType(v.getType(), WIREMOCK_RULE))) {
+                    return vd;
+                }
+                maybeRemoveImport("org.junit.Rule");
+                maybeAddImport(REGISTER_EXTENSION);
+                return vd.withLeadingAnnotations(ListUtils.map(vd.getLeadingAnnotations(), a -> RULE.matches(a) ?
+                        a.withAnnotationType(TypeTree.<J.Identifier>build("RegisterExtension").withType(JavaType.ShallowClass.build(REGISTER_EXTENSION)).withPrefix(a.getAnnotationType().getPrefix())) :
+                        a));
+            }
 
             @Override
-            public J preVisit(J tree, ExecutionContext ctx) {
-                if (tree instanceof JavaSourceFile) {
-                    doAfterVisit(new ChangeType("com.github.tomakehurst.wiremock.junit.WireMockRule",
-                            "com.github.tomakehurst.wiremock.junit5.WireMockExtension", true).getVisitor());
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "httpsPort".equals(mi.getSimpleName()) ? "getHttpsPort" : null;
+                if (getter != null && mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), WIREMOCK_RULE)) {
+                    return mi.withName(mi.getName().withSimpleName(getter))
+                            .withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION)));
                 }
-                return tree;
+                return mi;
             }
 
             @SuppressWarnings("ConcatenationWithEmptyString")
             @Override
             public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
-                if (newWiremockRule.matches(n)) {
-                    maybeAddImport("com.github.tomakehurst.wiremock.junit5.WireMockExtension");
-                    doAfterVisit(new ChangeType("org.junit.Rule", "org.junit.jupiter.api.extension.RegisterExtension", true)
-                            .getVisitor());
+                if (NEW_WIREMOCK_RULE.matches(n)) {
+                    maybeAddImport(WIREMOCK_EXTENSION);
 
                     Expression arg = n.getArguments().get(0);
 
@@ -93,7 +113,7 @@ public class UseWiremockExtension extends Recipe {
                     if (arg instanceof J.Empty) {
                         String newWiremockExtension = "WireMockExtension.newInstance().build()";
                         return JavaTemplate.builder(newWiremockExtension)
-                                .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                                .imports(WIREMOCK_EXTENSION)
                                 .javaParser(wiremockParser)
                                 .build()
                                 .apply(getCursor(), n.getCoordinates().replace());
@@ -105,7 +125,7 @@ public class UseWiremockExtension extends Recipe {
                         if (n.getArguments().size() > 1) {
                             newWiremockExtension += ".failOnUnmatchedRequests(#{any(boolean)})";
                             return JavaTemplate.builder(newWiremockExtension + ".build()")
-                                    .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                                    .imports(WIREMOCK_EXTENSION)
                                     .javaParser(wiremockParser)
                                     .build()
                                     .apply(
@@ -116,7 +136,7 @@ public class UseWiremockExtension extends Recipe {
                                     );
                         }
                         return JavaTemplate.builder(newWiremockExtension + ".build()")
-                                .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                                .imports(WIREMOCK_EXTENSION)
                                 .javaParser(wiremockParser)
                                 .build()
                                 .apply(updateCursor(n), n.getCoordinates().replace(), arg);
@@ -128,7 +148,7 @@ public class UseWiremockExtension extends Recipe {
                         newWiremockExtension += ".httpsPort(#{any(java.lang.Integer)})";
                         return JavaTemplate.builder(newWiremockExtension + ").build()")
                                 .imports("com.github.tomakehurst.wiremock.core.WireMockConfiguration")
-                                .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                                .imports(WIREMOCK_EXTENSION)
                                 .javaParser(wiremockParser)
                                 .build()
                                 .apply(
@@ -140,7 +160,7 @@ public class UseWiremockExtension extends Recipe {
                     }
                     return JavaTemplate.builder(newWiremockExtension + ").build()")
                             .imports("com.github.tomakehurst.wiremock.core.WireMockConfiguration")
-                            .imports("com.github.tomakehurst.wiremock.junit5.WireMockExtension")
+                            .imports(WIREMOCK_EXTENSION)
                             .javaParser(wiremockParser)
                             .build()
                             .apply(updateCursor(n), n.getCoordinates().replace(), arg);
@@ -149,11 +169,5 @@ public class UseWiremockExtension extends Recipe {
                 return n;
             }
         });
-    }
-
-    @Override
-    public List<Recipe> getRecipeList() {
-        return singletonList(new UpgradeDependencyVersion("com.github.tomakehurst", "wiremock*",
-                "2.x", null, true, emptyList()));
     }
 }

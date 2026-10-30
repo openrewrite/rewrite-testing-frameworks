@@ -31,8 +31,8 @@ class EnvironmentVariablesTest implements RewriteTest {
           .parser(
             JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
-              "junit-jupiter-api",
-              "system-rules"));
+              "junit-jupiter-api-5",
+              "system-rules-1"));
     }
 
     @DocumentExample

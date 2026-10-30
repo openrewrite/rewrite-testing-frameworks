@@ -110,17 +110,15 @@ public class TestNgAssertionToAssertJ extends Recipe {
             }
 
             private boolean hasReferencesOutsideDeclaration(J scope, JavaType.Variable target, UUID declarationNameId) {
-                AtomicInteger count = new AtomicInteger();
-                new JavaIsoVisitor<AtomicInteger>() {
+                return new JavaIsoVisitor<AtomicInteger>() {
                     @Override
                     public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
-                        if (!identifier.getId().equals(declarationNameId) && target.equals(identifier.getFieldType())) {
+                        if (!identifier.getId().equals(declarationNameId) && TypeUtils.isOfType(target, identifier.getFieldType())) {
                             acc.incrementAndGet();
                         }
                         return identifier;
                     }
-                }.visit(scope, count);
-                return count.get() > 0;
+                }.reduce(scope, new AtomicInteger()).get() > 0;
             }
 
             private J.MethodInvocation equals(J.MethodInvocation method, ExecutionContext ctx, List<Expression> args,
@@ -142,11 +140,11 @@ public class TestNgAssertionToAssertJ extends Recipe {
 
             private J.MethodInvocation apply(J.MethodInvocation method, ExecutionContext ctx, String template,
                                              boolean usesWithin, Object... params) {
-                maybeAddImport("org.assertj.core.api.Assertions", "assertThat", false);
+                maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
                 JavaTemplate.Builder builder = JavaTemplate.builder(template)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"));
                 if (usesWithin) {
-                    maybeAddImport("org.assertj.core.api.Assertions", "within", false);
+                    maybeAddImport("org.assertj.core.api.Assertions", "within");
                     builder = builder.staticImports("org.assertj.core.api.Assertions.assertThat", "org.assertj.core.api.Assertions.within");
                 } else {
                     builder = builder.staticImports("org.assertj.core.api.Assertions.assertThat");
@@ -171,7 +169,7 @@ public class TestNgAssertionToAssertJ extends Recipe {
             }
 
             private J.MethodInvocation fail(J.MethodInvocation method, ExecutionContext ctx, List<Expression> args) {
-                maybeAddImport("org.assertj.core.api.Assertions", "fail", false);
+                maybeAddImport("org.assertj.core.api.Assertions", "fail");
                 // A no-arg `fail()` call carries a single J.Empty argument (not an empty list). AssertJ's no-arg
                 // static fail() does not resolve through the template classpath, so emit an empty message, matching
                 // JUnitFailToAssertJFail's convention for the message-less case.

@@ -15,7 +15,6 @@
  */
 package org.openrewrite.java.testing.junit5;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -619,7 +618,6 @@ class AddMissingNestedTest implements RewriteTest {
         );
     }
 
-    @Disabled("Should be enabled when Preconditions.not(new KotlinFileChecker<>()) is removed from the recipe")
     @Test
     void doesNotAnnotateKotlinObject() {
         //language=kotlin
@@ -640,7 +638,6 @@ class AddMissingNestedTest implements RewriteTest {
         );
     }
 
-    @Disabled("Should be enabled when Preconditions.not(new KotlinFileChecker<>()) is removed from the recipe")
     @Test
     void doesNotAnnotateKotlinCompanionObject() {
         //language=kotlin

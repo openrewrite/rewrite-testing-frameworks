@@ -29,7 +29,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-                "mockito-core",
+                "mockito-core-3",
                 "mockito-junit-jupiter",
                 "junit-4",
                 "junit-jupiter-api-5"))
@@ -859,5 +859,1229 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Test
+    void preserveHelperInitializationAndClose() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class HelperInitializationTest {
+                  @Mock
+                  Runnable managed;
+                  final Helper helper = new Helper();
+                  AutoCloseable helperMocks;
+
+                  @BeforeEach
+                  void setUp() {
+                      helperMocks = MockitoAnnotations.openMocks(helper);
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      helperMocks.close();
+                  }
+
+                  @Test
+                  void helperIsInitialized() {
+                      assertNotNull(managed, "extension initializes the managed instance");
+                      assertNotNull(helper.value, "manual initialization of helper must remain");
+                  }
+
+                  static class Helper {
+                      @Mock
+                      Runnable value;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInitializationInOrdinaryStaticFixtureConstructor() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class FixtureInitializationTest {
+                  @Test
+                  void fixtureIsInitialized() {
+                      assertNotNull(new Fixture().value);
+                  }
+
+                  static class Fixture {
+                      @Mock
+                      Runnable value;
+
+                      Fixture() {
+                          MockitoAnnotations.openMocks(this);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveForeignSameTypeNullComputedAndAmbiguousTargets() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.MockitoAnnotations.initMocks;
+              import static org.mockito.MockitoAnnotations.openMocks;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  Object helper = new Object();
+                  int evaluations;
+
+                  Object nextTarget() {
+                      evaluations++;
+                      return helper;
+                  }
+
+                  void setup(A other) {
+                      initMocks(other);
+                      openMocks(other);
+                      MockitoAnnotations.initMocks(helper);
+                      MockitoAnnotations.openMocks(new A());
+                      MockitoAnnotations.initMocks(null);
+                      MockitoAnnotations.openMocks((A) null);
+                      MockitoAnnotations.openMocks(nextTarget());
+                      A alias = this;
+                      MockitoAnnotations.openMocks(alias);
+                      MockitoAnnotations.openMocks((A) this);
+                      MockitoAnnotations.openMocks((this));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveForeignTargetWithJUnit4Runner() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.runner.RunWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class A {
+                  void setup(A other) {
+                      MockitoAnnotations.initMocks(other);
+                      MockitoAnnotations.openMocks(other);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveOrdinaryMemberLocalAndAnonymousInstances() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  class Fixture {
+                      Fixture() {
+                          MockitoAnnotations.initMocks(this);
+                      }
+                  }
+
+                  void setup() {
+                      class LocalFixture {
+                          LocalFixture() {
+                              MockitoAnnotations.openMocks(this);
+                          }
+                      }
+                      new LocalFixture();
+                      Runnable callback = new Runnable() {
+                          @Override
+                          public void run() {
+                              MockitoAnnotations.openMocks(this);
+                          }
+                      };
+                      callback.run();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveNestedBelowUnmanagedHelperAndJUnit4Runner() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  class Helper {
+                      @Nested
+                      class NestedFixture {
+                          void setup() {
+                              MockitoAnnotations.openMocks(this);
+                          }
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.runner.RunWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class B {
+                  @Nested
+                  class NestedFixture {
+                      void setup() {
+                          MockitoAnnotations.initMocks(this);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeOnlyManagedTargetAndKeepLambdaLexicalThis() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  void setup(Object helper) {
+                      MockitoAnnotations.openMocks(this);
+                      MockitoAnnotations.openMocks(helper);
+                      Runnable initialize = () -> {
+                          MockitoAnnotations.initMocks(this);
+                      };
+                      initialize.run();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  void setup(Object helper) {
+                      MockitoAnnotations.openMocks(helper);
+                      Runnable initialize = () -> {
+                      };
+                      initialize.run();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeManagedNestedChainAndOwnAnnotatedStaticClass() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Nested
+                  class Inner {
+                      @Nested
+                      class Deep {
+                          void setup() {
+                              MockitoAnnotations.openMocks(this);
+                          }
+                      }
+                  }
+
+                  @ExtendWith(MockitoExtension.class)
+                  static class Independent {
+                      void setup() {
+                          MockitoAnnotations.initMocks(this);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  @Nested
+                  class Inner {
+                      @Nested
+                      class Deep {
+                          void setup() {
+                          }
+                      }
+                  }
+
+                  @ExtendWith(MockitoExtension.class)
+                  static class Independent {
+                      void setup() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepForeignResourceAndRemoveOnlyManagedResource() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  void test(Object helper) throws Exception {
+                      try (AutoCloseable managed = MockitoAnnotations.openMocks(this);
+                           AutoCloseable foreign = MockitoAnnotations.openMocks(helper)) {
+                          System.out.println("body");
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  void test(Object helper) throws Exception {
+                      try (AutoCloseable foreign = MockitoAnnotations.openMocks(helper)) {
+                          System.out.println("body");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveComputedAndNullResourceTargets() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  int evaluations;
+
+                  Object nextTarget() {
+                      evaluations++;
+                      return null;
+                  }
+
+                  void test() throws Exception {
+                      try (AutoCloseable mocks = MockitoAnnotations.openMocks(nextTarget())) {
+                          System.out.println("body");
+                      }
+                      try (AutoCloseable mocks = MockitoAnnotations.openMocks(null)) {
+                          System.out.println("body");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepForeignHandleInMixedDeclaration() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  Object helper = new Object();
+                  AutoCloseable managed, foreign;
+
+                  @BeforeEach
+                  void setup() {
+                      managed = MockitoAnnotations.openMocks(this);
+                      foreign = MockitoAnnotations.openMocks(helper);
+                  }
+
+                  @AfterEach
+                  void teardown() throws Exception {
+                      managed.close();
+                      foreign.close();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  Object helper = new Object();
+                  AutoCloseable foreign;
+
+                  @BeforeEach
+                  void setup() {
+                      foreign = MockitoAnnotations.openMocks(helper);
+                  }
+
+                  @AfterEach
+                  void teardown() throws Exception {
+                      foreign.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveSharedHandleAndForeignOwnerWithSameFieldName() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  AutoCloseable mocks;
+
+                  void setup(Object other) throws Exception {
+                      mocks = MockitoAnnotations.openMocks(this);
+                      mocks.close();
+                      mocks = MockitoAnnotations.openMocks(other);
+                  }
+
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  class Fixture {
+                      AutoCloseable mocks;
+
+                      void setup() {
+                          mocks = MockitoAnnotations.openMocks(this);
+                      }
+
+                      void teardown() throws Exception {
+                          mocks.close();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveEscapingManagedHandle() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class A {
+                  AutoCloseable mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  AutoCloseable handle() {
+                      return mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveFormalParameterWhenRemovingManagedInitialization() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ParameterHandleTest {
+                  void initialize(AutoCloseable mocks) throws Exception {
+                      mocks = MockitoAnnotations.openMocks(this);
+                      mocks.close();
+                  }
+
+                  @Test
+                  void works() throws Exception {
+                      initialize(null);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ParameterHandleTest {
+                  void initialize(AutoCloseable mocks) throws Exception {
+                  }
+
+                  @Test
+                  void works() throws Exception {
+                      initialize(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveManagedResourceUsedByAnotherResource() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class DependentResourceTest {
+                  @Test
+                  void works() throws Exception {
+                      try (AutoCloseable managed = MockitoAnnotations.openMocks(this);
+                           AutoCloseable dependent = managed) {
+                          System.out.println("body");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleReadByAnotherTopLevelClass() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class ExternalHandleTest {
+                  AutoCloseable mocks;
+
+                  @BeforeEach
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test
+                  void handleRemainsObservable() {
+                      assertNotNull(new HandleReader().read(this));
+                  }
+              }
+
+              class HandleReader {
+                  AutoCloseable read(ExternalHandleTest owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleReadInAnotherSourceFile() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              class ExternalHandleTest {
+                  AutoCloseable mocks;
+
+                  @BeforeEach
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test
+                  void handleRemainsObservable() {
+                      assertNotNull(new HandleReader().read(this));
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class HandleReader {
+                  AutoCloseable read(ExternalHandleTest owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservePrivateNestedHandleReadByEnclosingClass() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              class Container {
+                  @ExtendWith(MockitoExtension.class)
+                  static class ManagedOwner {
+                      private AutoCloseable mocks;
+
+                      void setup() {
+                          mocks = MockitoAnnotations.openMocks(this);
+                      }
+
+                      void teardown() throws Exception {
+                          mocks.close();
+                      }
+                  }
+
+                  AutoCloseable read(ManagedOwner owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInheritedHandleDeclaredInAnotherSourceFile() {
+        rewriteRun(
+          java(
+            """
+              class Parent {
+                  protected AutoCloseable mocks;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class Child extends Parent {
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unrelatedFieldWithSameNameDoesNotPreventCleanup() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private AutoCloseable mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+
+                  void setup() {
+                  }
+
+                  void teardown() throws Exception {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class UnrelatedOwner {
+                  AutoCloseable mocks;
+
+                  AutoCloseable read() {
+                      return mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleWithUnusedExplicitStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.importonly;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              public class StaticHandleTest {
+                  public static AutoCloseable mocks;
+
+                  @BeforeEach void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test void works() {
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/importonly/StaticHandleTest.java")
+          ),
+          java(
+            """
+              package review.f7.importonly;
+
+              import static review.f7.importonly.StaticHandleTest.mocks;
+
+              final class UnusedFieldImport {
+              }
+              """,
+            spec -> spec.path("review/f7/importonly/UnusedFieldImport.java")
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleReadThroughExplicitStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.imported;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              public class StaticHandleTest {
+                  public static AutoCloseable mocks;
+
+                  @BeforeEach void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test void handleRemainsObservable() {
+                      assertNotNull(ImportedHandleReader.read());
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/StaticHandleTest.java")
+          ),
+          java(
+            """
+              package review.f7.imported;
+
+              import static review.f7.imported.StaticHandleTest.mocks;
+
+              final class ImportedHandleReader {
+                  static AutoCloseable read() {
+                      return mocks;
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/ImportedHandleReader.java")
+          )
+        );
+    }
+
+    @Test
+    void preserveHandleReadThroughWildcardStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.imported;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              @ExtendWith(MockitoExtension.class)
+              public class StaticHandleTest {
+                  public static AutoCloseable mocks;
+
+                  @BeforeEach void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach void teardown() throws Exception {
+                      mocks.close();
+                  }
+
+                  @Test void handleRemainsObservable() {
+                      assertNotNull(ImportedHandleReader.read());
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/StaticHandleTest.java")
+          ),
+          java(
+            """
+              package review.f7.imported;
+
+              import static review.f7.imported.StaticHandleTest.*;
+
+              final class ImportedHandleReader {
+                  static AutoCloseable read() {
+                      return mocks;
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/imported/ImportedHandleReader.java")
+          )
+        );
+    }
+
+    @Test
+    void unrelatedStaticFieldImportDoesNotPreventCleanup() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.unrelatedimport;
+
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private AutoCloseable mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  void teardown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """,
+            """
+              package review.f7.unrelatedimport;
+
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+
+                  void setup() {
+                  }
+
+                  void teardown() throws Exception {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package review.f7.unrelatedimport;
+
+              public class UnrelatedOwner {
+                  public static AutoCloseable mocks;
+              }
+              """
+          ),
+          java(
+            """
+              package review.f7.unrelatedimport;
+
+              import static review.f7.unrelatedimport.UnrelatedOwner.mocks;
+
+              class UnusedFieldImport {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeManagedInitializationAssignedToObjectField() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+
+                  void setup() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveObjectHandleReadInAnotherSourceFile() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class Reader {
+                  Object read(ManagedOwner owner) {
+                      return owner.mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInheritedObjectHandle() {
+        rewriteRun(
+          java(
+            """
+              class Parent {
+                  protected Object mocks;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class Child extends Parent {
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveInheritedGenericHandle() {
+        rewriteRun(
+          java(
+            """
+              class GenericParent<T> {
+                  protected T mocks;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class Child extends GenericParent<Object> {
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveObjectHandleWithUnusedExplicitStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package review.f7.objectimport;
+
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              public class ManagedOwner {
+                  public static Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """,
+            spec -> spec.path("review/f7/objectimport/ManagedOwner.java")
+          ),
+          java(
+            """
+              package review.f7.objectimport;
+
+              import static review.f7.objectimport.ManagedOwner.mocks;
+
+              class ImportOnly {
+              }
+              """,
+            spec -> spec.path("review/f7/objectimport/ImportOnly.java")
+          )
+        );
+    }
+
+    @Test
+    void unrelatedObjectFieldWithSameNameDoesNotPreventCleanup() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.MockitoAnnotations;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+                  private Object mocks;
+
+                  void setup() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              @ExtendWith(MockitoExtension.class)
+              class ManagedOwner {
+
+                  void setup() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              class UnrelatedOwner {
+                  Object mocks;
+
+                  Object read() {
+                      return mocks;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveObjectHandleRegardlessOfSourceOrder() {
+        String owner = """
+          import org.junit.jupiter.api.extension.ExtendWith;
+          import org.mockito.MockitoAnnotations;
+          import org.mockito.junit.jupiter.MockitoExtension;
+
+          @ExtendWith(MockitoExtension.class)
+          class ManagedOwner {
+              Object mocks;
+
+              void setup() {
+                  mocks = MockitoAnnotations.openMocks(this);
+              }
+          }
+          """;
+        String reader = """
+          class Reader {
+              Object read(ManagedOwner owner) {
+                  return owner.mocks;
+              }
+          }
+          """;
+        rewriteRun(java(owner), java(reader));
+        rewriteRun(java(reader), java(owner));
     }
 }

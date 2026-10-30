@@ -36,10 +36,10 @@ import java.util.List;
 public class TestRuleToTestInfo extends Recipe {
 
     @Getter
-    final String displayName = "JUnit TestName @Rule to JUnit Jupiter TestInfo";
+    final String displayName = "JUnit `TestName` `@Rule` to JUnit Jupiter `TestInfo`";
 
     @Getter
-    final String description = "Replace usages of JUnit 4's `@Rule TestName` with JUnit 5's TestInfo.";
+    final String description = "Replace usages of JUnit 4's `@Rule TestName` with JUnit 5's `TestInfo`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -77,12 +77,8 @@ public class TestRuleToTestInfo extends Recipe {
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations varDecls = super.visitVariableDeclarations(multiVariable, ctx);
             if (varDecls.getType() != null && TypeUtils.isOfClassType(varDecls.getType(), "org.junit.rules.TestName")) {
-                varDecls = varDecls.withLeadingAnnotations(ListUtils.map(varDecls.getLeadingAnnotations(), anno -> {
-                    if (RULE_ANNOTATION_MATCHER.matches(anno)) {
-                        return null;
-                    }
-                    return anno;
-                }));
+                varDecls = varDecls.withLeadingAnnotations(ListUtils.filter(varDecls.getLeadingAnnotations(), anno ->
+                        !RULE_ANNOTATION_MATCHER.matches(anno)));
                 varDecls = removeFinalModifier(varDecls);
                 getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance).putMessage("has-testName-rule", varDecls);
             }
@@ -107,7 +103,6 @@ public class TestRuleToTestInfo extends Recipe {
         public  J.@Nullable NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
             J.NewClass nc = super.visitNewClass(newClass, ctx);
             if (TypeUtils.isOfClassType(nc.getType(), "org.junit.rules.TestName")) {
-                //noinspection ConstantConditions
                 return null;
             }
             return nc;
@@ -185,7 +180,6 @@ public class TestRuleToTestInfo extends Recipe {
                         .build()
                         .apply(updateCursor(md), md.getCoordinates().replaceParameters());
 
-                //noinspection ConstantConditions
                 md = maybeAutoFormat(
                         md,
                         JavaTemplate.builder(testMethodStatement)

@@ -109,7 +109,7 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
             .logCompilationWarningsAndErrors(true)
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
-              "mockito-core",
+              "mockito-core-3",
               "powermock-module-junit4")),
           java(
             """
@@ -134,7 +134,7 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
 
-              @RunWith(MockitoJUnitRunner.class)
+              @RunWith(MockitoJUnitRunner.Silent.class)
               public class MyTest {
                   @Mock
                   Object myMock;
@@ -168,7 +168,6 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
               """,
             """
               import org.junit.Test;
-
 
               public class MyTest {
 

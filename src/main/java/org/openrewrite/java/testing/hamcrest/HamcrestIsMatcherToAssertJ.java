@@ -58,7 +58,8 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
                 Expression matcherArgument = args.get(args.size() - 1);
 
                 // Only handle is() matcher, but not is(Matcher) which nests another matcher
-                if (!IS_MATCHER.matches(matcherArgument) || IS_WITH_NESTED_MATCHER.matches(matcherArgument)) {
+                if (!IS_MATCHER.matches(matcherArgument) || IS_WITH_NESTED_MATCHER.matches(matcherArgument) ||
+                    HamcrestMatcherUtils.isLegacyClassMatcher(matcherArgument)) {
                     return mi;
                 }
 
@@ -85,7 +86,6 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
                         new Object[]{actualArgument, expectedArgument};
 
                 return JavaTemplate.builder(template)
-                        .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .build()

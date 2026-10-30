@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
-import static org.openrewrite.test.TypeValidation.all;
 
 class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Override
@@ -128,7 +127,6 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void notEqualToString() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -167,7 +165,6 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void notWithBareValue() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -206,7 +203,6 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void notFromCoreMatchers() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -234,6 +230,67 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
                       String str1 = "Hello world!";
                       String str2 = "Hello world!";
                       assertNotEquals(str1, str2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void negationDoesNotLeakIntoLaterAssertions() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.nullValue;
+
+              class ATest {
+                  void test(Object a, Object b) {
+                      assertThat(a, not(nullValue()));
+                      assertThat(b, nullValue());
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+
+              class ATest {
+                  void test(Object a, Object b) {
+                      assertNotNull(a);
+                      assertNull(b);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doubleNegation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.Matchers.not;
+              import static org.hamcrest.Matchers.nullValue;
+
+              class ATest {
+                  void test(Object a) {
+                      assertThat(a, not(not(nullValue())));
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertNull;
+
+              class ATest {
+                  void test(Object a) {
+                      assertNull(a);
                   }
               }
               """
@@ -549,7 +606,6 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     void sameInstance() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false)),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -1062,9 +1118,7 @@ class HamcrestMatcherToJUnit5Test implements RewriteTest {
     @Test
     void notEqualToKotlin() {
         rewriteRun(
-          // Unwrapping not() stores logical context on the ExecutionContext (see RemoveNotMatcherVisitor)
-          spec -> spec.typeValidationOptions(all().immutableExecutionContext(false))
-            .parser(KotlinParser.builder()
+          spec -> spec.parser(KotlinParser.builder()
               .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "hamcrest-3")),
           //language=kotlin
           kotlin(

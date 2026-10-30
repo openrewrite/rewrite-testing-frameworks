@@ -66,7 +66,7 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
               class MyServiceTest {
                   void testSetField() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "expectedValue");
                   }
@@ -199,13 +199,13 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
               class MyServiceTest {
                   void test() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "newValue");
-                      Field descriptionField = service.getClass().getDeclaredField("description");
+                      Field descriptionField = MyService.class.getDeclaredField("description");
                       descriptionField.setAccessible(true);
                       String desc = (String) descriptionField.get(service);
-                      Method computeMethod = service.getClass().getDeclaredMethod("compute");
+                      Method computeMethod = MyService.class.getDeclaredMethod("compute");
                       computeMethod.setAccessible(true);
                       String result = (String) computeMethod.invoke(service);
                   }

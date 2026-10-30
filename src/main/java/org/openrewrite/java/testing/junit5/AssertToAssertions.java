@@ -24,18 +24,22 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 
 public class AssertToAssertions extends Recipe {
 
     @Getter
-    final String displayName = "JUnit 4 `Assert` To JUnit Jupiter `Assertions`";
+    final String displayName = "JUnit 4 `Assert` to JUnit Jupiter `Assertions`";
 
     @Getter
     final String description = "Change JUnit 4's `org.junit.Assert` into JUnit Jupiter's `org.junit.jupiter.api.Assertions`.";
@@ -47,6 +51,11 @@ public class AssertToAssertions extends Recipe {
 
     public static class AssertToAssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         private static final JavaType ASSERTION_TYPE = JavaType.buildType("org.junit.Assert");
+        private static final String ASSERT_METHOD_NAMES = "assertMethodNames";
+        private static final MethodMatcher ASSERT_MATCHER = new MethodMatcher("org.junit.Assert *(..)");
+        private static final MethodMatcher ASSERT_THAT_MATCHER = new MethodMatcher("org.junit.Assert assertThat(..)");
+        private static final MethodMatcher ASSERT_SAME_OR_NOT_SAME_MATCHER = new MethodMatcher("org.junit.Assert assert*Same(*, *)");
+        private static final MethodMatcher ASSERT_EQUALS_OR_NOT_EQUALS_MATCHER = new MethodMatcher("org.junit.Assert assert*Equals(*, *)");
 
         @Override
         public @Nullable J preVisit(J tree, ExecutionContext ctx) {
@@ -71,7 +80,11 @@ public class AssertToAssertions extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             if (cd.getExtends() != null && TypeUtils.isOfType(ASSERTION_TYPE, cd.getExtends().getType())) {
+                JavaType.FullyQualified assertType = TypeUtils.asFullyQualified(cd.getExtends().getType());
                 cd = cd.withExtends(null);
+                if (cd.getType() instanceof JavaType.Class && assertType != null) {
+                    cd = cd.withType(((JavaType.Class) cd.getType()).withSupertype(assertType.getSupertype()));
+                }
                 maybeRemoveImport("org.junit.Assert");
             }
             return cd;
@@ -83,20 +96,13 @@ public class AssertToAssertions extends Recipe {
             if (!isJunitAssertMethod(m)) {
                 return m;
             }
-            doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + m.getSimpleName() + "(..)",
-                    "org.junit.jupiter.api.Assertions", null, null, true)
-                    .getVisitor());
+            changeTargetToAssertions(m.getSimpleName());
 
             List<JRightPadded<Expression>> args = m.getPadding().getArguments().getPadding().getElements();
             Expression firstArg = args.get(0).getElement();
             // Suppress arg-switching for Assertions.assertEquals(String, String)
-            if (args.size() == 2) {
-                if ("assertSame".equals(m.getSimpleName()) ||
-                    "assertNotSame".equals(m.getSimpleName()) ||
-                    "assertEquals".equals(m.getSimpleName()) ||
-                    "assertNotEquals".equals(m.getSimpleName())) {
-                    return m;
-                }
+            if (ASSERT_SAME_OR_NOT_SAME_MATCHER.matches(m) || ASSERT_EQUALS_OR_NOT_EQUALS_MATCHER.matches(m)) {
+                return m;
             }
             if (TypeUtils.isString(firstArg.getType())) {
                 // Move the first arg to be the last argument
@@ -142,22 +148,27 @@ public class AssertToAssertions extends Recipe {
         public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
             J.MemberReference mr = super.visitMemberReference(memberRef, ctx);
             if (isJunitAssertMethod(mr)) {
-                doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + mr.getReference().getSimpleName() + "(..)",
-                        "org.junit.jupiter.api.Assertions", null, null, true)
-                        .getVisitor());
+                changeTargetToAssertions(mr.getReference().getSimpleName());
             }
             return mr;
         }
 
-        private static boolean isJunitAssertMethod(MethodCall memberRef) {
-            if (memberRef.getMethodType() == null || !TypeUtils.isOfType(ASSERTION_TYPE, memberRef.getMethodType().getDeclaringType())) {
-                return false;
+        @Override
+        public J postVisit(J tree, ExecutionContext ctx) {
+            if (tree instanceof JavaSourceFile) {
+                for (String methodName : getCursor().<Set<String>>getMessage(ASSERT_METHOD_NAMES, emptySet())) {
+                    doAfterVisit(new ChangeMethodTargetToStatic("org.junit.Assert " + methodName + "(..)", "org.junit.jupiter.api.Assertions", null, null, false).getVisitor());
+                }
             }
-            if (memberRef instanceof J.MemberReference) {
-                return !"assertThat".equals(((J.MemberReference) memberRef).getReference().getSimpleName());
-            }
-            return memberRef instanceof J.MethodInvocation &&
-                    !"assertThat".equals(((J.MethodInvocation) memberRef).getSimpleName());
+            return tree;
+        }
+
+        private void changeTargetToAssertions(String methodName) {
+            getCursor().dropParentUntil(JavaSourceFile.class::isInstance).computeMessageIfAbsent(ASSERT_METHOD_NAMES, k -> new LinkedHashSet<String>()).add(methodName);
+        }
+
+        private static boolean isJunitAssertMethod(MethodCall call) {
+            return ASSERT_MATCHER.matches(call) && !ASSERT_THAT_MATCHER.matches(call);
         }
     }
 }

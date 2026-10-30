@@ -81,7 +81,6 @@ public class RunnerToExtension extends Recipe {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
                 for (String runner : runners) {
-                    //noinspection ConstantConditions
                     for (J.Annotation runWith : FindAnnotations.find(classDecl.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
                         cd = buildExtendsWithTemplate(ctx).apply(
                                 updateCursor(cd),

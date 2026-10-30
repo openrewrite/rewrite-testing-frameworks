@@ -15,14 +15,28 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import javax.tools.JavaCompiler;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
+import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 
 class TestsShouldNotBePublicTest implements RewriteTest {
@@ -570,4 +584,743 @@ class TestsShouldNotBePublicTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1211")
+    @Test
+    void preserveLifecycleMethodForCrossPackageSubclass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends BaseTest {
+                  @Override
+                  @BeforeEach
+                  public void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveLifecycleMethodThroughGenericIntermediateClass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class GenericBase<T> {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package middle;
+
+              import base.GenericBase;
+
+              public class MiddleTest extends GenericBase<String> {
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import middle.MiddleTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends MiddleTest {
+                  @Override
+                  @BeforeEach
+                  public void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveProtectedLifecycleMethodForCrossPackageSubclass() {
+        rewriteRun(
+          spec -> spec.recipe(new TestsShouldNotBePublic(true)),
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  protected void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends BaseTest {
+                  @Override
+                  @BeforeEach
+                  protected void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveLifecycleMethodForAnonymousSubclass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+
+                  public void helper() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest {
+                  @Test
+                  void works() {
+                      new BaseTest() {
+                          @Override
+                          @BeforeEach
+                          public void setUp() {
+                              super.setUp();
+                          }
+                      }.setUp();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preservePublicClassForAnonymousSubclass() {
+        rewriteRun(
+          java(
+            """
+              package base;
+
+              import org.junit.jupiter.api.BeforeEach;
+
+              public class BaseTest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package child;
+
+              import base.BaseTest;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest {
+                  @Test
+                  void works() {
+                      new BaseTest() {}.setUp();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveLifecycleMethodThroughBinaryIntermediateClass(@TempDir Path tempDir) throws Exception {
+        String baseSource = """
+          package base;
+
+          import org.junit.jupiter.api.BeforeEach;
+
+          public class BaseTest<T> {
+              @BeforeEach
+              public void setUp() {
+              }
+
+              public void helper() {
+              }
+          }
+          """;
+        Path baseFile = tempDir.resolve("base/BaseTest.java");
+        Path middleFile = tempDir.resolve("middle/MiddleTest.java");
+        Path classes = tempDir.resolve("classes");
+        Files.createDirectories(baseFile.getParent());
+        Files.createDirectories(middleFile.getParent());
+        Files.createDirectories(classes);
+        Files.writeString(baseFile, baseSource);
+        Files.writeString(middleFile, """
+          package middle;
+
+          public class MiddleTest extends base.BaseTest<String> {
+          }
+          """);
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        assertThat(compiler).isNotNull();
+        StringWriter diagnostics = new StringWriter();
+        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null)) {
+            assertThat(compiler.getTask(diagnostics, fileManager, null,
+              List.of("-classpath", Path.of(BeforeEach.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toString(),
+                "-d", classes.toString()), null,
+              fileManager.getJavaFileObjects(baseFile, middleFile)).call())
+              .as("Compile the actual base and intermediate fixtures: %s", diagnostics)
+              .isTrue();
+        }
+        byte[] middleClass = Files.readAllBytes(classes.resolve("middle/MiddleTest.class"));
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")
+            .classpath(middleClass)),
+          java(baseSource),
+          java(
+            """
+              package child;
+
+              import middle.MiddleTest;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ChildTest extends MiddleTest {
+                  @Override
+                  @BeforeEach
+                  public void setUp() {
+                      super.setUp();
+                  }
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """,
+            spec -> spec.beforeRecipe(cu -> {
+                assertThat(cu.getClasses().get(0).getType().getSupertype().getFullyQualifiedName())
+                  .isEqualTo("middle.MiddleTest");
+                assertThat(cu.getClasses().get(0).getType().getSupertype().getSupertype().getFullyQualifiedName())
+                  .isEqualTo("base.BaseTest");
+            })
+          )
+        );
+    }
+
+    @Test
+    void removeVisibilityWhenOnlyInstantiated() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              public class ATest {
+                  @BeforeEach
+                  public void setUp() {
+                  }
+
+                  @Test
+                  public void works() {
+                      new ATest();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
+
+              class ATest {
+                  @BeforeEach
+                  void setUp() {
+                  }
+
+                  @Test
+                  void works() {
+                      new ATest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/458")
+    @Test
+    void preserveClassReferencedFromAnotherPackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  public void works() {
+                  }
+              }
+              """,
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/458")
+    @Test
+    void preserveClassImportedForJavadocInAnotherPackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              /**
+               * See {@link FixtureTest}.
+               */
+              class Reference {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassReferencedByFullyQualifiedName() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              class Reference {
+                  Class<?> fixtureType = fixture.FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassReferencedThroughWildcardImport() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.*;
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveEnclosingClassOfReferencedNestedTest() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Nested;
+              import org.junit.jupiter.api.Test;
+
+              public class OuterTest {
+                  @Test
+                  void outer() {
+                  }
+
+                  @Nested
+                  public class NestedTest {
+                      @Test
+                      void inner() {
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.OuterTest.NestedTest;
+
+              class Reference {
+                  Class<?> fixtureType = NestedTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassUsedByStaticImport() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  public static final int VALUE = 1;
+
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import static fixture.FixtureTest.VALUE;
+
+              class Reference {
+                  int value = VALUE;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removePublicClassWhenOnlyReferencedInSamePackage() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """,
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package fixture;
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ignoreDifferentTypeWithSameSimpleName() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """,
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              class FixtureTest {
+              }
+
+              class Reference {
+                  Class<?> fixtureType = FixtureTest.class;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void preserveClassImportedWithoutTypeMetadata() {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class FixtureTest {
+                  @Test
+                  void works() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import fixture.FixtureTest;
+
+              class Reference {
+              }
+              """,
+            spec -> spec.mapBeforeRecipe(cu -> cu.withImports(cu.getImports().stream()
+              .map(i -> (J.Import) new JavaIsoVisitor<Integer>() {
+                  @Override
+                  public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                      return super.visitIdentifier(identifier, p).withType(null);
+                  }
+
+                  @Override
+                  public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
+                      return super.visitFieldAccess(fieldAccess, p).withType(null);
+                  }
+              }.visit(i, 0))
+              .collect(Collectors.toList())))
+          )
+        );
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticJavadocImport() {
+        preserveNestedClassUsedByStaticImport(false, true);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticJavadocImportWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, true);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticImport() {
+        preserveNestedClassUsedByStaticImport(false, false);
+    }
+
+    @Test
+    void preserveNestedClassUsedByStaticImportWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false);
+    }
+
+    @Test
+    void preserveNestedClassImportedWithCommentWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false,
+          "fixture.OuterTest./* imported type */NestedTest");
+    }
+
+    @Test
+    void preserveNestedClassImportedWithWhitespaceWithoutTypeMetadata() {
+        preserveNestedClassUsedByStaticImport(true, false, "fixture . OuterTest . NestedTest");
+    }
+
+    private void preserveNestedClassUsedByStaticImport(boolean clearImportTypes, boolean includeJavadoc) {
+        preserveNestedClassUsedByStaticImport(clearImportTypes, includeJavadoc, "fixture.OuterTest.NestedTest");
+    }
+
+    private void preserveNestedClassUsedByStaticImport(boolean clearImportTypes, boolean includeJavadoc,
+                                                      String importedType) {
+        rewriteRun(
+          java(
+            """
+              package fixture;
+
+              import org.junit.jupiter.api.Test;
+
+              public class OuterTest {
+                  @Test
+                  void outer() {
+                  }
+
+                  public static class NestedTest {
+                      @Test
+                      void inner() {
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package consumer;
+
+              import static %s;
+
+              %s
+              class Reference {
+              }
+              """.formatted(importedType, includeJavadoc ? "/** See {@link NestedTest}. */" : ""),
+            spec -> {
+                if (clearImportTypes) {
+                    spec.mapBeforeRecipe(cu -> cu.withImports(cu.getImports().stream()
+                      .map(i -> (J.Import) new JavaIsoVisitor<Integer>() {
+                          @Override
+                          public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                              return super.visitIdentifier(identifier, p).withType(null);
+                          }
+
+                          @Override
+                          public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
+                              return super.visitFieldAccess(fieldAccess, p).withType(null);
+                          }
+                      }.visit(i, 0))
+                      .collect(Collectors.toList())));
+                }
+            }
+          )
+        );
+    }
+
 }

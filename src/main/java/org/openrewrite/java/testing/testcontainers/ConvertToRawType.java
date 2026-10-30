@@ -53,6 +53,20 @@ public class ConvertToRawType extends Recipe {
             }
 
             @Override
+            public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration md = (J.MethodDeclaration) super.visitMethodDeclaration(method, ctx);
+                JavaType.Method mt = md.getMethodType();
+                if (mt != null) {
+                    JavaType returnType = visitType(mt.getReturnType(), ctx);
+                    if (returnType != mt.getReturnType()) {
+                        mt = mt.withReturnType(returnType);
+                        md = md.withMethodType(mt).withName(md.getName().withType(mt));
+                    }
+                }
+                return md;
+            }
+
+            @Override
             public J visitParameterizedType(J.ParameterizedType type, ExecutionContext ctx) {
                 J.ParameterizedType pt = (J.ParameterizedType) super.visitParameterizedType(type, ctx);
                 if (TypeUtils.isAssignableTo(fullyQualifiedTypeName, pt.getType())) {

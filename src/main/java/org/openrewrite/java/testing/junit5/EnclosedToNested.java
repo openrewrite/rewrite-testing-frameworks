@@ -33,10 +33,11 @@ public class EnclosedToNested extends Recipe {
     private static final String ENCLOSED = "org.junit.experimental.runners.Enclosed";
     private static final String RUN_WITH = "org.junit.runner.RunWith";
     private static final String RUN_WITH_ENCLOSED = String.format("@%s(%s.class)", RUN_WITH, ENCLOSED);
+    private static final AnnotationMatcher RUN_WITH_ENCLOSED_MATCHER = new AnnotationMatcher(RUN_WITH_ENCLOSED);
 
     String displayName = "JUnit 4 `@RunWith(Enclosed.class)` to JUnit Jupiter `@Nested`";
 
-    String description = "Removes the `Enclosed` specification from a class, with `Nested` added to its inner classes by `AddMissingNested`.";
+    String description = "Replaces the `Enclosed` runner with `@Nested` on its inner test classes, preserving independent static test classes.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -44,9 +45,17 @@ public class EnclosedToNested extends Recipe {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+                if (cd.getLeadingAnnotations().stream().noneMatch(RUN_WITH_ENCLOSED_MATCHER::matches)) {
+                    return cd;
+                }
                 maybeRemoveImport(ENCLOSED);
                 maybeRemoveImport(RUN_WITH);
-                return (J.ClassDeclaration) new RemoveAnnotationVisitor(new AnnotationMatcher(RUN_WITH_ENCLOSED)).visitNonNull(cd, ctx, getCursor().getParentTreeCursor());
+                cd = (J.ClassDeclaration) new RemoveAnnotationVisitor(RUN_WITH_ENCLOSED_MATCHER)
+                        .visitNonNull(cd, ctx, getCursor().getParentTreeCursor());
+                cd = cd.withBody((J.Block) new AddMissingNested.AddNestedAnnotationVisitor()
+                        .visitNonNull(cd.getBody(), ctx, updateCursor(cd)));
+                maybeAddImport("org.junit.jupiter.api.Nested");
+                return cd;
             }
         });
     }

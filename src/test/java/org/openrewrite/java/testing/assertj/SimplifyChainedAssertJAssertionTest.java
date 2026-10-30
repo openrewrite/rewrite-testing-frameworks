@@ -62,6 +62,32 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
     }
 
     @Test
+    void fullyQualifiedAssertThat() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.lang.String")),
+          //language=java
+          java(
+            """
+              class MyTest {
+                  void testMethod(String actual) {
+                      org.assertj.core.api.Assertions.assertThat(actual.isEmpty()).isTrue();
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  void testMethod(String actual) {
+                      assertThat(actual).isEmpty();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void stringIsEmptyDescribedAs() {
         rewriteRun(
           spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.lang.String")),
@@ -839,6 +865,42 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               class MyTest {
                   void testMethod(List<String> list) {
                       assertThat(list.size()).isEqualTo(1L);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void collectionOfClassDeclaredInTestFile() {
+        rewriteRun(
+          spec -> spec.recipe(new SimplifyChainedAssertJAssertion("isEmpty", "isTrue", "isEmpty", "java.util.Collection")),
+          //language=java
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(items.isEmpty()).isTrue();
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  static class Item {}
+
+                  void testMethod(List<Item> items) {
+                      assertThat(items).isEmpty();
                   }
               }
               """

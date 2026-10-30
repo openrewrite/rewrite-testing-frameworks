@@ -15,7 +15,7 @@
 <div align="center">
 
 <!-- Keep the gap above this line, otherwise they won't render correctly! -->
-[![ci](https://github.com/openrewrite/rewrite-testing-frameworks/actions/workflows/ci.yml/badge.svg)](https://github.com/openrewrite/rewrite-testing-frameworks/actions/workflows/ci.yml)
+[![ci](https://codegenomeproject.org/ci/modules/openrewrite/rewrite-testing-frameworks/badge.svg)](https://codegenomeproject.org/ci/modules/openrewrite/rewrite-testing-frameworks/builds/latest)
 [![Revved up by Gradle Enterprise](https://img.shields.io/badge/Revved%20up%20by-Gradle%20Enterprise-06A0CE?logo=Gradle&labelColor=02303A)](https://community.develocity.cloud/scans)
 [![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-informational)](https://github.com/openrewrite/.github/blob/main/CONTRIBUTING.md)
 </div>

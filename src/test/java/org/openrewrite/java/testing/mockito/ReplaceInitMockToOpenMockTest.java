@@ -32,7 +32,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-                "mockito-core",
+                "mockito-core-3",
                 "mockito-junit-jupiter",
                 "junit-4",
                 "junit-jupiter-api-5"))
@@ -96,6 +96,45 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
         );
     }
 
+
+    @Test
+    void separatesAddedFieldFromFirstMember() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+                  @BeforeEach
+                  public void setUp() {
+                      MockitoAnnotations.initMocks(this);
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockitoAnnotations;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class A {
+                  private AutoCloseable mocks;
+
+                  @BeforeEach
+                  public void setUp() {
+                      mocks = MockitoAnnotations.openMocks(this);
+                  }
+
+                  @AfterEach
+                  void tearDown() throws Exception {
+                      mocks.close();
+                  }
+              }
+              """
+          )
+        );
+    }
 
     @Test
     void replaceInitMocksWithStaticImportToOpenMocks() {
@@ -543,7 +582,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     void replaceInitMocksToOpenMocksKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-3")),
           //language=kotlin
           kotlin(
             """
@@ -604,7 +643,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     void annotatedAfterEachMethodIsAlreadyPresentKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-3")),
           //language=kotlin
           kotlin(
             """
@@ -672,7 +711,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     void kotlinNestedInnerClassBacktickNamesAndExtensionFunctions() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-3")),
           //language=kotlin
           kotlin(
             """

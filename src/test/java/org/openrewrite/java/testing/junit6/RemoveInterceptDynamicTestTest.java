@@ -36,13 +36,12 @@ class RemoveInterceptDynamicTestTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void removeInterceptDynamicTestMethod() {
+    void addInvocationContextParameter() {
         rewriteRun(
           java(
             """
               import org.junit.jupiter.api.extension.ExtensionContext;
               import org.junit.jupiter.api.extension.InvocationInterceptor;
-              import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 
               class MyInterceptor implements InvocationInterceptor {
                   @Override
@@ -51,28 +50,126 @@ class RemoveInterceptDynamicTestTest implements RewriteTest {
                       invocation.proceed();
                       System.out.println("After dynamic test");
                   }
-
-                  @Override
-                  public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-                      invocation.proceed();
-                  }
-
-                  private static class Method {}
               }
               """,
             """
+              import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import org.junit.jupiter.api.extension.InvocationInterceptor;
+
+              class MyInterceptor implements InvocationInterceptor {
+                  @Override
+                  public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext, ExtensionContext extensionContext) throws Throwable {
+                      System.out.println("Before dynamic test");
+                      invocation.proceed();
+                      System.out.println("After dynamic test");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void avoidClashWithExistingName() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import org.junit.jupiter.api.extension.InvocationInterceptor;
+
+              class MyInterceptor implements InvocationInterceptor {
+                  private final String invocationContext = "dynamic";
+
+                  @Override
+                  public void interceptDynamicTest(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
+                      System.out.println(invocationContext);
+                      invocation.proceed();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import org.junit.jupiter.api.extension.InvocationInterceptor;
+
+              class MyInterceptor implements InvocationInterceptor {
+                  private final String invocationContext = "dynamic";
+
+                  @Override
+                  public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext1, ExtensionContext extensionContext) throws Throwable {
+                      System.out.println(invocationContext);
+                      invocation.proceed();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeTwoArgumentOverloadWhenThreeArgumentOverloadIsDeclared() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import org.junit.jupiter.api.extension.InvocationInterceptor;
+
+              class MyInterceptor implements InvocationInterceptor {
+                  @Override
+                  public void interceptDynamicTest(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
+                      invocation.proceed();
+                  }
+
+                  @Override
+                  public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext, ExtensionContext extensionContext) throws Throwable {
+                      System.out.println(invocationContext.getExecutable());
+                      invocation.proceed();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import org.junit.jupiter.api.extension.InvocationInterceptor;
+
+              class MyInterceptor implements InvocationInterceptor {
+
+                  @Override
+                  public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext, ExtensionContext extensionContext) throws Throwable {
+                      System.out.println(invocationContext.getExecutable());
+                      invocation.proceed();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepThreeArgumentOverload() {
+        rewriteRun(
+          java(
+            """
+              import java.lang.reflect.Method;
+
+              import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
               import org.junit.jupiter.api.extension.ExtensionContext;
               import org.junit.jupiter.api.extension.InvocationInterceptor;
               import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 
               class MyInterceptor implements InvocationInterceptor {
+                  @Override
+                  public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext, ExtensionContext extensionContext) throws Throwable {
+                      System.out.println(invocationContext.getExecutable());
+                      invocation.proceed();
+                  }
 
                   @Override
                   public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
                       invocation.proceed();
                   }
-
-                  private static class Method {}
               }
               """
           )

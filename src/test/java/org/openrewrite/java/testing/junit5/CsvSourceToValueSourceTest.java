@@ -103,7 +103,7 @@ class CsvSourceToValueSourceTest implements RewriteTest {
     }
 
     @Test
-    void leaveKotlinNonStringCsvSourceUnchanged() {
+    void replaceCsvSourceWithValueSourceForIntegersKotlin() {
         rewriteRun(
           //language=kotlin
           kotlin(
@@ -114,6 +114,17 @@ class CsvSourceToValueSourceTest implements RewriteTest {
               class TestClass {
                   @ParameterizedTest
                   @CsvSource(value = ["1", "2", "3"])
+                  fun testWithInts(number: Int) {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.ValueSource
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(ints = [1, 2, 3])
                   fun testWithInts(number: Int) {
                   }
               }
@@ -511,7 +522,7 @@ class CsvSourceToValueSourceTest implements RewriteTest {
     }
 
     @Test
-    void preserveTextBlockAsValue() {
+    void doNotReplaceTextBlockAsValue() {
         rewriteRun(
           //language=java
           java(
@@ -522,22 +533,6 @@ class CsvSourceToValueSourceTest implements RewriteTest {
               class TestClass {
                   @ParameterizedTest
                   @CsvSource(\"""
-                          # Lower-case letters
-                          asdf
-                          a
-                          \""")
-                  void testWithStrings(String fruit) {
-                      System.out.println(fruit);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.params.ParameterizedTest;
-              import org.junit.jupiter.params.provider.ValueSource;
-
-              class TestClass {
-                  @ParameterizedTest
-                  @ValueSource(strings = \"""
                           # Lower-case letters
                           asdf
                           a
@@ -763,6 +758,119 @@ class CsvSourceToValueSourceTest implements RewriteTest {
                       \""")
                   void testWithMultipleParams(String fruit, int count) {
                       System.out.println(fruit + ": " + count);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotReplaceValuesChangedByCsvParsing() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource({"x, y", "z, w"})
+                  void withDelimiter(String s) {
+                  }
+
+                  @ParameterizedTest
+                  @CsvSource({"'a'", "b"})
+                  void withQuotes(String s) {
+                  }
+
+                  @ParameterizedTest
+                  @CsvSource({" padded ", "b"})
+                  void withSurroundingWhitespace(String s) {
+                  }
+
+                  @ParameterizedTest
+                  @CsvSource({"", "b"})
+                  void withEmptyValue(String s) {
+                  }
+
+                  @ParameterizedTest
+                  @CsvSource({"1, 2", "3"})
+                  void withDelimiterForInts(int i) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotReplaceNonLiteralValues() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.CsvSource;
+
+              class TestClass {
+                  static final String FRUIT = "apple, 1";
+
+                  @ParameterizedTest
+                  @CsvSource({FRUIT, "banana"})
+                  void testWithStrings(String fruit) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void replaceCsvSourceWithSingleValueKotlin() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.CsvSource
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource("apple")
+                  fun testWithSingleString(fruit: String) {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.ValueSource
+
+              class TestClass {
+                  @ParameterizedTest
+                  @ValueSource(strings = ["apple"])
+                  fun testWithSingleString(fruit: String) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotReplaceKotlinValuesChangedByCsvParsing() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import org.junit.jupiter.params.ParameterizedTest
+              import org.junit.jupiter.params.provider.CsvSource
+
+              class TestClass {
+                  @ParameterizedTest
+                  @CsvSource(value = ["x, y", "z"])
+                  fun testWithStrings(s: String) {
                   }
               }
               """

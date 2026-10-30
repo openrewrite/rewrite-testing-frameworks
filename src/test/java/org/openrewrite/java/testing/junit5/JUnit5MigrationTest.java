@@ -20,24 +20,39 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.Recipe;
+import org.openrewrite.RecipeRun;
 import org.openrewrite.Tree;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.test.RecipeSpec;
+import org.openrewrite.test.RewriteRunner;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
+import org.openrewrite.xml.tree.Xml;
 
 import java.util.regex.Pattern;
 
+import static java.util.Comparator.comparing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.Assertions.buildGradleKts;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 @SuppressWarnings({"NewClassNamingConvention", "EqualsWithItself", "deprecation", "LanguageMismatch"})
 class JUnit5MigrationTest implements RewriteTest {
+
+    // Runs only as many cycles as the Moderne CLI and platform would, rather than as many as the test expects
+    private static final RewriteRunner PRODUCTION_CYCLES = new RewriteRunner() {
+        @Override
+        public RecipeRun run(Recipe recipe, Context context) {
+            return recipe.run(context.getSources(), context.getExecutionContext(), 3, 1);
+        }
+    };
+
     @Override
     public void defaults(RecipeSpec spec) {
         spec
@@ -224,6 +239,182 @@ class JUnit5MigrationTest implements RewriteTest {
                   </dependencies>
               </project>
               """
+          )
+        );
+    }
+
+    @Test
+    void cucumberRunnerBecomesSuite() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "cucumber-junit-7"))
+            // The pom changes mark the project dirty, which keeps the imports explicit, so edit it first as a Maven build would
+            .beforeRecipe(sources -> sources.sort(comparing(source -> !(source instanceof Xml.Document)))),
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  package com.example.acceptance;
+
+                  import io.cucumber.junit.Cucumber;
+                  import io.cucumber.junit.CucumberOptions;
+                  import org.junit.AfterClass;
+                  import org.junit.BeforeClass;
+                  import org.junit.runner.RunWith;
+
+                  @RunWith(Cucumber.class)
+                  @CucumberOptions(features = "src/test/resources/acceptance/", tags = "@component_tests")
+                  public class AcceptanceTest {
+                      @BeforeClass
+                      public static void startServer() {
+                      }
+
+                      @AfterClass
+                      public static void stopServer() {
+                      }
+                  }
+                  """,
+                """
+                  package com.example.acceptance;
+
+                  import org.junit.platform.suite.api.AfterSuite;
+                  import org.junit.platform.suite.api.BeforeSuite;
+                  import org.junit.platform.suite.api.ConfigurationParameter;
+                  import org.junit.platform.suite.api.IncludeEngines;
+                  import org.junit.platform.suite.api.SelectClasspathResource;
+                  import org.junit.platform.suite.api.Suite;
+
+                  import static io.cucumber.junit.platform.engine.Constants.FILTER_TAGS_PROPERTY_NAME;
+                  import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
+                  @Suite
+                  @IncludeEngines("cucumber")
+                  @SelectClasspathResource("acceptance")
+                  @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@component_tests")
+                  @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.acceptance")
+                  public class AcceptanceTest {
+                      @BeforeSuite
+                      public static void startServer() {
+                      }
+
+                      @AfterSuite
+                      public static void stopServer() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>io.cucumber</groupId>
+                            <artifactId>cucumber-junit</artifactId>
+                            <version>7.18.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .contains("<artifactId>cucumber-junit-platform-engine</artifactId>")
+                .containsPattern("<artifactId>junit-platform-suite</artifactId>\\s*<version>1\\.")
+                .doesNotContain("<artifactId>cucumber-junit</artifactId>", "<artifactId>junit</artifactId>")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void cucumber4RunnerBecomesSuite() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(),
+                  "junit-4",
+                  "cucumber-core-4",
+                  "cucumber-junit-4"))
+            .beforeRecipe(sources -> sources.sort(comparing(source -> !(source instanceof Xml.Document)))),
+          mavenProject("project",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  package com.example.acceptance;
+
+                  import cucumber.api.CucumberOptions;
+                  import cucumber.api.junit.Cucumber;
+                  import org.junit.runner.RunWith;
+
+                  @RunWith(Cucumber.class)
+                  @CucumberOptions(features = "src/test/resources/acceptance/", tags = "@component_tests")
+                  public class AcceptanceTest {
+                  }
+                  """,
+                """
+                  package com.example.acceptance;
+
+                  import org.junit.platform.suite.api.ConfigurationParameter;
+                  import org.junit.platform.suite.api.IncludeEngines;
+                  import org.junit.platform.suite.api.SelectClasspathResource;
+                  import org.junit.platform.suite.api.Suite;
+
+                  import static io.cucumber.junit.platform.engine.Constants.FILTER_TAGS_PROPERTY_NAME;
+                  import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
+
+                  @Suite
+                  @IncludeEngines("cucumber")
+                  @SelectClasspathResource("acceptance")
+                  @ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@component_tests")
+                  @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.example.acceptance")
+                  public class AcceptanceTest {
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>demo</artifactId>
+                    <version>0.0.1-SNAPSHOT</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>io.cucumber</groupId>
+                            <artifactId>cucumber-junit</artifactId>
+                            <version>4.8.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>cucumber-junit-platform-engine</artifactId>\\s*<version>7\\.")
+                .containsPattern("<artifactId>junit-platform-suite</artifactId>\\s*<version>1\\.")
+                .doesNotContain("<artifactId>cucumber-junit</artifactId>", "<artifactId>junit</artifactId>")
+                .actual())
+            )
           )
         );
     }
@@ -594,6 +785,57 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Test
+    void migrateGradleKotlinDslBuild() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi("9.x")),
+          mavenProject("project",
+            //language=kotlin
+            buildGradleKts(
+              """
+                plugins {
+                    java
+                }
+                repositories {
+                    mavenCentral()
+                }
+                dependencies {
+                    testImplementation("junit:junit:4.13.2")
+                }
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("testImplementation\\(\"org\\.junit\\.jupiter:junit-jupiter:5\\.\\d+\\.\\d+\"\\)")
+                .contains("tasks.withType<Test>().configureEach {\n    useJUnitPlatform()\n}")
+                .doesNotContain("junit:junit")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void hello() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void hello() {
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
     void removeJunitVintageEngineFromMavenBuild() {
         rewriteRun(
           //language=xml
@@ -788,8 +1030,7 @@ class JUnit5MigrationTest implements RewriteTest {
 
                   @MockitoSettings(strictness = Strictness.WARN)
                   @ExtendWith(MockitoExtension.class)
-                  public class MyClassTest {
-                  }
+                  public class MyClassTest {}
                   """
               )
             ),
@@ -845,6 +1086,248 @@ class JUnit5MigrationTest implements RewriteTest {
                     </dependencies>
                 </project>
                 """
+            )
+          )
+        );
+    }
+
+    @Test
+    void addMockitoJupiterDependencyWhenPowerMockRunnerBecomesMockitoExtension() {
+        rewriteRun(
+          spec -> spec
+            .parser(JavaParser.fromJavaVersion()
+              .classpathFromResources(new InMemoryExecutionContext(),
+                "junit-4",
+                "mockito-core-3.12",
+                "powermock-module-junit4"))
+            .runner(PRODUCTION_CYCLES),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.junit.runner.RunWith;
+                  import org.mockito.Mock;
+                  import org.powermock.modules.junit4.PowerMockRunner;
+
+                  import java.util.List;
+
+                  @RunWith(PowerMockRunner.class)
+                  public class MyTest {
+                      @Mock
+                      List<String> list;
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.mockito.Mock;
+                  import org.mockito.junit.jupiter.MockitoExtension;
+                  import org.mockito.junit.jupiter.MockitoSettings;
+                  import org.mockito.quality.Strictness;
+
+                  import java.util.List;
+
+                  @MockitoSettings(strictness = Strictness.LENIENT)
+                  @ExtendWith(MockitoExtension.class)
+                  public class MyTest {
+                      @Mock
+                      List<String> list;
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>3.12.4</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.powermock</groupId>
+                            <artifactId>powermock-module-junit4</artifactId>
+                            <version>2.0.9</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.powermock</groupId>
+                            <artifactId>powermock-api-mockito2</artifactId>
+                            <version>2.0.9</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>4.11.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-junit-jupiter</artifactId>
+                            <version>4.11.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void addMigrationSupportForExternalResourceRule() {
+        rewriteRun(
+          spec -> spec.runner(PRODUCTION_CYCLES),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExternalResource;
+
+                  public class MyTest {
+                      @Rule
+                      public ExternalResource resource = new ExternalResource() {
+                      };
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.jupiter.api.Test;
+                  import org.junit.jupiter.api.extension.ExtendWith;
+                  import org.junit.jupiter.migrationsupport.rules.ExternalResourceSupport;
+                  import org.junit.rules.ExternalResource;
+
+                  @ExtendWith(ExternalResourceSupport.class)
+                  public class MyTest {
+                      @Rule
+                      public ExternalResource resource = new ExternalResource() {
+                      };
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-jupiter-migrationsupport</artifactId>\\s*<version>5\\.\\d+\\.\\d+</version>\\s*<scope>test</scope>")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void noMigrationSupportForTemporaryFolderRule() {
+        rewriteRun(
+          spec -> spec.runner(PRODUCTION_CYCLES),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.TemporaryFolder;
+
+                  public class MyTest {
+                      @Rule
+                      public TemporaryFolder folder = new TemporaryFolder();
+
+                      @Test
+                      public void someTest() {
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual)
+                  .contains("@TempDir")
+                  .doesNotContain("ExternalResourceSupport")
+                  .actual())
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <version>4.13.2</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .contains("<artifactId>junit-jupiter</artifactId>")
+                .doesNotContain("junit-jupiter-migrationsupport")
+                .actual())
             )
           )
         );

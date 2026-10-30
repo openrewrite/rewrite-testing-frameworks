@@ -188,7 +188,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import org.mockito.MockedConstruction;
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
-              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.*;
 
@@ -267,7 +266,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
 
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
-              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
 
               public class MockUpTest {
@@ -358,7 +356,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
             """
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
-              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.*;
 
@@ -376,7 +373,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
                       }).when(mockMockUpClass).changeMsg();
                       try (MockedStatic mockStaticMockUpClass = mockStatic(MockUpClass.class); MockedConstruction mockConsMockUpClass = mockConstructionWithAnswer(MockUpClass.class, delegatesTo(mockMockUpClass))) {
                           mockStaticMockUpClass.when(() -> MockUpClass.changeText(nullable(String.class))).thenAnswer(invocation -> {
-                              String text = invocation.getArgument(0);
                               MockUpClass.Save.text = "mockText";
                               return null;
                           });
@@ -457,7 +453,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import org.mockito.MockedConstruction;
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
-              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
 
               public class MockUpTest {
@@ -549,7 +544,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
               import org.mockito.MockedStatic;
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
-              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.Mockito.*;
 
               public class MockUpTest {
@@ -629,7 +623,6 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
 
               import static org.junit.Assert.assertEquals;
               import static org.mockito.AdditionalAnswers.delegatesTo;
-              import static org.mockito.Answers.CALLS_REAL_METHODS;
               import static org.mockito.ArgumentMatchers.nullable;
               import static org.mockito.Mockito.*;
 

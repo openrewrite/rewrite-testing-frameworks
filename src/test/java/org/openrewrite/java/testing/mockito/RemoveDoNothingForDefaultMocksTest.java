@@ -28,7 +28,7 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core", "junit-4"))
+        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core-5", "junit-4"))
           .recipe(new RemoveDoNothingForDefaultMocks());
     }
 
@@ -68,8 +68,6 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
               import java.io.BufferedWriter;
               import java.io.IOException;
 
-              import static org.mockito.ArgumentMatchers.anyString;
-
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
                   @Mock
@@ -77,6 +75,72 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
 
                   @Test
                   public void test() throws IOException {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removesImportsUsedOnlyInRemovedArguments() {
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              import org.mockito.Mock;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.Mockito.doNothing;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                      doNothing().when(consumer).accept(any(List.class));
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mock;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsArgumentImportsStillUsedByVerification() {
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+              import org.mockito.Mock;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.Mockito.doNothing;
+              import static org.mockito.Mockito.verify;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                      doNothing().when(consumer).accept(any(List.class));
+                      verify(consumer).accept(any(List.class));
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+              import org.mockito.Mock;
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.Mockito.verify;
+
+              class T {
+                  @Mock java.util.function.Consumer<Object> consumer;
+                  void test() {
+                      verify(consumer).accept(any(List.class));
                   }
               }
               """
@@ -115,13 +179,10 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
             """
               import org.junit.Test;
               import org.junit.runner.RunWith;
-              import org.mockito.ArgumentMatcher;
               import org.mockito.Mock;
               import org.mockito.junit.MockitoJUnitRunner;
               import java.io.BufferedWriter;
               import java.io.IOException;
-
-              import static org.mockito.ArgumentMatchers.argThat;
 
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {
@@ -470,9 +531,6 @@ class RemoveDoNothingForDefaultMocksTest implements RewriteTest {
               import org.mockito.junit.MockitoJUnitRunner;
               import java.io.BufferedWriter;
               import java.io.IOException;
-
-              import static org.mockito.ArgumentMatchers.anyString;
-              import static org.mockito.ArgumentMatchers.anyInt;
 
               @RunWith(MockitoJUnitRunner.class)
               class MyTest {

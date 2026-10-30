@@ -23,6 +23,7 @@ import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
@@ -30,6 +31,9 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
+
+import java.util.Arrays;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -40,7 +44,8 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
 
     @Option(displayName = "Threshold in seconds",
             description = "Timeouts of at least this many seconds (when the time unit is the default `SECONDS`) are " +
-                    "considered implausibly long and are rewritten to the equivalent number of minutes. " +
+                    "considered implausibly long and are rewritten to the equivalent number of minutes, when they are " +
+                    "a whole number of minutes. " +
                     "Defaults to `1000` seconds, about 17 minutes.",
             required = false,
             example = "1000")
@@ -49,11 +54,13 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
 
     String displayName = "Make implausibly long `@Timeout` values explicit in minutes";
 
-    String description = "JUnit Jupiter's `@Timeout` defaults to `TimeUnit.SECONDS`, so a value such as `@Timeout(10000)` is " +
-            "interpreted as almost three hours, which is most likely a mistake where milliseconds were intended. " +
+    String description = "JUnit Jupiter's `@Timeout` defaults to `TimeUnit.SECONDS`, so a value such as `@Timeout(7200)` is " +
+            "interpreted as two hours, which is most likely a mistake where milliseconds were intended. " +
             "This recipe rewrites such implausibly large second-based timeouts to the equivalent number of minutes, " +
-            "for instance `@Timeout(value = 167, unit = TimeUnit.MINUTES)`, preserving the original (likely " +
-            "erroneous) semantics while making the mistake far more visible for review.";
+            "for instance `@Timeout(value = 120, unit = TimeUnit.MINUTES)`, preserving the original (likely " +
+            "erroneous) semantics while making the mistake far more visible for review. Other attributes such as " +
+            "`threadMode` are kept, and values that are not a whole number of minutes are left unchanged, since " +
+            "rounding them would change the timeout.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -68,32 +75,51 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
 
                 Long seconds = null;
                 boolean defaultUnit = true;
+                boolean hasUnit = false;
                 for (Expression arg : a.getArguments()) {
-                    if (arg instanceof J.Assignment) {
-                        J.Assignment assignment = (J.Assignment) arg;
-                        String name = ((J.Identifier) assignment.getVariable()).getSimpleName();
-                        if ("value".equals(name)) {
-                            seconds = longValue(assignment.getAssignment());
-                        } else if ("unit".equals(name)) {
-                            defaultUnit = isSeconds(assignment.getAssignment());
-                        }
-                    } else {
-                        seconds = longValue(arg);
+                    String name = attributeName(arg);
+                    if ("value".equals(name)) {
+                        seconds = longValue(arg instanceof J.Assignment ? ((J.Assignment) arg).getAssignment() : arg);
+                    } else if ("unit".equals(name)) {
+                        defaultUnit = isSeconds(((J.Assignment) arg).getAssignment());
+                        hasUnit = true;
                     }
                 }
 
-                if (seconds == null || !defaultUnit || seconds < threshold) {
+                if (seconds == null || !defaultUnit || seconds < threshold || seconds % 60 != 0) {
                     return a;
                 }
 
-                long minutes = Math.round(seconds / 60.0);
-                maybeAddImport("java.util.concurrent.TimeUnit");
-                return JavaTemplate.builder("@Timeout(value = " + minutes + ", unit = TimeUnit.MINUTES)")
+                J.Annotation generated = JavaTemplate.builder("@Timeout(value = " + seconds / 60 + ", unit = TimeUnit.MINUTES)")
                         .javaParser(JavaParser.fromJavaVersion()
                                 .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .imports(TIMEOUT, "java.util.concurrent.TimeUnit")
                         .build()
                         .apply(getCursor(), a.getCoordinates().replace());
+                maybeAddImport("java.util.concurrent.TimeUnit");
+                maybeRemoveImport("java.util.concurrent.TimeUnit.SECONDS");
+
+                J.Assignment minutesValue = (J.Assignment) generated.getArguments().get(0);
+                J.Assignment minutesUnit = (J.Assignment) generated.getArguments().get(1);
+                boolean addUnit = !hasUnit;
+                return a.withArguments(ListUtils.flatMap(a.getArguments(), arg -> {
+                    String name = attributeName(arg);
+                    if ("value".equals(name)) {
+                        J.Assignment value = arg instanceof J.Assignment ?
+                                withValue((J.Assignment) arg, minutesValue) :
+                                minutesValue.withPrefix(arg.getPrefix());
+                        return addUnit ? Arrays.asList(value, minutesUnit.withPrefix(Space.SINGLE_SPACE)) : value;
+                    }
+                    return "unit".equals(name) ? withValue((J.Assignment) arg, minutesUnit) : arg;
+                }));
+            }
+
+            private String attributeName(Expression arg) {
+                return arg instanceof J.Assignment ? ((J.Identifier) ((J.Assignment) arg).getVariable()).getSimpleName() : "value";
+            }
+
+            private J.Assignment withValue(J.Assignment original, J.Assignment replacement) {
+                return original.withAssignment(replacement.getAssignment().withPrefix(original.getAssignment().getPrefix()));
             }
 
             private @Nullable Long longValue(Expression expr) {

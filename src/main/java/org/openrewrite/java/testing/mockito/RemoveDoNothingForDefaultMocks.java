@@ -29,6 +29,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.HashSet;
 import java.util.List;
@@ -158,7 +159,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                             if (value instanceof J.Lambda || value instanceof J.Case && ((J.Case) value).getStatements().isEmpty()) {
                                 return mi;
                             }
-                            maybeRemoveImport("org.mockito.Mockito.doNothing");
+                            typesReferencedBy(mi).forEach(this::maybeRemoveImport);
                             return null;
                         }
                         return mi;
@@ -173,12 +174,8 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         if (!STUBBER_WHEN_MATCHER.matches(whenCall)) {
                             return false;
                         }
-                        // Ensure doNothing() is standalone (not chained after doThrow() etc.)
-                        if (!(whenCall.getSelect() instanceof J.MethodInvocation)) {
-                            return false;
-                        }
-                        J.MethodInvocation doNothingCall = (J.MethodInvocation) whenCall.getSelect();
-                        if (!DO_NOTHING_MATCHER.matches(doNothingCall) || doNothingCall.getSelect() != null) {
+                        // Mockito.doNothing() only, not Stubber.doNothing() chained after doThrow() etc.
+                        if (!DO_NOTHING_MATCHER.matches(whenCall.getSelect())) {
                             return false;
                         }
                         // Check that the when() argument references a @Mock field
@@ -217,5 +214,19 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                     }
                 }
         );
+    }
+
+    private static Set<String> typesReferencedBy(J tree) {
+        return new JavaIsoVisitor<Set<String>>() {
+            @Override
+            public @Nullable JavaType visitType(@Nullable JavaType javaType, Set<String> types) {
+                JavaType owner = javaType instanceof JavaType.Method ? ((JavaType.Method) javaType).getDeclaringType() : javaType instanceof JavaType.Variable ? ((JavaType.Variable) javaType).getOwner() : javaType;
+                JavaType.FullyQualified type = TypeUtils.asFullyQualified(owner);
+                if (type != null) {
+                    types.add(type.getFullyQualifiedName());
+                }
+                return javaType;
+            }
+        }.reduce(tree, new HashSet<>());
     }
 }

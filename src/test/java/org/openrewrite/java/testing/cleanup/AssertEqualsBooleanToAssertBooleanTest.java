@@ -110,7 +110,6 @@ class AssertEqualsBooleanToAssertBooleanTest implements RewriteTest {
     @Test
     void assertTrueWithNonBoolean() {
         rewriteRun(
-          spec -> spec.recipe(new AssertEqualsBooleanToAssertBoolean()),
           // language=java
           java(
             """

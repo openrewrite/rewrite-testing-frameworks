@@ -104,6 +104,29 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
         );
     }
 
+    @Test
+    void preservesUnannotatedDelegate() {
+        rewriteRun(
+          java(
+            """
+              import org.mockito.junit.MockitoRule;
+
+              class Adapter {
+                  private final MockitoRule delegate;
+
+                  Adapter(MockitoRule delegate) {
+                      this.delegate = delegate;
+                  }
+
+                  void configure() {
+                      delegate.silent();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/86")
     @Test
     void leavesOtherRulesAlone() {

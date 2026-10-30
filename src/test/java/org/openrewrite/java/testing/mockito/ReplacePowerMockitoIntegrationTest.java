@@ -16,22 +16,37 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.maven.tree.ResolvedDependency;
+import org.openrewrite.maven.tree.Scope;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
+import org.openrewrite.xml.tree.Xml;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.stream.Collectors.toMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
+import static org.openrewrite.properties.Assertions.properties;
+import static org.openrewrite.test.SourceSpecs.text;
 
 class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     @Override
@@ -109,12 +124,11 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.Mockito;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeClass;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-                  private MockedStatic<Currency> mockedCurrency;
                   private MockedStatic<Calendar> mockedCalendar;
+                  private MockedStatic<Currency> mockedCurrency;
 
                   private Calendar calendarMock;
 
@@ -123,20 +137,20 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       calendarMock = Mockito.mock(Calendar.class);
                   }
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCurrency = Mockito.mockStatic(Currency.class);
-                      mockedCalendar = Mockito.mockStatic(Calendar.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
-                      mockedCurrency.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
+                      if (mockedCurrency != null) {
+                          mockedCurrency.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
+                      mockedCurrency = Mockito.mockStatic(Currency.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                       mockedCurrency.verify(Currency::getAvailableCurrencies, Mockito.never());
@@ -254,35 +268,34 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
-                  private MockedStatic<Currency> mockedCurrency;
                   private MockedStatic<Calendar> mockedCalendar;
+                  private MockedStatic<Currency> mockedCurrency;
 
                   private Calendar calendarMock = mock(Calendar.class);
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCurrency = mockStatic(Currency.class);
-                      mockedCalendar = mockStatic(Calendar.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
-                      mockedCurrency.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
+                      if (mockedCurrency != null) {
+                          mockedCurrency.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
+                      mockedCalendar = mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
 
                   @Test
                   void testWithCurrency() {
+                      mockedCurrency = mockStatic(Currency.class);
                       mockedCurrency.verify(Currency::getAvailableCurrencies, never());
                   }
 
@@ -422,18 +435,21 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
                   @BeforeMethod
                   void setUp() {
-                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                       calendarMock = Mockito.mock(Calendar.class);
                   }
 
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
-                      Mockito.spy(Calendar.class);
+                      mockedCalendar = Mockito.mockStatic(Calendar.class, Mockito.CALLS_REAL_METHODS);
+                      mockedCalendar.closeOnDemand();
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
@@ -485,24 +501,21 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import foo.StringFilter;
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class MyTest {
                   private MockedStatic<StringFilter> mockedStringFilter;
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedStringFilter = mockStatic(StringFilter.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedStringFilter.closeOnDemand();
+                      if (mockedStringFilter != null) {
+                          mockedStringFilter.closeOnDemand();
+                      }
                   }
 
                   @Test
                   public void testStaticMock() {
+                      mockedStringFilter = mockStatic(StringFilter.class);
                       mockedStringFilter.when(() -> StringFilter.splitFilterStringValues(anyString())).thenReturn(new String[]{"Fee", "Faa", "Foo"});
                   }
               }
@@ -580,25 +593,22 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
               import org.mockito.MockedStatic;
               import org.testng.annotations.AfterMethod;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class MyTest {
                   private MockedStatic<Calendar> mockedCalendar;
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCalendar = mockStatic(Calendar.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
                   }
 
                   @Test
                   public void testCalendarDynamic() throws Exception {
                       Calendar calendarMock = mock(Calendar.class);
+                      mockedCalendar = mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(any(Locale.class))).thenReturn(calendarMock);
                   }
               }
@@ -687,31 +697,42 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
-              import static org.mockito.Mockito.when;
-              import static org.mockito.Mockito.mock;
-
-              import org.junit.jupiter.api.Test;
+              import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
 
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.mock;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
 
                   public final String otherMethod() {
@@ -768,16 +789,21 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
-              import static org.mockito.Mockito.when;
-              import static org.mockito.Mockito.mock;
-
-              import org.junit.jupiter.api.Test;
+              import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
 
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.mock;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator1> mockedConstructionGenerator1;
+                  private MockedConstruction<Generator2> mockedConstructionGenerator2;
+
                   static class Generator1 {
                       public int getLuckyNumber() {
                         return 436;
@@ -789,22 +815,33 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator1 != null) {
+                          mockedConstructionGenerator1.closeOnDemand();
+                      }
+                      if (mockedConstructionGenerator2 != null) {
+                          mockedConstructionGenerator2.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator2> mockGenerator2 = Mockito.mockConstruction(Generator2.class)) {
-                          try (MockedConstruction<Generator1> mockGenerator1 = Mockito.mockConstruction(Generator1.class)) {
+                      Generator1 mock1 = mock(Generator1.class);
+                      mockedConstructionGenerator1 = Mockito.mockConstructionWithAnswer(Generator1.class, AdditionalAnswers.delegatesTo(mock1));
 
-                              Generator1 gen1 = new Generator1();
-                              when(gen1.getLuckyNumber()).thenReturn(504);
+                      Generator1 gen1 = new Generator1();
+                      when(gen1.getLuckyNumber()).thenReturn(504);
 
-                              assertEquals(504, gen1.getLuckyNumber());
+                      assertEquals(504, gen1.getLuckyNumber());
 
-                              Generator2 gen2 = new Generator2();
-                              when(gen2.getLuckyNumber()).thenReturn(504);
+                      Generator2 mock2 = mock(Generator2.class);
+                      mockedConstructionGenerator2 = Mockito.mockConstructionWithAnswer(Generator2.class, AdditionalAnswers.delegatesTo(mock2));
 
-                              assertEquals(504, gen2.getLuckyNumber());
-                          }
-                      }
+                      Generator2 gen2 = new Generator2();
+                      when(gen2.getLuckyNumber()).thenReturn(504);
+
+                      assertEquals(504, gen2.getLuckyNumber());
                   }
               }
               """
@@ -845,29 +882,40 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """.replaceAll("METHODCALL", methodCall),
             """
+              import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
               import static org.mockito.Mockito.when;
 
+              import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest2 {
+                  private MockedConstruction<SomeTexts> mockedConstructionSomeTexts;
+
                   static class SomeTexts {
                       String text;
                       public SomeTexts(String text) { this.text = text; }
                       public String getText() { return text; }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionSomeTexts != null) {
+                          mockedConstructionSomeTexts.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testWords() throws Exception {
-                      try (MockedConstruction<SomeTexts> mockSomeTexts = Mockito.mockConstruction(SomeTexts.class)) {
+                      SomeTexts mock = Mockito.mock(SomeTexts.class);
+                      mockedConstructionSomeTexts = Mockito.mockConstructionWithAnswer(SomeTexts.class, AdditionalAnswers.delegatesTo(mock));
 
-                          SomeTexts st = new SomeTexts("Have a nice day!");
-                          when(st.getText()).thenReturn("overridden");
+                      SomeTexts st = new SomeTexts("Have a nice day!");
+                      when(st.getText()).thenReturn("overridden");
 
-                          assertEquals("overridden", st.getText());
-                      }
+                      assertEquals("overridden", st.getText());
                   }
               }
               """
@@ -907,31 +955,42 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
-              import static org.mockito.Mockito.when;
-              import static org.mockito.Mockito.mock;
-
-              import org.junit.jupiter.api.Test;
+              import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
 
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.mock;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(MyTest.Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(MyTest.Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
               }
               """
@@ -1036,7 +1095,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.mockito.Mockito;
               import org.testng.annotations.AfterMethod;
               import org.testng.annotations.BeforeClass;
-              import org.testng.annotations.BeforeMethod;
               import org.testng.annotations.Test;
 
               class StaticMethodTest {
@@ -1049,18 +1107,16 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       calendarMock = Mockito.mock(Calendar.class);
                   }
 
-                  @BeforeMethod
-                  void setUpStaticMocks() {
-                      mockedCalendar = Mockito.mockStatic(Calendar.class);
-                  }
-
                   @AfterMethod(alwaysRun = true)
                   void tearDownStaticMocks() {
-                      mockedCalendar.closeOnDemand();
+                      if (mockedCalendar != null) {
+                          mockedCalendar.closeOnDemand();
+                      }
                   }
 
                   @Test
                   void testWithCalendar() {
+                      mockedCalendar = Mockito.mockStatic(Calendar.class);
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                   }
@@ -1391,31 +1447,42 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
-              import static org.mockito.Mockito.when;
-              import static org.mockito.Mockito.mock;
-
-              import org.junit.jupiter.api.Test;
+              import org.mockito.AdditionalAnswers;
               import org.mockito.MockedConstruction;
               import org.mockito.Mockito;
 
+              import static org.mockito.Mockito.when;
+              import static org.mockito.Mockito.mock;
+
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.Test;
               import static org.junit.jupiter.api.Assertions.assertEquals;
 
               class MyTest {
+                  private MockedConstruction<Generator> mockedConstructionGenerator;
+
                   static class Generator {
                       public int getLuckyNumber() {
                         return 436;
                       }
                   }
 
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedConstructionGenerator != null) {
+                          mockedConstructionGenerator.closeOnDemand();
+                      }
+                  }
+
                   @Test
                   void testNumbers() throws Exception {
-                      try (MockedConstruction<Generator> mockGenerator = Mockito.mockConstruction(Generator.class)) {
+                      Generator mock = mock(Generator.class);
+                      mockedConstructionGenerator = Mockito.mockConstructionWithAnswer(Generator.class, AdditionalAnswers.delegatesTo(mock));
 
-                          Generator gen = new Generator();
-                          when(gen.getLuckyNumber()).thenReturn(504);
+                      Generator gen = new Generator();
+                      when(gen.getLuckyNumber()).thenReturn(504);
 
-                          assertEquals(504, gen.getLuckyNumber());
-                      }
+                      assertEquals(504, gen.getLuckyNumber());
                   }
               }
               """
@@ -1514,9 +1581,10 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
-              import org.mockito.Mockito;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
+              import org.mockito.Mockito;
+
               import static org.junit.jupiter.api.Assertions.assertNotNull;
               import java.util.Calendar;
 
@@ -1839,7 +1907,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
     @Issue("https://github.com/moderneinc/customer-requests/issues/2358")
     @Test
-    void whiteboxIsMigratedAndUnmigratableUsageIsFlagged() {
+    void migratableUsageStillMigratesAlongsideUnsupportedUsage() {
         //language=java
         rewriteRun(
           java(
@@ -1869,10 +1937,1690 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               class MyServiceTest {
                   void test() throws Exception {
                       MyService service = new MyService();
-                      Field nameField = service.getClass().getDeclaredField("name");
+                      Field nameField = MyService.class.getDeclaredField("name");
                       nameField.setAccessible(true);
                       nameField.set(service, "value");
-                      MyService other = /* PowerMock `Whitebox` call could not be automatically migrated to reflection; migrate manually */ Whitebox.newInstance(MyService.class);
+                      /* TODO `Whitebox.newInstance` could not be migrated automatically; migrate it manually to replace PowerMock */
+                      MyService other = Whitebox.newInstance(MyService.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void remainingPowerMockCallsAndAnnotationsAreReplaced() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(fullyQualifiedNames = "com.example.*")
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      List<?> list = PowerMockito.mock(List.class);
+                      PowerMockito.verifyZeroInteractions(list);
+                      PowerMockito.verifyNoMoreInteractions(list);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import org.junit.Test;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      List<?> list = Mockito.mock(List.class);
+                      Mockito.verifyZeroInteractions(list);
+                      Mockito.verifyNoMoreInteractions(list);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void parentManagedPowerMockVersionsAreReplacedConsistently() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                      <version>1.6.5</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>1.6.5</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void unsupportedUsageIsCommentedOutSoPowerMockCanStillBeRemoved() {
+        rewriteRun(
+          // DisableUnsupportedPowerMockTests keeps the imports of the code it comments out
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().removeUnusedImports(false).build()),
+          mavenProject("unsupported",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>unsupported</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.jupiter.api.Test;
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      @Test
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                          PowerMockito.verifyNew(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          ),
+          mavenProject("supported",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>supported</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+
+                  class MockTest {
+                      void test() {
+                          PowerMockito.mock(Object.class);
+                      }
+                  }
+                  """,
+                """
+                  import org.mockito.Mockito;
+
+                  class MockTest {
+                      void test() {
+                          Mockito.mock(Object.class);
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
+    @Test
+    void anOlderMockitoDeclarationIsBroughtUpToTheVersionMockitoInlineNeeds() {
+        rewriteRun(
+          mavenProject("legacy-mockito",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>legacy-mockito</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <powermock.version>1.6.5</powermock.version>
+                    <mockito.version>1.10.19</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-all</artifactId>
+                      <version>${mockito.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              // `mockito-inline` only selects the mock maker; a stale `mockito-core` declaration would win
+              // dependency mediation and leave `MockedStatic` off the compile classpath entirely. `mockito-all`
+              // has no 3.x release at all, so it has to become `mockito-core` before it can be upgraded.
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("org.powermock")
+                .doesNotContain("mockito-all")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .contains("<artifactId>mockito-core</artifactId>")
+                .contains("<mockito.version>3.12.4</mockito.version>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoAllBroughtInByAnotherDependencyIsExcluded() {
+        rewriteRun(
+          mavenProject("transitive-mockito-all",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>transitive-mockito-all</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.kubek2k</groupId>
+                      <artifactId>springockito</artifactId>
+                      <version>1.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              // Declared first, `springockito` puts the Mockito 1.x of `mockito-all` ahead of Mockito 3.x on the
+              // classpath, where `Mockito.mockStatic` does not resolve.
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>transitive-mockito-all</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.kubek2k</groupId>
+                      <artifactId>springockito</artifactId>
+                      <version>1.0.9</version>
+                      <scope>test</scope>
+                      <exclusions>
+                        <exclusion>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-all</artifactId>
+                        </exclusion>
+                      </exclusions>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void anAlreadyDeclaredMockitoCoreIsNotDeclaredAgain() {
+        rewriteRun(
+          mavenProject("declares-mockito",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>declares-mockito</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>1.5.6</version>
+                      <scope>provided</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.13.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>5.14.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              // Maven rejects a second `mockito-core` even in another scope, so the one already declared is kept
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>declares-mockito</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.13.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>5.14.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.powermock.api.mockito.PowerMockito;
+
+                  import java.util.List;
+
+                  public class ListTest {
+                      @Test
+                      public void mocksAList() {
+                          List<?> list = PowerMockito.mock(List.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void anAlreadyManagedMockitoCoreIsNotManagedAgain() {
+        rewriteRun(
+          mavenProject("manages-mockito",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>manages-mockito</artifactId>
+                  <version>1.0</version>
+                  <dependencyManagement>
+                    <dependencies>
+                      <dependency>
+                        <groupId>org.powermock</groupId>
+                        <artifactId>powermock-api-mockito</artifactId>
+                        <version>1.6.5</version>
+                      </dependency>
+                      <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>5.14.2</version>
+                      </dependency>
+                    </dependencies>
+                  </dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>manages-mockito</artifactId>
+                  <version>1.0</version>
+                  <dependencyManagement>
+                    <dependencies>
+                      <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>5.14.2</version>
+                      </dependency>
+                    </dependencies>
+                  </dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.powermock.api.mockito.PowerMockito;
+
+                  import java.util.List;
+
+                  public class ListTest {
+                      @Test
+                      public void mocksAList() {
+                          List<?> list = PowerMockito.mock(List.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoInlineIsNotAddedWhereMockito5IsAlreadyResolved() {
+        rewriteRun(
+          mavenProject("on-mockito-5",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>on-mockito-5</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-junit-jupiter</artifactId>
+                      <version>5.14.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              // The `mockito-core` 5 that `mockito-junit-jupiter` brings in mocks statics without `mockito-inline`
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>on-mockito-5</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-junit-jupiter</artifactId>
+                      <version>5.14.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoInlineIsNotAddedWhereGradleAlreadyResolvesMockito5() {
+        rewriteRun(
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.powermock:powermock-api-mockito2:2.0.9")
+                  testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation("org.mockito:mockito-junit-jupiter:5.14.2")
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class StaticMockTest {
+                  void test() {
+                      PowerMockito.mockStatic(Calendar.class);
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+          )
+        );
+    }
+
+    @Test
+    void anOlderMockitoInlineIsUpgradedToOneWithStaticMocking() {
+        rewriteRun(
+          mavenProject("old-inline",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>old-inline</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>2.28.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>old-inline</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <version>3.12.4</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void thePowerMockVersionPropertyIsRemovedOnceNothingReferencesIt() {
+        rewriteRun(
+          // A cycle scans before it edits, so the property only looks unreferenced on the cycle after the
+          // dependencies that used it are gone; `ReplacePowerMockDependencies` asks for that cycle.
+          spec -> spec.expectedCyclesThatMakeChanges(2),
+          mavenProject("versioned-by-property",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>versioned-by-property</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <powermock.version>1.6.5</powermock.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-module-junit4</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .contains("<artifactId>mockito-inline</artifactId>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @CsvSource({
+      "powermock-api-mockito, 1.7.4, mock(List.class), mockito-core",
+      "powermock-api-mockito2, 2.0.9, mock(List.class), mockito-core",
+      "powermock-api-mockito, 1.7.4, mockStatic(Calendar.class), mockito-inline",
+      "powermock-api-mockito2, 2.0.9, mockStatic(Calendar.class), mockito-inline"
+    })
+    @ParameterizedTest
+    void versionPropertyInheritedFromParentIsUpdated(String powerMockArtifact, String powerMockVersion, String mocking, String mockitoArtifact) {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <powermock.version>%s</powermock.version>
+                </properties>
+              </project>
+              """.formatted(powerMockVersion),
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <powermock.version>3.12.4</powermock.version>
+                </properties>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>%s</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(powerMockArtifact),
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>%s</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(mockitoArtifact)
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+                  import java.util.List;
+
+                  class MockingTest {
+                      void test() {
+                          PowerMockito.%s;
+                      }
+                  }
+                  """.formatted(mocking),
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void managedMockitoVersionIsUsedOverInheritedPowerMockProperty() {
+        rewriteRun(
+          spec -> spec.expectedCyclesThatMakeChanges(2),
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <powermock.version>2.0.9</powermock.version>
+                </properties>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencyManagement>
+                    <dependencies>
+                      <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.4</version>
+                      </dependency>
+                    </dependencies>
+                  </dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>${powermock.version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencyManagement>
+                    <dependencies>
+                      <dependency>
+                        <groupId>org.mockito</groupId>
+                        <artifactId>mockito-core</artifactId>
+                        <version>3.12.4</version>
+                      </dependency>
+                    </dependencies>
+                  </dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void versionVariableFromGradlePropertiesIsUpdated() {
+        rewriteRun(
+          properties(
+            """
+              powermockVersion=2.0.9
+              """,
+            """
+              powermockVersion=3.12.4
+              """,
+            spec -> spec.path("gradle.properties")
+          ),
+          //language=groovy
+          buildGradle(
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation "org.powermock:powermock-api-mockito2:$powermockVersion"
+              }
+              """,
+            """
+              plugins {
+                  id 'java-library'
+              }
+              repositories {
+                  mavenCentral()
+              }
+              dependencies {
+                  testImplementation "org.mockito:mockito-core:$powermockVersion"
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void unusedPropertyScanStaysLinearOnLongTextLines() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.RemovePowerMockDependencies"),
+          mavenProject("long-lines",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>long-lines</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <powermock.version>1.6.5</powermock.version>
+                    <version.powermock>1.6.5</version.powermock>
+                  </properties>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>long-lines</artifactId>
+                  <version>1.0</version>
+                </project>
+                """
+            ),
+            text("@x".repeat(100_000), spec -> spec.path("assets/data.txt"))
+          )
+        );
+    }
+
+    @Test
+    void explicitMockitoCoreIsUpgradedAlongWithMockitoInline() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <properties>
+                    <mockito.version>2.28.2</mockito.version>
+                  </properties>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>${mockito.version}</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito2</artifactId>
+                          <version>2.0.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <properties>
+                    <mockito.version>3.12.4</mockito.version>
+                  </properties>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>${mockito.version}</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-inline</artifactId>
+                          <version>3.12.4</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).contains("Mockito.mockStatic(Calendar.class)").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoCoreIsNotUpgradedWithoutPowerMock() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>2.28.2</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoManagedBySpringBoot2BomIsRaisedToOneWithStaticMocking() {
+        rewriteRun(
+          mavenProject("spring-boot-app",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <mockito.version>3.12.4</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> assertThat(resolvedMockitoVersions(pom)).containsOnly(
+                entry("mockito-inline", "3.12.4"),
+                entry("mockito-core", "3.12.4"),
+                entry("mockito-junit-jupiter", "3.12.4")))
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockitoVersionPropertyOverridingTheSpringBoot2BomIsRaised() {
+        rewriteRun(
+          mavenProject("spring-boot-app",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <mockito.version>3.3.3</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.powermock</groupId>
+                      <artifactId>powermock-api-mockito2</artifactId>
+                      <version>2.0.9</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.3.12.RELEASE</version>
+                  </parent>
+                  <groupId>org.example</groupId>
+                  <artifactId>spring-boot-app</artifactId>
+                  <version>1.0</version>
+                  <properties>
+                    <mockito.version>3.12.4</mockito.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.springframework.boot</groupId>
+                      <artifactId>spring-boot-starter-test</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-inline</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> assertThat(resolvedMockitoVersions(pom)).containsOnly(
+                entry("mockito-inline", "3.12.4"),
+                entry("mockito-core", "3.12.4"),
+                entry("mockito-junit-jupiter", "3.12.4")))
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.powermock.api.mockito.PowerMockito;
+                  import java.util.Calendar;
+
+                  class StaticMockTest {
+                      void test() {
+                          PowerMockito.mockStatic(Calendar.class);
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    private static Map<String, String> resolvedMockitoVersions(Xml.Document pom) {
+        return pom.getMarkers().findFirst(MavenResolutionResult.class).orElseThrow()
+          .getDependencies().get(Scope.Test).stream()
+          .filter(dependency -> "org.mockito".equals(dependency.getGroupId()))
+          .collect(toMap(ResolvedDependency::getArtifactId, ResolvedDependency::getVersion));
+    }
+
+    @Test
+    void staticMockMigratedFromPowerMockIsReusedForStubbingThatThrowsCheckedException() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to4Migration"),
+          //language=java
+          java(
+            """
+              package com.example;
+
+              public class Keys {
+                  public static String build(char[] key) throws Exception {
+                      return new String(key);
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              package com.example;
+
+              import org.junit.Before;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static org.powermock.api.mockito.PowerMockito.mockStatic;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Keys.class)
+              public class SignerTest {
+                  @Before
+                  public void setUp() throws Exception {
+                      mockStatic(Keys.class);
+                      Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn("key");
+                  }
+
+                  @Test
+                  public void signs() {
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> assertThat(actual)
+              .containsOnlyOnce("mockStatic(Keys.class)")
+              .contains("Mockito.when(Keys.build(Mockito.any(char[].class))).thenReturn(\"key\");")
+              .actual())
+          )
+        );
+    }
+
+    @Test
+    void staticImportOfStubbedMethodIsKept() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.example;
+
+              public class Requests {
+                  public static String buildRequest(String path) {
+                      return path;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static com.example.Requests.buildRequest;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Requests.class)
+              public class RequestsTest {
+                  @Test
+                  public void stubsTheRequest() {
+                      PowerMockito.mockStatic(Requests.class);
+                      PowerMockito.when(buildRequest("users")).thenReturn("stubbed");
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> assertThat(actual)
+              .contains("mockedRequests.when(() -> buildRequest(\"users\"))")
+              .contains("import static com.example.Requests.buildRequest;")
+              .actual())
+          )
+        );
+    }
+
+    @Test
+    void junit4IsKeptWhenOnlyPowerMockBroughtItIn() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-module-junit4</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .doesNotContain("powermock")
+                .containsPattern("<groupId>junit</groupId>\\s*<artifactId>junit</artifactId>\\s*<version>4\\.13\\.2</version>\\s*<scope>test</scope>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.junit.runner.RunWith;
+                  import org.powermock.modules.junit4.PowerMockRunner;
+
+                  @RunWith(PowerMockRunner.class)
+                  public class MyTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void declaredJUnit4KeepsItsVersion() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>junit</groupId>
+                          <artifactId>junit</artifactId>
+                          <version>4.12</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-module-junit4</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.powermock</groupId>
+                          <artifactId>powermock-api-mockito</artifactId>
+                          <version>1.6.5</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>junit</groupId>
+                          <artifactId>junit</artifactId>
+                          <version>4.12</version>
+                          <scope>test</scope>
+                      </dependency>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>3.12.4</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+                  import org.junit.runner.RunWith;
+                  import org.powermock.modules.junit4.PowerMockRunner;
+
+                  @RunWith(PowerMockRunner.class)
+                  public class MyTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).doesNotContain("powermock").actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void junit4IsNotAddedWithoutPowerMock() {
+        rewriteRun(
+          mavenProject("some-project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>org.example</groupId>
+                  <artifactId>some-project</artifactId>
+                  <version>1.0-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.mockito</groupId>
+                          <artifactId>mockito-core</artifactId>
+                          <version>3.12.4</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void test() {
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockingStaticMethodsOfSystemIsDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(System.class)
+              public class MyTest {
+                  @Test
+                  public void readsTheEnvironment() {
+                      PowerMockito.mockStatic(System.class);
+                      PowerMockito.when(System.getenv("HOME")).thenReturn("/tmp");
+                  }
+              }
+              """,
+            """
+              import org.junit.Ignore;
+              import org.junit.Test;
+
+              public class MyTest {
+                  @Test
+                  @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+                  public void readsTheEnvironment() {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // PowerMockito.mockStatic(System.class);
+                      // PowerMockito.when(System.getenv("HOME")).thenReturn("/tmp");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockingInheritedStaticMethodIsDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.net.Inet4Address;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(Inet4Address.class)
+              public class MyTest {
+                  @Test
+                  public void resolvesTheLocalHost() throws Exception {
+                      PowerMockito.mockStatic(Inet4Address.class);
+                      PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                  }
+              }
+              """,
+            """
+              import org.junit.Ignore;
+              import org.junit.Test;
+
+              public class MyTest {
+                  @Test
+                  @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+                  public void resolvesTheLocalHost() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // PowerMockito.mockStatic(Inet4Address.class);
+                      // PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
                   }
               }
               """

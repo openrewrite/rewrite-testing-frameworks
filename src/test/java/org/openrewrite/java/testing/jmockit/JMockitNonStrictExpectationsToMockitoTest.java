@@ -574,7 +574,6 @@ class JMockitNonStrictExpectationsToMockitoTest implements RewriteTest {
               """,
             """
               import java.util.ArrayList;
-              import java.util.List;
 
               import org.junit.runner.RunWith;
               import org.mockito.Mock;
