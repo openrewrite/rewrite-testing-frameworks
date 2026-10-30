@@ -335,6 +335,91 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
         }
 
         @Test
+        void bothSetUpAndTearDownMissingSuperCalls() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws Exception {
+                          init();
+                      }
+
+                      @Override
+                      protected void tearDown() throws Exception {
+                          cleanup();
+                      }
+                  }
+                  """,
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws Exception {
+                          super.setUp();
+                          init();
+                      }
+
+                      @Override
+                      protected void tearDown() throws Exception {
+                          cleanup();
+                          super.tearDown();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void multiExceptionThrowsClauseIsAdded() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import java.io.IOException;
+                  import java.sql.SQLException;
+
+                  import junit.framework.TestCase;
+
+                  public abstract class MultiBase extends TestCase {
+                      @Override
+                      protected void setUp() throws IOException, SQLException {
+                          super.setUp();
+                          System.out.println("multi");
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MyTest extends MultiBase {
+                      @Override
+                      protected void setUp() {
+                          System.out.println("setup");
+                      }
+                  }
+                  """,
+                """
+                  import java.io.IOException;
+                  import java.sql.SQLException;
+
+                  public class MyTest extends MultiBase {
+                      @Override
+                      protected void setUp() throws IOException, SQLException {
+                          super.setUp();
+                          System.out.println("setup");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
         void grandparentDeclaresSetUp() {
             rewriteRun(
               //language=java
@@ -726,6 +811,27 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
                       protected void tearDown() throws Exception {
                           System.out.println("teardown");
                           return;
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tearDownEndingInWhileLoopIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void tearDown() throws Exception {
+                          while (true) {
+                              break;
+                          }
                       }
                   }
                   """
