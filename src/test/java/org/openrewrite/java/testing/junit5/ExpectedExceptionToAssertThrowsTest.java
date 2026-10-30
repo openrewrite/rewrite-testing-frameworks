@@ -1831,4 +1831,271 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
             );
         }
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1124")
+    @Test
+    void expectMatcherOfSpecificExceptionTypeNarrowsCapturedException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.example;
+
+              public class AppError extends RuntimeException {
+                  private final int code;
+
+                  public AppError(int code) {
+                      super("app error " + code);
+                      this.code = code;
+                  }
+
+                  public int getCode() {
+                      return code;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.hamcrest.CustomMatcher;
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              public class TypedMatcherTest {
+
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  static class AppErrorMatcher extends CustomMatcher<AppError> {
+                      private final int expectedCode;
+
+                      AppErrorMatcher(int expectedCode) {
+                          super("AppError with code " + expectedCode);
+                          this.expectedCode = expectedCode;
+                      }
+
+                      @Override
+                      public boolean matches(Object object) {
+                          return (object instanceof AppError) && ((AppError) object).getCode() == expectedCode;
+                      }
+                  }
+
+                  @Test
+                  public void failsWithCode42() {
+                      thrown.expect(new AppErrorMatcher(42));
+                      throw new AppError(42);
+                  }
+              }
+              """,
+            """
+              package com.example;
+
+              import org.hamcrest.CustomMatcher;
+              import org.junit.Test;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class TypedMatcherTest {
+
+                  static class AppErrorMatcher extends CustomMatcher<AppError> {
+                      private final int expectedCode;
+
+                      AppErrorMatcher(int expectedCode) {
+                          super("AppError with code " + expectedCode);
+                          this.expectedCode = expectedCode;
+                      }
+
+                      @Override
+                      public boolean matches(Object object) {
+                          return (object instanceof AppError) && ((AppError) object).getCode() == expectedCode;
+                      }
+                  }
+
+                  @Test
+                  public void failsWithCode42() {
+                      AppError exception = assertThrows(AppError.class, () -> {
+                          throw new AppError(42);
+                      });
+                      assertThat(exception, new AppErrorMatcher(42));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1124")
+    @Test
+    void expectClassAndMatcherOfNarrowerExceptionType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.hamcrest.Description;
+              import org.hamcrest.Matcher;
+              import org.hamcrest.TypeSafeMatcher;
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void test() {
+                      thrown.expect(RuntimeException.class);
+                      thrown.expect(hasMessage("boom"));
+                      foo();
+                  }
+
+                  static Matcher<IllegalStateException> hasMessage(String message) {
+                      return new TypeSafeMatcher<IllegalStateException>() {
+                          @Override
+                          protected boolean matchesSafely(IllegalStateException e) {
+                              return message.equals(e.getMessage());
+                          }
+
+                          @Override
+                          public void describeTo(Description description) {
+                              description.appendText(message);
+                          }
+                      };
+                  }
+
+                  void foo() {
+                      throw new IllegalStateException("boom");
+                  }
+              }
+              """,
+            """
+              import org.hamcrest.Description;
+              import org.hamcrest.Matcher;
+              import org.hamcrest.TypeSafeMatcher;
+              import org.junit.Test;
+
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  public void test() {
+                      IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+                          foo());
+                      assertThat(exception, hasMessage("boom"));
+                  }
+
+                  static Matcher<IllegalStateException> hasMessage(String message) {
+                      return new TypeSafeMatcher<IllegalStateException>() {
+                          @Override
+                          protected boolean matchesSafely(IllegalStateException e) {
+                              return message.equals(e.getMessage());
+                          }
+
+                          @Override
+                          public void describeTo(Description description) {
+                              description.appendText(message);
+                          }
+                      };
+                  }
+
+                  void foo() {
+                      throw new IllegalStateException("boom");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1124")
+    @Test
+    void expectMatcherOfExceptionTypeFromAnotherPackageAddsImport() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.example.errors;
+
+              public class AppError extends RuntimeException {
+              }
+              """
+          ),
+          java(
+            """
+              package com.example.matchers;
+
+              import com.example.errors.AppError;
+              import org.hamcrest.CustomMatcher;
+              import org.hamcrest.Matcher;
+
+              public class AppErrorMatchers {
+                  public static Matcher<AppError> anAppError() {
+                      return new CustomMatcher<AppError>("an AppError") {
+                          @Override
+                          public boolean matches(Object item) {
+                              return item instanceof AppError;
+                          }
+                      };
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package com.example;
+
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              import static com.example.matchers.AppErrorMatchers.anAppError;
+
+              public class MyTest {
+
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void test() {
+                      thrown.expect(anAppError());
+                      foo();
+                  }
+
+                  void foo() {
+                  }
+              }
+              """,
+            """
+              package com.example;
+
+              import com.example.errors.AppError;
+              import org.junit.Test;
+
+              import static com.example.matchers.AppErrorMatchers.anAppError;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void test() {
+                      AppError exception = assertThrows(AppError.class, () ->
+                          foo());
+                      assertThat(exception, anAppError());
+                  }
+
+                  void foo() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
