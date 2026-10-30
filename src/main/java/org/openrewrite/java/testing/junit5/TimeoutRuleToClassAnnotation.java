@@ -22,6 +22,7 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -29,16 +30,21 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 public class TimeoutRuleToClassAnnotation extends Recipe {
 
     private static final MethodMatcher TIMEOUT_CONSTRUCTOR_MATCHER = new MethodMatcher("org.junit.rules.Timeout <constructor>(..)");
     private static final MethodMatcher MILLIS_SECONDS_MATCHER = new MethodMatcher("org.junit.rules.Timeout *(long)");
+    private static final AnnotationMatcher RULE_MATCHER = new AnnotationMatcher("@org.junit.Rule");
 
     @Getter
     final String displayName = "JUnit 4 `@Rule Timeout` to JUnit Jupiter's `Timeout`";
@@ -53,33 +59,81 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
-                AtomicReference<@Nullable Expression> initializer = new AtomicReference<>();
-
-                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
-                    if (statement instanceof J.VariableDeclarations) {
-                        if (TypeUtils.isOfClassType(((J.VariableDeclarations) statement).getTypeExpression().getType(),
-                                "org.junit.rules.Timeout")) {
-                            List<J.VariableDeclarations.NamedVariable> variables = ((J.VariableDeclarations) statement).getVariables();
-                            if (!variables.isEmpty()) {
-                                Expression timeoutInitializer = variables.get(0).getInitializer();
-                                if (TIMEOUT_CONSTRUCTOR_MATCHER.matches(timeoutInitializer) ||
-                                        MILLIS_SECONDS_MATCHER.matches(timeoutInitializer)) {
-                                    initializer.set(timeoutInitializer);
-                                    return null;
-                                }
-                            }
+                J.@Nullable VariableDeclarations timeoutRule = null;
+                for (Statement statement : cd.getBody().getStatements()) {
+                    if (isConvertibleTimeoutRule(statement)) {
+                        if (timeoutRule != null) {
+                            // More than one Timeout rule; a single class annotation can't represent both
+                            return cd;
                         }
+                        timeoutRule = (J.VariableDeclarations) statement;
                     }
-                    return statement;
-                })));
-
-                Expression initializerValue = initializer.get();
-                if (initializerValue != null) {
-                    maybeRemoveImport("org.junit.Rule");
-                    maybeRemoveImport("org.junit.rules.Timeout");
-                    return insertTimeoutAnnotation(initializerValue, cd, ctx);
                 }
-                return cd;
+                if (timeoutRule == null || isReferenced(cd, timeoutRule)) {
+                    return cd;
+                }
+
+                J.VariableDeclarations removed = timeoutRule;
+                Expression initializer = requireNonNull(removed.getVariables().get(0).getInitializer());
+                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(),
+                        statement -> statement == removed ? null : statement)));
+                maybeRemoveImport("org.junit.Rule");
+                maybeRemoveImport("org.junit.rules.Timeout");
+                return insertTimeoutAnnotation(initializer, cd, ctx);
+            }
+
+            private boolean isConvertibleTimeoutRule(Statement statement) {
+                if (!(statement instanceof J.VariableDeclarations)) {
+                    return false;
+                }
+                J.VariableDeclarations vd = (J.VariableDeclarations) statement;
+                if (!TypeUtils.isOfClassType(vd.getType(), "org.junit.rules.Timeout") ||
+                        !hasRuleAnnotation(vd) ||
+                        vd.getVariables().size() != 1) {
+                    return false;
+                }
+                Expression timeoutInitializer = vd.getVariables().get(0).getInitializer();
+                return TIMEOUT_CONSTRUCTOR_MATCHER.matches(timeoutInitializer) ||
+                        MILLIS_SECONDS_MATCHER.matches(timeoutInitializer);
+            }
+
+            private boolean hasRuleAnnotation(J.VariableDeclarations vd) {
+                for (J.Annotation annotation : vd.getLeadingAnnotations()) {
+                    if (RULE_MATCHER.matches(annotation)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            /**
+             * Whether the field declared by {@code timeoutRule} is used anywhere else in the class,
+             * for instance in a {@code RuleChain} or a test method. Removing it would leave a dangling reference.
+             */
+            private boolean isReferenced(J.ClassDeclaration cd, J.VariableDeclarations timeoutRule) {
+                JavaType.Variable field = timeoutRule.getVariables().get(0).getVariableType();
+                if (field == null) {
+                    // Without type information we can't rule out a reference, so leave the field alone
+                    return true;
+                }
+                return new JavaIsoVisitor<AtomicBoolean>() {
+                    @Override
+                    public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, AtomicBoolean found) {
+                        // Skip the declaration itself, as its name is not a usage
+                        return multiVariable == timeoutRule ? multiVariable : super.visitVariableDeclarations(multiVariable, found);
+                    }
+
+                    @Override
+                    public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
+                        JavaType.Variable fieldType = identifier.getFieldType();
+                        if (fieldType != null &&
+                                field.getName().equals(fieldType.getName()) &&
+                                TypeUtils.isOfType(field.getOwner(), fieldType.getOwner())) {
+                            found.set(true);
+                        }
+                        return identifier;
+                    }
+                }.reduce(cd.getBody(), new AtomicBoolean()).get();
             }
 
             private J.ClassDeclaration insertTimeoutAnnotation(Expression ex, J.ClassDeclaration cd, ExecutionContext ctx) {
