@@ -146,6 +146,155 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
             );
         }
 
+        @Test
+        void tearDownEndingInAnIfWithoutElseGetsTheCall() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      Object resource;
+
+                      @Override
+                      protected void tearDown() throws Exception {
+                          if (resource == null) return;
+                      }
+                  }
+                  """,
+                """
+                  public class MyTest extends Base {
+                      Object resource;
+
+                      @Override
+                      protected void tearDown() throws Exception {
+                          if (resource == null) return;
+                          super.tearDown();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void interfaceQualifiedSuperCallDoesNotCount() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class Quiet extends TestCase {
+                      @Override
+                      protected void setUp() {
+                          System.out.println("quiet");
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public interface Fixture {
+                      default void setUp() {
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Quiet implements Fixture {
+                      @Override
+                      public void setUp() {
+                          Fixture.super.setUp();
+                      }
+                  }
+                  """,
+                """
+                  public class MyTest extends Quiet implements Fixture {
+                      @Override
+                      public void setUp() {
+                          super.setUp();
+                          Fixture.super.setUp();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void subclassOfAParentLeftAloneStillGetsItsCall() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class Middle extends Base {
+                      @Override
+                      protected void setUp() {
+                          init();
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Middle {
+                      @Override
+                      protected void setUp() {
+                          System.out.println("setup");
+                      }
+                  }
+                  """,
+                """
+                  public class MyTest extends Middle {
+                      @Override
+                      protected void setUp() {
+                          super.setUp();
+                          System.out.println("setup");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void narrowerThrowsClauseIsWidenedToTheInheritedOne() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  import java.io.IOException;
+
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws IOException {
+                          init();
+                      }
+                  }
+                  """,
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws Exception {
+                          super.setUp();
+                          init();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
 
         @Test
         void superCallOnlyInANestedClassDoesNotCount() {
@@ -264,7 +413,260 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
         }
 
         @Test
-        void narrowerThrowsClauseIsLeftAlone() {
+        void missingThrowsClauseOnAnExtendedClassIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class Middle extends Base {
+                      @Override
+                      protected void setUp() {
+                          init();
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Middle {
+                      @Override
+                      protected void setUp() {
+                          super.setUp();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tearDownEndingInAnIfElseThatReturnsIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      boolean skip;
+
+                      @Override
+                      protected void tearDown() throws Exception {
+                          if (skip) {
+                              return;
+                          } else {
+                              throw new IllegalStateException();
+                          }
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tearDownEndingInATryThatReturnsIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void tearDown() throws Exception {
+                          try {
+                              System.out.println("teardown");
+                              return;
+                          } finally {
+                              System.out.println("done");
+                          }
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void missingThrowsClauseOnAMethodCalledInTheClassIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      public void setUp() {
+                          init();
+                      }
+
+                      public void testRestart() {
+                          setUp();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void missingThrowsClauseOnAMethodCalledFromAnotherClassIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      public void setUp() {
+                          init();
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  class Runner {
+                      void run(MyTest test) {
+                          test.setUp();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void missingThrowsClauseOnAnInterfaceImplementationIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public interface Fixture {
+                      void setUp();
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base implements Fixture {
+                      @Override
+                      public void setUp() {
+                          init();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void missingThrowsClauseInheritedAsASubclassInterfaceImplementationIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public interface Fixture {
+                      void setUp();
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class Middle extends Base {
+                      @Override
+                      public void setUp() {
+                          init();
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class Leaf extends Middle implements Fixture {
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void inheritedExceptionTheSubclassCannotNameIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  package base;
+
+                  import junit.framework.TestCase;
+
+                  public abstract class Base extends TestCase {
+                      protected static class SetupException extends Exception {
+                      }
+
+                      @Override
+                      protected void setUp() throws SetupException {
+                          System.out.println("base");
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  package t;
+
+                  import base.Base;
+
+                  public class MyTest extends Base {
+                      @Override
+                      public void setUp() {
+                          System.out.println("setup");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void emptyOverrideTurningTheAncestorOffIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws Exception {
+                      }
+
+                      @Override
+                      protected void tearDown() throws Exception {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void narrowerThrowsClauseOnAnAnonymouslyExtendedClassIsLeftAlone() {
             rewriteRun(
               //language=java
               java(BASE),
@@ -273,10 +675,19 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
                 """
                   import java.io.IOException;
 
-                  public class MyTest extends Base {
+                  public class Middle extends Base {
                       @Override
                       protected void setUp() throws IOException {
                           init();
+                      }
+
+                      static Middle anonymous() {
+                          return new Middle() {
+                              @Override
+                              protected void setUp() throws IOException {
+                                  super.setUp();
+                              }
+                          };
                       }
                   }
                   """
@@ -296,6 +707,25 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
                       @Override
                       protected void setUp() throws Exception {
                           MyTest.super.setUp();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void tearDownEndingInReturnWouldMakeTheCallUnreachable() {
+            rewriteRun(
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void tearDown() throws Exception {
+                          System.out.println("teardown");
+                          return;
                       }
                   }
                   """

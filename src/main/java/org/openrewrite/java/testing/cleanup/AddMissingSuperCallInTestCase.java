@@ -19,7 +19,8 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -27,6 +28,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JContainer;
 import org.openrewrite.java.tree.JRightPadded;
@@ -38,6 +40,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,7 +50,7 @@ import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
 import static org.openrewrite.Tree.randomId;
 
-public class AddMissingSuperCallInTestCase extends Recipe {
+public class AddMissingSuperCallInTestCase extends ScanningRecipe<Set<String>> {
 
     private static final String TEST_CASE = "junit.framework.TestCase";
 
@@ -62,32 +65,96 @@ public class AddMissingSuperCallInTestCase extends Recipe {
             "`junit.framework.TestCase` subclass, so the shared setup and cleanup an ancestor performs still runs. " +
             "`super.setUp()` goes first and `super.tearDown()` last, the order that lets an ancestor initialize " +
             "before the test and clean up after it. A class extending `TestCase` directly is left alone, because " +
-            "`TestCase`'s own implementations are empty. An override declaring no `throws` gains the clause the " +
-            "inherited method declares, which an override is always allowed to repeat. One whose `throws` is " +
-            "narrower than that is left alone, since widening it could break a subclass that narrows it again " +
-            "and calls `super`.";
+            "`TestCase`'s own implementations are empty, as is an empty override, which turns the ancestor's off " +
+            "on purpose. An override whose `throws` is missing or narrower than the inherited one gains the " +
+            "inherited clause, so the call compiles, unless code in the repository extends the class, calls the " +
+            "method, or has it implement an interface method, which the wider clause could stop compiling. A " +
+            "`tearDown` whose last statement may not complete normally is left alone.";
 
     @Getter
     final Set<String> tags = singleton("RSPEC-S2188");
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public Set<String> getInitialValue(ExecutionContext ctx) {
+        return new HashSet<>();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Set<String> pinned) {
+        // Types whose `setUp` and `tearDown` cannot take a wider `throws` clause without breaking other code
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                JavaType.FullyQualified type = classDecl.getType();
+                if (type != null) {
+                    if (type.getSupertype() != null) {
+                        pinned.add(type.getSupertype().getFullyQualifiedName());
+                    }
+                    for (JavaType.FullyQualified i : type.getInterfaces()) {
+                        if (TypeUtils.findDeclaredMethod(i, "setUp", emptyList()).isPresent() ||
+                                TypeUtils.findDeclaredMethod(i, "tearDown", emptyList()).isPresent()) {
+                            pinned.add(type.getFullyQualifiedName());
+                        }
+                    }
+                }
+                return super.visitClassDeclaration(classDecl, ctx);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                JavaType.FullyQualified type = newClass.getClazz() == null ? null : TypeUtils.asFullyQualified(newClass.getClazz().getType());
+                if (newClass.getBody() != null && type != null) {
+                    pinned.add(type.getFullyQualifiedName());
+                }
+                return super.visitNewClass(newClass, ctx);
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                pinCalled(method.getMethodType());
+                return super.visitMethodInvocation(method, ctx);
+            }
+
+            @Override
+            public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
+                pinCalled(memberRef.getMethodType());
+                return super.visitMemberReference(memberRef, ctx);
+            }
+
+            private void pinCalled(JavaType.@Nullable Method called) {
+                if (called != null && called.getParameterTypes().isEmpty() &&
+                        ("setUp".equals(called.getName()) || "tearDown".equals(called.getName()))) {
+                    pinned.add(called.getDeclaringType().getFullyQualifiedName());
+                }
+            }
+        };
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Set<String> pinned) {
         return Preconditions.check(new UsesType<>(TEST_CASE, true), new JavaIsoVisitor<ExecutionContext>() {
+            // The inserted call and `throws` clause are Java syntax
+            @Override
+            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+                return sourceFile instanceof J.CompilationUnit;
+            }
+
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                 JavaType.Method methodType = md.getMethodType();
                 J.Block body = md.getBody();
-                if (methodType == null || body == null) {
+                // An empty override is the usual way to switch off an ancestor's setup or cleanup on purpose
+                if (methodType == null || body == null || body.getStatements().isEmpty()) {
                     return md;
                 }
                 boolean setUp = SET_UP.matches(methodType);
                 if (!setUp && !TEAR_DOWN.matches(methodType) ||
                         callsSuper(body, methodType.getName()) ||
-                        !inheritsAnImplementation(methodType.getDeclaringType(), methodType.getName())) {
+                        !setUp && !reachableAfter(body)) {
                     return md;
                 }
-                JavaType.Method inherited = TypeUtils.findOverriddenMethod(methodType).orElse(null);
+                JavaType.Method inherited = inheritedImplementation(methodType.getDeclaringType(), methodType.getName());
                 if (inherited == null) {
                     return md;
                 }
@@ -98,11 +165,14 @@ public class AddMissingSuperCallInTestCase extends Recipe {
                     }
                 }
                 List<NameTree> throwz = md.getThrows();
-                if (throwz == null) {
+                if (throwz == null ? !thrown.isEmpty() :
+                        thrown.stream().anyMatch(t -> throwz.stream().noneMatch(d -> TypeUtils.isAssignableTo(d.getType(), t)))) {
+                    JavaType.FullyQualified declaring = requireNonNull(methodType.getDeclaringType());
+                    if (pinned.contains(declaring.getFullyQualifiedName()) ||
+                            !thrown.stream().allMatch(t -> accessibleFrom(requireNonNull(TypeUtils.asFullyQualified(t)), declaring.getPackageName()))) {
+                        return md;
+                    }
                     md = declareThrows(md, methodType, thrown);
-                } else if (thrown.stream().anyMatch(t -> throwz.stream().noneMatch(d -> TypeUtils.isAssignableTo(d.getType(), t)))) {
-                    // An override may only declare what it overrides does, so a narrower clause cannot take the call
-                    return md;
                 }
                 md = JavaTemplate.builder("super." + methodType.getName() + "()")
                         .build()
@@ -120,8 +190,10 @@ public class AddMissingSuperCallInTestCase extends Recipe {
 
             // Built by hand, as a template could not attribute exception types declared in the project
             private J.MethodDeclaration declareThrows(J.MethodDeclaration md, JavaType.Method methodType, List<JavaType> exceptions) {
-                if (exceptions.isEmpty()) {
-                    return md;
+                if (md.getThrows() != null) {
+                    for (NameTree replaced : md.getThrows()) {
+                        maybeRemoveImport(TypeUtils.asFullyQualified(replaced.getType()));
+                    }
                 }
                 List<JRightPadded<NameTree>> declared = new ArrayList<>(exceptions.size());
                 for (JavaType thrown : exceptions) {
@@ -146,21 +218,38 @@ public class AddMissingSuperCallInTestCase extends Recipe {
     }
 
     /**
-     * Whether an ancestor between the type and {@code TestCase} declares the method with a body, so that
-     * overriding it without a {@code super} call skips work. {@code TestCase}'s own are empty.
+     * The nearest declaration between the type and {@code TestCase} if it has a body, so that overriding it
+     * without a {@code super} call skips work. {@code TestCase}'s own are empty.
      */
-    private static boolean inheritsAnImplementation(JavaType.@Nullable FullyQualified type, String name) {
-        if (type == null || !TypeUtils.isAssignableTo(TEST_CASE, type)) {
-            return false;
-        }
-        for (JavaType.FullyQualified s = type.getSupertype(); s != null && !TypeUtils.isOfClassType(s, TEST_CASE); s = s.getSupertype()) {
+    private static JavaType.@Nullable Method inheritedImplementation(JavaType.@Nullable FullyQualified type, String name) {
+        for (JavaType.FullyQualified s = type == null ? null : type.getSupertype(); s != null && !TypeUtils.isOfClassType(s, TEST_CASE); s = s.getSupertype()) {
             for (JavaType.Method m : s.getMethods()) {
                 if (name.equals(m.getName()) && m.getParameterTypes().isEmpty()) {
-                    return !m.hasFlags(org.openrewrite.java.tree.Flag.Abstract);
+                    return m.hasFlags(Flag.Abstract) ? null : m;
                 }
             }
         }
-        return false;
+        return null;
+    }
+
+    /** Whether the type and each class enclosing it is public or in the package, so a `throws` clause there can name it. */
+    private static boolean accessibleFrom(JavaType.FullyQualified type, String packageName) {
+        for (JavaType.FullyQualified t = type; t != null; t = t.getOwningClass()) {
+            if (!t.hasFlags(Flag.Public) && !packageName.equals(t.getPackageName())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Whether a call appended to the body is reachable, judged conservatively from its last statement (JLS 14.22). */
+    private static boolean reachableAfter(J.Block body) {
+        List<Statement> statements = body.getStatements();
+        Statement last = statements.get(statements.size() - 1);
+        return last instanceof J.MethodInvocation || last instanceof J.Assignment ||
+                last instanceof J.AssignmentOperation || last instanceof J.Unary ||
+                last instanceof J.VariableDeclarations || last instanceof J.NewClass ||
+                last instanceof J.If && ((J.If) last).getElsePart() == null;
     }
 
     /**
@@ -190,9 +279,15 @@ public class AddMissingSuperCallInTestCase extends Recipe {
         }.reduce(body, new AtomicBoolean()).get();
     }
 
-    /** Whether the select is {@code super}, either bare or qualified as in {@code MyTest.super.setUp()}. */
+    /**
+     * Whether the select is {@code super}, either bare or qualified as in {@code MyTest.super.setUp()}, but not
+     * {@code Iface.super}, which calls an interface default method.
+     */
     private static boolean isSuperSelect(@Nullable Expression select) {
-        return select instanceof J.Identifier && "super".equals(((J.Identifier) select).getSimpleName()) ||
-                select instanceof J.FieldAccess && "super".equals(((J.FieldAccess) select).getSimpleName());
+        if (select instanceof J.FieldAccess && "super".equals(((J.FieldAccess) select).getSimpleName())) {
+            JavaType.FullyQualified qualifier = TypeUtils.asFullyQualified(((J.FieldAccess) select).getTarget().getType());
+            return qualifier == null || qualifier.getKind() != JavaType.FullyQualified.Kind.Interface;
+        }
+        return select instanceof J.Identifier && "super".equals(((J.Identifier) select).getSimpleName());
     }
 }
