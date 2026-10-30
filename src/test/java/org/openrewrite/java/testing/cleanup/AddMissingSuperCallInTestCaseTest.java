@@ -146,6 +146,80 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
             );
         }
 
+
+        @Test
+        void superCallOnlyInANestedClassDoesNotCount() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws Exception {
+                          Base nested = new Base() {
+                              @Override
+                              protected void setUp() throws Exception {
+                                  super.setUp();
+                              }
+                          };
+                      }
+                  }
+                  """,
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws Exception {
+                          super.setUp();
+                          Base nested = new Base() {
+                              @Override
+                              protected void setUp() throws Exception {
+                                  super.setUp();
+                              }
+                          };
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void grandparentDeclaresSetUp() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public abstract class Middle extends Base {
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Middle {
+                      @Override
+                      protected void setUp() throws Exception {
+                          init();
+                      }
+                  }
+                  """,
+                """
+                  public class MyTest extends Middle {
+                      @Override
+                      protected void setUp() throws Exception {
+                          super.setUp();
+                          init();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
     }
 
     @Nested
@@ -188,5 +262,74 @@ class AddMissingSuperCallInTestCaseTest implements RewriteTest {
               )
             );
         }
+
+        @Test
+        void narrowerThrowsClauseIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  import java.io.IOException;
+
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws IOException {
+                          init();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void qualifiedSuperCallCounts() {
+            rewriteRun(
+              //language=java
+              java(BASE),
+              //language=java
+              java(
+                """
+                  public class MyTest extends Base {
+                      @Override
+                      protected void setUp() throws Exception {
+                          MyTest.super.setUp();
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void abstractAncestorDeclarationCannotBeCalled() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class AbstractBase extends TestCase {
+                      @Override
+                      protected abstract void setUp() throws Exception;
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MyTest extends AbstractBase {
+                      @Override
+                      protected void setUp() throws Exception {
+                          System.out.println("setup");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
     }
 }
