@@ -44,6 +44,7 @@ public class ReplaceRemovedConstructors extends Recipe {
     private static final String HTTP_ADMIN_CLIENT = "com.github.tomakehurst.wiremock.client.HttpAdminClient";
     private static final String ADMIN = "com.github.tomakehurst.wiremock.core.Admin";
     private static final String AUTHENTICATOR = "com.github.tomakehurst.wiremock.security.ClientAuthenticator";
+    private static final String IN_MEMORY_REQUEST_JOURNAL_STORE = "com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore";
 
     // `WireMock(String scheme, String host)` is deliberately absent: it left the port undefined, while
     // `WireMockBuilder` defaults it to 8080, so rewriting it would change which port the client talks to.
@@ -71,6 +72,11 @@ public class ReplaceRemovedConstructors extends Recipe {
             new Replacement(REQUEST_PATTERN,
                     REQUEST_PATTERN + " <constructor>(com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition)",
                     "new RequestPattern.Builder().setCustomMatcherDefinition(#{any()}).build()"),
+
+            // A `null` limit leaves the store unbounded, as the no-arg one was; 3.x trimmed it from the journal instead
+            new Replacement(IN_MEMORY_REQUEST_JOURNAL_STORE,
+                    IN_MEMORY_REQUEST_JOURNAL_STORE + " <constructor>()",
+                    "new InMemoryRequestJournalStore(null)"),
 
             new Replacement(WIRE_MOCK,
                     WIRE_MOCK + " <constructor>()",
@@ -138,8 +144,9 @@ public class ReplaceRemovedConstructors extends Recipe {
     final String description = "WireMock 4 made its primary domain classes immutable, leaving only the canonical " +
             "all arguments constructor on each and moving everything else behind a builder. Replace the removed " +
             "convenience constructors of `StubMapping`, `ResponseDefinition`, `RequestPattern` and " +
-            "`WireMock` with the equivalent builder call, and `RequestPattern.everything()` with " +
-            "`RequestPattern.ANYTHING`.";
+            "`WireMock` with the equivalent builder call, `RequestPattern.everything()` with " +
+            "`RequestPattern.ANYTHING`, and the no-arg `InMemoryRequestJournalStore` constructor with the one " +
+            "taking a `null`, meaning unbounded, maximum number of entries.";
 
     @SuppressWarnings("unchecked")
     private static TreeVisitor<?, ExecutionContext>[] usesAnyReplacedConstructor() {
