@@ -340,8 +340,145 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
         );
     }
 
+    @Test
+    void parametersPutBecomesAttr() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.extension.Parameters;
+
+              class Transformers {
+                  Parameters parameters(String name) {
+                      Parameters parameters = Parameters.empty();
+                      parameters.put("name", name);
+                      parameters.put("greeting", "hello");
+                      return parameters;
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.extension.Parameters;
+
+              class Transformers {
+                  Parameters parameters(String name) {
+                      Parameters parameters = Parameters.empty();
+                      parameters = parameters.transform(builder -> builder
+                              .attr("name", name)
+                              .attr("greeting", "hello"));
+                      return parameters;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void metadataPutBecomesAttr() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.common.Metadata;
+
+              class Stubs {
+                  private Metadata metadata = new Metadata();
+
+                  void tag(String team) {
+                      metadata.put("team", team);
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.common.Metadata;
+
+              class Stubs {
+                  private Metadata metadata = new Metadata();
+
+                  void tag(String team) {
+                      metadata = metadata.transform(builder -> builder.attr("team", team));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void transformedLocalPassedToASetterIsLeftAlone() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.common.Metadata;
+              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+              class Stubs {
+                  void tag(StubMapping mapping) {
+                      Metadata metadata = new Metadata();
+                      metadata.put("team", "payments");
+                      mapping.setMetadata(metadata);
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.common.Metadata;
+              import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+              class Stubs {
+                  void tag(StubMapping mapping) {
+                      Metadata metadata = new Metadata();
+                      metadata = metadata.transform(builder -> builder.attr("team", "payments"));
+                      mapping.setMetadata(metadata);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Nested
     class NoChange {
+        @Test
+        void loopCounterCannotBeCapturedByTheLambda() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.extension.Parameters;
+
+                  class Transformers {
+                      Parameters numbered(Parameters parameters) {
+                          for (int i = 0; i < 3; i++) {
+                              parameters.put("p" + i, i);
+                          }
+                          return parameters;
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void putOnAnUnrelatedMapIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import java.util.Map;
+
+                  class Maps {
+                      void fill(Map<String, Object> map) {
+                          map.put("team", "payments");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
         @Test
         void setterWithoutBuilderEquivalentIsLeftForTheCompiler() {
             rewriteRun(

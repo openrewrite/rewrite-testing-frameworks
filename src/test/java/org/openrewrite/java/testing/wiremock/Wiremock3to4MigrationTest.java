@@ -37,7 +37,7 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     // rejects `-beta.N`; keep this in step with the `newVersion` arguments over there. Only the
     // recipe *input* below needs the exact version; expected output is matched against
     // `WIREMOCK_4_REGEX_VERSION_STRING` instead, so a version bump over there lands here for free.
-    private static final String WIREMOCK_4_VERSION = "4.0.0-beta.40";
+    private static final String WIREMOCK_4_VERSION = "4.0.0-beta.41";
 
     private static final String WIREMOCK_4_REGEX_STRING = "4\\.\\d+\\.\\d+(?:-[\\w.]+)?";
 
@@ -331,6 +331,107 @@ class Wiremock3to4MigrationTest implements RewriteTest {
               spec -> spec.after(after -> assertThat(after)
                 .containsPattern(pomDependency("wiremock"))
                 .doesNotContain("wiremock-junit")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void addsApacheHttpClientModuleWhenItsTypesAreUsed() {
+        rewriteRun(
+          mavenProject("project",
+            //language=java
+            srcTestJava(
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.http.client.ApacheHttpClientFactory;
+
+                  class MyTest {
+                      ApacheHttpClientFactory factory;
+                  }
+                  """,
+                """
+                  import com.github.tomakehurst.wiremock.http.client.apache5.ApacheHttpClientFactory;
+
+                  class MyTest {
+                      ApacheHttpClientFactory factory;
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(WIREMOCK_3_VERSION),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock"))
+                .containsPattern(pomDependency("wiremock-httpclient-apache5"))
+                .containsOnlyOnce("wiremock-httpclient-apache5")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void noApacheHttpClientModuleAlongsideStandalone() {
+        rewriteRun(
+          mavenProject("project",
+            //language=java
+            srcTestJava(
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.http.client.ApacheHttpClientFactory;
+
+                  class MyTest {
+                      ApacheHttpClientFactory factory;
+                  }
+                  """,
+                """
+                  import com.github.tomakehurst.wiremock.http.client.apache5.ApacheHttpClientFactory;
+
+                  class MyTest {
+                      ApacheHttpClientFactory factory;
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>0.0.1-SNAPSHOT</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.wiremock</groupId>
+                          <artifactId>wiremock-standalone</artifactId>
+                          <version>%s</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+                </project>
+                """.formatted(WIREMOCK_3_VERSION),
+              spec -> spec.after(after -> assertThat(after)
+                .containsPattern(pomDependency("wiremock-standalone"))
+                .doesNotContain("wiremock-httpclient-apache5")
                 .actual())
             )
           )
@@ -821,6 +922,37 @@ class Wiremock3to4MigrationTest implements RewriteTest {
               class Methods {
                   List<String> names(List<RequestMethod> methods) {
                       return methods.stream().map(RequestMethod::getName).collect(Collectors.toList());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void requestPatternGetMatcherBecomesGetInlineCustomMatcher() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.http.Request;
+              import com.github.tomakehurst.wiremock.matching.RequestPattern;
+              import com.github.tomakehurst.wiremock.matching.ValueMatcher;
+
+              class Patterns {
+                  ValueMatcher<Request> matcher(RequestPattern pattern) {
+                      return pattern.getMatcher();
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.http.Request;
+              import com.github.tomakehurst.wiremock.matching.RequestPattern;
+              import com.github.tomakehurst.wiremock.matching.ValueMatcher;
+
+              class Patterns {
+                  ValueMatcher<Request> matcher(RequestPattern pattern) {
+                      return pattern.getInlineCustomMatcher();
                   }
               }
               """
