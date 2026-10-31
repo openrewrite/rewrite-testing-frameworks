@@ -111,6 +111,86 @@ class MigrateJUnitPioneerToJupiterTest implements RewriteTest {
     }
 
     @Test
+    void migrateReadsAndWritesSystemProperty() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junitpioneer.jupiter.ReadsSystemProperty;
+              import org.junitpioneer.jupiter.WritesSystemProperty;
+
+              class MyTest {
+                  @Test
+                  @ReadsSystemProperty
+                  void reads() {
+                  }
+
+                  @Test
+                  @WritesSystemProperty
+                  void writes() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.util.ReadsSystemProperty;
+              import org.junit.jupiter.api.util.WritesSystemProperty;
+
+              class MyTest {
+                  @Test
+                  @ReadsSystemProperty
+                  void reads() {
+                  }
+
+                  @Test
+                  @WritesSystemProperty
+                  void writes() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migrateRepeatedSystemPropertyAnnotations() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junitpioneer.jupiter.SetSystemProperty;
+
+              class MyTest {
+                  @Test
+                  @SetSystemProperty.SetSystemProperties({
+                      @SetSystemProperty(key = "a", value = "1"),
+                      @SetSystemProperty(key = "b", value = "2")
+                  })
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.util.SetSystemProperty;
+
+              class MyTest {
+                  @Test
+                  @SetSystemProperty.SetSystemProperties({
+                      @SetSystemProperty(key = "a", value = "1"),
+                      @SetSystemProperty(key = "b", value = "2")
+                  })
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void leaveOtherPioneerAnnotationsAlone() {
         rewriteRun(
           //language=java
