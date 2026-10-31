@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -112,6 +113,43 @@ class SystemPropertyRulesToPioneerTest implements RewriteTest {
               class ConfigTest {
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void useJupiterAnnotationsWhenJUnit61IsOnTheClasspath() {
+        InMemoryExecutionContext ctx = new InMemoryExecutionContext();
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-6", "system-rules-1")),
+          //language=java
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.contrib.java.lang.system.ProvideSystemProperty;
+              import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+
+              class ConfigTest {
+                  @Rule
+                  public final ProvideSystemProperty properties = new ProvideSystemProperty("a", "1").and("b", null);
+
+                  @Rule
+                  public final RestoreSystemProperties restore = new RestoreSystemProperties();
+              }
+              """,
+            """
+              import org.junit.jupiter.api.util.ClearSystemProperty;
+              import org.junit.jupiter.api.util.RestoreSystemProperties;
+              import org.junit.jupiter.api.util.SetSystemProperty;
+
+              @ClearSystemProperty(key = "b")
+              @RestoreSystemProperties
+              @SetSystemProperty(key = "a", value = "1")
+              class ConfigTest {
+              }
+              """,
+            spec -> spec.markers(JavaSourceSet.build("test", JavaParser.dependenciesFromResources(ctx, "junit-jupiter-api-6")))
           )
         );
     }

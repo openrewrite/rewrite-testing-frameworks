@@ -46,6 +46,12 @@ recipeList:
       oldFullyQualifiedTypeName: org.junitpioneer.jupiter.RestoreSystemProperties
       newFullyQualifiedTypeName: org.junit.jupiter.api.util.RestoreSystemProperties
   - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.ReadsSystemProperty
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.ReadsSystemProperty
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.WritesSystemProperty
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.WritesSystemProperty
+  - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junitpioneer.jupiter.ReadsDefaultLocale
       newFullyQualifiedTypeName: org.junit.jupiter.api.util.ReadsDefaultLocale
   - org.openrewrite.java.ChangeType:
@@ -57,3 +63,32 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junitpioneer.jupiter.WritesDefaultTimeZone
       newFullyQualifiedTypeName: org.junit.jupiter.api.util.WritesDefaultTimeZone
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit6.UpgradeToJUnitPioneer3
+displayName: Upgrade to JUnit Pioneer 3.x
+description: >-
+  Upgrades JUnit Pioneer 2.x to 3.x. JUnit Pioneer 3 requires Java 17 and JUnit 6.1, and removes the
+  `@DefaultLocale`, `@DefaultTimeZone` and system property extensions that moved into JUnit Jupiter 6.1,
+  so this migrates to JUnit 6 and to the Jupiter equivalents of those extensions before upgrading the
+  `junit-pioneer` dependency. Users of the JSON argument sources must also move to Jackson 3.
+tags:
+  - testing
+  - junit
+  - jupiter
+  - junit-pioneer
+preconditions:
+  - org.openrewrite.Singleton
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.junit-pioneer
+      artifactIdPattern: junit-pioneer
+  - org.openrewrite.java.search.HasMinimumJavaVersion:
+      version: 17
+recipeList:
+  - org.openrewrite.java.testing.junit6.JUnit5to6Migration
+  - org.openrewrite.java.testing.junit6.MigrateJUnitPioneerToJupiter
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit-pioneer
+      artifactId: junit-pioneer
+      newVersion: 3.x
