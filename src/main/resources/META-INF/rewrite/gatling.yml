@@ -1,0 +1,64 @@
+#
+# Copyright 2026 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.gatling.UpgradeToGatling3_16
+displayName: Upgrade Gatling to 3.16
+description: >-
+  Upgrade Gatling 3.x simulations written in Scala, Java or Kotlin to Gatling 3.16, following the upgrade guides from
+  3.0 onward. Bumps the Gatling dependencies along with the Maven and Gradle plugins, replaces the `${}` Expression
+  Language with `#{}`, migrates the DSL methods removed along the way and writes Scala durations as `5.seconds` rather
+  than `5 seconds`. Changes needing a judgement call are left alone: Gatling 3.10 requires Java 11,
+  `gatling-maven-plugin` 4 no longer compiles Scala so Maven projects with Scala simulations need the
+  `scala-maven-plugin`, and JMS moved to `jakarta.jms` in 3.14.
+preconditions:
+  - org.openrewrite.Singleton
+tags:
+  - testing
+  - gatling
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.gatling.highcharts
+      artifactId: gatling-charts-highcharts
+      newVersion: 3.16.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.gatling
+      artifactId: gatling-*
+      newVersion: 3.16.x
+  - org.openrewrite.maven.UpgradePluginVersion:
+      groupId: io.gatling
+      artifactId: gatling-maven-plugin
+      newVersion: 4.x
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: io.gatling.gradle
+      newVersion: 3.16.x
+  # Deprecated in 3.7 and no longer interpreted as of 3.11
+  - org.openrewrite.java.testing.gatling.ReplaceGatlingDollarExpressionLanguage
+  - org.openrewrite.java.testing.gatling.MigrateGatlingScalaDsl
+  # Recommended since 3.5 moved to Scala 2.13
+  - org.openrewrite.java.testing.gatling.ReplaceScalaPostfixDurations
+  # Java SDK, introduced in 3.7
+  - org.openrewrite.java.testing.gatling.MigrateGatlingExitBlockOnFail
+  - org.openrewrite.java.testing.gatling.MigrateGatlingChoice
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: io.gatling.javaapi.core..* stopInjector(..)
+      newMethodName: stopLoadGenerator
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: io.gatling.javaapi.core..* stopInjectorIf(..)
+      newMethodName: stopLoadGeneratorIf
+      matchOverrides: true

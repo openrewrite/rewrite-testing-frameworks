@@ -15,6 +15,8 @@ recipeDependencies {
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
     parserClasspath("com.squareup.okhttp3:mockwebserver3:5.1.0")
+    parserClasspath("io.gatling:gatling-core:3.16.0") // bounds the Java SDK's builders
+    parserClasspath("io.gatling:gatling-core-java:3.16.0")
     parserClasspath("junit:junit:4.+")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
     parserClasspath("org.assertj:assertj-core:3.27.7")
@@ -59,6 +61,11 @@ recipeDependencies {
     testParserClasspath("io.cucumber:cucumber-core:4.8.1")
     testParserClasspath("io.cucumber:cucumber-junit:4.8.1")
     testParserClasspath("io.cucumber:cucumber-junit:7.34.8")
+    // The Java SDK's builders are bounded by the Scala ones, so both are needed for type attribution
+    testParserClasspath("io.gatling:gatling-core:3.9.5")
+    testParserClasspath("io.gatling:gatling-core-java:3.9.5") // last version with `exitBlockOnFail(ChainBuilder)`
+    testParserClasspath("io.gatling:gatling-http:3.9.5")
+    testParserClasspath("io.gatling:gatling-http-java:3.9.5")
     testParserClasspath("io.grpc:grpc-testing:1.+")
     testParserClasspath("net.datafaker:datafaker:2.+")
     testParserClasspath("org.easymock:easymock:5.6.0")
@@ -119,6 +126,7 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite:rewrite-properties")
+    testImplementation("org.openrewrite:rewrite-scala")
     testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testRuntimeOnly(gradleApi())
 }
