@@ -159,3 +159,11 @@ tags:
   - testing
   - byteman
 ---
+type: specs.openrewrite.org/v1beta/category
+name: Gatling
+packageName: org.openrewrite.java.testing.gatling
+description: Recipes for upgrading [Gatling](https://gatling.io/) load testing simulations.
+tags:
+  - testing
+  - gatling
+---
