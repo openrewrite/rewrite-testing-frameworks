@@ -652,9 +652,7 @@ recipeList:
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.FirestoreEmulatorContainer
       newFullyQualifiedTypeName: org.testcontainers.gcloud.FirestoreEmulatorContainer
-  - org.openrewrite.java.ChangeType:
-      oldFullyQualifiedTypeName: org.testcontainers.containers.KafkaContainer
-      newFullyQualifiedTypeName: org.testcontainers.kafka.KafkaContainer
+  - org.openrewrite.java.testing.testcontainers.MigrateKafkaContainer
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.localstack.LocalStackContainer
       newFullyQualifiedTypeName: org.testcontainers.localstack.LocalStackContainer
