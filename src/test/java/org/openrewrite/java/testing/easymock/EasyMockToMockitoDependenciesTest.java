@@ -15,10 +15,13 @@
  */
 package org.openrewrite.java.testing.easymock;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.maven.tree.Scope;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -109,6 +112,80 @@ class EasyMockToMockitoDependenciesTest implements RewriteTest {
                   }
                   """,
                 spec -> spec.markers(javaVersion(javaVersion))
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void mockito5ForJava17WhereSpringBootManagesMockito() {
+        rewriteRun(
+          mavenProject("project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>2.1.6.RELEASE</version>
+                    </parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>junit</groupId>
+                            <artifactId>junit</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.easymock</groupId>
+                            <artifactId>easymock</artifactId>
+                            <version>3.3.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> pom).afterRecipe(pom -> assertThat(
+                pom.getMarkers().findFirst(MavenResolutionResult.class).orElseThrow()
+                  .findDependencies("org.mockito", "mockito-core", Scope.Test).get(0).getVersion())
+                .startsWith("5."))
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  import static org.easymock.EasyMock.*;
+
+                  public class ExampleTest {
+                      @Test
+                      public void test() {
+                          Runnable runnable = createMock(Runnable.class);
+                          replay(runnable);
+                          runnable.run();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Test;
+
+                  import static org.mockito.Mockito.mock;
+
+                  public class ExampleTest {
+                      @Test
+                      public void test() {
+                          Runnable runnable = mock(Runnable.class);
+                          runnable.run();
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
               )
             )
           )
