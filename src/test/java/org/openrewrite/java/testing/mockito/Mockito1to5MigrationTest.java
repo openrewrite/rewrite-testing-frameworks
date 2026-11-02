@@ -26,6 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.javaVersion;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class Mockito1to5MigrationTest implements RewriteTest {
 
@@ -86,6 +90,52 @@ class Mockito1to5MigrationTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void staysOnMockito4ForJava8() {
+        rewriteRun(
+          mavenProject("project",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>3.12.4</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> assertThat(pom)
+                .containsPattern("<artifactId>mockito-core</artifactId>\\s*<version>4\\.\\d+\\.\\d+</version>")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.mockito.Mockito;
+                  import java.util.List;
+
+                  class MyTest {
+                      void test() {
+                          List<String> list = Mockito.mock(List.class);
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(8))
+              )
+            )
           )
         );
     }

@@ -25,10 +25,11 @@ tags:
   - testing
   - easymock
 recipeList:
+  # Mockito 4 still runs on Java 8; `MockitoBestPractices` upgrades it to Mockito 5 where Java 11 or newer is used
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-core
-      version: 5.x
+      version: 4.x
       onlyIfUsing: org.easymock.*
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.easymock
