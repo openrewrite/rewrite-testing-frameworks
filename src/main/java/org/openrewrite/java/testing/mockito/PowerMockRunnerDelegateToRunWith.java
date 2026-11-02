@@ -46,6 +46,7 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
             new AnnotationMatcher("@" + POWER_MOCK_RUNNER_DELEGATE);
     private static final AnnotationMatcher RUN_WITH_POWER_MOCK_RUNNER_MATCHER =
             new AnnotationMatcher("@org.junit.runner.RunWith(" + POWER_MOCK_RUNNER + ".class)");
+    private static final AnnotationMatcher RUN_WITH_MATCHER = new AnnotationMatcher("@org.junit.runner.RunWith");
 
     @Getter
     final String displayName = "Replace PowerMock runner with JUnit `@RunWith`";
@@ -54,7 +55,8 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
     final String description = "Replaces `@RunWith(PowerMockRunner.class)`. If `@PowerMockRunnerDelegate(X.class)` " +
             "is present, promotes the delegate runner to `@RunWith(X.class)`. Otherwise, replaces it with " +
             "`@RunWith(MockitoJUnitRunner.Silent.class)` when the class uses Mockito annotations like `@Mock`, or removes " +
-            "the `@RunWith(PowerMockRunner.class)` annotation entirely.";
+            "the `@RunWith(PowerMockRunner.class)` annotation entirely. A `@PowerMockRunnerDelegate` next to another " +
+            "runner, which only the PowerMock runner reads, is removed.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -69,6 +71,12 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
                         if (!service(AnnotationService.class).matches(getCursor(), RUN_WITH_POWER_MOCK_RUNNER_MATCHER)) {
+                            // Only the PowerMock runner reads `@PowerMockRunnerDelegate`, so next to another runner
+                            // it does nothing, and would keep the class on PowerMock
+                            if (runsWithAnotherRunner(cd) && !FindAnnotations.find(cd, "@" + POWER_MOCK_RUNNER_DELEGATE).isEmpty()) {
+                                maybeRemoveImport(POWER_MOCK_RUNNER_DELEGATE);
+                                return removeAnnotation(cd, DELEGATE_MATCHER, ctx);
+                            }
                             return cd;
                         }
 
@@ -111,6 +119,15 @@ public class PowerMockRunnerDelegateToRunWith extends Recipe {
 
                     private J.ClassDeclaration removeAnnotation(J.ClassDeclaration cd, AnnotationMatcher matcher, ExecutionContext ctx) {
                         return (J.ClassDeclaration) new RemoveAnnotationVisitor(matcher).visitNonNull(cd, ctx, getCursor().getParentOrThrow());
+                    }
+
+                    private boolean runsWithAnotherRunner(J.ClassDeclaration cd) {
+                        for (J.Annotation annotation : cd.getLeadingAnnotations()) {
+                            if (RUN_WITH_MATCHER.matches(annotation) && !RUN_WITH_POWER_MOCK_RUNNER_MATCHER.matches(annotation)) {
+                                return true;
+                            }
+                        }
+                        return false;
                     }
 
                     private @Nullable Expression findDelegateRunnerArg(J.ClassDeclaration cd) {
