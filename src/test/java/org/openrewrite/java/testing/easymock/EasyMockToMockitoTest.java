@@ -233,4 +233,47 @@ class EasyMockToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void additionalMatchers() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Service {
+                  boolean accept(byte[] bytes, String s, double d, float f, Integer i) { return true; }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import static org.easymock.EasyMock.*;
+
+              public class ExampleTest {
+                  @Test
+                  public void testServiceMethod() {
+                      Service service = createNiceMock(Service.class);
+                      expect(service.accept(aryEq(new byte[]{1}), find("[a-z]+"), eq(1.0, 0.1), eq(2.0f, 0.1f), cmpEq(3))).andReturn(true);
+                      expect(service.accept(isNull(), matches("a.*"), eq(1.0), anyFloat(), notNull())).andReturn(false);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import static org.mockito.Mockito.*;
+              import static org.mockito.AdditionalMatchers.*;
+
+              public class ExampleTest {
+                  @Test
+                  public void testServiceMethod() {
+                      Service service = mock(Service.class);
+                      when(service.accept(aryEq(new byte[]{1}), find("[a-z]+"), eq(1.0, 0.1), eq(2.0f, 0.1f), cmpEq(3))).thenReturn(true);
+                      when(service.accept(isNull(), matches("a.*"), eq(1.0), anyFloat(), notNull())).thenReturn(false);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
