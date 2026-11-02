@@ -67,6 +67,10 @@ recipeList:
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IMocksControl verifyUnexpectedCalls(..)
   - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMock verifyRecording(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMock verifyUnexpectedCalls(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.EasyMockSupport replayAll()
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.EasyMockSupport verifyAll()
