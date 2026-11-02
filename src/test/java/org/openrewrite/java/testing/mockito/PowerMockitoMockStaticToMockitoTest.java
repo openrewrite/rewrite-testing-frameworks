@@ -1591,4 +1591,277 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doReturnOfStaticMethodNamedByStringOnSpiedClass() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              public class TenantUtil {
+                  public static Object tenantConfig(String tenant) {
+                      return null;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(TenantUtil.class)
+              public class TenantUtilTest {
+                  @Test
+                  public void test() throws Exception {
+                      PowerMockito.spy(TenantUtil.class);
+                      PowerMockito.doReturn(null).when(TenantUtil.class, "tenantConfig", "carbon.super");
+                  }
+              }
+              """,
+            """
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class TenantUtilTest {
+                  private MockedStatic<TenantUtil> mockedTenantUtil;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedTenantUtil != null) {
+                          mockedTenantUtil.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      mockedTenantUtil = Mockito.mockStatic(TenantUtil.class, Mockito.CALLS_REAL_METHODS);
+                      mockedTenantUtil.when(() -> TenantUtil.tenantConfig("carbon.super")).thenReturn(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doThrowDoAnswerAndDoNothingOfStaticMethodsNamedByString() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              public class Cloud {
+                  public static boolean inCloudShell() {
+                      return false;
+                  }
+
+                  public static void login(String user) {
+                  }
+
+                  public static String subscription() {
+                      return "";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import static org.powermock.api.mockito.PowerMockito.*;
+
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Cloud.class)
+              public class CloudTest {
+                  @Test
+                  public void test() throws Exception {
+                      mockStatic(Cloud.class);
+                      doThrow(new IllegalStateException()).when(Cloud.class, "inCloudShell");
+                      doNothing().when(Cloud.class, "login", "user");
+                      doAnswer(invocation -> "sub").when(Cloud.class, "subscription");
+                  }
+              }
+              """,
+            """
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.mockStatic;
+
+              public class CloudTest {
+                  private MockedStatic<Cloud> mockedCloud;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedCloud != null) {
+                          mockedCloud.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      mockedCloud = mockStatic(Cloud.class);
+                      mockedCloud.when(() -> Cloud.inCloudShell()).thenThrow(new IllegalStateException());
+                      mockedCloud.when(() -> Cloud.login("user")).thenAnswer(invocation -> null);
+                      mockedCloud.when(() -> Cloud.subscription()).thenAnswer(invocation -> "sub");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doReturnOfPrivateStaticMethodNamedByStringIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              public class Hidden {
+                  private static String secret() {
+                      return "";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Hidden.class)
+              public class HiddenTest {
+                  @Test
+                  public void test() throws Exception {
+                      PowerMockito.spy(Hidden.class);
+                      PowerMockito.doReturn("x").when(Hidden.class, "secret");
+                  }
+              }
+              """,
+            """
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              public class HiddenTest {
+                  private MockedStatic<Hidden> mockedHidden;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedHidden != null) {
+                          mockedHidden.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      mockedHidden = Mockito.mockStatic(Hidden.class, Mockito.CALLS_REAL_METHODS);
+                      PowerMockito.doReturn("x").when(Hidden.class, "secret");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doReturnOfStaticMethodOfClassThatIsNotMockedIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          PowerMockitoMockStaticToMockitoTest::powerMock2,
+          java(
+            """
+              public class Plain {
+                  public static String value() {
+                      return "";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.api.mockito.PowerMockito;
+
+              public class PlainTest {
+                  @Test
+                  public void test() throws Exception {
+                      PowerMockito.doReturn("x").when(Plain.class, "value");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void stubbingOfOverloadedStaticMethodNamedByStringIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              public class Registry {
+                  public static void register(String name) {
+                  }
+
+                  public static void register(Integer id) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import static org.mockito.Mockito.any;
+              import static org.powermock.api.mockito.PowerMockito.*;
+
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              @PrepareForTest(Registry.class)
+              public class RegistryTest {
+                  @Test
+                  public void test() throws Exception {
+                      mockStatic(Registry.class);
+                      doNothing().when(Registry.class, "register", any());
+                  }
+              }
+              """,
+            """
+              import static org.mockito.Mockito.any;
+              import static org.mockito.Mockito.mockStatic;
+              import static org.powermock.api.mockito.PowerMockito.doNothing;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+
+              public class RegistryTest {
+                  private MockedStatic<Registry> mockedRegistry;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedRegistry != null) {
+                          mockedRegistry.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      mockedRegistry = mockStatic(Registry.class);
+                      doNothing().when(Registry.class, "register", any());
+                  }
+              }
+              """
+          )
+        );
+    }
 }

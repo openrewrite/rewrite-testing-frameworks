@@ -22,6 +22,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.mockito.ScopedMocks.MOCKED_STATIC;
 
@@ -50,6 +52,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     private static final MethodMatcher DYNAMIC_WHEN = new MethodMatcher(POWER_MOCKITO + " when(java.lang.Class, String, ..)");
     private static final MethodMatcher MOCKITO_DYNAMIC_WHEN = new MethodMatcher("org.mockito.Mockito when(java.lang.Class, String, ..)");
     private static final MethodMatcher MOCKITO_METHOD = new MethodMatcher("org.mockito..* *(..)");
+    private static final MethodMatcher STUBBER_DYNAMIC_WHEN = new MethodMatcher(
+            "org.powermock.api.mockito.expectation.PowerMockitoStubber when(java.lang.Class, String, ..)");
+    private static final MethodMatcher DO_STUBBING = new MethodMatcher(POWER_MOCKITO + " do*(..)");
     private static final AnnotationMatcher PREPARE_FOR_TEST =
             new AnnotationMatcher("@org.powermock.core.classloader.annotations.PrepareForTest");
 
@@ -60,7 +65,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     final String description = "Replaces `PowerMockito.mockStatic()` by `Mockito.mockStatic()`, assigning the resulting " +
             "`MockedStatic` to a field that is closed after each test, so the static mock stays active for exactly " +
             "the same part of the test as before. Also migrates `PowerMockito.verifyStatic()` and static stubbing, " +
-            "and removes the `@PrepareForTest` annotation.";
+            "including that of a non-private static method named by a string, as in " +
+            "`doReturn(value).when(Type.class, \"method\", args)`, and removes the `@PrepareForTest` annotation.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -309,6 +315,9 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             if (DYNAMIC_WHEN.matches(mi) || MOCKITO_DYNAMIC_WHEN.matches(mi)) {
                 return dynamicWhen(mi, ctx);
             }
+            if (STUBBER_DYNAMIC_WHEN.matches(mi) && DO_STUBBING.matches(mi.getSelect())) {
+                return dynamicDoWhen(mi, (J.MethodInvocation) requireNonNull(mi.getSelect()), ctx);
+            }
             if (WHEN.matches(mi) || MOCKITO_WHEN.matches(mi) || MOCKITO_VERIFY.matches(mi)) {
                 return stubStaticCall(mi, ctx);
             }
@@ -337,6 +346,43 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         }
 
         private J.MethodInvocation dynamicWhen(J.MethodInvocation mi, ExecutionContext ctx) {
+            return dynamicStubbing(mi, "", emptyList(), ctx);
+        }
+
+        /// `doReturn(value).when(Type.class, "method", args)`, and the other `doX()`, become
+        /// `mockedType.when(() -> Type.method(args)).thenReturn(value)`.
+        private J.MethodInvocation dynamicDoWhen(J.MethodInvocation when, J.MethodInvocation stubbing, ExecutionContext ctx) {
+            List<Expression> stubbingArguments = stubbing.getArguments().stream()
+                    .filter(a -> !(a instanceof J.Empty))
+                    .collect(toList());
+            String answer;
+            switch (stubbing.getSimpleName()) {
+                case "doReturn":
+                    answer = ".thenReturn(" + stubbingArguments.stream().map(a -> "#{any(java.lang.Object)}").collect(joining(", ")) + ")";
+                    break;
+                case "doThrow":
+                    answer = stubbingArguments.size() == 1 ? ".thenThrow(#{any()})" : null;
+                    break;
+                case "doAnswer":
+                    answer = stubbingArguments.size() == 1 ? ".thenAnswer(#{any(org.mockito.stubbing.Answer)})" : null;
+                    break;
+                case "doNothing":
+                    answer = ".thenAnswer(invocation -> null)";
+                    break;
+                case "doCallRealMethod":
+                    answer = ".thenCallRealMethod()";
+                    break;
+                default:
+                    answer = null;
+            }
+            if (answer == null || stubbingArguments.isEmpty() && answer.contains("#{")) {
+                return when;
+            }
+            return dynamicStubbing(when, answer, stubbingArguments, ctx);
+        }
+
+        private J.MethodInvocation dynamicStubbing(J.MethodInvocation mi, String answer, List<Expression> answerArguments,
+                                                   ExecutionContext ctx) {
             List<Expression> arguments = mi.getArguments();
             ScopedMocks.ScopedMock mock = mocks.get(MOCKED_STATIC, classLiteral(arguments.get(0)));
             if (mock == null || !(arguments.get(1) instanceof J.Literal)) {
@@ -344,19 +390,79 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             }
             String methodName = String.valueOf(((J.Literal) arguments.get(1)).getValue());
             List<Expression> methodArguments = arguments.subList(2, arguments.size());
+            int overloads = 0;
             for (JavaType.Method method : mock.mockedType.getMethods()) {
                 if (method.getName().equals(methodName) && method.hasFlags(Flag.Private)) {
                     return mi;
                 }
+                if (method.getName().equals(methodName) && isApplicable(method, methodArguments)) {
+                    overloads++;
+                }
             }
-            String template = "#{any(org.mockito.MockedStatic)}.when(() -> " + mock.className + "." + methodName + "(" +
-                              methodArguments.stream().map(r -> "#{any()}").collect(joining(", ")) + "))";
+            // PowerMock picks among overloads at runtime, whereas a call to one, such as `register(any())`, would
+            // be ambiguous
+            if (overloads > 1) {
+                return mi;
+            }
             String mockedImport = mocks.importFor(mock.mockedType);
             if (mockedImport != null) {
                 namedTypes.add(mockedImport);
             }
-            return mockitoTemplate(template, mockedImport, ctx)
-                    .apply(getCursor(), mi.getCoordinates().replace(), ListUtils.concat(mock.field(), methodArguments).toArray());
+            // The call is built rather than printed into the template, as the template parser does not see a
+            // mocked type declared in another source file.
+            List<Object> templateArguments = new ArrayList<>();
+            templateArguments.add(mock.field());
+            templateArguments.add(staticCall(mock, methodName, methodArguments));
+            templateArguments.addAll(answerArguments);
+            return mockitoTemplate("#{any(org.mockito.MockedStatic)}.when(() -> #{any()})" + answer, null, ctx)
+                    .apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
+        }
+
+        /// Whether the arguments could be passed to the method. A matcher such as `any()` passed to PowerMock's
+        /// `Object...` is inferred as `Object`, or as the `Object[]` of the varargs, and is inferred anew in a call to
+        /// the method itself, so it could be passed to any.
+        private boolean isApplicable(JavaType.Method method, List<Expression> arguments) {
+            if (method.getParameterTypes().size() != arguments.size()) {
+                return false;
+            }
+            for (int i = 0; i < arguments.size(); i++) {
+                JavaType argument = arguments.get(i).getType();
+                if (argument instanceof JavaType.Array && TypeUtils.isObject(((JavaType.Array) argument).getElemType())) {
+                    continue;
+                }
+                if (argument == null || argument instanceof JavaType.Unknown || argument instanceof JavaType.GenericTypeVariable ||
+                    TypeUtils.isObject(argument)) {
+                    continue;
+                }
+                if (!TypeUtils.isAssignableTo(method.getParameterTypes().get(i), argument)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private J.MethodInvocation staticCall(ScopedMocks.ScopedMock mock, String methodName, List<Expression> arguments) {
+            JavaType.Method target = null;
+            for (JavaType.Method method : mock.mockedType.getMethods()) {
+                if (method.getName().equals(methodName) && method.getParameterTypes().size() == arguments.size()) {
+                    if (target != null) {
+                        target = null;
+                        break;
+                    }
+                    target = method;
+                }
+            }
+            Expression typeReference = TypeTree.build(mock.className).withType(mock.mockedType);
+            List<JRightPadded<Expression>> paddedArguments = new ArrayList<>();
+            for (int i = 0; i < arguments.size(); i++) {
+                paddedArguments.add(JRightPadded.build(arguments.get(i).withPrefix(i == 0 ? Space.EMPTY : Space.SINGLE_SPACE)));
+            }
+            if (paddedArguments.isEmpty()) {
+                paddedArguments.add(JRightPadded.build(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY)));
+            }
+            return new J.MethodInvocation(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(typeReference), null,
+                    new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), methodName, target, null),
+                    JContainer.build(Space.EMPTY, paddedArguments, Markers.EMPTY), target);
         }
 
         private static JavaTemplate mockitoTemplate(String code, @Nullable String typeImport, ExecutionContext ctx) {
