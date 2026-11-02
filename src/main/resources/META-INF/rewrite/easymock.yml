@@ -157,6 +157,21 @@ recipeList:
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.easymock.EasyMock not(..)
       fullyQualifiedTargetTypeName: org.mockito.AdditionalMatchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.easymock.EasyMock aryEq(..)
+      fullyQualifiedTargetTypeName: org.mockito.AdditionalMatchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.easymock.EasyMock find(..)
+      fullyQualifiedTargetTypeName: org.mockito.AdditionalMatchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.easymock.EasyMock cmpEq(..)
+      fullyQualifiedTargetTypeName: org.mockito.AdditionalMatchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.easymock.EasyMock eq(double, double)
+      fullyQualifiedTargetTypeName: org.mockito.AdditionalMatchers
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.easymock.EasyMock eq(float, float)
+      fullyQualifiedTargetTypeName: org.mockito.AdditionalMatchers
   - org.openrewrite.java.testing.easymock.RemoveExtendsEasyMockSupport
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.easymock.EasyMock
