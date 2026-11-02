@@ -65,7 +65,8 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
             "deliberately does not support, so that the rest of the repository can migrate. The test is annotated " +
             "`@Disabled`, `@Ignore` or TestNG's `@Ignore` and recorded in a data table as an action item: rework the " +
             "test not to depend on private members, then re-enable it. A usage outside a test method, such as in a " +
-            "setup method or a class-level annotation, disables the whole class.";
+            "setup method or a class-level annotation, disables the whole class, and an initializer holding it is " +
+            "commented out and an annotation holding it removed, so that the class compiles without PowerMock.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -146,22 +147,12 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 }
                 String closingIndent = lastLineOf(body.getEnd().getWhitespace());
                 String indent = closingIndent + "    ";
-                List<Comment> comments = new ArrayList<>(body.getEnd().getComments());
-                comments.add(new TextComment(false, " The body of this test is kept for reference while it is migrated by hand:",
-                        "\n" + indent, Markers.EMPTY));
-                // Printing the block rather than its statements keeps the original punctuation and layout.
-                for (String line : dedent(innerSourceOf(body))) {
-                    comments.add(new TextComment(false, " " + line, "\n" + indent, Markers.EMPTY));
-                }
+                List<Comment> comments = commentedOutStatements(body, indent);
                 TextComment last = (TextComment) comments.get(comments.size() - 1);
                 J.MethodDeclaration emptied = method.withBody(body.withStatements(emptyList()));
                 TypeTree returnType = method.getReturnTypeExpression();
                 if (returnType == null || returnType.getType() == JavaType.Primitive.Void) {
-                    // A comment's suffix precedes whatever follows it, so the last one carries the closing brace
-                    // back out to the method's own indentation.
-                    comments.set(comments.size() - 1, last.withSuffix("\n" + closingIndent));
-                    return emptied.withBody(emptied.getBody().withEnd(
-                            body.getEnd().withWhitespace("\n" + indent).withComments(comments)));
+                    return emptied.withBody(commentOut(body));
                 }
                 // A method that returns a value no longer compiles without a body, so it throws instead
                 comments.set(comments.size() - 1, last.withSuffix("\n" + indent));
@@ -173,6 +164,30 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                         .withStatements(ListUtils.mapFirst(throwingBody.getStatements(),
                                 statement -> statement.withPrefix(Space.build("\n" + indent, comments))))
                         .withEnd(Space.format("\n" + closingIndent)));
+            }
+
+            /** Empties the block, keeping what it did as line comments in its place. */
+            private J.Block commentOut(J.Block block) {
+                String closingIndent = lastLineOf(block.getEnd().getWhitespace());
+                String indent = closingIndent + "    ";
+                List<Comment> comments = commentedOutStatements(block, indent);
+                // A comment's suffix precedes whatever follows it, so the last one carries the closing brace
+                // back out to the block's own indentation.
+                TextComment last = (TextComment) comments.get(comments.size() - 1);
+                comments.set(comments.size() - 1, last.withSuffix("\n" + closingIndent));
+                return block.withStatements(emptyList())
+                        .withEnd(block.getEnd().withWhitespace("\n" + indent).withComments(comments));
+            }
+
+            private List<Comment> commentedOutStatements(J.Block block, String indent) {
+                List<Comment> comments = new ArrayList<>(block.getEnd().getComments());
+                comments.add(new TextComment(false, " The body of this test is kept for reference while it is migrated by hand:",
+                        "\n" + indent, Markers.EMPTY));
+                // Printing the block rather than its statements keeps the original punctuation and layout.
+                for (String line : dedent(innerSourceOf(block))) {
+                    comments.add(new TextComment(false, " " + line, "\n" + indent, Markers.EMPTY));
+                }
+                return comments;
             }
 
             private String innerSourceOf(J.Block body) {
@@ -204,12 +219,32 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 return lineStart < 0 ? "" : whitespace.substring(lineStart + 1);
             }
 
+            /**
+             * Also comments out an initializer holding usage, and removes an annotation of the class holding usage,
+             * such as a PowerMock runner that is left in place: the class does not run anyway, and either would keep
+             * it from compiling once the PowerMock dependency is removed.
+             */
             private J.ClassDeclaration commentOutBodiesHoldingUsage(J.ClassDeclaration classDecl) {
                 Cursor bodyCursor = new Cursor(getCursor(), classDecl.getBody());
-                return classDecl.withBody(classDecl.getBody().withStatements(
-                        ListUtils.map(classDecl.getBody().getStatements(), statement ->
-                                statement instanceof J.MethodDeclaration && !reasonsIn(statement).isEmpty() ?
-                                        commentOutBody((J.MethodDeclaration) statement, bodyCursor) : statement)));
+                J.ClassDeclaration cd = classDecl.withBody(classDecl.getBody().withStatements(
+                        ListUtils.map(classDecl.getBody().getStatements(), statement -> {
+                            if (reasonsIn(statement).isEmpty()) {
+                                return statement;
+                            }
+                            if (statement instanceof J.MethodDeclaration) {
+                                return commentOutBody((J.MethodDeclaration) statement, bodyCursor);
+                            }
+                            if (statement instanceof J.Block && !((J.Block) statement).getStatements().isEmpty()) {
+                                return commentOut((J.Block) statement);
+                            }
+                            return statement;
+                        })));
+                List<J.Annotation> annotations = cd.getLeadingAnnotations();
+                List<J.Annotation> kept = ListUtils.map(annotations, annotation -> reasonsIn(annotation).isEmpty() ? annotation : null);
+                if (kept.size() < annotations.size() && !kept.isEmpty() && kept.get(0) != annotations.get(0)) {
+                    kept = ListUtils.mapFirst(kept, first -> first.withPrefix(annotations.get(0).getPrefix()));
+                }
+                return cd.withLeadingAnnotations(kept);
             }
 
             private org.openrewrite.java.tree.@Nullable JavaCoordinates annotationCoordinates(J target) {
