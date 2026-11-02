@@ -136,14 +136,27 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     JavaType.@Nullable FullyQualified fieldOwner(Expression target, @Nullable String fieldName) {
         JavaType.FullyQualified declaringType = fieldDeclaringType(target, fieldName);
+        if (declaringType == null) {
+            // A static field of a class literal target is looked up on that class, never on `java.lang.Class`
+            declaringType = classLiteralType(target);
+        }
         return declaringType != null && isAccessible(declaringType) ? declaringType : null;
+    }
+
+    /**
+     * The class whose members a call on {@code target} reaches: the class a class literal names, as
+     * {@code Whitebox} then reaches its static members, and otherwise the target's type.
+     */
+    JavaType.@Nullable FullyQualified memberSearchStart(Expression target) {
+        JavaType.FullyQualified literal = classLiteralType(target);
+        return literal != null ? literal : TypeUtils.asFullyQualified(target.getType());
     }
 
     JavaType.@Nullable FullyQualified fieldDeclaringType(Expression target, @Nullable String fieldName) {
         if (fieldName == null) {
             return null;
         }
-        for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
+        for (JavaType.FullyQualified type = memberSearchStart(target);
              type != null; type = type.getSupertype()) {
             for (JavaType.Variable member : type.getMembers()) {
                 if (member.getName().equals(fieldName)) {

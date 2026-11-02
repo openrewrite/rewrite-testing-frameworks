@@ -38,6 +38,10 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
     private static final MethodMatcher INVOKE_METHOD =
             new MethodMatcher("org.powermock.reflect.Whitebox invokeMethod(java.lang.Object, java.lang.String, ..)");
 
+    // The overload a class literal target resolves to, which invokes a static method of that class
+    private static final MethodMatcher INVOKE_STATIC_METHOD =
+            new MethodMatcher("org.powermock.reflect.Whitebox invokeMethod(java.lang.Class, java.lang.String, ..)");
+
     @Getter
     final String displayName = "Replace PowerMock `Whitebox.invokeMethod()` with Java reflection";
 
@@ -47,7 +51,8 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
             "method, which also covers Mockito spies and mocks, and its parameter types are taken from that method, " +
             "falling back to the target's runtime class and each argument's compile-time class. A call nested in a " +
             "larger expression is replaced by `method.invoke(target, ..)`, with the `Method` declared before the " +
-            "enclosing statement.";
+            "enclosing statement. `Whitebox.invokeMethod(Type.class, String, ..)` invokes a static method of `Type`, " +
+            "so it is looked up there.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -57,7 +62,7 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
     static class InvokeMethodVisitor extends WhiteboxToReflectionVisitor {
 
         InvokeMethodVisitor() {
-            super("java.lang.reflect.Method", INVOKE_METHOD);
+            super("java.lang.reflect.Method", INVOKE_METHOD, INVOKE_STATIC_METHOD);
         }
 
         @Override
@@ -67,6 +72,12 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
 
         @Override
         JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+            JavaType.FullyQualified classLiteral = classLiteralType(mi.getArguments().get(0));
+            if (classLiteral != null) {
+                // A static method of a class literal target is looked up on that class, never on `java.lang.Class`
+                JavaType.FullyQualified owner = resolvedMethod == null ? classLiteral : resolvedMethod.getDeclaringType();
+                return isAccessible(owner) ? owner : null;
+            }
             if (resolvedMethod == null || resolvedMethod.hasFlags(Flag.Static)) {
                 return null;
             }
@@ -201,13 +212,13 @@ public class PowerMockWhiteboxInvokeMethodToJavaReflection extends Recipe {
             if (methodName == null) {
                 return null;
             }
-            JavaType targetType = args.get(0).getType();
-            if (!(targetType instanceof JavaType.FullyQualified)) {
+            JavaType.FullyQualified targetType = memberSearchStart(args.get(0));
+            if (targetType == null) {
                 return null;
             }
             int expectedParamCount = args.size() - 2;
             JavaType.Method match = null;
-            for (JavaType.FullyQualified current = (JavaType.FullyQualified) targetType;
+            for (JavaType.FullyQualified current = targetType;
                  current != null; current = current.getSupertype()) {
                 for (JavaType.Method method : current.getMethods()) {
                     if (method.getName().equals(methodName) &&
