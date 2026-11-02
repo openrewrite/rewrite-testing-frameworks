@@ -47,6 +47,10 @@ tags:
   - testing
   - easymock
 recipeList:
+  - org.openrewrite.java.testing.easymock.EasyMockIAnswerToMockitoAnswer
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.easymock.IAnswer
+      newFullyQualifiedTypeName: org.mockito.stubbing.Answer
   - org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters times(..)
