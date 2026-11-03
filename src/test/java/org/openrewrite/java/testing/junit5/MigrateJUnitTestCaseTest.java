@@ -26,6 +26,7 @@ import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -1205,6 +1206,37 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   static MathTest create() {
                       return new MathTest() {
                       };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void retainConstructorOfTestCaseNestedInOtherClass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class Outer {
+                  public static class InnerTest extends TestCase {
+                      public InnerTest(String name) {
+                          super(name);
+                      }
+                  }
+              }
+              """,
+            spec -> spec.after(actual -> assertThat(actual).contains("public InnerTest(String name)").actual())
+          ),
+          //language=java
+          java(
+            """
+              class Caller {
+                  Outer.InnerTest create() {
+                      return new Outer.InnerTest("inner");
                   }
               }
               """

@@ -225,7 +225,8 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
         final String signature;
         final String declaringClass;
         /**
-         * Declared in a TestCase subclass with a signature that could be dropped: no thrown exceptions, varargs, or generic parameters.
+         * Declared in a TestCase subclass nested only in other TestCase subclasses, as the migration does not visit others,
+         * with a signature that could be dropped: no thrown exceptions, varargs, or generic parameters.
          */
         final boolean removable;
         final boolean noArguments;
@@ -241,10 +242,10 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
          */
         final @Nullable String delegationSignature;
 
-        Constructor(J.MethodDeclaration method, JavaType.Method type) {
+        Constructor(J.MethodDeclaration method, JavaType.Method type, boolean migrated) {
             signature = MethodMatcher.methodPattern(type);
             declaringClass = type.getDeclaringType().getFullyQualifiedName();
-            removable = isSupertypeTestCase(type.getDeclaringType()) && type.getThrownExceptions().isEmpty() &&
+            removable = migrated && type.getThrownExceptions().isEmpty() &&
                         !type.hasFlags(Flag.Varargs) &&
                         type.getParameterTypes().stream().noneMatch(MigrateJUnitTestCase::hasGenericParameter);
             noArguments = type.getParameterTypes().isEmpty();
@@ -350,7 +351,10 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 JavaType.Method type = method.getMethodType();
                 if (method.isConstructor() && type != null) {
-                    Constructor constructor = new Constructor(method, type);
+                    boolean migrated = getCursor().getPathAsStream()
+                            .filter(J.ClassDeclaration.class::isInstance)
+                            .allMatch(c -> isSupertypeTestCase(((J.ClassDeclaration) c).getType()));
+                    Constructor constructor = new Constructor(method, type, migrated);
                     project.constructors.put(constructor.signature, constructor);
                     if (skipped) {
                         project.references.put(constructor.signature, true);
