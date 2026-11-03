@@ -911,6 +911,113 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     }
 
     @Test
+    void fieldNotAsRule() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.rules.TemporaryFolder;
+
+              import java.io.File;
+
+              class GitConfiguration {
+                  TemporaryFolder serverGitFolder = new TemporaryFolder();
+                  static TemporaryFolder configGitFolder = new TemporaryFolder();
+
+                  File workDirectory() throws Exception {
+                      configGitFolder.create();
+                      return configGitFolder.getRoot();
+                  }
+
+                  static void init(TemporaryFolder folder) throws Exception {
+                      folder.create();
+                      System.out.println(folder.getRoot().getAbsolutePath());
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+              import java.io.IOException;
+              import java.io.UncheckedIOException;
+              import java.nio.file.Files;
+
+              class GitConfiguration {
+                  File serverGitFolder = createTempDirectory();
+                  static File configGitFolder = createTempDirectory();
+
+                  File workDirectory() throws Exception {
+                      return configGitFolder;
+                  }
+
+                  static void init(File folder) throws Exception {
+                      System.out.println(folder.getAbsolutePath());
+                  }
+
+                  private static File createTempDirectory() {
+                      try {
+                          return Files.createTempDirectory("junit").toFile();
+                      } catch (IOException e) {
+                          throw new UncheckedIOException(e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ruleFieldNextToPlainFieldAndExistingHelperName() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TemporaryFolder;
+
+              import java.io.File;
+
+              class MyTest {
+                  @Rule
+                  public TemporaryFolder ruleFolder = new TemporaryFolder();
+                  TemporaryFolder plainFolder = new TemporaryFolder();
+
+                  private static File createTempDirectory() {
+                      return new File("existing");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.io.TempDir;
+
+              import java.io.File;
+              import java.io.IOException;
+              import java.io.UncheckedIOException;
+              import java.nio.file.Files;
+
+              class MyTest {
+                  @TempDir
+                  public File ruleFolder;
+                  File plainFolder = createTempDirectory2();
+
+                  private static File createTempDirectory() {
+                      return new File("existing");
+                  }
+
+                  private static File createTempDirectory2() {
+                      try {
+                          return Files.createTempDirectory("junit").toFile();
+                      } catch (IOException e) {
+                          throw new UncheckedIOException(e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void temporaryFolderInRuleChainShouldNotBeConverted() {
         //language=java
         rewriteRun(
