@@ -74,6 +74,7 @@ recipeList:
   - org.openrewrite.java.testing.testcontainers.AddTestcontainersAnnotations
   - org.openrewrite.java.testing.testcontainers.ExplicitContainerImages
   - org.openrewrite.java.testing.testcontainers.GetHostMigration
+  - org.openrewrite.java.testing.testcontainers.RemoveLocalCompose
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.testcontainers.containers.DockerComposeContainer
       newFullyQualifiedTypeName: org.testcontainers.containers.ComposeContainer
