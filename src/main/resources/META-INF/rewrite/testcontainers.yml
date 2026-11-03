@@ -80,6 +80,7 @@ recipeList:
       newFullyQualifiedTypeName: org.testcontainers.containers.ComposeContainer
   - org.openrewrite.java.testing.testcontainers.Testcontainers2Dependencies
   - org.openrewrite.java.testing.testcontainers.Testcontainers2LocalStack
+  - org.openrewrite.java.testing.testcontainers.RemoveBrowserWebDriverContainerCapabilities
   - org.openrewrite.java.testing.testcontainers.Testcontainers2ContainerClasses
 ---
 type: specs.openrewrite.org/v1beta/recipe
