@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -371,11 +372,8 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     }
 
     @Test
-    void migratesRedundantConstructorsAndTheirCallers() {
+    void removeRedundantConstructorAndRewriteCaller() {
         rewriteRun(
-          spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4")
-            .dependsOn("class MixedTest(name: String) : junit.framework.TestCase(name)")),
           //language=java
           java(
             """
@@ -399,7 +397,13 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void removeNoArgumentConstructorDelegatingToRedundantOne() {
+        rewriteRun(
           //language=java
           java(
             """
@@ -427,7 +431,13 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void removeRedundantConstructorsWithExtraParameters() {
+        rewriteRun(
           //language=java
           java(
             """
@@ -455,7 +465,13 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void keepNoArgumentConstructorForRetainedOverload() {
+        rewriteRun(
           //language=java
           java(
             """
@@ -493,213 +509,35 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
             """
               import junit.framework.TestCase;
 
-              public class RetainedDefaultTest extends TestCase {
-                  public RetainedDefaultTest() {
-                      System.out.println("default");
-                  }
-
-                  public RetainedDefaultTest(String name, int unused) {
+              public class OverloadedTest extends TestCase {
+                  public OverloadedTest(String name) {
                       super(name);
                   }
 
-                  public static RetainedDefaultTest create() {
-                      return new RetainedDefaultTest("test", 0);
+                  public OverloadedTest(int value) {
+                      this("math");
+                      System.out.println(value);
                   }
               }
               """,
             """
-              public class RetainedDefaultTest {
-                  public RetainedDefaultTest() {
-                      System.out.println("default");
+              public class OverloadedTest {
+                  public OverloadedTest() {
                   }
 
-                  public RetainedDefaultTest(String name, int unused) {
-                  }
-
-                  public static RetainedDefaultTest create() {
-                      return new RetainedDefaultTest("test", 0);
+                  public OverloadedTest(int value) {
+                      this();
+                      System.out.println(value);
                   }
               }
               """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
+          )
+        );
+    }
 
-              public class UnsafeArgumentTest extends TestCase {
-                  public UnsafeArgumentTest(String name, int unused) {
-                      super(name);
-                  }
-
-                  public static UnsafeArgumentTest create() {
-                      return new UnsafeArgumentTest("test", Integer.parseInt("0"));
-                  }
-              }
-              """,
-            """
-              public class UnsafeArgumentTest {
-                  public UnsafeArgumentTest(String name, int unused) {
-                  }
-
-                  public static UnsafeArgumentTest create() {
-                      return new UnsafeArgumentTest("test", Integer.parseInt("0"));
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class FieldArgumentTest extends TestCase {
-                  static int value;
-
-                  public FieldArgumentTest(String name, int unused) {
-                      super(name);
-                  }
-
-                  public static FieldArgumentTest create() {
-                      return new FieldArgumentTest("test", value);
-                  }
-              }
-              """,
-            """
-              public class FieldArgumentTest {
-                  static int value;
-
-                  public FieldArgumentTest(String name, int unused) {
-                  }
-
-                  public static FieldArgumentTest create() {
-                      return new FieldArgumentTest("test", value);
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class UnsafeDelegationTest extends TestCase {
-                  public UnsafeDelegationTest(String name, int unused) {
-                      super(name);
-                  }
-
-                  public UnsafeDelegationTest() {
-                      this("test", Integer.parseInt("0"));
-                  }
-              }
-              """,
-            """
-              public class UnsafeDelegationTest {
-                  public UnsafeDelegationTest(String name, int unused) {
-                  }
-
-                  public UnsafeDelegationTest() {
-                      this("test", Integer.parseInt("0"));
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class CheckedConstructorTest extends TestCase {
-                  public CheckedConstructorTest(String name, int unused) throws java.io.IOException {
-                      super(name);
-                  }
-
-                  public static CheckedConstructorTest create() throws java.io.IOException {
-                      return new CheckedConstructorTest("test", 0);
-                  }
-              }
-              """,
-            """
-              public class CheckedConstructorTest {
-                  public CheckedConstructorTest(String name, int unused) throws java.io.IOException {
-                  }
-
-                  public static CheckedConstructorTest create() throws java.io.IOException {
-                      return new CheckedConstructorTest("test", 0);
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class PrivateNoArgumentTest extends TestCase {
-                  private PrivateNoArgumentTest() {
-                      this("test", 0);
-                  }
-
-                  public PrivateNoArgumentTest(String name, int unused) {
-                      super(name);
-                  }
-
-                  public static PrivateNoArgumentTest create() {
-                      return new PrivateNoArgumentTest("test", 0);
-                  }
-              }
-              """,
-            """
-              public class PrivateNoArgumentTest {
-                  private PrivateNoArgumentTest() {
-                      this("test", 0);
-                  }
-
-                  public PrivateNoArgumentTest(String name, int unused) {
-                  }
-
-                  public static PrivateNoArgumentTest create() {
-                      return new PrivateNoArgumentTest("test", 0);
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class AnnotatedNoArgumentTest extends TestCase {
-                  @Deprecated
-                  public AnnotatedNoArgumentTest() {
-                      this("test", 0);
-                  }
-
-                  public AnnotatedNoArgumentTest(String name, int unused) {
-                      super(name);
-                  }
-
-                  public static AnnotatedNoArgumentTest create() {
-                      return new AnnotatedNoArgumentTest("test", 0);
-                  }
-              }
-              """,
-            """
-              public class AnnotatedNoArgumentTest {
-                  @Deprecated
-                  public AnnotatedNoArgumentTest() {
-                      this("test", 0);
-                  }
-
-                  public AnnotatedNoArgumentTest(String name, int unused) {
-                  }
-
-                  public static AnnotatedNoArgumentTest create() {
-                      return new AnnotatedNoArgumentTest("test", 0);
-                  }
-              }
-              """
-          ),
+    @Test
+    void keepVisibilityAndAnnotationsOfLastRedundantConstructor() {
+        rewriteRun(
           //language=java
           java(
             """
@@ -728,6 +566,68 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               }
               """
           ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class PrivateGenericNameTest extends TestCase {
+                  private <T> PrivateGenericNameTest(String name) {
+                      super(name);
+                  }
+
+                  public static PrivateGenericNameTest create() {
+                      return new PrivateGenericNameTest("test");
+                  }
+              }
+              """,
+            """
+              public class PrivateGenericNameTest {
+                  private <T> PrivateGenericNameTest() {
+                  }
+
+                  public static PrivateGenericNameTest create() {
+                      return new PrivateGenericNameTest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeGenericConstructorWithoutGenericParameters() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class GenericNameTest extends TestCase {
+                  public <T> GenericNameTest(String name) {
+                      super(name);
+                  }
+
+                  public static GenericNameTest create() {
+                      return new GenericNameTest("test");
+                  }
+              }
+              """,
+            """
+              public class GenericNameTest {
+
+                  public static GenericNameTest create() {
+                      return new GenericNameTest();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void removeConstructorDelegatingToNoArgumentBase() {
+        rewriteRun(
           //language=java
           java(
             """
@@ -765,109 +665,13 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
+          )
+        );
+    }
 
-              public class VarargsConstructorTest extends TestCase {
-                  public VarargsConstructorTest(String name, Object... unused) {
-                      super(name);
-                  }
-
-                  public static VarargsConstructorTest create() {
-                      return new VarargsConstructorTest("test", 0);
-                  }
-              }
-              """,
-            """
-              public class VarargsConstructorTest {
-                  public VarargsConstructorTest(String name, Object... unused) {
-                  }
-
-                  public static VarargsConstructorTest create() {
-                      return new VarargsConstructorTest("test", 0);
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class GenericConstructorTest extends TestCase {
-                  private <T> GenericConstructorTest(String name, T unused) {
-                      super(name);
-                  }
-
-                  public static GenericConstructorTest create() {
-                      return new GenericConstructorTest("test", "unused");
-                  }
-              }
-              """,
-            """
-              public class GenericConstructorTest {
-                  private <T> GenericConstructorTest(String name, T unused) {
-                  }
-
-                  public static GenericConstructorTest create() {
-                      return new GenericConstructorTest("test", "unused");
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class GenericNameTest extends TestCase {
-                  public <T> GenericNameTest(String name) {
-                      super(name);
-                  }
-
-                  public static GenericNameTest create() {
-                      return new GenericNameTest("test");
-                  }
-              }
-              """,
-            """
-              public class GenericNameTest {
-
-                  public static GenericNameTest create() {
-                      return new GenericNameTest();
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class PrivateGenericNameTest extends TestCase {
-                  private <T> PrivateGenericNameTest(String name) {
-                      super(name);
-                  }
-
-                  public static PrivateGenericNameTest create() {
-                      return new PrivateGenericNameTest("test");
-                  }
-              }
-              """,
-            """
-              public class PrivateGenericNameTest {
-                  private <T> PrivateGenericNameTest() {
-                  }
-
-                  public static PrivateGenericNameTest create() {
-                      return new PrivateGenericNameTest();
-                  }
-              }
-              """
-          ),
+    @Test
+    void rewriteCallersInDependentModule() {
+        rewriteRun(
           mavenProject("base-module",
             //language=java
             java(
@@ -929,166 +733,13 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                 }
                 """
             )
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
+          )
+        );
+    }
 
-              public class OverloadedTest extends TestCase {
-                  public OverloadedTest(String name) {
-                      super(name);
-                  }
-
-                  public OverloadedTest(int value) {
-                      this("math");
-                      System.out.println(value);
-                  }
-              }
-              """,
-            """
-              public class OverloadedTest {
-                  public OverloadedTest() {
-                  }
-
-                  public OverloadedTest(int value) {
-                      this();
-                      System.out.println(value);
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class SideEffectTest extends TestCase {
-                  public SideEffectTest(String name) {
-                      super(name);
-                  }
-
-                  public static SideEffectTest create() {
-                      return new SideEffectTest(System.getProperty("example.name"));
-                  }
-              }
-              """,
-            """
-              public class SideEffectTest {
-                  public SideEffectTest(String name) {
-                  }
-
-                  public static SideEffectTest create() {
-                      return new SideEffectTest(System.getProperty("example.name"));
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-              import java.util.function.Function;
-
-              public class FactoryTest extends TestCase {
-                  public FactoryTest(String name) {
-                      super(name);
-                  }
-
-                  public static Function<String, FactoryTest> factory() {
-                      return FactoryTest::new;
-                  }
-              }
-
-              class Other {
-                  Other(String name) {
-                  }
-
-                  static Other create() {
-                      return new Other("other");
-                  }
-              }
-              """,
-            """
-              import java.util.function.Function;
-
-              public class FactoryTest {
-                  public FactoryTest(String name) {
-                  }
-
-                  public static Function<String, FactoryTest> factory() {
-                      return FactoryTest::new;
-                  }
-              }
-
-              class Other {
-                  Other(String name) {
-                  }
-
-                  static Other create() {
-                      return new Other("other");
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class DefaultBehaviorTest extends TestCase {
-                  public DefaultBehaviorTest(String name) {
-                      super(name);
-                  }
-
-                  public DefaultBehaviorTest() {
-                      System.out.println("default");
-                  }
-
-                  public static DefaultBehaviorTest create() {
-                      return new DefaultBehaviorTest("math");
-                  }
-              }
-              """,
-            """
-              public class DefaultBehaviorTest {
-                  public DefaultBehaviorTest(String name) {
-                  }
-
-                  public DefaultBehaviorTest() {
-                      System.out.println("default");
-                  }
-
-                  public static DefaultBehaviorTest create() {
-                      return new DefaultBehaviorTest("math");
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class MixedTest extends TestCase {
-                  public MixedTest(String name) {
-                      super(name);
-                  }
-              }
-              """,
-            """
-              public class MixedTest {
-                  public MixedTest(String name) {
-                  }
-              }
-              """
-          ),
-          //language=kotlin
-          kotlin(
-            """
-              fun createMixedTest() = MixedTest("mixed")
-              """
-          ),
+    @Test
+    void rewriteCallersDespiteSameNamedClassInOtherModule() {
+        rewriteRun(
           mavenProject("test-module",
             //language=java
             java(
@@ -1134,49 +785,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new ChangeType("OtherSharedTest", "SharedTest", false)
                 .getVisitor().visitNonNull(cu, new InMemoryExecutionContext()))
             )
-          ),
-          mavenProject("ambiguous-first-module",
-            //language=java
-            java(
-              """
-                import junit.framework.TestCase;
-
-                public class AmbiguousTest extends TestCase {
-                    public AmbiguousTest(String name) {
-                        super(name);
-                    }
-                }
-                """,
-              """
-                public class AmbiguousTest {
-                    public AmbiguousTest(String name) {
-                    }
-                }
-                """
-            )
-          ),
-          mavenProject("ambiguous-second-module",
-            //language=java
-            java(
-              """
-                public class OtherAmbiguousTest {
-                    public OtherAmbiguousTest(String name) {
-                    }
-                }
-                """,
-              spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new ChangeType("OtherAmbiguousTest", "AmbiguousTest", false)
-                .getVisitor().visitNonNull(cu, new InMemoryExecutionContext()))
-            )
-          ),
-          //language=java
-          java(
-            """
-              class AmbiguousCaller {
-                  AmbiguousTest create() {
-                      return new AmbiguousTest("ambiguous");
-                  }
-              }
-              """
           )
         );
     }
@@ -1257,35 +865,533 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
         );
     }
 
-    @Test
-    void retainConstructorOfTestCaseNestedInOtherClass() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
+    @Nested
+    class RetainConstructor {
+        @Test
+        void whenNoArgumentConstructorDoesMore() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
 
-              public class Outer {
-                  public static class InnerTest extends TestCase {
-                      public InnerTest(String name) {
+                  public class RetainedDefaultTest extends TestCase {
+                      public RetainedDefaultTest() {
+                          System.out.println("default");
+                      }
+
+                      public RetainedDefaultTest(String name, int unused) {
+                          super(name);
+                      }
+
+                      public static RetainedDefaultTest create() {
+                          return new RetainedDefaultTest("test", 0);
+                      }
+                  }
+                  """,
+                """
+                  public class RetainedDefaultTest {
+                      public RetainedDefaultTest() {
+                          System.out.println("default");
+                      }
+
+                      public RetainedDefaultTest(String name, int unused) {
+                      }
+
+                      public static RetainedDefaultTest create() {
+                          return new RetainedDefaultTest("test", 0);
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class DefaultBehaviorTest extends TestCase {
+                      public DefaultBehaviorTest(String name) {
+                          super(name);
+                      }
+
+                      public DefaultBehaviorTest() {
+                          System.out.println("default");
+                      }
+
+                      public static DefaultBehaviorTest create() {
+                          return new DefaultBehaviorTest("math");
+                      }
+                  }
+                  """,
+                """
+                  public class DefaultBehaviorTest {
+                      public DefaultBehaviorTest(String name) {
+                      }
+
+                      public DefaultBehaviorTest() {
+                          System.out.println("default");
+                      }
+
+                      public static DefaultBehaviorTest create() {
+                          return new DefaultBehaviorTest("math");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenCallerPassesArgumentOtherThanLiteralOrLocal() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class UnsafeArgumentTest extends TestCase {
+                      public UnsafeArgumentTest(String name, int unused) {
+                          super(name);
+                      }
+
+                      public static UnsafeArgumentTest create() {
+                          return new UnsafeArgumentTest("test", Integer.parseInt("0"));
+                      }
+                  }
+                  """,
+                """
+                  public class UnsafeArgumentTest {
+                      public UnsafeArgumentTest(String name, int unused) {
+                      }
+
+                      public static UnsafeArgumentTest create() {
+                          return new UnsafeArgumentTest("test", Integer.parseInt("0"));
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class FieldArgumentTest extends TestCase {
+                      static int value;
+
+                      public FieldArgumentTest(String name, int unused) {
+                          super(name);
+                      }
+
+                      public static FieldArgumentTest create() {
+                          return new FieldArgumentTest("test", value);
+                      }
+                  }
+                  """,
+                """
+                  public class FieldArgumentTest {
+                      static int value;
+
+                      public FieldArgumentTest(String name, int unused) {
+                      }
+
+                      public static FieldArgumentTest create() {
+                          return new FieldArgumentTest("test", value);
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class SideEffectTest extends TestCase {
+                      public SideEffectTest(String name) {
+                          super(name);
+                      }
+
+                      public static SideEffectTest create() {
+                          return new SideEffectTest(System.getProperty("example.name"));
+                      }
+                  }
+                  """,
+                """
+                  public class SideEffectTest {
+                      public SideEffectTest(String name) {
+                      }
+
+                      public static SideEffectTest create() {
+                          return new SideEffectTest(System.getProperty("example.name"));
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenDelegationPassesArgumentOtherThanLiteralOrLocal() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class UnsafeDelegationTest extends TestCase {
+                      public UnsafeDelegationTest(String name, int unused) {
+                          super(name);
+                      }
+
+                      public UnsafeDelegationTest() {
+                          this("test", Integer.parseInt("0"));
+                      }
+                  }
+                  """,
+                """
+                  public class UnsafeDelegationTest {
+                      public UnsafeDelegationTest(String name, int unused) {
+                      }
+
+                      public UnsafeDelegationTest() {
+                          this("test", Integer.parseInt("0"));
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenConstructorDeclaresException() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class CheckedConstructorTest extends TestCase {
+                      public CheckedConstructorTest(String name, int unused) throws java.io.IOException {
+                          super(name);
+                      }
+
+                      public static CheckedConstructorTest create() throws java.io.IOException {
+                          return new CheckedConstructorTest("test", 0);
+                      }
+                  }
+                  """,
+                """
+                  public class CheckedConstructorTest {
+                      public CheckedConstructorTest(String name, int unused) throws java.io.IOException {
+                      }
+
+                      public static CheckedConstructorTest create() throws java.io.IOException {
+                          return new CheckedConstructorTest("test", 0);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenNoArgumentConstructorIsPrivateOrAnnotated() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class PrivateNoArgumentTest extends TestCase {
+                      private PrivateNoArgumentTest() {
+                          this("test", 0);
+                      }
+
+                      public PrivateNoArgumentTest(String name, int unused) {
+                          super(name);
+                      }
+
+                      public static PrivateNoArgumentTest create() {
+                          return new PrivateNoArgumentTest("test", 0);
+                      }
+                  }
+                  """,
+                """
+                  public class PrivateNoArgumentTest {
+                      private PrivateNoArgumentTest() {
+                          this("test", 0);
+                      }
+
+                      public PrivateNoArgumentTest(String name, int unused) {
+                      }
+
+                      public static PrivateNoArgumentTest create() {
+                          return new PrivateNoArgumentTest("test", 0);
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class AnnotatedNoArgumentTest extends TestCase {
+                      @Deprecated
+                      public AnnotatedNoArgumentTest() {
+                          this("test", 0);
+                      }
+
+                      public AnnotatedNoArgumentTest(String name, int unused) {
+                          super(name);
+                      }
+
+                      public static AnnotatedNoArgumentTest create() {
+                          return new AnnotatedNoArgumentTest("test", 0);
+                      }
+                  }
+                  """,
+                """
+                  public class AnnotatedNoArgumentTest {
+                      @Deprecated
+                      public AnnotatedNoArgumentTest() {
+                          this("test", 0);
+                      }
+
+                      public AnnotatedNoArgumentTest(String name, int unused) {
+                      }
+
+                      public static AnnotatedNoArgumentTest create() {
+                          return new AnnotatedNoArgumentTest("test", 0);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenSignatureIsVarargsOrGeneric() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class VarargsConstructorTest extends TestCase {
+                      public VarargsConstructorTest(String name, Object... unused) {
+                          super(name);
+                      }
+
+                      public static VarargsConstructorTest create() {
+                          return new VarargsConstructorTest("test", 0);
+                      }
+                  }
+                  """,
+                """
+                  public class VarargsConstructorTest {
+                      public VarargsConstructorTest(String name, Object... unused) {
+                      }
+
+                      public static VarargsConstructorTest create() {
+                          return new VarargsConstructorTest("test", 0);
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class GenericConstructorTest extends TestCase {
+                      private <T> GenericConstructorTest(String name, T unused) {
+                          super(name);
+                      }
+
+                      public static GenericConstructorTest create() {
+                          return new GenericConstructorTest("test", "unused");
+                      }
+                  }
+                  """,
+                """
+                  public class GenericConstructorTest {
+                      private <T> GenericConstructorTest(String name, T unused) {
+                      }
+
+                      public static GenericConstructorTest create() {
+                          return new GenericConstructorTest("test", "unused");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenReferencedAsMethodReference() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+                  import java.util.function.Function;
+
+                  public class FactoryTest extends TestCase {
+                      public FactoryTest(String name) {
+                          super(name);
+                      }
+
+                      public static Function<String, FactoryTest> factory() {
+                          return FactoryTest::new;
+                      }
+                  }
+
+                  class Other {
+                      Other(String name) {
+                      }
+
+                      static Other create() {
+                          return new Other("other");
+                      }
+                  }
+                  """,
+                """
+                  import java.util.function.Function;
+
+                  public class FactoryTest {
+                      public FactoryTest(String name) {
+                      }
+
+                      public static Function<String, FactoryTest> factory() {
+                          return FactoryTest::new;
+                      }
+                  }
+
+                  class Other {
+                      Other(String name) {
+                      }
+
+                      static Other create() {
+                          return new Other("other");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenCalledFromKotlin() {
+            rewriteRun(
+              spec -> spec.parser(KotlinParser.builder()
+                .classpathFromResources(new InMemoryExecutionContext(), "junit-4")
+                .dependsOn("class MixedTest(name: String) : junit.framework.TestCase(name)")),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class MixedTest extends TestCase {
+                      public MixedTest(String name) {
                           super(name);
                       }
                   }
-              }
-              """,
-            spec -> spec.after(actual -> assertThat(actual).contains("public InnerTest(String name)").actual())
-          ),
-          //language=java
-          java(
-            """
-              class Caller {
-                  Outer.InnerTest create() {
-                      return new Outer.InnerTest("inner");
+                  """,
+                """
+                  public class MixedTest {
+                      public MixedTest(String name) {
+                      }
                   }
-              }
-              """
-          )
-        );
+                  """
+              ),
+              //language=kotlin
+              kotlin(
+                """
+                  fun createMixedTest() = MixedTest("mixed")
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenOwnershipIsAmbiguousAcrossModules() {
+            rewriteRun(
+              mavenProject("ambiguous-first-module",
+                //language=java
+                java(
+                  """
+                    import junit.framework.TestCase;
+
+                    public class AmbiguousTest extends TestCase {
+                        public AmbiguousTest(String name) {
+                            super(name);
+                        }
+                    }
+                    """,
+                  """
+                    public class AmbiguousTest {
+                        public AmbiguousTest(String name) {
+                        }
+                    }
+                    """
+                )
+              ),
+              mavenProject("ambiguous-second-module",
+                //language=java
+                java(
+                  """
+                    public class OtherAmbiguousTest {
+                        public OtherAmbiguousTest(String name) {
+                        }
+                    }
+                    """,
+                  spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new ChangeType("OtherAmbiguousTest", "AmbiguousTest", false)
+                    .getVisitor().visitNonNull(cu, new InMemoryExecutionContext()))
+                )
+              ),
+              //language=java
+              java(
+                """
+                  class AmbiguousCaller {
+                      AmbiguousTest create() {
+                          return new AmbiguousTest("ambiguous");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenNestedInClassOtherThanTestCase() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class Outer {
+                      public static class InnerTest extends TestCase {
+                          public InnerTest(String name) {
+                              super(name);
+                          }
+                      }
+                  }
+                  """,
+                spec -> spec.after(actual -> assertThat(actual).contains("public InnerTest(String name)").actual())
+              ),
+              //language=java
+              java(
+                """
+                  class Caller {
+                      Outer.InnerTest create() {
+                          return new Outer.InnerTest("inner");
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 
     @Test
