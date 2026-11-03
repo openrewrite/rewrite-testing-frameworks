@@ -16,8 +16,6 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
@@ -435,20 +433,14 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
         );
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void migrateTestSetupFixtures(boolean compositeMigration) {
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1110")
+    @Test
+    void migrateTestSetupFixturesAsPartOfJUnit4to5Migration() {
         rewriteRun(
-          spec -> {
-              if (compositeMigration) {
-                  spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration");
-              }
-          },
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration"),
           //language=java
           java(
             """
-              package fixture0;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
@@ -485,8 +477,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               }
               """,
             """
-              package fixture0;
-
               import org.junit.jupiter.api.AfterAll;
               import org.junit.jupiter.api.BeforeAll;
               import org.junit.jupiter.api.Test;
@@ -520,12 +510,16 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void moveInlineTestSetupStatementsNextToPerTestFixtures() {
+        rewriteRun(
           //language=java
           java(
             """
-              package fixture1;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
@@ -552,10 +546,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                       };
                   }
 
-                  static void beforeAll() {}
-
-                  static void afterAll() {}
-
                   @Override
                   protected void setUp() throws Exception {
                       super.setUp();
@@ -570,8 +560,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               }
               """,
             """
-              package fixture1;
-
               import org.junit.jupiter.api.AfterAll;
               import org.junit.jupiter.api.AfterEach;
               import org.junit.jupiter.api.BeforeAll;
@@ -582,21 +570,17 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   private static int counter;
 
                   @BeforeAll
-                  public static void beforeAll1() throws Exception {
+                  public static void beforeAll() throws Exception {
                       resource = "open";
                       counter = 1;
                       System.setProperty("example.mode", "test");
                   }
 
                   @AfterAll
-                  public static void afterAll1() throws Exception {
+                  public static void afterAll() throws Exception {
                       resource = null;
                       System.clearProperty("example.mode");
                   }
-
-                  static void beforeAll() {}
-
-                  static void afterAll() {}
 
                   @BeforeEach
                   public void setUp() throws Exception {
@@ -609,20 +593,22 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void avoidClashingLifecycleMethodNames() {
+        rewriteRun(
           //language=java
           java(
             """
-              package fixture2;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
               import junit.framework.TestSuite;
 
               class BaseTest extends TestCase {
-                  protected void beforeAll() {}
-
                   protected static void afterAll() {}
               }
 
@@ -640,17 +626,15 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                           }
                       };
                   }
+
+                  static void beforeAll() {}
               }
               """,
             """
-              package fixture2;
-
               import org.junit.jupiter.api.AfterAll;
               import org.junit.jupiter.api.BeforeAll;
 
               class BaseTest {
-                  protected void beforeAll() {}
-
                   protected static void afterAll() {}
               }
 
@@ -664,14 +648,20 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   public static void afterAll1() {
                       System.clearProperty("example.mode");
                   }
+
+                  static void beforeAll() {}
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupDeclaringFields() {
+        rewriteRun(
           //language=java
           java(
             """
-              package fixture3;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
@@ -691,8 +681,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               }
               """,
             """
-              package fixture3;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
@@ -711,12 +699,16 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupWrappingCustomizedSuite() {
+        rewriteRun(
           //language=java
           java(
             """
-              package fixture4;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
@@ -739,8 +731,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               }
               """,
             """
-              package fixture4;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
@@ -762,12 +752,61 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   }
               }
               """
-          ),
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupAroundSuiteVariable() {
+        rewriteRun(
           //language=java
           java(
             """
-              package references;
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
 
+              class MathTest extends TestCase {
+                  public static Test suite() {
+                      TestSuite suite = new TestSuite(MathTest.class);
+                      return new TestSetup(suite) {
+                          @Override
+                          protected void setUp() {
+                              System.setProperty("example.mode", "test");
+                          }
+                      };
+                  }
+              }
+              """,
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      TestSuite suite = new TestSuite(MathTest.class);
+                      return new TestSetup(suite) {
+                          @Override
+                          protected void setUp() {
+                              System.setProperty("example.mode", "test");
+                          }
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupReferencingDecoratorInstance() {
+        rewriteRun(
+          //language=java
+          java(
+            """
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
@@ -818,8 +857,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               }
               """,
             """
-              package references;
-
               import junit.extensions.TestSetup;
               import junit.framework.Test;
               import junit.framework.TestCase;
