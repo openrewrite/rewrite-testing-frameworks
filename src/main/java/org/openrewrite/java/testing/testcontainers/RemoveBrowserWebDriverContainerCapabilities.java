@@ -35,8 +35,7 @@ import java.util.Set;
 public class RemoveBrowserWebDriverContainerCapabilities extends Recipe {
 
     private static final String BROWSER_WEB_DRIVER_CONTAINER = "org.testcontainers.containers.BrowserWebDriverContainer";
-    private static final MethodMatcher WITH_CAPABILITIES = new MethodMatcher(BROWSER_WEB_DRIVER_CONTAINER + " withCapabilities(..)", true);
-    private static final MethodMatcher WITH_DESIRED_CAPABILITIES = new MethodMatcher(BROWSER_WEB_DRIVER_CONTAINER + " withDesiredCapabilities(..)", true);
+    private static final MethodMatcher WITH_CAPABILITIES = new MethodMatcher(BROWSER_WEB_DRIVER_CONTAINER + " with*Capabilities(..)", true);
 
     @Getter
     final String displayName = "Remove `BrowserWebDriverContainer` capabilities when an image is given";
@@ -50,7 +49,7 @@ public class RemoveBrowserWebDriverContainerCapabilities extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
-                Preconditions.or(new UsesMethod<>(WITH_CAPABILITIES), new UsesMethod<>(WITH_DESIRED_CAPABILITIES)),
+                new UsesMethod<>(WITH_CAPABILITIES),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -97,7 +96,7 @@ public class RemoveBrowserWebDriverContainerCapabilities extends Recipe {
     }
 
     private static boolean isRemovable(J.MethodInvocation mi) {
-        if (!WITH_CAPABILITIES.matches(mi) && !WITH_DESIRED_CAPABILITIES.matches(mi)) {
+        if (!WITH_CAPABILITIES.matches(mi)) {
             return false;
         }
         Expression root = mi.getSelect();
