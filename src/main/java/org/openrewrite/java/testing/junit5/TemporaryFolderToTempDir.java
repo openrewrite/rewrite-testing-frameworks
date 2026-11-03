@@ -36,9 +36,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.openrewrite.Tree.randomId;
 
 public class TemporaryFolderToTempDir extends Recipe {
@@ -131,8 +133,14 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             return super.visitClassDeclaration(classDecl, ctx);
         }
         // A field initializer cannot throw the checked IOException of Files.createTempDirectory, so call a helper
+        Set<String> noArgMethods = classDecl.getBody().getStatements().stream()
+                .filter(J.MethodDeclaration.class::isInstance)
+                .map(J.MethodDeclaration.class::cast)
+                .filter(m -> m.getParameters().stream().allMatch(J.Empty.class::isInstance))
+                .map(J.MethodDeclaration::getSimpleName)
+                .collect(toSet());
         String name = CREATE_TEMP_DIRECTORY;
-        for (int i = 2; hasNoArgMethod(classDecl, name); i++) {
+        for (int i = 2; noArgMethods.contains(name); i++) {
             name = CREATE_TEMP_DIRECTORY + i;
         }
         J.ClassDeclaration withHelper = JavaTemplate.builder("private static File " + name + "() {\n" +
@@ -150,13 +158,6 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
         maybeAddImport("java.io.UncheckedIOException");
         updateCursor(withHelper).putMessage(TEMP_DIRECTORY_HELPER, name);
         return super.visitClassDeclaration(withHelper, ctx);
-    }
-
-    private static boolean hasNoArgMethod(J.ClassDeclaration cd, String name) {
-        return cd.getBody().getStatements().stream()
-                .filter(J.MethodDeclaration.class::isInstance)
-                .map(J.MethodDeclaration.class::cast)
-                .anyMatch(m -> name.equals(m.getSimpleName()) && m.getParameters().stream().allMatch(J.Empty.class::isInstance));
     }
 
     private static boolean isTemporaryFolderFieldWithoutRule(Statement statement) {
