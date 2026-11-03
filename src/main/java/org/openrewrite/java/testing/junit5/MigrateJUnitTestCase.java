@@ -293,7 +293,6 @@ public class MigrateJUnitTestCase extends Recipe {
                             String annotation = setup ? "BeforeAll" : "AfterAll";
                             Cursor bodyCursor = new Cursor(getCursor(), classDecl.getBody());
                             J.MethodDeclaration lifecycle = JavaTemplate.builder("@" + annotation + " public static void " + name + "() {}")
-                                    .contextSensitive()
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
                                     .imports("org.junit.jupiter.api." + annotation).build()
                                     .apply(new Cursor(bodyCursor, method), method.getCoordinates().replace());
