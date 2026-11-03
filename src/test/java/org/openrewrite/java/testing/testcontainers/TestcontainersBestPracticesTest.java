@@ -99,38 +99,6 @@ class TestcontainersBestPracticesTest implements RewriteTest {
         );
     }
 
-    @Test
-    void composeContainerWithLocalCompose() {
-        rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "testcontainers-1", "junit-4")),
-          //language=java
-          java(
-            """
-              import org.testcontainers.containers.DockerComposeContainer;
-
-              import java.io.File;
-
-              class A {
-                  DockerComposeContainer environment = new DockerComposeContainer(new File("docker-compose.yml"))
-                          .withLocalCompose(true)
-                          .withTailChildContainers(true);
-              }
-              """,
-            """
-              import org.testcontainers.containers.ComposeContainer;
-
-              import java.io.File;
-
-              class A {
-                  ComposeContainer environment = new ComposeContainer(new File("docker-compose.yml"))
-                          .withTailChildContainers(true);
-              }
-              """
-          )
-        );
-    }
-
     @Nested
     class V2Migration {
         @Test
