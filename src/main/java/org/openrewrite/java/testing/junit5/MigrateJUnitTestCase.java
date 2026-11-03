@@ -40,6 +40,7 @@ import org.openrewrite.marker.Markers;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Arrays.asList;
 
@@ -95,11 +96,11 @@ public class MigrateJUnitTestCase extends Recipe {
                         boolean[] unsupported = {false};
                         J.CompilationUnit checked = (J.CompilationUnit) new JavaIsoVisitor<ExecutionContext>() {
                             @Override
-                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext executionContext) {
+                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                                 J.ClassDeclaration owner = getCursor().firstEnclosing(J.ClassDeclaration.class);
                                 if (owner == null || !isSupertypeTestCase(owner.getType()) || !isSuite(method) ||
-                                    !containsTestSetup(method, getCursor().getParentTreeCursor()) || testSetupLifecycleMethods(method, owner, getCursor()) != null) {
-                                    return super.visitMethodDeclaration(method, executionContext);
+                                    !containsTestSetup(method) || testSetupLifecycleMethods(method, owner) != null) {
+                                    return super.visitMethodDeclaration(method, ctx);
                                 }
                                 unsupported[0] = true;
                                 return SearchResult.found(method, "Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods");
@@ -166,21 +167,19 @@ public class MigrateJUnitTestCase extends Recipe {
                 TypeUtils.isOfClassType(method.getMethodType().getReturnType(), "junit.framework.TestSuite"));
     }
 
-    private static boolean containsTestSetup(J.MethodDeclaration method, Cursor parent) {
-        boolean[] found = {false};
-        new JavaIsoVisitor<boolean[]>() {
+    private static boolean containsTestSetup(J.MethodDeclaration method) {
+        return new JavaIsoVisitor<AtomicBoolean>() {
             @Override
-            public J.NewClass visitNewClass(J.NewClass newClass, boolean[] result) {
+            public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
                 if (TypeUtils.isAssignableTo("junit.extensions.TestSetup", newClass.getType())) {
-                    result[0] = true;
+                    found.set(true);
                 }
-                return super.visitNewClass(newClass, result);
+                return super.visitNewClass(newClass, found);
             }
-        }.visitNonNull(method, found, parent);
-        return found[0];
+        }.reduce(method, new AtomicBoolean()).get();
     }
 
-    private static @Nullable List<J.MethodDeclaration> testSetupLifecycleMethods(J.MethodDeclaration suite, J.ClassDeclaration owner, Cursor suiteCursor) {
+    private static @Nullable List<J.MethodDeclaration> testSetupLifecycleMethods(J.MethodDeclaration suite, J.ClassDeclaration owner) {
         if (suite.getMethodType() == null || !suite.getMethodType().getParameterTypes().isEmpty() ||
             suite.getTypeParameters() != null && !suite.getTypeParameters().isEmpty() ||
             suite.getBody() == null || suite.getBody().getStatements().size() != 1 ||
@@ -207,8 +206,6 @@ public class MigrateJUnitTestCase extends Recipe {
             return null;
         }
         List<J.MethodDeclaration> methods = new ArrayList<>();
-        Cursor returnCursor = new Cursor(new Cursor(suiteCursor, suite.getBody()), returned);
-        Cursor decoratorBodyCursor = new Cursor(new Cursor(returnCursor, decorator), decorator.getBody());
         for (Statement statement : decorator.getBody().getStatements()) {
             if (!(statement instanceof J.MethodDeclaration)) {
                 return null;
@@ -221,30 +218,28 @@ public class MigrateJUnitTestCase extends Recipe {
                 !method.getMethodType().getParameterTypes().isEmpty()) {
                 return null;
             }
-            boolean[] instanceReference = {false};
-            new JavaIsoVisitor<boolean[]>() {
+            boolean instanceReference = new JavaIsoVisitor<AtomicBoolean>() {
                 @Override
-                public J.Identifier visitIdentifier(J.Identifier identifier, boolean[] result) {
+                public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
                     JavaType.Variable field = identifier.getFieldType();
                     if ("this".equals(identifier.getSimpleName()) || "super".equals(identifier.getSimpleName()) ||
                         field != null && field.getOwner() instanceof JavaType.FullyQualified && !field.hasFlags(Flag.Static) &&
                         TypeUtils.isAssignableTo(((JavaType.FullyQualified) field.getOwner()).getFullyQualifiedName(), decorator.getType())) {
-                        result[0] = true;
+                        found.set(true);
                     }
-                    return super.visitIdentifier(identifier, result);
+                    return super.visitIdentifier(identifier, found);
                 }
 
                 @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation invocation, boolean[] result) {
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation invocation, AtomicBoolean found) {
                     JavaType.Method type = invocation.getMethodType();
-                    if (invocation.getSelect() == null && (type == null ||
-                        !type.hasFlags(Flag.Static))) {
-                        result[0] = true;
+                    if (invocation.getSelect() == null && (type == null || !type.hasFlags(Flag.Static))) {
+                        found.set(true);
                     }
-                    return super.visitMethodInvocation(invocation, result);
+                    return super.visitMethodInvocation(invocation, found);
                 }
-            }.visitNonNull(method.getBody(), instanceReference, new Cursor(decoratorBodyCursor, method));
-            if (instanceReference[0]) {
+            }.reduce(method.getBody(), new AtomicBoolean()).get();
+            if (instanceReference) {
                 return null;
             }
             methods.add(method);
@@ -276,8 +271,7 @@ public class MigrateJUnitTestCase extends Recipe {
                         if (!(statement instanceof J.MethodDeclaration) || !isSuite((J.MethodDeclaration) statement)) {
                             return statement;
                         }
-                        List<J.MethodDeclaration> lifecycleMethods = testSetupLifecycleMethods((J.MethodDeclaration) statement, classDecl,
-                                new Cursor(new Cursor(getCursor(), classDecl.getBody()), statement));
+                        List<J.MethodDeclaration> lifecycleMethods = testSetupLifecycleMethods((J.MethodDeclaration) statement, classDecl);
                         if (lifecycleMethods == null) {
                             return statement;
                         }
