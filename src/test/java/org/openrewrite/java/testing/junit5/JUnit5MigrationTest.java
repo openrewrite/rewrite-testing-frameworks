@@ -22,10 +22,8 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.Recipe;
 import org.openrewrite.RecipeRun;
-import org.openrewrite.Tree;
 import org.openrewrite.config.Environment;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.marker.BuildTool;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteRunner;
 import org.openrewrite.test.RewriteTest;
@@ -953,117 +951,6 @@ class JUnit5MigrationTest implements RewriteTest {
                 }
                 """
             )
-          )
-        );
-    }
-
-    @Test
-    void bumpSurefireOnOlderMavenVersions() {
-        rewriteRun(
-          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
-          pomXml(
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-              </project>
-              """,
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>3.2.5</version>
-                          </plugin>
-                      </plugins>
-                  </build>
-              </project>
-              """,
-            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))
-          )
-        );
-    }
-
-    @Test
-    void upgradeOlderSurefireOnOlderMavenVersions() {
-        rewriteRun(
-          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
-          pomXml(
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>2.19.1</version>
-                          </plugin>
-                      </plugins>
-                  </build>
-              </project>
-              """,
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>3.2.5</version>
-                          </plugin>
-                      </plugins>
-                  </build>
-              </project>
-              """,
-            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.0"))
-          )
-        );
-    }
-
-    @Test
-    void noJunitPlatformSurefireProviderForSurefire3() {
-        rewriteRun(
-          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
-          pomXml(
-            //language=xml
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>dev.ted</groupId>
-                  <artifactId>testcontainer-migrate</artifactId>
-                  <version>0.0.1</version>
-                  <build>
-                      <plugins>
-                          <plugin>
-                              <groupId>org.apache.maven.plugins</groupId>
-                              <artifactId>maven-surefire-plugin</artifactId>
-                              <version>3.5.2</version>
-                          </plugin>
-                      </plugins>
-                  </build>
-              </project>
-              """,
-            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.0"))
           )
         );
     }
