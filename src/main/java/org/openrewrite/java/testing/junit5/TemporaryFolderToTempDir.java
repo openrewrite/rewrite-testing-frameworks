@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -37,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 
@@ -84,6 +86,7 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     private static final AnnotationMatcher ANY_RULE = new AnnotationMatcher("@org.junit.*Rule");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + " <init>()");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + " <init>(java.io.File)");
+    private static final String CREATE_TEMP_DIRECTORY = "createTempDirectory";
 
     @Override
     public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -122,7 +125,87 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     }
 
     @Override
+    public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+        J.ClassDeclaration cd = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, ctx);
+        if (cd.getBody().getStatements().stream().noneMatch(this::isTemporaryFolderFieldWithoutRule)) {
+            return cd;
+        }
+        // A field initializer cannot throw the checked IOException of Files.createTempDirectory, so call a helper
+        String name = CREATE_TEMP_DIRECTORY;
+        for (int i = 2; hasNoArgMethod(cd, name); i++) {
+            name = CREATE_TEMP_DIRECTORY + i;
+        }
+        cd = JavaTemplate.builder("private static File " + name + "() {\n" +
+                        "    try {\n" +
+                        "        return Files.createTempDirectory(\"junit\").toFile();\n" +
+                        "    } catch (IOException e) {\n" +
+                        "        throw new UncheckedIOException(e);\n" +
+                        "    }\n" +
+                        "}")
+                .contextSensitive()
+                .imports("java.io.File", "java.io.IOException", "java.io.UncheckedIOException", "java.nio.file.Files")
+                .build()
+                .apply(updateCursor(cd), cd.getBody().getCoordinates().lastStatement());
+        maybeAddImport("java.io.IOException");
+        maybeAddImport("java.io.UncheckedIOException");
+        JavaType.Method methodType = ((J.MethodDeclaration) cd.getBody().getStatements().get(cd.getBody().getStatements().size() - 1)).getMethodType();
+        J.Identifier helper = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), name, methodType, null);
+        return cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
+            if (!isTemporaryFolderFieldWithoutRule(statement)) {
+                return statement;
+            }
+            return ((J.VariableDeclarations) statement).withVariables(ListUtils.map(
+                    ((J.VariableDeclarations) statement).getVariables(), v -> {
+                        if (!(v.getInitializer() instanceof J.NewClass) || !NEW_TEMPORARY_FOLDER.matches(v.getInitializer())) {
+                            return v;
+                        }
+                        return v.withInitializer(new J.MethodInvocation(
+                                randomId(),
+                                v.getInitializer().getPrefix(),
+                                Markers.EMPTY,
+                                null,
+                                null,
+                                helper,
+                                JContainer.build(Space.EMPTY, singletonList(JRightPadded.build(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY))), Markers.EMPTY),
+                                methodType));
+                    }));
+        })));
+    }
+
+    private static boolean hasNoArgMethod(J.ClassDeclaration cd, String name) {
+        return cd.getBody().getStatements().stream()
+                .filter(J.MethodDeclaration.class::isInstance)
+                .map(J.MethodDeclaration.class::cast)
+                .anyMatch(m -> name.equals(m.getSimpleName()) && m.getParameters().stream().allMatch(J.Empty.class::isInstance));
+    }
+
+    private boolean isTemporaryFolderFieldWithoutRule(Statement statement) {
+        if (!(statement instanceof J.VariableDeclarations)) {
+            return false;
+        }
+        J.VariableDeclarations field = (J.VariableDeclarations) statement;
+        return field.getLeadingAnnotations().stream().noneMatch(ANY_RULE::matches) &&
+                field.getVariables().stream().anyMatch(v ->
+                        v.getInitializer() instanceof J.NewClass && NEW_TEMPORARY_FOLDER.matches(v.getInitializer()));
+    }
+
+    private boolean isJavaFieldInitializer() {
+        Cursor parent = getCursor().getParentTreeCursor();
+        if (!(parent.getValue() instanceof J.VariableDeclarations.NamedVariable)) {
+            return false;
+        }
+        Cursor block = parent.getParentTreeCursor().getParentTreeCursor();
+        return block.getValue() instanceof J.Block &&
+                block.getParentTreeCursor().getValue() instanceof J.ClassDeclaration &&
+                getCursor().firstEnclosing(J.CompilationUnit.class) != null;
+    }
+
+    @Override
     public @Nullable J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+        if (NEW_TEMPORARY_FOLDER.matches(newClass) && isJavaFieldInitializer()) {
+            // Replaced in visitClassDeclaration for fields without a rule annotation; rule fields lose their initializer
+            return newClass;
+        }
         if (NEW_TEMPORARY_FOLDER.matches(newClass)) {
             return JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
                     .imports("java.nio.file.Files")
