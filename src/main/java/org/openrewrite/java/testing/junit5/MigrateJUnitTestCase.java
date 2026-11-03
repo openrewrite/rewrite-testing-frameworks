@@ -170,8 +170,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
         J.VariableDeclarations.NamedVariable nameParameter =
                 ((J.VariableDeclarations) method.getParameters().get(0)).getVariables().get(0);
         JavaType.@Nullable Variable nameVariable = nameParameter.getVariableType();
-        AtomicBoolean nameUsed = new AtomicBoolean(nameVariable == null);
-        new JavaIsoVisitor<AtomicBoolean>() {
+        return !new JavaIsoVisitor<AtomicBoolean>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation invocation, AtomicBoolean used) {
                 if (TestCaseVisitor.TEST_CASE_SUPER_MATCHER.matches(invocation)) {
@@ -189,8 +188,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                 }
                 return identifier;
             }
-        }.visitNonNull(method.getBody(), nameUsed, cursor);
-        return !nameUsed.get();
+        }.reduce(method.getBody(), new AtomicBoolean(nameVariable == null), cursor).get();
     }
 
     @Override
