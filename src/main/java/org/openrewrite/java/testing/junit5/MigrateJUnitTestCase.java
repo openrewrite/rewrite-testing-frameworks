@@ -282,6 +282,17 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
         return method == null ? null : MethodMatcher.methodPattern(method);
     }
 
+    private static @Nullable String constructorSignature(J.NewClass newClass) {
+        JavaType.Method type = newClass.getConstructorType();
+        if (type == null) {
+            return null;
+        }
+        // An anonymous class gets its own constructor, which passes its arguments to the superclass constructor
+        JavaType.FullyQualified supertype = type.getDeclaringType().getSupertype();
+        return newClass.getBody() == null || supertype == null ? MethodMatcher.methodPattern(type) :
+                MethodMatcher.methodPattern(type.withDeclaringType(supertype));
+    }
+
     private static boolean hasGenericParameter(JavaType type) {
         if (type instanceof JavaType.GenericTypeVariable) {
             return true;
@@ -352,9 +363,9 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
 
             @Override
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
-                JavaType.Method type = newClass.getConstructorType();
-                if (type != null) {
-                    project.references.merge(MethodMatcher.methodPattern(type), skipped || !safeArguments(newClass.getArguments()), Boolean::logicalOr);
+                String signature = constructorSignature(newClass);
+                if (signature != null) {
+                    project.references.merge(signature, skipped || !safeArguments(newClass.getArguments()), Boolean::logicalOr);
                 }
                 return super.visitNewClass(newClass, ctx);
             }
@@ -421,7 +432,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 J.NewClass n = super.visitNewClass(newClass, ctx);
                 JavaType.Method type = n.getConstructorType();
-                if (type == null || type.getParameterTypes().isEmpty() || !redundant.contains(MethodMatcher.methodPattern(type))) {
+                if (type == null || type.getParameterTypes().isEmpty() || !redundant.contains(constructorSignature(n))) {
                     return n;
                 }
                 return n.withArguments(emptyList())

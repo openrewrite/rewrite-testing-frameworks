@@ -1181,6 +1181,38 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     }
 
     @Test
+    void migrateAnonymousSubclassCaller() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class MathTest extends TestCase {
+                  public MathTest(String name) {
+                      super(name);
+                  }
+
+                  static MathTest create() {
+                      return new MathTest("math") {
+                      };
+                  }
+              }
+              """,
+            """
+              public class MathTest {
+
+                  static MathTest create() {
+                      return new MathTest() {
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void constructorWithAdditionalStatementsIsKept() {
         //language=java
         rewriteRun(
