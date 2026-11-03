@@ -69,6 +69,7 @@ recipeList:
       groupId: net.bytebuddy
       artifactId: byte-buddy*
       newVersion: 1.17.x
+  - org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito5
   - org.openrewrite.maven.RemoveDuplicateDependencies
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -91,6 +92,7 @@ recipeList:
       groupId: net.bytebuddy
       artifactId: byte-buddy*
       newVersion: 1.12.19
+  - org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito4
   - org.openrewrite.java.testing.mockito.ReplaceInitMockToOpenMock
   - org.openrewrite.java.testing.mockito.CloseUnclosedStaticMocks
 ---
@@ -216,6 +218,7 @@ recipeList:
       groupId: net.bytebuddy
       artifactId: byte-buddy*
       newVersion: 1.11.13
+  - org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito3
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.AddMockitoSettingsWithWarnStrictnessForLegacyMockito
@@ -278,3 +281,93 @@ preconditions:
 recipeList:
   - org.openrewrite.java.testing.mockito.ReplaceMockitoTestExecutionListener:
       targetFramework: testng
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito5
+displayName: Upgrade Byte Buddy along with Mockito 5
+description: >-
+  Upgrade Byte Buddy to 1.17.x where Mockito 5 is used along with a Byte Buddy older than 1.17.0 that it gets
+  transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Mockito 5 fails to load its mock
+  maker with an older Byte Buddy, for example with a `ClassNotFoundException` for
+  `net.bytebuddy.utility.GraalImageCode`.
+preconditions:
+  - org.openrewrite.java.dependencies.DependencyInsight:
+      groupIdPattern: org.mockito
+      artifactIdPattern: mockito-core
+      version: 5.x
+  - org.openrewrite.java.dependencies.DependencyInsight:
+      groupIdPattern: net.bytebuddy
+      artifactIdPattern: byte-buddy
+      version: "[1.0,1.17.0)"
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: net.bytebuddy
+      artifactId: byte-buddy
+      version: 1.17.x
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: net.bytebuddy
+      artifactId: byte-buddy-agent
+      version: 1.17.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito4
+displayName: Upgrade Byte Buddy along with Mockito 4
+description: >-
+  Upgrade Byte Buddy to 1.12.19 where Mockito 4 is used along with a Byte Buddy older than 1.12.19 that it gets
+  transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Mockito 4 fails to load its mock
+  maker with an older Byte Buddy, for example with a `ClassNotFoundException` for
+  `net.bytebuddy.utility.GraalImageCode`.
+preconditions:
+  - org.openrewrite.java.dependencies.DependencyInsight:
+      groupIdPattern: org.mockito
+      artifactIdPattern: mockito-core
+      version: 4.x
+  - org.openrewrite.java.dependencies.DependencyInsight:
+      groupIdPattern: net.bytebuddy
+      artifactIdPattern: byte-buddy
+      version: "[1.0,1.12.19)"
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: net.bytebuddy
+      artifactId: byte-buddy
+      version: 1.12.19
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: net.bytebuddy
+      artifactId: byte-buddy-agent
+      version: 1.12.19
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito3
+displayName: Upgrade Byte Buddy along with Mockito 3
+description: >-
+  Upgrade Byte Buddy to 1.11.13 where Mockito 3 is used along with a Byte Buddy older than 1.11.13 that it gets
+  transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Mockito 3 fails to load its mock
+  maker with an older Byte Buddy, for example with a `ClassNotFoundException` for
+  `net.bytebuddy.utility.GraalImageCode`.
+preconditions:
+  - org.openrewrite.java.dependencies.DependencyInsight:
+      groupIdPattern: org.mockito
+      artifactIdPattern: mockito-core
+      version: 3.x
+  - org.openrewrite.java.dependencies.DependencyInsight:
+      groupIdPattern: net.bytebuddy
+      artifactIdPattern: byte-buddy
+      version: "[1.0,1.11.13)"
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: net.bytebuddy
+      artifactId: byte-buddy
+      version: 1.11.13
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: net.bytebuddy
+      artifactId: byte-buddy-agent
+      version: 1.11.13

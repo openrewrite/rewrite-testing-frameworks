@@ -19,10 +19,18 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.maven.tree.Scope;
+import org.openrewrite.semver.LatestRelease;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.javaVersion;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class EasyMockToMockitoTest implements RewriteTest {
 
@@ -230,6 +238,83 @@ class EasyMockToMockitoTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void byteBuddyManagedBySpringBoot2IsRaisedForTheMockitoAdded() {
+        rewriteRun(
+          mavenProject("demo",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <parent>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-parent</artifactId>
+                    <version>2.1.6.RELEASE</version>
+                  </parent>
+                  <groupId>com.example</groupId>
+                  <artifactId>demo</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <scope>test</scope>
+                    </dependency>
+                    <dependency>
+                      <groupId>org.easymock</groupId>
+                      <artifactId>easymock</artifactId>
+                      <version>3.3.1</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> pom).afterRecipe(pom -> {
+                  MavenResolutionResult resolution = pom.getMarkers().findFirst(MavenResolutionResult.class).orElseThrow();
+                  String mockito = resolution.findDependencies("org.mockito", "mockito-core", Scope.Test).get(0).getVersion();
+                  String byteBuddy = resolution.findDependencies("net.bytebuddy", "byte-buddy", Scope.Test).get(0).getVersion();
+                  assertThat(mockito).startsWith("5.");
+                  assertThat(new LatestRelease(null).compare(null, byteBuddy, "1.17.0")).as(byteBuddy).isNotNegative();
+              })
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  import static org.easymock.EasyMock.*;
+
+                  public class ExampleTest {
+                      @Test
+                      public void test() {
+                          Runnable runnable = createMock(Runnable.class);
+                          replay(runnable);
+                          runnable.run();
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Test;
+
+                  import static org.mockito.Mockito.mock;
+
+                  public class ExampleTest {
+                      @Test
+                      public void test() {
+                          Runnable runnable = mock(Runnable.class);
+                          runnable.run();
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
+              )
+            )
           )
         );
     }

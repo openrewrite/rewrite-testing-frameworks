@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -35,9 +36,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.openrewrite.Tree.randomId;
 
 public class TemporaryFolderToTempDir extends Recipe {
@@ -84,6 +87,8 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     private static final AnnotationMatcher ANY_RULE = new AnnotationMatcher("@org.junit.*Rule");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER = new MethodMatcher(TEMPORARY_FOLDER + " <init>()");
     private static final MethodMatcher NEW_TEMPORARY_FOLDER_WITH_ARG = new MethodMatcher(TEMPORARY_FOLDER + " <init>(java.io.File)");
+    private static final String CREATE_TEMP_DIRECTORY = "createTempDirectory";
+    private static final String TEMP_DIRECTORY_HELPER = "TEMP_DIRECTORY_HELPER";
 
     @Override
     public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
@@ -122,8 +127,64 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
     }
 
     @Override
+    public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+        if (getCursor().firstEnclosing(J.CompilationUnit.class) == null ||
+                classDecl.getBody().getStatements().stream().noneMatch(TemporaryFolderToTempDirVisitor::isTemporaryFolderFieldWithoutRule)) {
+            return super.visitClassDeclaration(classDecl, ctx);
+        }
+        // A field initializer cannot throw the checked IOException of Files.createTempDirectory, so call a helper
+        Set<String> noArgMethods = classDecl.getBody().getStatements().stream()
+                .filter(J.MethodDeclaration.class::isInstance)
+                .map(J.MethodDeclaration.class::cast)
+                .filter(m -> m.getParameters().stream().allMatch(J.Empty.class::isInstance))
+                .map(J.MethodDeclaration::getSimpleName)
+                .collect(toSet());
+        String name = CREATE_TEMP_DIRECTORY;
+        for (int i = 2; noArgMethods.contains(name); i++) {
+            name = CREATE_TEMP_DIRECTORY + i;
+        }
+        J.ClassDeclaration withHelper = JavaTemplate.builder("private static File " + name + "() {\n" +
+                        "    try {\n" +
+                        "        return Files.createTempDirectory(\"junit\").toFile();\n" +
+                        "    } catch (IOException e) {\n" +
+                        "        throw new UncheckedIOException(e);\n" +
+                        "    }\n" +
+                        "}")
+                .contextSensitive()
+                .imports("java.io.File", "java.io.IOException", "java.io.UncheckedIOException", "java.nio.file.Files")
+                .build()
+                .apply(getCursor(), classDecl.getBody().getCoordinates().lastStatement());
+        maybeAddImport("java.io.IOException");
+        maybeAddImport("java.io.UncheckedIOException");
+        updateCursor(withHelper).putMessage(TEMP_DIRECTORY_HELPER, name);
+        return super.visitClassDeclaration(withHelper, ctx);
+    }
+
+    private static boolean isTemporaryFolderFieldWithoutRule(Statement statement) {
+        if (!(statement instanceof J.VariableDeclarations)) {
+            return false;
+        }
+        J.VariableDeclarations field = (J.VariableDeclarations) statement;
+        return field.getLeadingAnnotations().stream().noneMatch(ANY_RULE::matches) &&
+                field.getVariables().stream().anyMatch(v -> NEW_TEMPORARY_FOLDER.matches(v.getInitializer()));
+    }
+
+    private boolean isFieldInitializer() {
+        Cursor parent = getCursor().getParentTreeCursor();
+        return parent.getValue() instanceof J.VariableDeclarations.NamedVariable &&
+                ((J.VariableDeclarations.NamedVariable) parent.getValue()).isField(parent);
+    }
+
+    @Override
     public @Nullable J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
         if (NEW_TEMPORARY_FOLDER.matches(newClass)) {
+            String helper = getCursor().getNearestMessage(TEMP_DIRECTORY_HELPER);
+            if (helper != null && isFieldInitializer()) {
+                return JavaTemplate.builder(helper + "()")
+                        .contextSensitive()
+                        .build()
+                        .apply(getCursor(), newClass.getCoordinates().replace());
+            }
             return JavaTemplate.builder("Files.createTempDirectory(\"junit\").toFile()")
                     .imports("java.nio.file.Files")
                     .build()
