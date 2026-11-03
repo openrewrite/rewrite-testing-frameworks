@@ -35,7 +35,6 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Collections.emptyList;
@@ -223,7 +222,7 @@ public class MinimumJreConditions extends Recipe {
                 J.NewArray array = (J.NewArray) versions;
                 JContainer<Expression> initializer = array.getPadding().getInitializer();
                 List<JRightPadded<Expression>> elements = initializer.getPadding().getElements();
-                List<JRightPadded<Expression>> kept = ListUtils.map(elements, e -> compareVersions(e.getElement().toString(), javaVersion) < 0 ? null : e);
+                List<JRightPadded<Expression>> kept = ListUtils.map(elements, e -> compareVersions(versionOf(e.getElement()), javaVersion) < 0 ? null : e);
                 if (kept == elements || kept.isEmpty()) {
                     return array;
                 }
@@ -315,9 +314,9 @@ public class MinimumJreConditions extends Recipe {
                     if (initializer == null) {
                         return emptyList();
                     }
-                    return initializer.stream().map(Objects::toString).collect(toList());
+                    return initializer.stream().map(MinimumJreConditions::versionOf).collect(toList());
                 }
-                return singletonList(expression.toString());
+                return singletonList(versionOf(expression));
             }
         });
     }
@@ -348,6 +347,19 @@ public class MinimumJreConditions extends Recipe {
             }
         }
         return Optional.empty();
+    }
+
+    private static String versionOf(Expression expression) {
+        if (expression instanceof J.FieldAccess) {
+            return ((J.FieldAccess) expression).getSimpleName();
+        }
+        if (expression instanceof J.Identifier) {
+            return ((J.Identifier) expression).getSimpleName();
+        }
+        if (expression instanceof J.Literal && ((J.Literal) expression).getValue() != null) {
+            return String.valueOf(((J.Literal) expression).getValue());
+        }
+        return expression.toString();
     }
 
     private static boolean isComparable(@Nullable List<String> versions) {
@@ -396,19 +408,19 @@ public class MinimumJreConditions extends Recipe {
         private final RangeNotation maxNotation;
 
         public Range(Annotated annotated) {
-            Optional<String> minAttribute = getAttribute(annotated, "min").map(Objects::toString);
-            Optional<String> minVersionAttribute = getAttribute(annotated, "minVersion").map(Objects::toString);
-            Optional<String> maxAttribute = getAttribute(annotated, "max").map(Objects::toString);
-            Optional<String> maxVersionAttribute = getAttribute(annotated, "maxVersion").map(Objects::toString);
-            String min = minAttribute.orElse(minVersionAttribute.orElse(null));
-            String max = maxAttribute.orElse(maxVersionAttribute.orElse(null));
+            Optional<Expression> minAttribute = getAttribute(annotated, "min");
+            Optional<Expression> minVersionAttribute = getAttribute(annotated, "minVersion");
+            Optional<Expression> maxAttribute = getAttribute(annotated, "max");
+            Optional<Expression> maxVersionAttribute = getAttribute(annotated, "maxVersion");
+            String min = minAttribute.map(MinimumJreConditions::versionOf).orElse(minVersionAttribute.map(MinimumJreConditions::versionOf).orElse(null));
+            String max = maxAttribute.map(MinimumJreConditions::versionOf).orElse(maxVersionAttribute.map(MinimumJreConditions::versionOf).orElse(null));
             this.min = min == null ? "0" : min;
             this.max = max == null ? String.valueOf(Integer.MAX_VALUE) : max;
             this.minNotation = minAttribute
-                    .map(it -> it.startsWith("JRE.") ? RangeNotation.JRE : RangeNotation.STATIC_JRE)
+                    .map(it -> it instanceof J.FieldAccess ? RangeNotation.JRE : RangeNotation.STATIC_JRE)
                     .orElse(minVersionAttribute.map(__ -> RangeNotation.VERSION).orElse(null));
             this.maxNotation = maxAttribute
-                    .map(it -> it.startsWith("JRE.") ? RangeNotation.JRE : RangeNotation.STATIC_JRE)
+                    .map(it -> it instanceof J.FieldAccess ? RangeNotation.JRE : RangeNotation.STATIC_JRE)
                     .orElse(maxVersionAttribute.map(__ -> RangeNotation.VERSION).orElse(null));
         }
 

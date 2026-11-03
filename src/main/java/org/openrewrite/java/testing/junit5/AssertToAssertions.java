@@ -63,7 +63,7 @@ public class AssertToAssertions extends Recipe {
                 JavaSourceFile c = (JavaSourceFile) tree;
                 boolean hasWildcardAssertImport = false;
                 for (J.Import imp : c.getImports()) {
-                    if ("org.junit.Assert.*".equals(imp.getQualid().toString())) {
+                    if (imp.isStatic() && "org.junit.Assert".equals(imp.getTypeName()) && "*".equals(imp.getQualid().getSimpleName())) {
                         hasWildcardAssertImport = true;
                         break;
                     }
