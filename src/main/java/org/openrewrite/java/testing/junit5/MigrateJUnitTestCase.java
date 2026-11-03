@@ -83,7 +83,6 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
 
     static class Accumulator {
         final Map<@Nullable JavaProject, ProjectState> projects = new HashMap<>();
-        final Set<UUID> skippedCompilationUnits = new HashSet<>();
         private @Nullable Map<ProjectState, Set<String>> redundant;
 
         private @Nullable ProjectState constructorOwner(ProjectState project, String signature) {
@@ -328,11 +327,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                 @Nullable JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
                 ProjectState state = acc.projects.computeIfAbsent(project, ignored -> new ProjectState());
                 if (tree instanceof J.CompilationUnit) {
-                    // Preserve upstream's exclusion throughout constructor analysis and caller rewriting.
                     boolean skipped = new DeclaresMethod<>(TEST_CASE_RUN_MATCHER).visit(tree, ctx) != tree;
-                    if (skipped) {
-                        acc.skippedCompilationUnits.add(tree.getId());
-                    }
                     return constructorScanner(state, skipped).visitNonNull(tree, ctx, getCursor().getParentOrThrow());
                 }
                 for (JavaType.Method method : ((JavaSourceFile) tree).getTypesInUse().getUsedMethods()) {
@@ -397,12 +392,11 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         Map<ProjectState, Set<String>> redundantByProject = acc.redundantConstructors();
-        return new JavaIsoVisitor<ExecutionContext>() {
+        // A TestCase overriding run(TestResult) participates in the JUnit 3 execution model,
+        // which has no Jupiter equivalent, so leave it untouched rather than half-migrate it
+        return Preconditions.check(Preconditions.not(new DeclaresMethod<>(TEST_CASE_RUN_MATCHER)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                if (acc.skippedCompilationUnits.contains(cu.getId())) {
-                    return cu;
-                }
                 @Nullable JavaProject marker = cu.getMarkers().findFirst(JavaProject.class).orElse(null);
                 ProjectState project = acc.projects.get(marker);
                 Set<String> redundant = new HashSet<>();
@@ -419,7 +413,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                         (J.CompilationUnit) constructorVisitor(redundant).visitNonNull(cu, ctx, getCursor().getParentOrThrow());
                 return (J.CompilationUnit) migrationVisitor(redundant).visitNonNull(c, ctx, getCursor().getParentOrThrow());
             }
-        };
+        });
     }
 
     private JavaIsoVisitor<ExecutionContext> constructorVisitor(Set<String> redundant) {
