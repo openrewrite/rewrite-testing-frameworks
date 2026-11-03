@@ -984,19 +984,86 @@ class JUnit5MigrationTest implements RewriteTest {
                               <groupId>org.apache.maven.plugins</groupId>
                               <artifactId>maven-surefire-plugin</artifactId>
                               <version>3.2.5</version>
-                              <dependencies>
-                                  <dependency>
-                                      <groupId>org.junit.platform</groupId>
-                                      <artifactId>junit-platform-surefire-provider</artifactId>
-                                      <version>1.1.0</version>
-                                  </dependency>
-                              </dependencies>
                           </plugin>
                       </plugins>
                   </build>
               </project>
               """,
             spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.4"))
+          )
+        );
+    }
+
+    @Test
+    void upgradeOlderSurefireOnOlderMavenVersions() {
+        rewriteRun(
+          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
+          pomXml(
+            //language=xml
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+                  <build>
+                      <plugins>
+                          <plugin>
+                              <groupId>org.apache.maven.plugins</groupId>
+                              <artifactId>maven-surefire-plugin</artifactId>
+                              <version>2.19.1</version>
+                          </plugin>
+                      </plugins>
+                  </build>
+              </project>
+              """,
+            //language=xml
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+                  <build>
+                      <plugins>
+                          <plugin>
+                              <groupId>org.apache.maven.plugins</groupId>
+                              <artifactId>maven-surefire-plugin</artifactId>
+                              <version>3.2.5</version>
+                          </plugin>
+                      </plugins>
+                  </build>
+              </project>
+              """,
+            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.0"))
+          )
+        );
+    }
+
+    @Test
+    void noJunitPlatformSurefireProviderForSurefire3() {
+        rewriteRun(
+          spec -> spec.recipeFromResource("/META-INF/rewrite/junit5.yml", "org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin"),
+          pomXml(
+            //language=xml
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>dev.ted</groupId>
+                  <artifactId>testcontainer-migrate</artifactId>
+                  <version>0.0.1</version>
+                  <build>
+                      <plugins>
+                          <plugin>
+                              <groupId>org.apache.maven.plugins</groupId>
+                              <artifactId>maven-surefire-plugin</artifactId>
+                              <version>3.5.2</version>
+                          </plugin>
+                      </plugins>
+                  </build>
+              </project>
+              """,
+            spec -> spec.markers(new BuildTool(Tree.randomId(), BuildTool.Type.Maven, "3.5.0"))
           )
         );
     }
