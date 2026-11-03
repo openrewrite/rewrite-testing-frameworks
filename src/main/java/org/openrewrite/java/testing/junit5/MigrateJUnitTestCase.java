@@ -444,11 +444,14 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
             }
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 JavaType.Method type = m.getMethodType();
                 if (type == null || type.getParameterTypes().isEmpty() || !redundant.contains(MethodMatcher.methodPattern(type))) {
                     return m;
+                }
+                if ("super".equals(m.getSimpleName())) {
+                    return null;
                 }
                 return m.withArguments(emptyList())
                         .withMethodType(type.withParameterTypes(emptyList()).withParameterNames(emptyList()));

@@ -1214,6 +1214,50 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     }
 
     @Test
+    void dropSuperCallToRemovedBaseConstructor() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public abstract class BaseTest extends TestCase {
+                  public BaseTest(String name) {
+                      super(name);
+                  }
+              }
+              """,
+            """
+              public abstract class BaseTest {
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              public class MathTest extends BaseTest {
+                  private boolean initialized;
+
+                  public MathTest(String name) {
+                      super(name);
+                      initialized = true;
+                  }
+              }
+              """,
+            """
+              public class MathTest extends BaseTest {
+                  private boolean initialized;
+
+                  public MathTest(String name) {
+                      initialized = true;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void retainConstructorOfTestCaseNestedInOtherClass() {
         rewriteRun(
           //language=java
