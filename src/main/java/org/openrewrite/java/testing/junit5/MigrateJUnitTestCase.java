@@ -31,7 +31,6 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.UseStaticImport;
-import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
@@ -82,134 +81,84 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
     final String description = "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
 
     static class Accumulator {
-        final Map<@Nullable JavaProject, ProjectState> projects = new HashMap<>();
-        private @Nullable Map<ProjectState, Set<String>> redundant;
+        final Map<String, Constructor> constructors = new HashMap<>();
+        /**
+         * Signatures declared more than once, as when two projects declare a class with the same fully qualified name,
+         * whose callers cannot be told apart.
+         */
+        final Set<String> ambiguous = new HashSet<>();
+        final Map<String, Boolean> references = new HashMap<>();
+        final Set<String> nonJavaReferencedClasses = new HashSet<>();
+        final Map<String, List<Constructor>> constructorsByClass = new HashMap<>();
+        private @Nullable Set<String> redundant;
 
-        private @Nullable ProjectState constructorOwner(ProjectState project, String signature) {
-            if (project.constructors.containsKey(signature)) {
-                return project;
+        void declare(Constructor constructor) {
+            if (constructors.put(constructor.signature, constructor) != null) {
+                ambiguous.add(constructor.signature);
             }
-            ProjectState owner = null;
-            for (ProjectState candidate : projects.values()) {
-                if (candidate.constructors.containsKey(signature)) {
-                    if (owner != null) {
-                        return null;
-                    }
-                    owner = candidate;
-                }
-            }
-            return owner;
+            constructorsByClass.computeIfAbsent(constructor.declaringClass, ignored -> new ArrayList<>()).add(constructor);
         }
 
-        Map<ProjectState, Set<String>> redundantConstructors() {
+        Set<String> redundantConstructors() {
             if (redundant != null) {
                 return redundant;
             }
-            Map<ProjectState, Set<String>> retained = new HashMap<>();
-            Map<ProjectState, Set<String>> redundant = new HashMap<>();
-            for (ProjectState project : projects.values()) {
-                retained.put(project, new HashSet<>());
-                redundant.put(project, new HashSet<>());
-            }
-            for (ProjectState project : projects.values()) {
-                for (Map.Entry<String, Boolean> reference : project.references.entrySet()) {
-                    ProjectState owner = constructorOwner(project, reference.getKey());
-                    if (owner == null) {
-                        // A caller outside projects declaring the same signature has ambiguous ownership.
-                        for (ProjectState candidate : projects.values()) {
-                            if (candidate.constructors.containsKey(reference.getKey())) {
-                                retained.get(candidate).add(reference.getKey());
-                            }
-                        }
-                    } else if (reference.getValue()) {
-                        retained.get(owner).add(reference.getKey());
-                    }
+            Set<String> retained = new HashSet<>(ambiguous);
+            for (Map.Entry<String, Boolean> reference : references.entrySet()) {
+                if (reference.getValue()) {
+                    retained.add(reference.getKey());
                 }
             }
-            for (ProjectState project : projects.values()) {
-                for (ProjectState candidate : projects.values()) {
-                    for (Map.Entry<String, Constructor> entry : candidate.constructors.entrySet()) {
-                        if (project.nonJavaReferencedClasses.contains(entry.getValue().declaringClass)) {
-                            ProjectState owner = constructorOwner(project, entry.getKey());
-                            if (owner == null || owner == candidate) {
-                                retained.get(candidate).add(entry.getKey());
-                            }
-                        }
-                    }
+            for (Constructor constructor : constructors.values()) {
+                if (nonJavaReferencedClasses.contains(constructor.declaringClass)) {
+                    retained.add(constructor.signature);
                 }
             }
+            Set<String> redundant = new HashSet<>();
             boolean changed = true;
             while (changed) {
                 changed = false;
-                for (ProjectState project : projects.values()) {
-                    for (Map.Entry<String, Constructor> entry : project.constructors.entrySet()) {
-                        Constructor declaration = entry.getValue();
-                        if (!declaration.removable || retained.get(project).contains(entry.getKey()) ||
-                            redundant.get(project).contains(entry.getKey())) {
-                            continue;
-                        }
-                        if (hasRedundantBody(project, declaration, redundant)) {
-                            changed |= redundant.get(project).add(entry.getKey());
-                        }
+                for (Constructor declaration : constructors.values()) {
+                    if (declaration.removable && !retained.contains(declaration.signature) &&
+                        !redundant.contains(declaration.signature) && hasRedundantBody(declaration, redundant)) {
+                        changed |= redundant.add(declaration.signature);
                     }
                 }
             }
             changed = true;
             while (changed) {
-                changed = false;
-                Map<ProjectState, Set<String>> removed = new HashMap<>();
-                for (ProjectState project : projects.values()) {
-                    Set<String> signatures = redundant.get(project);
-                    Set<String> rejected = new HashSet<>();
-                    removed.put(project, rejected);
-                    for (String signature : signatures) {
-                        Constructor declaration = project.constructors.get(signature);
-                        List<Constructor> constructors = project.constructorsByClass.get(declaration.declaringClass);
-                        long redundantCount = constructors.stream()
-                                .filter(constructor -> signatures.contains(constructor.signature))
-                                .count();
-                        boolean retainedNoArgumentConstructor = constructors.stream().anyMatch(constructor ->
-                                constructor.noArguments && !signatures.contains(constructor.signature));
-                        boolean incompatibleConstructors = redundantCount > 1 && constructors.stream()
-                                .filter(constructor -> signatures.contains(constructor.signature))
-                                .anyMatch(constructor -> constructor.annotated || !constructor.visibility.equals(declaration.visibility));
-                        if (retainedNoArgumentConstructor || incompatibleConstructors ||
-                            !hasRedundantBody(project, declaration, redundant)) {
-                            rejected.add(signature);
-                        }
+                Set<String> rejected = new HashSet<>();
+                for (String signature : redundant) {
+                    Constructor declaration = constructors.get(signature);
+                    List<Constructor> siblings = constructorsByClass.get(declaration.declaringClass);
+                    long redundantCount = siblings.stream()
+                            .filter(constructor -> redundant.contains(constructor.signature))
+                            .count();
+                    boolean retainedNoArgumentConstructor = siblings.stream().anyMatch(constructor ->
+                            constructor.noArguments && !redundant.contains(constructor.signature));
+                    boolean incompatibleConstructors = redundantCount > 1 && siblings.stream()
+                            .filter(constructor -> redundant.contains(constructor.signature))
+                            .anyMatch(constructor -> constructor.annotated || !constructor.visibility.equals(declaration.visibility));
+                    if (retainedNoArgumentConstructor || incompatibleConstructors || !hasRedundantBody(declaration, redundant)) {
+                        rejected.add(signature);
                     }
                 }
-                for (Map.Entry<ProjectState, Set<String>> entry : removed.entrySet()) {
-                    changed |= redundant.get(entry.getKey()).removeAll(entry.getValue());
-                }
+                changed = redundant.removeAll(rejected);
             }
             this.redundant = redundant;
             return redundant;
         }
 
-        private boolean hasRedundantBody(ProjectState project, Constructor declaration,
-                                         Map<ProjectState, Set<String>> redundant) {
+        private static boolean hasRedundantBody(Constructor declaration, Set<String> redundant) {
             switch (declaration.body) {
                 case EMPTY:
                     return true;
                 case SAFE_DELEGATION:
-                    if (declaration.delegatesToTestCase) {
-                        return true;
-                    }
-                    String signature = declaration.delegationSignature;
-                    ProjectState owner = signature == null ? null : constructorOwner(project, signature);
-                    return owner != null && redundant.get(owner).contains(signature);
+                    return declaration.delegatesToTestCase || redundant.contains(declaration.delegationSignature);
                 default:
                     return false;
             }
         }
-    }
-
-    static class ProjectState {
-        final Map<String, Constructor> constructors = new HashMap<>();
-        final Map<String, Boolean> references = new HashMap<>();
-        final Set<String> nonJavaReferencedClasses = new HashSet<>();
-        final Map<String, List<Constructor>> constructorsByClass = new HashMap<>();
     }
 
     private enum ConstructorBody {
@@ -324,15 +273,13 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                 if (!(tree instanceof JavaSourceFile)) {
                     return tree;
                 }
-                @Nullable JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
-                ProjectState state = acc.projects.computeIfAbsent(project, ignored -> new ProjectState());
                 if (tree instanceof J.CompilationUnit) {
                     boolean skipped = new DeclaresMethod<>(TEST_CASE_RUN_MATCHER).visit(tree, ctx) != tree;
-                    return constructorScanner(state, skipped).visitNonNull(tree, ctx, getCursor().getParentOrThrow());
+                    return constructorScanner(acc, skipped).visitNonNull(tree, ctx, getCursor().getParentOrThrow());
                 }
                 for (JavaType.Method method : ((JavaSourceFile) tree).getTypesInUse().getUsedMethods()) {
                     if (method.isConstructor()) {
-                        state.nonJavaReferencedClasses.add(method.getDeclaringType().getFullyQualifiedName());
+                        acc.nonJavaReferencedClasses.add(method.getDeclaringType().getFullyQualifiedName());
                     }
                 }
                 return tree;
@@ -340,7 +287,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
         };
     }
 
-    private JavaIsoVisitor<ExecutionContext> constructorScanner(ProjectState project, boolean skipped) {
+    private JavaIsoVisitor<ExecutionContext> constructorScanner(Accumulator acc, boolean skipped) {
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
@@ -350,12 +297,10 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                             .filter(J.ClassDeclaration.class::isInstance)
                             .allMatch(c -> isSupertypeTestCase(((J.ClassDeclaration) c).getType()));
                     Constructor constructor = new Constructor(method, type, migrated);
-                    project.constructors.put(constructor.signature, constructor);
+                    acc.declare(constructor);
                     if (skipped) {
-                        project.references.put(constructor.signature, true);
+                        acc.references.put(constructor.signature, true);
                     }
-                    project.constructorsByClass.computeIfAbsent(constructor.declaringClass, ignored -> new ArrayList<>())
-                            .add(constructor);
                 }
                 return super.visitMethodDeclaration(method, ctx);
             }
@@ -364,7 +309,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
             public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                 String signature = constructorSignature(newClass);
                 if (signature != null) {
-                    project.references.merge(signature, skipped || !safeArguments(newClass.getArguments()), Boolean::logicalOr);
+                    acc.references.merge(signature, skipped || !safeArguments(newClass.getArguments()), Boolean::logicalOr);
                 }
                 return super.visitNewClass(newClass, ctx);
             }
@@ -373,7 +318,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 JavaType.Method type = method.getMethodType();
                 if (type != null && type.isConstructor()) {
-                    project.references.merge(MethodMatcher.methodPattern(type), skipped || !safeArguments(method.getArguments()), Boolean::logicalOr);
+                    acc.references.merge(MethodMatcher.methodPattern(type), skipped || !safeArguments(method.getArguments()), Boolean::logicalOr);
                 }
                 return super.visitMethodInvocation(method, ctx);
             }
@@ -382,7 +327,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
             public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
                 JavaType.Method type = memberRef.getMethodType();
                 if (type != null && type.isConstructor()) {
-                    project.references.put(MethodMatcher.methodPattern(type), true);
+                    acc.references.put(MethodMatcher.methodPattern(type), true);
                 }
                 return super.visitMemberReference(memberRef, ctx);
             }
@@ -391,24 +336,12 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        Map<ProjectState, Set<String>> redundantByProject = acc.redundantConstructors();
+        Set<String> redundant = acc.redundantConstructors();
         // A TestCase overriding run(TestResult) participates in the JUnit 3 execution model,
         // which has no Jupiter equivalent, so leave it untouched rather than half-migrate it
         return Preconditions.check(Preconditions.not(new DeclaresMethod<>(TEST_CASE_RUN_MATCHER)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                @Nullable JavaProject marker = cu.getMarkers().findFirst(JavaProject.class).orElse(null);
-                ProjectState project = acc.projects.get(marker);
-                Set<String> redundant = new HashSet<>();
-                if (project != null) {
-                    for (Map.Entry<ProjectState, Set<String>> entry : redundantByProject.entrySet()) {
-                        for (String signature : entry.getValue()) {
-                            if (acc.constructorOwner(project, signature) == entry.getKey()) {
-                                redundant.add(signature);
-                            }
-                        }
-                    }
-                }
                 J.CompilationUnit c = redundant.isEmpty() ? cu :
                         (J.CompilationUnit) constructorVisitor(redundant).visitNonNull(cu, ctx, getCursor().getParentOrThrow());
                 return (J.CompilationUnit) migrationVisitor(redundant).visitNonNull(c, ctx, getCursor().getParentOrThrow());

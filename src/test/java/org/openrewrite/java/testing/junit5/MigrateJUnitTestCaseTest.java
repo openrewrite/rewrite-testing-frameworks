@@ -738,58 +738,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     }
 
     @Test
-    void rewriteCallersDespiteSameNamedClassInOtherModule() {
-        rewriteRun(
-          mavenProject("test-module",
-            //language=java
-            java(
-              """
-                import junit.framework.TestCase;
-
-                public class SharedTest extends TestCase {
-                    public SharedTest(String name) {
-                        super(name);
-                    }
-
-                    public static SharedTest create() {
-                        return new SharedTest("shared");
-                    }
-                }
-                """,
-              """
-                public class SharedTest {
-
-                    public static SharedTest create() {
-                        return new SharedTest();
-                    }
-                }
-                """
-            )
-          ),
-          mavenProject("unrelated-module",
-            //language=java
-            java(
-              """
-                public class OtherSharedTest {
-                    private final String name;
-
-                    public OtherSharedTest(String name) {
-                        this.name = name;
-                    }
-
-                    public static OtherSharedTest create() {
-                        return new OtherSharedTest("shared");
-                    }
-                }
-                """,
-              spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new ChangeType("OtherSharedTest", "SharedTest", false)
-                .getVisitor().visitNonNull(cu, new InMemoryExecutionContext()))
-            )
-          )
-        );
-    }
-
-    @Test
     void migrateAnonymousSubclassCaller() {
         rewriteRun(
           //language=java
@@ -1314,50 +1262,48 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
         }
 
         @Test
-        void whenOwnershipIsAmbiguousAcrossModules() {
+        void whenDeclaredInMoreThanOneModule() {
             rewriteRun(
-              mavenProject("ambiguous-first-module",
+              mavenProject("first-module",
                 //language=java
                 java(
                   """
                     import junit.framework.TestCase;
 
-                    public class AmbiguousTest extends TestCase {
-                        public AmbiguousTest(String name) {
+                    public class SharedTest extends TestCase {
+                        public SharedTest(String name) {
                             super(name);
+                        }
+
+                        public static SharedTest create() {
+                            return new SharedTest("shared");
                         }
                     }
                     """,
                   """
-                    public class AmbiguousTest {
-                        public AmbiguousTest(String name) {
+                    public class SharedTest {
+                        public SharedTest(String name) {
+                        }
+
+                        public static SharedTest create() {
+                            return new SharedTest("shared");
                         }
                     }
                     """
                 )
               ),
-              mavenProject("ambiguous-second-module",
+              mavenProject("second-module",
                 //language=java
                 java(
                   """
-                    public class OtherAmbiguousTest {
-                        public OtherAmbiguousTest(String name) {
+                    public class OtherSharedTest {
+                        public OtherSharedTest(String name) {
                         }
                     }
                     """,
-                  spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new ChangeType("OtherAmbiguousTest", "AmbiguousTest", false)
+                  spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new ChangeType("OtherSharedTest", "SharedTest", false)
                     .getVisitor().visitNonNull(cu, new InMemoryExecutionContext()))
                 )
-              ),
-              //language=java
-              java(
-                """
-                  class AmbiguousCaller {
-                      AmbiguousTest create() {
-                          return new AmbiguousTest("ambiguous");
-                      }
-                  }
-                  """
               )
             );
         }
