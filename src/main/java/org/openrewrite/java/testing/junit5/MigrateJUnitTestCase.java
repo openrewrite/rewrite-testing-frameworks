@@ -25,7 +25,6 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
-import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
@@ -86,7 +85,6 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                acc.projects.computeIfAbsent(cu.getMarkers().findFirst(JavaProject.class).orElse(null), key -> new ProjectState());
                 // Preserve the upstream exclusion before considering constructors or rewriting their callers.
                 if (new DeclaresMethod<>(TEST_CASE_RUN_MATCHER).visit(cu, ctx) != cu) {
                     acc.skippedCompilationUnits.add(cu.getId());
@@ -94,16 +92,10 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                 return super.visitCompilationUnit(cu, ctx);
             }
 
-            private ProjectState project() {
-                @Nullable JavaProject marker = getCursor().firstEnclosingOrThrow(JavaSourceFile.class)
-                        .getMarkers().findFirst(JavaProject.class).orElse(null);
-                return acc.projects.computeIfAbsent(marker, key -> new ProjectState());
-            }
-
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDeclaration, ExecutionContext ctx) {
                 if (classDeclaration.getType() != null) {
-                    project().declaredClasses.add(classDeclaration.getType().getFullyQualifiedName());
+                    acc.declare(classDeclaration.getType().getFullyQualifiedName());
                 }
                 return super.visitClassDeclaration(classDeclaration, ctx);
             }
@@ -117,7 +109,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                     getCursor().getPathAsStream().filter(J.ClassDeclaration.class::isInstance)
                             .map(J.ClassDeclaration.class::cast).allMatch(owner -> isSupertypeTestCase(owner.getType())) &&
                     canRemoveName(method, getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class), getCursor())) {
-                    project().candidates.put(type.getDeclaringType().getFullyQualifiedName(), MethodMatcher.methodPattern(type));
+                    acc.candidates.put(type.getDeclaringType().getFullyQualifiedName(), MethodMatcher.methodPattern(type));
                 }
                 return super.visitMethodDeclaration(method, ctx);
             }
@@ -150,7 +142,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                         arguments.stream().anyMatch(argument -> !(argument instanceof J.Empty || argument instanceof J.Literal ||
                                 argument instanceof J.Identifier && ((J.Identifier) argument).getFieldType() != null &&
                                 ((J.Identifier) argument).getFieldType().getOwner() instanceof JavaType.Method));
-                project().references.merge(method.getDeclaringType().getFullyQualifiedName(), unsafe, Boolean::logicalOr);
+                acc.references.merge(method.getDeclaringType().getFullyQualifiedName(), unsafe, Boolean::logicalOr);
             }
         };
     }
@@ -193,6 +185,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        Map<String, String> convertible = acc.convertible();
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
@@ -201,26 +194,21 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
 
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                ProjectState project = acc.projects.get(cu.getMarkers().findFirst(JavaProject.class).orElse(null));
-                if (project == null || acc.skippedCompilationUnits.contains(cu.getId())) {
+                if (acc.skippedCompilationUnits.contains(cu.getId())) {
                     return cu;
                 }
                 J.CompilationUnit c = cu;
-                for (String className : project.references.keySet()) {
-                    ProjectState owner = acc.constructorOwner(project, className);
-                    if (owner == null || !acc.canConvert(owner, className)) {
-                        continue;
-                    }
-                    c = (J.CompilationUnit) new DeleteMethodArgument(owner.candidates.get(className), 0).getVisitor()
+                for (String signature : convertible.values()) {
+                    c = (J.CompilationUnit) new DeleteMethodArgument(signature, 0).getVisitor()
                             .visitNonNull(c, ctx, getCursor().getParentTreeCursor());
                 }
-                return (J.CompilationUnit) migrationVisitor(acc, project)
+                return (J.CompilationUnit) migrationVisitor(convertible)
                         .visitNonNull(c, ctx, getCursor().getParentTreeCursor());
             }
         };
     }
 
-    private TreeVisitor<?, ExecutionContext> migrationVisitor(Accumulator acc, ProjectState project) {
+    private TreeVisitor<?, ExecutionContext> migrationVisitor(Map<String, String> convertible) {
         return Preconditions.check(Preconditions.or(
                         new UsesType<>("junit.framework.TestCase", false),
                         new UsesType<>("junit.framework.Assert", false)
@@ -229,7 +217,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                     @Override
                     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-                        doAfterVisit(new TestCaseVisitor(acc, project));
+                        doAfterVisit(new TestCaseVisitor(convertible));
                         // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
                         doAfterVisit(new ChangeType("junit.framework.TestCase", "org.junit.Assert", true).getVisitor());
                         doAfterVisit(new ChangeType("junit.framework.Assert", "org.junit.Assert", true).getVisitor());
@@ -280,48 +268,39 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
     }
 
     public static class Accumulator {
-        private final Map<@Nullable JavaProject, ProjectState> projects = new HashMap<>();
-        private final Set<UUID> skippedCompilationUnits = new HashSet<>();
-
-        private @Nullable ProjectState constructorOwner(ProjectState project, String className) {
-            if (project.declaredClasses.contains(className)) {
-                return project;
-            }
-            ProjectState owner = null;
-            for (ProjectState candidate : projects.values()) {
-                if (!candidate.declaredClasses.contains(className)) {
-                    continue;
-                }
-                if (owner != null) {
-                    return null;
-                }
-                owner = candidate;
-            }
-            return owner;
-        }
-
-        private boolean canConvert(ProjectState project, String className) {
-            if (!project.candidates.containsKey(className)) {
-                return false;
-            }
-            for (ProjectState caller : projects.values()) {
-                Boolean unsafe = caller.references.get(className);
-                if (unsafe == null) {
-                    continue;
-                }
-                ProjectState owner = constructorOwner(caller, className);
-                if (owner == null || owner == project && unsafe) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
-    private static class ProjectState {
         private final Set<String> declaredClasses = new HashSet<>();
+        /**
+         * Class names declared more than once, as when two projects declare a class with the same fully qualified name,
+         * whose callers cannot be told apart.
+         */
+        private final Set<String> ambiguousClasses = new HashSet<>();
         private final Map<String, String> candidates = new HashMap<>();
         private final Map<String, Boolean> references = new HashMap<>();
+        private final Set<UUID> skippedCompilationUnits = new HashSet<>();
+        private @Nullable Map<String, String> convertible;
+
+        private void declare(String className) {
+            if (!declaredClasses.add(className)) {
+                ambiguousClasses.add(className);
+            }
+        }
+
+        /**
+         * The constructor signatures, by class name, whose test name parameter can be dropped along with the
+         * argument at every caller.
+         */
+        private Map<String, String> convertible() {
+            if (convertible == null) {
+                convertible = new HashMap<>();
+                for (Map.Entry<String, String> candidate : candidates.entrySet()) {
+                    if (!ambiguousClasses.contains(candidate.getKey()) &&
+                        !references.getOrDefault(candidate.getKey(), false)) {
+                        convertible.put(candidate.getKey(), candidate.getValue());
+                    }
+                }
+            }
+            return convertible;
+        }
     }
 
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -330,12 +309,10 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
         private static final Set<String> SUPERTYPES_REMOVED_BY_MIGRATION = new HashSet<>(asList(
                 "junit.framework.TestCase", "junit.framework.Assert", "junit.framework.Test"));
 
-        private final Accumulator acc;
-        private final ProjectState project;
+        private final Map<String, String> convertible;
 
-        private TestCaseVisitor(Accumulator acc, ProjectState project) {
-            this.acc = acc;
-            this.project = project;
+        private TestCaseVisitor(Map<String, String> convertible) {
+            this.convertible = convertible;
         }
 
         @Override
@@ -370,7 +347,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                 md.getParameters().get(0) instanceof J.VariableDeclarations &&
                 TypeUtils.isString(((J.VariableDeclarations) md.getParameters().get(0)).getType())) {
                 if (md.getMethodType() != null &&
-                    acc.canConvert(project, md.getMethodType().getDeclaringType().getFullyQualifiedName())) {
+                    convertible.containsKey(md.getMethodType().getDeclaringType().getFullyQualifiedName())) {
                     md = md.withParameters(emptyList())
                             .withMethodType(md.getMethodType().withParameterNames(emptyList()).withParameterTypes(emptyList()));
                 } else {

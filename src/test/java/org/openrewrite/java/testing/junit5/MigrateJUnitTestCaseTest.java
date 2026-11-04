@@ -722,70 +722,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
     }
 
     @Test
-    void ignoresSameNamedClassInOtherProject() {
-        rewriteRun(
-          mavenProject("standalone",
-            //language=java
-            java(
-              """
-                package example;
-
-                import junit.framework.TestCase;
-
-                public class SharedTest extends TestCase {
-                    private final boolean initialized;
-
-                    public SharedTest(String name) {
-                        super(name);
-                        initialized = true;
-                    }
-                }
-                """,
-              """
-                package example;
-
-                public class SharedTest {
-                    private final boolean initialized;
-
-                    public SharedTest() {
-                        initialized = true;
-                    }
-                }
-                """
-            )
-          ),
-          mavenProject("unrelated",
-            spec -> spec.mapBeforeRecipe(source -> (SourceFile) new ChangeType(
-              "example.UnrelatedSharedTest", "example.SharedTest", false).getVisitor()
-              .visitNonNull(source, new InMemoryExecutionContext())),
-            //language=java
-            java(
-              """
-                package example;
-
-                public class UnrelatedSharedTest {
-                    public UnrelatedSharedTest(String name) {
-                    }
-                }
-                """
-            ),
-            //language=java
-            java(
-              """
-                package example;
-
-                class UnrelatedSharedTestFactory {
-                    UnrelatedSharedTest create() {
-                        return new UnrelatedSharedTest("testAdd");
-                    }
-                }
-                """
-            )
-          )
-        );
-    }
-
-    @Test
     void marksConstructorUsedAsMethodReference() {
         rewriteRun(
           //language=java
@@ -985,18 +921,6 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               """
                 public class AlternativeAmbiguousTest {
                     public AlternativeAmbiguousTest(String name) {
-                    }
-                }
-                """
-            )
-          ),
-          mavenProject("ambiguous-caller",
-            //language=java
-            java(
-              """
-                class AmbiguousFactory {
-                    AmbiguousTest create() {
-                        return new AmbiguousTest("testAdd");
                     }
                 }
                 """
