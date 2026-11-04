@@ -909,7 +909,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   """,
                 """
                   public class UnsafeArgumentTest {
-                      public UnsafeArgumentTest(String name, int unused) {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public UnsafeArgumentTest(String name, int unused) {
                       }
 
                       public static UnsafeArgumentTest create() {
@@ -939,7 +939,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   public class FieldArgumentTest {
                       static int value;
 
-                      public FieldArgumentTest(String name, int unused) {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public FieldArgumentTest(String name, int unused) {
                       }
 
                       public static FieldArgumentTest create() {
@@ -965,7 +965,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   """,
                 """
                   public class SideEffectTest {
-                      public SideEffectTest(String name) {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public SideEffectTest(String name) {
                       }
 
                       public static SideEffectTest create() {
@@ -1029,7 +1029,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   """,
                 """
                   public class CheckedConstructorTest {
-                      public CheckedConstructorTest(String name, int unused) throws java.io.IOException {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public CheckedConstructorTest(String name, int unused) throws java.io.IOException {
                       }
 
                       public static CheckedConstructorTest create() throws java.io.IOException {
@@ -1137,7 +1137,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   """,
                 """
                   public class VarargsConstructorTest {
-                      public VarargsConstructorTest(String name, Object... unused) {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public VarargsConstructorTest(String name, Object... unused) {
                       }
 
                       public static VarargsConstructorTest create() {
@@ -1163,7 +1163,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   """,
                 """
                   public class GenericConstructorTest {
-                      private <T> GenericConstructorTest(String name, T unused) {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/private <T> GenericConstructorTest(String name, T unused) {
                       }
 
                       public static GenericConstructorTest create() {
@@ -1207,7 +1207,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   import java.util.function.Function;
 
                   public class FactoryTest {
-                      public FactoryTest(String name) {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public FactoryTest(String name) {
                       }
 
                       public static Function<String, FactoryTest> factory() {
@@ -1247,7 +1247,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   """,
                 """
                   public class MixedTest {
-                      public MixedTest(String name) {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public MixedTest(String name) {
                       }
                   }
                   """
@@ -1282,7 +1282,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                     """,
                   """
                     public class SharedTest {
-                        public SharedTest(String name) {
+                        /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public SharedTest(String name) {
                         }
 
                         public static SharedTest create() {
@@ -1304,6 +1304,58 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   spec -> spec.mapBeforeRecipe(cu -> (J.CompilationUnit) new ChangeType("OtherSharedTest", "SharedTest", false)
                     .getVisitor().visitNonNull(cu, new InMemoryExecutionContext()))
                 )
+              )
+            );
+        }
+
+        @Test
+        void whenBaseConstructorIsRetained() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class BaseTest extends TestCase {
+                      public BaseTest(String name) {
+                          super(name);
+                      }
+                  }
+                  """,
+                """
+                  public abstract class BaseTest {
+                      public BaseTest(String name) {
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class MathTest extends BaseTest {
+                      public MathTest(String name) {
+                          super(name);
+                      }
+                  }
+                  """,
+                """
+                  public class MathTest extends BaseTest {
+                      /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public MathTest(String name) {
+                          super(name);
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  class Caller {
+                      BaseTest create() {
+                          return new BaseTest(System.getProperty("example.name")) {
+                          };
+                      }
+                  }
+                  """
               )
             );
         }
@@ -1667,7 +1719,7 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
               """,
             """
               public class RedundantTest {
-                  public RedundantTest(String name) {
+                  /*~~(JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually)~~>*/public RedundantTest(String name) {
                   }
               }
               """

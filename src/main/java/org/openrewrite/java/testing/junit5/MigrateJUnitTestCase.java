@@ -45,6 +45,7 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.*;
 
@@ -501,6 +502,10 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                         .withMethodType(constructorType.withParameterTypes(emptyList()).withParameterNames(emptyList()));
             }
 
+            if (onlyConstructorNeedsArguments(md)) {
+                md = SearchResult.found(md, "JUnit Jupiter cannot instantiate a test class whose only constructor takes a String; migrate the remaining constructor callers manually");
+            }
+
             // Remove suite() methods that return junit.framework.Test or TestSuite
             if (md.hasModifier(J.Modifier.Type.Static) &&
                 SUITE_MATCHER.matches(md.getMethodType()) &&
@@ -519,6 +524,27 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                 md = updateMethodDeclarationAnnotationAndModifier(md, "@AfterEach", "org.junit.jupiter.api.AfterEach", ctx);
             }
             return maybeRemoveOverrideAnnotation(md, ctx);
+        }
+
+        /**
+         * A constructor kept only for callers that could not be rewritten, left as the only constructor of a test class
+         * JUnit Jupiter instantiates, so that every test in it would fail to run.
+         */
+        private boolean onlyConstructorNeedsArguments(J.MethodDeclaration md) {
+            if (!md.isConstructor() || md.getBody() == null ||
+                md.getParameters().stream().noneMatch(J.VariableDeclarations.class::isInstance)) {
+                return false;
+            }
+            List<Statement> statements = md.getBody().getStatements();
+            boolean delegatesOnly = statements.isEmpty() || statements.size() == 1 &&
+                    statements.get(0) instanceof J.MethodInvocation &&
+                    "super".equals(((J.MethodInvocation) statements.get(0)).getSimpleName());
+            J.ClassDeclaration owner = getCursor().firstEnclosingOrThrow(J.ClassDeclaration.class);
+            return delegatesOnly && !owner.hasModifier(J.Modifier.Type.Abstract) &&
+                   owner.getBody().getStatements().stream()
+                           .filter(J.MethodDeclaration.class::isInstance)
+                           .filter(other -> ((J.MethodDeclaration) other).isConstructor())
+                           .count() == 1;
         }
 
         @Override
