@@ -88,7 +88,7 @@ public class AssertionsArgumentOrder extends Recipe {
             new MethodMatcher("java.util.Arrays asList(..)"),
     };
 
-    private static final TreeVisitor<?, ExecutionContext> PRECONDITION;
+    private static final MethodMatcher[] PRECONDITION_MATCHERS;
 
     static {
         List<MethodMatcher> matchers = new ArrayList<>(Arrays.asList(JUPITER_ASSERTION_MATCHERS));
@@ -97,7 +97,7 @@ public class AssertionsArgumentOrder extends Recipe {
         matchers.add(JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER);
         matchers.add(JUPITER_ASSERT_NULL_MATCHER);
         matchers.addAll(Arrays.asList(TESTNG_MATCHERS));
-        PRECONDITION = Preconditions.or(matchers.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new));
+        PRECONDITION_MATCHERS = matchers.toArray(new MethodMatcher[0]);
     }
 
     @Getter
@@ -111,7 +111,9 @@ public class AssertionsArgumentOrder extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(PRECONDITION, new AssertionsArgumentOrderVisitor());
+        return Preconditions.check(
+                Preconditions.or(Arrays.stream(PRECONDITION_MATCHERS).map(UsesMethod::new).toArray(TreeVisitor[]::new)),
+                new AssertionsArgumentOrderVisitor());
     }
 
     private static class AssertionsArgumentOrderVisitor extends JavaIsoVisitor<ExecutionContext> {

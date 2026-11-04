@@ -60,10 +60,6 @@ public class AddMissingNested extends Recipe {
             "org.junit.jupiter.api.TestFactory");
     private static final List<AnnotationMatcher> TEST_ANNOTATION_MATCHERS = TEST_ANNOTATIONS.stream().map(ann -> new AnnotationMatcher("@" + ann)).collect(toList());
 
-    @SuppressWarnings("unchecked")
-    private static final TreeVisitor<?, ExecutionContext> PRECONDITION =
-            Preconditions.or(TEST_ANNOTATIONS.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new));
-
     String displayName = "JUnit 5 inner test classes should be annotated with `@Nested`";
 
     String description = "Adds `@Nested` to inner classes that contain JUnit 5 tests and removes `static` from them. " +
@@ -76,8 +72,11 @@ public class AddMissingNested extends Recipe {
     Set<String> tags = singleton("RSPEC-S5790");
 
     @Override
+    @SuppressWarnings("unchecked")
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.and(PRECONDITION, Preconditions.not(new KotlinFileChecker<>())), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(
+                Preconditions.or(TEST_ANNOTATIONS.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new)),
+                Preconditions.not(new KotlinFileChecker<>())), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
