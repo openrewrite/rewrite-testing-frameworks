@@ -286,15 +286,14 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito5
 displayName: Upgrade Byte Buddy along with Mockito 5
 description: >-
-  Upgrade Byte Buddy to 1.17.x where Mockito 5 is used along with a Byte Buddy older than 1.17.0 that it gets
-  transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Mockito 5 fails to load its mock
-  maker with an older Byte Buddy, for example with a `ClassNotFoundException` for
-  `net.bytebuddy.utility.GraalImageCode`.
+  Upgrade Byte Buddy to 1.17.x where Mockito 5.18.0 or a later 5.x, which depends on Byte Buddy 1.17, gets an older Byte
+  Buddy transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Such a Mockito fails to load
+  its mock maker, for example with a `ClassNotFoundException` for `net.bytebuddy.utility.GraalImageCode`.
 preconditions:
   - org.openrewrite.java.dependencies.DependencyInsight:
       groupIdPattern: org.mockito
       artifactIdPattern: mockito-core
-      version: 5.x
+      version: "[5.18.0,6)"
   - org.openrewrite.java.dependencies.DependencyInsight:
       groupIdPattern: net.bytebuddy
       artifactIdPattern: byte-buddy
@@ -316,15 +315,14 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito4
 displayName: Upgrade Byte Buddy along with Mockito 4
 description: >-
-  Upgrade Byte Buddy to 1.12.19 where Mockito 4 is used along with a Byte Buddy older than 1.12.19 that it gets
-  transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Mockito 4 fails to load its mock
-  maker with an older Byte Buddy, for example with a `ClassNotFoundException` for
-  `net.bytebuddy.utility.GraalImageCode`.
+  Upgrade Byte Buddy to 1.12.19 where Mockito 4.10.0 or a later 4.x, which depends on that version, gets an older Byte
+  Buddy transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Such a Mockito fails to load
+  its mock maker, for example with a `ClassNotFoundException` for `net.bytebuddy.utility.GraalImageCode`.
 preconditions:
   - org.openrewrite.java.dependencies.DependencyInsight:
       groupIdPattern: org.mockito
       artifactIdPattern: mockito-core
-      version: 4.x
+      version: "[4.10.0,5)"
   - org.openrewrite.java.dependencies.DependencyInsight:
       groupIdPattern: net.bytebuddy
       artifactIdPattern: byte-buddy
@@ -346,15 +344,13 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito3
 displayName: Upgrade Byte Buddy along with Mockito 3
 description: >-
-  Upgrade Byte Buddy to 1.11.13 where Mockito 3 is used along with a Byte Buddy older than 1.11.13 that it gets
-  transitively, such as one whose version a BOM like that of Spring Boot 2 manages. Mockito 3 fails to load its mock
-  maker with an older Byte Buddy, for example with a `ClassNotFoundException` for
-  `net.bytebuddy.utility.GraalImageCode`.
+  Upgrade Byte Buddy to 1.11.13 where Mockito 3.12.1 or a later 3.x, which depends on that version, gets an older Byte
+  Buddy transitively, such as one whose version a BOM like that of Spring Boot 2 manages.
 preconditions:
   - org.openrewrite.java.dependencies.DependencyInsight:
       groupIdPattern: org.mockito
       artifactIdPattern: mockito-core
-      version: 3.x
+      version: "[3.12.1,4)"
   - org.openrewrite.java.dependencies.DependencyInsight:
       groupIdPattern: net.bytebuddy
       artifactIdPattern: byte-buddy
