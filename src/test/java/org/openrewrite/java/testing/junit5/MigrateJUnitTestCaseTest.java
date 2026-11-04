@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -623,51 +624,437 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
         );
     }
 
-    @Test
-    void subclassConstructorPassesNoTestNameToConvertedSuper() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
+    @Nested
+    class SubclassOfConvertedBase {
+        @Test
+        void dropsConstructorPassingTestNameToSuper() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
 
-              public class CalledTest extends TestCase {
-                  private final boolean initialized;
+                  public abstract class BaseTestCase extends TestCase {
+                      protected boolean ready;
 
-                  public CalledTest(String name) {
-                      super(name);
-                      initialized = true;
+                      public BaseTestCase(String name) {
+                          super(name);
+                          ready = true;
+                      }
                   }
-              }
-              """,
-            """
-              public class CalledTest {
-                  private final boolean initialized;
+                  """,
+                """
+                  public abstract class BaseTestCase {
+                      protected boolean ready;
 
-                  public CalledTest() {
-                      initialized = true;
+                      public BaseTestCase() {
+                          ready = true;
+                      }
                   }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              class DerivedTest extends CalledTest {
-                  DerivedTest(String name) {
-                      super(name);
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class FooTest extends BaseTestCase {
+                      public FooTest(String name) {
+                          super(name);
+                      }
                   }
-              }
-              """,
-            """
-              class DerivedTest extends CalledTest {
-                  /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/DerivedTest(String name) {
-                      super();
+                  """,
+                """
+                  public class FooTest extends BaseTestCase {
                   }
-              }
-              """
-          )
-        );
+                  """
+              )
+            );
+        }
+
+        @Test
+        void dropsConstructorOfSubclassOfConcreteBase() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class CalledTest extends TestCase {
+                      private final boolean initialized;
+
+                      public CalledTest(String name) {
+                          super(name);
+                          initialized = true;
+                      }
+                  }
+                  """,
+                """
+                  public class CalledTest {
+                      private final boolean initialized;
+
+                      public CalledTest() {
+                          initialized = true;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  class DerivedTest extends CalledTest {
+                      DerivedTest(String name) {
+                          super(name);
+                      }
+                  }
+                  """,
+                """
+                  class DerivedTest extends CalledTest {
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void keepsSubclassInitializationInNoArgumentConstructor() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class BaseTestCase extends TestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase(String name) {
+                          super(name);
+                          ready = true;
+                      }
+                  }
+                  """,
+                """
+                  public abstract class BaseTestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase() {
+                          ready = true;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class FooTest extends BaseTestCase {
+                      private final int count;
+
+                      public FooTest(String name) {
+                          super(name);
+                          count = 1;
+                      }
+                  }
+                  """,
+                """
+                  public class FooTest extends BaseTestCase {
+                      private final int count;
+
+                      public FooTest() {
+                          count = 1;
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void convertsChainOfSubclasses() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class BaseTestCase extends TestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase(String name) {
+                          super(name);
+                          ready = true;
+                      }
+                  }
+                  """,
+                """
+                  public abstract class BaseTestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase() {
+                          ready = true;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public abstract class MidTestCase extends BaseTestCase {
+                      public MidTestCase(String name) {
+                          super(name);
+                      }
+                  }
+                  """,
+                """
+                  public abstract class MidTestCase extends BaseTestCase {
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class FooTest extends MidTestCase {
+                      public FooTest(String name) {
+                          super(name);
+                      }
+                  }
+                  """,
+                """
+                  public class FooTest extends MidTestCase {
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void dropsTestNameFromSubclassCallersInDependentProject() {
+            rewriteRun(
+              mavenProject("base",
+                //language=java
+                java(
+                  """
+                    import junit.framework.TestCase;
+
+                    public abstract class BaseTestCase extends TestCase {
+                        protected boolean ready;
+
+                        public BaseTestCase(String name) {
+                            super(name);
+                            ready = true;
+                        }
+                    }
+                    """,
+                  """
+                    public abstract class BaseTestCase {
+                        protected boolean ready;
+
+                        public BaseTestCase() {
+                            ready = true;
+                        }
+                    }
+                    """
+                )
+              ),
+              mavenProject("dependent",
+                //language=java
+                java(
+                  """
+                    public class FooTest extends BaseTestCase {
+                        private final int count;
+
+                        public FooTest(String name) {
+                            super(name);
+                            count = 1;
+                        }
+                    }
+                    """,
+                  """
+                    public class FooTest extends BaseTestCase {
+                        private final int count;
+
+                        public FooTest() {
+                            count = 1;
+                        }
+                    }
+                    """
+                ),
+                //language=java
+                java(
+                  """
+                    class FooFactory {
+                        FooTest create() {
+                            return new FooTest("testAdd");
+                        }
+
+                        FooTest createAnonymous() {
+                            return new FooTest("testAdd") {
+                            };
+                        }
+                    }
+                    """,
+                  """
+                    class FooFactory {
+                        FooTest create() {
+                            return new FooTest();
+                        }
+
+                        FooTest createAnonymous() {
+                            return new FooTest() {
+                            };
+                        }
+                    }
+                    """
+                )
+              )
+            );
+        }
+
+        @Test
+        void marksSubclassStoringTestName() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class BaseTestCase extends TestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase(String name) {
+                          super(name);
+                          ready = true;
+                      }
+                  }
+                  """,
+                """
+                  public abstract class BaseTestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase() {
+                          ready = true;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class FooTest extends BaseTestCase {
+                      private final String label;
+
+                      public FooTest(String name) {
+                          super(name);
+                          label = name;
+                      }
+                  }
+                  """,
+                """
+                  public class FooTest extends BaseTestCase {
+                      private final String label;
+
+                      /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public FooTest(String name) {
+                          super();
+                          label = name;
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void marksSubclassPassingTestNameElsewhere() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class BaseTestCase extends TestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase(String name) {
+                          super(name);
+                          ready = true;
+                      }
+                  }
+                  """,
+                """
+                  public abstract class BaseTestCase {
+                      protected boolean ready;
+
+                      public BaseTestCase() {
+                          ready = true;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class FooTest extends BaseTestCase {
+                      public FooTest(String name) {
+                          super(name);
+                          System.out.println(name);
+                      }
+                  }
+                  """,
+                """
+                  public class FooTest extends BaseTestCase {
+                      /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public FooTest(String name) {
+                          super();
+                          System.out.println(name);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void marksSubclassWhenBaseIsNotConverted() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public abstract class BaseTestCase extends TestCase {
+                      protected final String label;
+
+                      public BaseTestCase(String name) {
+                          super(name);
+                          label = name;
+                      }
+                  }
+                  """,
+                """
+                  public abstract class BaseTestCase {
+                      protected final String label;
+
+                      /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public BaseTestCase(String name) {
+                          label = name;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  public class FooTest extends BaseTestCase {
+                      public FooTest(String name) {
+                          super(name);
+                      }
+                  }
+                  """,
+                """
+                  public class FooTest extends BaseTestCase {
+                      /*~~(JUnit Jupiter cannot resolve this String constructor parameter; migrate the test name and constructor callers manually)~~>*/public FooTest(String name) {
+                          super(name);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 
     @Test
