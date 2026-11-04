@@ -63,7 +63,7 @@ class PreconditionConcurrencyTest {
             for (int t = 0; t < THREADS; t++) {
                 futures.add(executor.submit(() -> {
                     start.await();
-                    for (int i = 0; i < ITERATIONS; i++) {
+                    for (int i = 0; i < ITERATIONS && !Thread.currentThread().isInterrupted(); i++) {
                         recipe.getVisitor().visit(sources.get(i % sources.size()), new InMemoryExecutionContext());
                     }
                     return null;

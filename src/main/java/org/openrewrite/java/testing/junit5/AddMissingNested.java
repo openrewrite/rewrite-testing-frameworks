@@ -72,11 +72,10 @@ public class AddMissingNested extends Recipe {
     Set<String> tags = singleton("RSPEC-S5790");
 
     @Override
-    @SuppressWarnings("unchecked")
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.and(
-                Preconditions.or(TEST_ANNOTATIONS.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new)),
-                Preconditions.not(new KotlinFileChecker<>())), new JavaIsoVisitor<ExecutionContext>() {
+        @SuppressWarnings("unchecked")
+        TreeVisitor<?, ExecutionContext>[] usesTestAnnotation = TEST_ANNOTATIONS.stream().map(r -> new UsesType<>(r, false)).toArray(UsesType[]::new);
+        return Preconditions.check(Preconditions.and(Preconditions.or(usesTestAnnotation), Preconditions.not(new KotlinFileChecker<>())), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);

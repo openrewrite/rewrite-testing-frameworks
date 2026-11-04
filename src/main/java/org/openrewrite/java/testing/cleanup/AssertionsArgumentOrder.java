@@ -48,7 +48,6 @@ public class AssertionsArgumentOrder extends Recipe {
 
     private static final MethodMatcher[] JUNIT_ASSERT_MATCHERS = new MethodMatcher[]{
             new MethodMatcher("org.junit.Assert assertEquals(..)"),
-            new MethodMatcher("org.junit.Assert assertEquals(..)"),
             new MethodMatcher("org.junit.Assert assertArrayEquals(..)"),
             new MethodMatcher("org.junit.Assert assertSame(..)"),
             new MethodMatcher("org.junit.Assert assertNotSame(..)"),
@@ -93,7 +92,6 @@ public class AssertionsArgumentOrder extends Recipe {
     static {
         List<MethodMatcher> matchers = new ArrayList<>(Arrays.asList(JUPITER_ASSERTION_MATCHERS));
         matchers.addAll(Arrays.asList(JUNIT_ASSERT_MATCHERS));
-        matchers.addAll(Arrays.asList(JUNIT_ASSERT_WITH_MESSAGE_MATCHERS));
         matchers.add(JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER);
         matchers.add(JUPITER_ASSERT_NULL_MATCHER);
         matchers.addAll(Arrays.asList(TESTNG_MATCHERS));
