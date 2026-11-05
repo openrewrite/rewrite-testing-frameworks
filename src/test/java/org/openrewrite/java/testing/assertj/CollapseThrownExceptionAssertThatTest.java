@@ -63,7 +63,8 @@ class CollapseThrownExceptionAssertThatTest implements RewriteTest {
 
               class MyTest {
                   void test() {
-                      assertThatThrownBy(() -> run()).isInstanceOf(AssertionError.class).hasMessageStartingWith("A recipe")
+                      assertThatThrownBy(() -> run()).isInstanceOf(AssertionError.class)
+                        .hasMessageStartingWith("A recipe")
                         .hasMessageContaining("static fields");
                   }
 

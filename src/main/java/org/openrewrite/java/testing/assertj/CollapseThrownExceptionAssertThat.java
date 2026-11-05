@@ -30,7 +30,9 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.java.JavaFileChecker;
@@ -138,7 +140,7 @@ public class CollapseThrownExceptionAssertThat extends Recipe {
                                 .build()
                                 .apply(new Cursor(getCursor(), assertThat), assertThat.getCoordinates().replace(), callable, exceptionType)
                                 .withPrefix(assertThat.getPrefix());
-                        return replaceSelect((J.MethodInvocation) next, assertThat, thrownBy).withPrefix(statement.getPrefix());
+                        return replaceSelect((J.MethodInvocation) next, assertThat, thrownBy, chainWrap((J.MethodInvocation) next)).withPrefix(statement.getPrefix());
                     }
                 });
     }
@@ -178,11 +180,21 @@ public class CollapseThrownExceptionAssertThat extends Recipe {
         }.reduce(block, new AtomicInteger()).get();
     }
 
-    private static J.MethodInvocation replaceSelect(J.MethodInvocation chain, J.MethodInvocation target, J.MethodInvocation replacement) {
-        J.MethodInvocation select = (J.MethodInvocation) chain.getSelect();
-        if (select == target) {
-            return chain.withSelect(replacement);
+    private static @Nullable Space chainWrap(J.MethodInvocation chain) {
+        for (J.MethodInvocation m = chain; m.getSelect() instanceof J.MethodInvocation; m = (J.MethodInvocation) m.getSelect()) {
+            String whitespace = m.getPadding().getSelect().getAfter().getWhitespace();
+            if (whitespace.contains("\n")) {
+                return Space.format(whitespace);
+            }
         }
-        return chain.withSelect(replaceSelect(select, target, replacement));
+        return null;
+    }
+
+    private static J.MethodInvocation replaceSelect(J.MethodInvocation chain, J.MethodInvocation target, J.MethodInvocation replacement, @Nullable Space wrap) {
+        JRightPadded<Expression> select = chain.getPadding().getSelect();
+        if (select.getElement() == target) {
+            return chain.getPadding().withSelect(select.withElement(replacement).withAfter(wrap == null ? select.getAfter() : wrap));
+        }
+        return chain.withSelect(replaceSelect((J.MethodInvocation) select.getElement(), target, replacement, wrap));
     }
 }
