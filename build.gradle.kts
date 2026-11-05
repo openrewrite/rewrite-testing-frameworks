@@ -120,8 +120,6 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
-    testRuntimeOnly("org.openrewrite:rewrite-java-21")
-    testRuntimeOnly("org.openrewrite:rewrite-java-25")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin")

@@ -120,6 +120,67 @@ class MockitoByteBuddyAlignmentTest implements RewriteTest {
         );
     }
 
+    @Test
+    void byteBuddyOfABomManagedMockitoIsLeftAlone() {
+        rewriteRun(
+          spec -> spec.recipeFromResources(
+            "org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito3",
+            "org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito4",
+            "org.openrewrite.java.testing.mockito.UpgradeByteBuddyForMockito5"
+          ),
+          // Each BOM's Byte Buddy is below the recipe's minimum for that Mockito major, yet no older than its Mockito declares
+          // Mockito 3.6.28 with Byte Buddy 1.10.22
+          mavenProject("boot-2-4", pomXml(springBootStarterTestPom("2.4.13"))),
+          // Mockito 4.0.0 with Byte Buddy 1.11.22
+          mavenProject("boot-2-6", pomXml(springBootStarterTestPom("2.6.15"))),
+          // Mockito 5.7.0 with Byte Buddy 1.14.19
+          mavenProject("boot-3-2", pomXml(springBootStarterTestPom("3.2.12")))
+        );
+    }
+
+    @Test
+    void byteBuddyRaisedFromTheFirstMockitoDeclaringTheMinimum() {
+        assertByteBuddyRaised("UpgradeByteBuddyForMockito3", "3.12.1", "1.11.13");
+
+        assertByteBuddyRaised("UpgradeByteBuddyForMockito4", "4.10.0", "1.12.19");
+
+        assertByteBuddyRaised("UpgradeByteBuddyForMockito5", "5.18.0", "1.17.0");
+    }
+
+    private void assertByteBuddyRaised(String recipe, String mockitoVersion, String minimum) {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito." + recipe),
+          pomXml(SPRING_BOOT_2_1_POM.replace("2.23.4", mockitoVersion), spec -> spec.after(pom -> pom).afterRecipe(pom -> {
+              assertAtLeast(resolvedVersion(pom, "net.bytebuddy", "byte-buddy"), minimum);
+              assertAtLeast(resolvedVersion(pom, "net.bytebuddy", "byte-buddy-agent"), minimum);
+          }))
+        );
+    }
+
+    private static String springBootStarterTestPom(String bootVersion) {
+        //language=xml
+        return """
+          <project>
+            <modelVersion>4.0.0</modelVersion>
+            <parent>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-starter-parent</artifactId>
+              <version>%1$s</version>
+            </parent>
+            <groupId>com.example</groupId>
+            <artifactId>boot-%1$s</artifactId>
+            <version>1.0</version>
+            <dependencies>
+              <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <scope>test</scope>
+              </dependency>
+            </dependencies>
+          </project>
+          """.formatted(bootVersion);
+    }
+
     private static String resolvedVersion(Xml.Document pom, String groupId, String artifactId) {
         return pom.getMarkers().findFirst(MavenResolutionResult.class).orElseThrow()
           .getDependencies().get(Scope.Test).stream()
