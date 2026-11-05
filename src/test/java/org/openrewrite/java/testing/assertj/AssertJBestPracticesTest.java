@@ -493,6 +493,47 @@ class AssertJBestPracticesTest implements RewriteTest {
         );
     }
 
+    @Test
+    void assertThrowsFollowedByAssertionsOnException() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "assertj-core-3",
+            "junit-jupiter-api-5")),
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  void test() {
+                      AssertionError e = assertThrows(AssertionError.class, () -> run());
+                      assertThat(e).hasMessageStartingWith("A recipe");
+                      assertThat(e).hasMessageContaining("static fields");
+                  }
+
+                  void run() {
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+              class MyTest {
+                  void test() {
+                      assertThatThrownBy(() -> run()).isInstanceOf(AssertionError.class)
+                              .hasMessageStartingWith("A recipe")
+                              .hasMessageContaining("static fields");
+                  }
+
+                  void run() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     /// Chained AssertJ assertions should be simplified to the corresponding dedicated assertion, as
     /// per <a href="https://next.sonarqube.com/sonarqube/coding_rules?open=java%3AS5838&rule_key=java%3AS5838">java:S5838</a>
     @Nested
