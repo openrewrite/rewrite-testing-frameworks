@@ -21,7 +21,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
-import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -34,6 +33,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,14 +59,10 @@ public class CollapseThrownExceptionAssertThat extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.and(
+                        new JavaFileChecker<>(),
                         new UsesMethod<>(ASSERT_THAT),
                         Preconditions.or(new UsesMethod<>(ASSERT_THROWS), new UsesMethod<>(IS_THROWN_BY))),
                 new JavaIsoVisitor<ExecutionContext>() {
-                    @Override
-                    public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                        return sourceFile instanceof J.CompilationUnit;
-                    }
-
                     @Override
                     public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
                         J.Block b = super.visitBlock(block, ctx);
