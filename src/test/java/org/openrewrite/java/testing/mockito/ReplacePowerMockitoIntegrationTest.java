@@ -1949,6 +1949,84 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/784")
+    @Test
+    void memberModifierFieldIsMigratedRatherThanDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.concurrent.atomic.AtomicLong;
+
+              class MetricItem {
+                  private AtomicLong successCount = new AtomicLong();
+              }
+              """
+          ),
+          java(
+            """
+              class MetricRegister {
+                  static void register(MetricItem item) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.concurrent.atomic.AtomicLong;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.api.support.membermodification.MemberModifier;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(MetricRegister.class)
+              public class SourceTest {
+                  @Test
+                  public void countsSuccess() throws Exception {
+                      MetricItem item = Mockito.mock(MetricItem.class);
+                      MemberModifier.field(MetricItem.class, "successCount").set(item, new AtomicLong(0));
+                      PowerMockito.mockStatic(MetricRegister.class);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+              import java.util.concurrent.atomic.AtomicLong;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class SourceTest {
+                  private MockedStatic<MetricRegister> mockedMetricRegister;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedMetricRegister != null) {
+                          mockedMetricRegister.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void countsSuccess() throws Exception {
+                      MetricItem item = Mockito.mock(MetricItem.class);
+                      Field successCountField = MetricItem.class.getDeclaredField("successCount");
+                      successCountField.setAccessible(true);
+                      successCountField.set(item, new AtomicLong(0));
+                      mockedMetricRegister = Mockito.mockStatic(MetricRegister.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void remainingPowerMockCallsAndAnnotationsAreReplaced() {
         //language=java

@@ -220,6 +220,7 @@ recipeList:
   # reflection, and what it does not match falls through to the reflection recipes below.
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxSetInternalStateToInjectMocks
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
+  - org.openrewrite.java.testing.mockito.PowerMockMemberMatcherFieldToJavaReflection
   - org.openrewrite.java.testing.mockito.CleanupPowerMockImports
 ---
 type: specs.openrewrite.org/v1beta/recipe
