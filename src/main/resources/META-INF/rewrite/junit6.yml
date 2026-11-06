@@ -118,3 +118,5 @@ recipeList:
   - org.openrewrite.properties.DeleteProperty:
       propertyKey: junit.jupiter.params.arguments.conversion.locale.format
   - org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
+  # Cucumber-JVM 8 requires JUnit 6.1, and the Java 17 this migration is already gated on
+  - org.openrewrite.cucumber.jvm.UpgradeCucumber8x
