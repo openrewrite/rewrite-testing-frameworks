@@ -791,4 +791,33 @@ class AssertToAssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void assertWildcardWithComment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit./* legacy */Assert.*;
+
+              class MyTest {
+                  void foo() {
+                      assertEquals(1, 2);
+                      fail();
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  void foo() {
+                      assertEquals(1, 2);
+                      fail();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

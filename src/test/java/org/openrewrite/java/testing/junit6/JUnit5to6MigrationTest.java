@@ -418,6 +418,59 @@ class JUnit5to6MigrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void upgradesCucumber() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(java(
+              """
+                import org.junit.jupiter.api.Test;
+                class ExampleTest {
+                    @Test
+                    void test() {}
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>5.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.platform</groupId>
+                            <artifactId>junit-platform-suite</artifactId>
+                            <version>1.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>io.cucumber</groupId>
+                            <artifactId>cucumber-junit-platform-engine</artifactId>
+                            <version>7.34.3</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-platform-suite</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
+                .containsPattern("<artifactId>cucumber-junit-platform-engine</artifactId>\\s*<version>8\\.\\d+\\.\\d+</version>")
+                .actual())
+            )
+          )
+        );
+    }
+
     //language=java
     private static final String JUNIT5_EXTENSION = """
       import org.junit.jupiter.api.extension.ExtensionContext;
