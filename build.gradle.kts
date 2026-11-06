@@ -90,6 +90,12 @@ recipeDependencies {
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
+    constraints {
+        runtimeOnly("com.google.guava:guava:33.8.0-jre") {
+            because("CVE-2026-102554, fixed in Guava 33.7.2")
+        }
+    }
+
     implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
@@ -114,8 +120,6 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
-    testRuntimeOnly("org.openrewrite:rewrite-java-21")
-    testRuntimeOnly("org.openrewrite:rewrite-java-25")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin")
