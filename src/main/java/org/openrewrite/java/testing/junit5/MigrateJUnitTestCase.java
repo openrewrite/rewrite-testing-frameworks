@@ -21,7 +21,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.ScanningRecipe;
-import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
@@ -39,6 +38,7 @@ import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.marker.SearchResult;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -212,12 +212,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         Map<String, String> convertible = acc.convertible();
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                return sourceFile instanceof J.CompilationUnit;
-            }
-
+        return Preconditions.check(new JavaFileChecker<>(), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 if (acc.skippedCompilationUnits.contains(cu.getId())) {
@@ -245,7 +240,7 @@ public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Ac
                 return (J.CompilationUnit) migrationVisitor(convertible)
                         .visitNonNull(c, ctx, getCursor().getParentTreeCursor());
             }
-        };
+        });
     }
 
     private TreeVisitor<?, ExecutionContext> migrationVisitor(Map<String, String> convertible) {
