@@ -179,4 +179,65 @@ class PowerMockRunnerDelegateToRunWithTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void removesDelegateNextToAnotherRunner() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.powermock.modules.junit4;
+
+              import java.lang.annotation.*;
+
+              @Retention(RetentionPolicy.RUNTIME)
+              @Target(ElementType.TYPE)
+              public @interface PowerMockRunnerDelegate {
+                  Class<?> value();
+              }
+              """
+          ),
+          java(
+            """
+              package org.springframework.test.context.junit4;
+
+              public class SpringRunner extends org.junit.runner.Runner {
+                  public SpringRunner(Class<?> clazz) {}
+                  @Override public org.junit.runner.Description getDescription() { return null; }
+                  @Override public void run(org.junit.runner.notification.RunNotifier notifier) {}
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.modules.junit4.PowerMockRunnerDelegate;
+              import org.springframework.test.context.junit4.SpringRunner;
+
+              @PowerMockRunnerDelegate(SpringRunner.class)
+              @RunWith(SpringRunner.class)
+              public class MyTest {
+
+                  @Test
+                  public void testSomething() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.springframework.test.context.junit4.SpringRunner;
+
+              @RunWith(SpringRunner.class)
+              public class MyTest {
+
+                  @Test
+                  public void testSomething() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
