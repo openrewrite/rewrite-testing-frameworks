@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -27,6 +28,7 @@ import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Comment;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -34,13 +36,17 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
+import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Arrays.asList;
 
 public class MigrateJUnitTestCase extends Recipe {
 
+    private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
     private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
     private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*After*");
     private static final AnnotationMatcher JUNIT_BEFORE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*Before*");
@@ -71,6 +77,7 @@ public class MigrateJUnitTestCase extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(Preconditions.and(
+                        new JavaFileChecker<>(),
                         Preconditions.or(
                                 new UsesType<>("junit.framework.TestCase", false),
                                 new UsesType<>("junit.framework.Assert", false)
@@ -82,6 +89,22 @@ public class MigrateJUnitTestCase extends Recipe {
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                        boolean[] unsupported = {false};
+                        J.CompilationUnit checked = (J.CompilationUnit) new JavaIsoVisitor<ExecutionContext>() {
+                            @Override
+                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                                J.ClassDeclaration owner = getCursor().firstEnclosing(J.ClassDeclaration.class);
+                                if (owner == null || !isSupertypeTestCase(owner.getType()) || !isSuite(method) ||
+                                    !containsTestSetup(method) || testSetupLifecycleMethods(method, owner) != null) {
+                                    return super.visitMethodDeclaration(method, ctx);
+                                }
+                                unsupported[0] = true;
+                                return SearchResult.found(method, "Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods");
+                            }
+                        }.visitNonNull(cu, ctx, getCursor().getParentTreeCursor());
+                        if (unsupported[0]) {
+                            return checked;
+                        }
                         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
                         doAfterVisit(new TestCaseVisitor());
                         // ChangeType for org.junit.Assert method invocations because TestCase extends org.junit.Assert
@@ -133,8 +156,94 @@ public class MigrateJUnitTestCase extends Recipe {
                 });
     }
 
+    private static boolean isSuite(J.MethodDeclaration method) {
+        return method.hasModifier(J.Modifier.Type.Static) &&
+               SUITE_MATCHER.matches(method.getMethodType()) &&
+               (TypeUtils.isOfClassType(method.getMethodType().getReturnType(), "junit.framework.Test") ||
+                TypeUtils.isOfClassType(method.getMethodType().getReturnType(), "junit.framework.TestSuite"));
+    }
+
+    private static boolean containsTestSetup(J.MethodDeclaration method) {
+        return new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
+                if (TypeUtils.isAssignableTo("junit.extensions.TestSetup", newClass.getType())) {
+                    found.set(true);
+                }
+                return super.visitNewClass(newClass, found);
+            }
+        }.reduce(method, new AtomicBoolean()).get();
+    }
+
+    private static @Nullable List<J.MethodDeclaration> testSetupLifecycleMethods(J.MethodDeclaration suite, J.ClassDeclaration owner) {
+        if (suite.getMethodType() == null || !suite.getMethodType().getParameterTypes().isEmpty() ||
+            suite.getTypeParameters() != null && !suite.getTypeParameters().isEmpty() ||
+            suite.getBody() == null || suite.getBody().getStatements().size() != 1 ||
+            !(suite.getBody().getStatements().get(0) instanceof J.Return)) {
+            return null;
+        }
+        J.Return returned = (J.Return) suite.getBody().getStatements().get(0);
+        if (!(returned.getExpression() instanceof J.NewClass)) {
+            return null;
+        }
+        J.NewClass decorator = (J.NewClass) returned.getExpression();
+        if (decorator.getClazz() == null || !TypeUtils.isOfClassType(decorator.getClazz().getType(), "junit.extensions.TestSetup") ||
+            decorator.getBody() == null || decorator.getArguments().size() != 1 ||
+            !(decorator.getArguments().get(0) instanceof J.NewClass)) {
+            return null;
+        }
+        J.NewClass wrapped = (J.NewClass) decorator.getArguments().get(0);
+        if (wrapped.getBody() != null || !TypeUtils.isOfClassType(wrapped.getType(), "junit.framework.TestSuite") ||
+            wrapped.getArguments().size() != 1 || !(wrapped.getArguments().get(0) instanceof J.FieldAccess)) {
+            return null;
+        }
+        J.FieldAccess testClass = (J.FieldAccess) wrapped.getArguments().get(0);
+        if (!"class".equals(testClass.getSimpleName()) || !TypeUtils.isOfType(testClass.getTarget().getType(), owner.getType())) {
+            return null;
+        }
+        List<J.MethodDeclaration> methods = new ArrayList<>();
+        for (Statement statement : decorator.getBody().getStatements()) {
+            if (!(statement instanceof J.MethodDeclaration)) {
+                return null;
+            }
+            J.MethodDeclaration method = (J.MethodDeclaration) statement;
+            if (!("setUp".equals(method.getSimpleName()) || "tearDown".equals(method.getSimpleName())) ||
+                method.getBody() == null || method.getMethodType() == null ||
+                method.hasModifier(J.Modifier.Type.Synchronized) ||
+                method.getLeadingAnnotations().stream().anyMatch(annotation -> !OVERRIDE_ANNOTATION_MATCHER.matches(annotation)) ||
+                !method.getMethodType().getParameterTypes().isEmpty()) {
+                return null;
+            }
+            boolean instanceReference = new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
+                    JavaType.Variable field = identifier.getFieldType();
+                    if ("this".equals(identifier.getSimpleName()) || "super".equals(identifier.getSimpleName()) ||
+                        field != null && field.getOwner() instanceof JavaType.FullyQualified && !field.hasFlags(Flag.Static) &&
+                        TypeUtils.isAssignableTo(((JavaType.FullyQualified) field.getOwner()).getFullyQualifiedName(), decorator.getType())) {
+                        found.set(true);
+                    }
+                    return super.visitIdentifier(identifier, found);
+                }
+
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation invocation, AtomicBoolean found) {
+                    JavaType.Method type = invocation.getMethodType();
+                    if (invocation.getSelect() == null && (type == null || !type.hasFlags(Flag.Static))) {
+                        found.set(true);
+                    }
+                    return super.visitMethodInvocation(invocation, found);
+                }
+            }.reduce(method.getBody(), new AtomicBoolean()).get();
+            if (instanceReference) {
+                return null;
+            }
+            methods.add(method);
+        }
+        return methods;
+    }
+
     private static class TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private static final AnnotationMatcher OVERRIDE_ANNOTATION_MATCHER = new AnnotationMatcher("@java.lang.Override");
         private static final MethodMatcher TEST_CASE_SUPER_MATCHER = new MethodMatcher("junit.framework.TestCase <constructor>(..)");
         private static final Set<String> SUPERTYPES_REMOVED_BY_MIGRATION = new HashSet<>(asList(
                 "junit.framework.TestCase", "junit.framework.Assert", "junit.framework.Test"));
@@ -144,7 +253,53 @@ public class MigrateJUnitTestCase extends Recipe {
             if (!isSupertypeTestCase(classDecl.getType())) {
                 return classDecl;
             }
-            J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+            Set<String> methodNames = new HashSet<>();
+            if (classDecl.getType() != null) {
+                classDecl.getType().getVisibleMethods().forEachRemaining(method -> methodNames.add(method.getName()));
+            }
+            for (Statement statement : classDecl.getBody().getStatements()) {
+                if (statement instanceof J.MethodDeclaration) {
+                    methodNames.add(((J.MethodDeclaration) statement).getSimpleName());
+                }
+            }
+            J.ClassDeclaration withFixtures = classDecl.withBody(classDecl.getBody().withStatements(
+                    ListUtils.flatMap(classDecl.getBody().getStatements(), statement -> {
+                        if (!(statement instanceof J.MethodDeclaration) || !isSuite((J.MethodDeclaration) statement)) {
+                            return statement;
+                        }
+                        List<J.MethodDeclaration> lifecycleMethods = testSetupLifecycleMethods((J.MethodDeclaration) statement, classDecl);
+                        if (lifecycleMethods == null) {
+                            return statement;
+                        }
+                        maybeRemoveImport("junit.extensions.TestSetup");
+                        maybeRemoveImport("junit.framework.Test");
+                        maybeRemoveImport("junit.framework.TestSuite");
+                        return ListUtils.mapFirst(ListUtils.map(lifecycleMethods, method -> {
+                            boolean setup = "setUp".equals(method.getSimpleName());
+                            String baseName = setup ? "beforeAll" : "afterAll";
+                            String name = baseName;
+                            for (int suffix = 1; !methodNames.add(name); suffix++) {
+                                name = baseName + suffix;
+                            }
+                            JavaType.Method methodType = method.getMethodType();
+                            if (methodType != null) {
+                                methodType = methodType.withName(name).withDeclaringType(classDecl.getType())
+                                        .withFlags(EnumSet.of(Flag.Public, Flag.Static));
+                            }
+                            String annotation = setup ? "BeforeAll" : "AfterAll";
+                            Cursor bodyCursor = new Cursor(getCursor(), classDecl.getBody());
+                            J.MethodDeclaration lifecycle = JavaTemplate.builder("@" + annotation + " public static void " + name + "() {}")
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5"))
+                                    .imports("org.junit.jupiter.api." + annotation).build()
+                                    .apply(new Cursor(bodyCursor, method), method.getCoordinates().replace());
+                            lifecycle = lifecycle.withBody(method.getBody()).withThrows(method.getThrows())
+                                    .withPrefix(method.getPrefix()).withMethodType(methodType)
+                                    .withName(lifecycle.getName().withType(methodType));
+                            maybeAddImport("org.junit.jupiter.api." + annotation);
+                            return maybeAutoFormat(method, lifecycle, ctx, bodyCursor);
+                        }), first -> first.withPrefix(statement.getPrefix()));
+                    })));
+            J.ClassDeclaration cd = super.visitClassDeclaration(withFixtures, ctx);
             if (cd.getExtends() != null && cd.getExtends().getType() != null) {
                 JavaType.FullyQualified fullQualifiedExtension = TypeUtils.asFullyQualified(cd.getExtends().getType());
                 if (fullQualifiedExtension != null && "junit.framework.TestCase".equals(fullQualifiedExtension.getFullyQualifiedName())) {
@@ -168,10 +323,7 @@ public class MigrateJUnitTestCase extends Recipe {
             }
 
             // Remove suite() methods that return junit.framework.Test or TestSuite
-            if (md.hasModifier(J.Modifier.Type.Static) &&
-                SUITE_MATCHER.matches(md.getMethodType()) &&
-                (TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.Test") ||
-                 TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.TestSuite"))) {
+            if (isSuite(md)) {
                 maybeRemoveImport("junit.framework.Test");
                 maybeRemoveImport("junit.framework.TestSuite");
                 return null;

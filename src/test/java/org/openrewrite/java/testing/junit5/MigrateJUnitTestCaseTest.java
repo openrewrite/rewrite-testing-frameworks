@@ -20,10 +20,12 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MigrateJUnitTestCaseTest implements RewriteTest {
 
@@ -424,6 +426,503 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
                   @Test
                   public void testApp() {
                       assertTrue(true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1110")
+    @Test
+    void migrateTestSetupFixturesAsPartOfJUnit4to5Migration() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration"),
+          //language=java
+          java(
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  private static String resource;
+
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(MathTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              setUpOnce();
+                          }
+
+                          @Override
+                          protected void tearDown() throws Exception {
+                              tearDownOnce();
+                          }
+                      };
+                  }
+
+                  static void setUpOnce() throws Exception {
+                      resource = "open";
+                  }
+
+                  static void tearDownOnce() throws Exception {
+                      resource = null;
+                  }
+
+                  public void testResource() {
+                      assertEquals("open", resource);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterAll;
+              import org.junit.jupiter.api.BeforeAll;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class MathTest {
+                  private static String resource;
+
+                  @BeforeAll
+                  public static void beforeAll() throws Exception {
+                      setUpOnce();
+                  }
+
+                  @AfterAll
+                  public static void afterAll() throws Exception {
+                      tearDownOnce();
+                  }
+
+                  static void setUpOnce() throws Exception {
+                      resource = "open";
+                  }
+
+                  static void tearDownOnce() throws Exception {
+                      resource = null;
+                  }
+
+                  @Test
+                  public void testResource() {
+                      assertEquals("open", resource);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void moveInlineTestSetupStatementsNextToPerTestFixtures() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  private static String resource;
+                  private static int counter;
+
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(MathTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              resource = "open";
+                              counter = 1;
+                              System.setProperty("example.mode", "test");
+                          }
+
+                          @Override
+                          protected void tearDown() throws Exception {
+                              resource = null;
+                              System.clearProperty("example.mode");
+                          }
+                      };
+                  }
+
+                  @Override
+                  protected void setUp() throws Exception {
+                      super.setUp();
+                      counter++;
+                  }
+
+                  @Override
+                  protected void tearDown() throws Exception {
+                      counter--;
+                      super.tearDown();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterAll;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeAll;
+              import org.junit.jupiter.api.BeforeEach;
+
+              class MathTest {
+                  private static String resource;
+                  private static int counter;
+
+                  @BeforeAll
+                  public static void beforeAll() throws Exception {
+                      resource = "open";
+                      counter = 1;
+                      System.setProperty("example.mode", "test");
+                  }
+
+                  @AfterAll
+                  public static void afterAll() throws Exception {
+                      resource = null;
+                      System.clearProperty("example.mode");
+                  }
+
+                  @BeforeEach
+                  public void setUp() throws Exception {
+                      counter++;
+                  }
+
+                  @AfterEach
+                  public void tearDown() throws Exception {
+                      counter--;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void avoidClashingLifecycleMethodNames() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class BaseTest extends TestCase {
+                  protected static void afterAll() {}
+              }
+
+              class MathTest extends BaseTest {
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(MathTest.class)) {
+                          @Override
+                          protected void setUp() {
+                              System.setProperty("example.mode", "test");
+                          }
+
+                          @Override
+                          protected void tearDown() {
+                              System.clearProperty("example.mode");
+                          }
+                      };
+                  }
+
+                  static void beforeAll() {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterAll;
+              import org.junit.jupiter.api.BeforeAll;
+
+              class BaseTest {
+                  protected static void afterAll() {}
+              }
+
+              class MathTest extends BaseTest {
+                  @BeforeAll
+                  public static void beforeAll1() {
+                      System.setProperty("example.mode", "test");
+                  }
+
+                  @AfterAll
+                  public static void afterAll1() {
+                      System.clearProperty("example.mode");
+                  }
+
+                  static void beforeAll() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupDeclaringFields() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(MathTest.class)) {
+                          private String resource;
+
+                          @Override
+                          protected void setUp() {
+                              resource = "open";
+                          }
+                      };
+                  }
+              }
+              """,
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      return new TestSetup(new TestSuite(MathTest.class)) {
+                          private String resource;
+
+                          @Override
+                          protected void setUp() {
+                              resource = "open";
+                          }
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupWrappingCustomizedSuite() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(MathTest.class) {
+                          @Override
+                          public int countTestCases() {
+                              return 1;
+                          }
+                      }) {
+                          @Override
+                          protected void setUp() {
+                              System.setProperty("example.mode", "test");
+                          }
+                      };
+                  }
+              }
+              """,
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      return new TestSetup(new TestSuite(MathTest.class) {
+                          @Override
+                          public int countTestCases() {
+                              return 1;
+                          }
+                      }) {
+                          @Override
+                          protected void setUp() {
+                              System.setProperty("example.mode", "test");
+                          }
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupAroundSuiteVariable() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  public static Test suite() {
+                      TestSuite suite = new TestSuite(MathTest.class);
+                      return new TestSetup(suite) {
+                          @Override
+                          protected void setUp() {
+                              System.setProperty("example.mode", "test");
+                          }
+                      };
+                  }
+              }
+              """,
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class MathTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      TestSuite suite = new TestSuite(MathTest.class);
+                      return new TestSetup(suite) {
+                          @Override
+                          protected void setUp() {
+                              System.setProperty("example.mode", "test");
+                          }
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void markTestSetupReferencingDecoratorInstance() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class InstanceReferenceTest extends TestCase {
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(InstanceReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              this.toString();
+                          }
+                      };
+                  }
+              }
+
+              class InheritedMethodReferenceTest extends TestCase {
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(InheritedMethodReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              getTest();
+                          }
+                      };
+                  }
+              }
+
+              class InheritedFieldReferenceTest extends TestCase {
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(InheritedFieldReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              fTest.countTestCases();
+                          }
+                      };
+                  }
+              }
+
+              class SuperReferenceTest extends TestCase {
+                  public static Test suite() {
+                      return new TestSetup(new TestSuite(SuperReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              super.setUp();
+                          }
+                      };
+                  }
+              }
+              """,
+            """
+              import junit.extensions.TestSetup;
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              class InstanceReferenceTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      return new TestSetup(new TestSuite(InstanceReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              this.toString();
+                          }
+                      };
+                  }
+              }
+
+              class InheritedMethodReferenceTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      return new TestSetup(new TestSuite(InheritedMethodReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              getTest();
+                          }
+                      };
+                  }
+              }
+
+              class InheritedFieldReferenceTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      return new TestSetup(new TestSuite(InheritedFieldReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              fTest.countTestCases();
+                          }
+                      };
+                  }
+              }
+
+              class SuperReferenceTest extends TestCase {
+                  /*~~(Migrate this TestSetup fixture manually to JUnit Jupiter lifecycle methods)~~>*/public static Test suite() {
+                      return new TestSetup(new TestSuite(SuperReferenceTest.class)) {
+                          @Override
+                          protected void setUp() throws Exception {
+                              super.setUp();
+                          }
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveKotlinTestCasesUnchanged() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import junit.framework.TestCase
+
+              class MathTest : TestCase() {
+                  override fun setUp() {
+                      super.setUp()
                   }
               }
               """
