@@ -28,10 +28,13 @@ import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
+import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.testing.mockito.table.PowerMockTestsDisabled;
 import org.openrewrite.java.tree.Comment;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JLeftPadded;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -45,6 +48,7 @@ import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.openrewrite.Tree.randomId;
 
 public class DisableUnsupportedPowerMockTests extends Recipe {
 
@@ -63,7 +67,8 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
     @Getter
     final String description = "Disables tests that reach into private members through PowerMock, which Mockito " +
             "deliberately does not support, so that the rest of the repository can migrate. The test is annotated " +
-            "`@Disabled`, `@Ignore` or TestNG's `@Ignore` and recorded in a data table as an action item: rework the " +
+            "`@Disabled`, `@Ignore` or TestNG's `@Ignore`, or `@Test(enabled = false)` on TestNG before 6.13, which " +
+            "has no `@Ignore`, and recorded in a data table as an action item: rework the " +
             "test not to depend on private members, then re-enable it. A usage outside a test method, such as in a " +
             "setup method or a class-level annotation, disables the whole class.";
 
@@ -72,6 +77,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
         return Preconditions.check(new UsesType<>("org.powermock..*", false), new JavaIsoVisitor<ExecutionContext>() {
             private Map<UUID, String> unsupported = emptyMap();
             private String sourcePath = "";
+            private boolean testNgIgnoreAvailable = true;
 
             @Override
             public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
@@ -81,6 +87,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                         return (J) tree;
                     }
                     sourcePath = ((JavaSourceFile) tree).getSourcePath().toString();
+                    testNgIgnoreAvailable = isTestNgIgnoreAvailable((JavaSourceFile) tree);
                 }
                 return super.visit(tree, ctx);
             }
@@ -126,6 +133,9 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
             }
 
             private <T extends J> T disable(T target, Framework framework, ExecutionContext ctx) {
+                if (framework == Framework.TESTNG && !testNgIgnoreAvailable) {
+                    return disableWithoutTestNgIgnore(target);
+                }
                 maybeAddImport(framework.disabledAnnotation);
                 return JavaTemplate.builder("@" + simpleName(framework.disabledAnnotation) +
                                 "(\"PowerMock test disabled by migration: rework it not to rely on private members\")")
@@ -210,6 +220,59 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                         ListUtils.map(classDecl.getBody().getStatements(), statement ->
                                 statement instanceof J.MethodDeclaration && !reasonsIn(statement).isEmpty() ?
                                         commentOutBody((J.MethodDeclaration) statement, bodyCursor) : statement)));
+            }
+
+            /**
+             * TestNG only has `@Ignore` since 6.13, so before that a test is disabled with `@Test(enabled = false)`.
+             * TestNG does not apply a class-level `enabled = false` to methods with a `@Test` of their own, so for a
+             * class every such method is disabled.
+             */
+            @SuppressWarnings("unchecked")
+            private <T extends J> T disableWithoutTestNgIgnore(T target) {
+                if (target instanceof J.MethodDeclaration) {
+                    J.MethodDeclaration method = (J.MethodDeclaration) target;
+                    return (T) method.withLeadingAnnotations(ListUtils.map(method.getLeadingAnnotations(), this::withEnabledFalse));
+                }
+                J.ClassDeclaration cd = (J.ClassDeclaration) target;
+                cd = cd.withLeadingAnnotations(ListUtils.map(cd.getLeadingAnnotations(), this::withEnabledFalse));
+                return (T) cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement ->
+                        statement instanceof J.MethodDeclaration ? disableWithoutTestNgIgnore(statement) : statement)));
+            }
+
+            private J.Annotation withEnabledFalse(J.Annotation annotation) {
+                if (!TypeUtils.isOfClassType(annotation.getType(), TESTNG_TEST)) {
+                    return annotation;
+                }
+                List<Expression> arguments = ListUtils.filter(annotation.getArguments() == null ? emptyList() : annotation.getArguments(),
+                        argument -> !(argument instanceof J.Empty) && !isEnabledAttribute(argument));
+                J.Assignment enabledFalse = new J.Assignment(randomId(), arguments.isEmpty() ? Space.EMPTY : Space.SINGLE_SPACE,
+                        Markers.EMPTY,
+                        new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "enabled", JavaType.Primitive.Boolean, null),
+                        JLeftPadded.<Expression>build(new J.Literal(randomId(), Space.SINGLE_SPACE, Markers.EMPTY, false, "false",
+                                null, JavaType.Primitive.Boolean)).withBefore(Space.SINGLE_SPACE),
+                        JavaType.Primitive.Boolean);
+                return annotation.withArguments(ListUtils.concat(arguments, enabledFalse));
+            }
+
+            private boolean isEnabledAttribute(Expression argument) {
+                return argument instanceof J.Assignment && ((J.Assignment) argument).getVariable() instanceof J.Identifier &&
+                       "enabled".equals(((J.Identifier) ((J.Assignment) argument).getVariable()).getSimpleName());
+            }
+
+            private boolean isTestNgIgnoreAvailable(JavaSourceFile sourceFile) {
+                JavaSourceSet sourceSet = sourceFile.getMarkers().findFirst(JavaSourceSet.class).orElse(null);
+                if (sourceSet == null) {
+                    return true;
+                }
+                boolean testNgOnClasspath = false;
+                for (JavaType.FullyQualified type : sourceSet.getClasspath()) {
+                    if (TESTNG_IGNORE.equals(type.getFullyQualifiedName())) {
+                        return true;
+                    }
+                    testNgOnClasspath |= type.getFullyQualifiedName().startsWith("org.testng.");
+                }
+                // Nothing is known of a classpath that does not list TestNG
+                return !testNgOnClasspath;
             }
 
             private org.openrewrite.java.tree.@Nullable JavaCoordinates annotationCoordinates(J target) {
