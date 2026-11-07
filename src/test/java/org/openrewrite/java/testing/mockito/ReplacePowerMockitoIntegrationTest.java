@@ -1950,6 +1950,82 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
+    void stubbingStaticMethodNamedByStringIsMigratedRatherThanDisabled() {
+        //language=java
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .logCompilationWarningsAndErrors(true)
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "mockito-core-3.12",
+              "powermock-api-mockito2-2",
+              "powermock-api-support-2",
+              "powermock-core-2",
+              "powermock-module-junit4",
+              "powermock-reflect-2")),
+          java(
+            """
+              public class TenantUtil {
+                  public static Object tenantConfig(String tenant) {
+                      return null;
+                  }
+
+                  public static String resolve(String tenant) {
+                      return tenantConfig(tenant) == null ? "default" : "custom";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Assert;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest({TenantUtil.class})
+              public class TenantUtilTest {
+                  @Test
+                  public void resolvesDefault() throws Exception {
+                      PowerMockito.spy(TenantUtil.class);
+                      PowerMockito.doReturn(null).when(TenantUtil.class, "tenantConfig", "carbon.super");
+                      Assert.assertEquals("default", TenantUtil.resolve("carbon.super"));
+                  }
+              }
+              """,
+            """
+              import org.junit.After;
+              import org.junit.Assert;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class TenantUtilTest {
+                  private MockedStatic<TenantUtil> mockedTenantUtil;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedTenantUtil != null) {
+                          mockedTenantUtil.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void resolvesDefault() throws Exception {
+                      mockedTenantUtil = Mockito.mockStatic(TenantUtil.class, Mockito.CALLS_REAL_METHODS);
+                      mockedTenantUtil.when(() -> TenantUtil.tenantConfig("carbon.super")).thenReturn(null);
+                      Assert.assertEquals("default", TenantUtil.resolve("carbon.super"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void remainingPowerMockCallsAndAnnotationsAreReplaced() {
         //language=java
         rewriteRun(
