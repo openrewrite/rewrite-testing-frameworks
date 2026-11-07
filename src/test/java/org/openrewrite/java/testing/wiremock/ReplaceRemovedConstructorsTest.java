@@ -259,6 +259,31 @@ class ReplaceRemovedConstructorsTest implements RewriteTest {
     }
 
     @Test
+    void inMemoryRequestJournalStoreStaysUnbounded() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.store.RequestJournalStore;
+
+              class Stores {
+                  RequestJournalStore journal = new InMemoryRequestJournalStore();
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.store.RequestJournalStore;
+
+              class Stores {
+                  RequestJournalStore journal = new InMemoryRequestJournalStore(null);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void requestPatternEverythingBecomesAnything() {
         rewriteRun(
           //language=java
