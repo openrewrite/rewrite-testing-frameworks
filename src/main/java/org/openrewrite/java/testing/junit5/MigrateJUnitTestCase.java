@@ -19,7 +19,7 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
@@ -27,6 +27,7 @@ import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Comment;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -38,8 +39,9 @@ import org.openrewrite.marker.Markers;
 import java.util.*;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
-public class MigrateJUnitTestCase extends Recipe {
+public class MigrateJUnitTestCase extends ScanningRecipe<MigrateJUnitTestCase.Constructors> {
 
     private static final AnnotationMatcher JUNIT_TEST_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Test");
     private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*After*");
@@ -68,8 +70,189 @@ public class MigrateJUnitTestCase extends Recipe {
     @Getter
     final String description = "Convert JUnit 4 `TestCase` to JUnit Jupiter.";
 
+    static class Constructors {
+        final Map<String, ConstructorInfo> declarations = new HashMap<>();
+        final Set<String> referencedUnsafely = new HashSet<>();
+
+        Set<String> removable() {
+            Set<String> removed = new HashSet<>();
+            boolean changed;
+            do {
+                changed = false;
+                for (Map.Entry<String, ConstructorInfo> entry : declarations.entrySet()) {
+                    if (entry.getValue().isRedundant(removed)) {
+                        changed |= removed.add(entry.getKey());
+                    }
+                }
+            } while (changed);
+
+            // Removing every constructor leaves an implicit no-arg constructor. If any
+            // overload must stay, retain the others too rather than inventing a new overload.
+            do {
+                Set<String> retainedClasses = new HashSet<>();
+                for (String constructor : declarations.keySet()) {
+                    if (!removed.contains(constructor) || referencedUnsafely.contains(constructor)) {
+                        retainedClasses.add(declarations.get(constructor).declaringType);
+                    }
+                }
+                changed = removed.removeIf(constructor -> {
+                    if (retainedClasses.contains(declarations.get(constructor).declaringType)) {
+                        return true;
+                    }
+                    return !declarations.get(constructor).isRedundant(removed);
+                });
+            } while (changed);
+            return removed;
+        }
+    }
+
+    // Summarize each declaration while scanning rather than retaining its tree for
+    // every source file until the migration cycle ends.
+    private static class ConstructorInfo {
+        final String declaringType;
+        final boolean removableBody;
+        final @Nullable String delegatedConstructor;
+
+        ConstructorInfo(J.MethodDeclaration method, JavaType.Method type) {
+            declaringType = type.getDeclaringType().getFullyQualifiedName();
+            J.Block body = method.getBody();
+            List<Statement> statements = body == null ? emptyList() : body.getStatements();
+            boolean removable = body != null && statements.isEmpty();
+            String delegated = null;
+            if (statements.size() == 1 && statements.get(0) instanceof J.MethodInvocation) {
+                J.MethodInvocation invocation = (J.MethodInvocation) statements.get(0);
+                if (("super".equals(invocation.getSimpleName()) || "this".equals(invocation.getSimpleName())) &&
+                        safeToDiscard(invocation.getArguments())) {
+                    removable = true;
+                    if (!TestCaseVisitor.TEST_CASE_SUPER_MATCHER.matches(invocation)) {
+                        delegated = signature(invocation.getMethodType());
+                    }
+                }
+            }
+            removableBody = removable;
+            delegatedConstructor = delegated;
+        }
+
+        boolean isRedundant(Set<String> removed) {
+            return removableBody && (delegatedConstructor == null || removed.contains(delegatedConstructor));
+        }
+    }
+
+    private static String signature(JavaType.@Nullable Method method) {
+        // ChangeType updates the declaring type's hierarchy during migration. The
+        // signature, unlike JavaType.Method equality, remains stable across files/cycles.
+        return method == null ? "" : method.getDeclaringType().getFullyQualifiedName() +
+                                     "#" + method.getName() + method.getParameterTypes();
+    }
+
+    private static boolean safeToDiscard(List<Expression> arguments) {
+        return arguments.stream().allMatch(argument -> {
+            if (argument instanceof J.Identifier) {
+                JavaType.Variable variable = ((J.Identifier) argument).getFieldType();
+                // Only local/parameter reads are safe: field reads can trigger class
+                // initialization or have volatile memory semantics.
+                return variable != null && variable.getOwner() instanceof JavaType.Method;
+            }
+            return argument instanceof J.Literal || argument instanceof J.Empty;
+        });
+    }
+
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public Constructors getInitialValue(ExecutionContext ctx) {
+        return new Constructors();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Constructors acc) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            // A file overriding TestCase#run(TestResult) is left untouched, so the constructors
+            // it declares or calls must survive in every other file too.
+            private boolean untouched;
+
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                untouched = new DeclaresMethod<>(TEST_CASE_RUN_MATCHER).visit(cu, ctx) != cu;
+                return super.visitCompilationUnit(cu, ctx);
+            }
+
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                JavaType.Method type = method.getMethodType();
+                if (method.isConstructor() && type != null && isSupertypeTestCase(type.getDeclaringType())) {
+                    acc.declarations.put(signature(type), new ConstructorInfo(method, type));
+                    if (untouched || method.getThrows() != null && !method.getThrows().isEmpty() ||
+                            !method.getLeadingAnnotations().isEmpty()) {
+                        acc.referencedUnsafely.add(signature(type));
+                    }
+                }
+                return super.visitMethodDeclaration(method, ctx);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                if (newClass.getConstructorType() != null && (untouched || !safeToDiscard(newClass.getArguments()))) {
+                    acc.referencedUnsafely.add(signature(newClass.getConstructorType()));
+                }
+                return super.visitNewClass(newClass, ctx);
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                if (method.getMethodType() != null && (untouched || !safeToDiscard(method.getArguments()))) {
+                    acc.referencedUnsafely.add(signature(method.getMethodType()));
+                }
+                return super.visitMethodInvocation(method, ctx);
+            }
+
+            @Override
+            public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
+                if (memberRef.getMethodType() != null) {
+                    acc.referencedUnsafely.add(signature(memberRef.getMethodType()));
+                }
+                return super.visitMemberReference(memberRef, ctx);
+            }
+        };
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Constructors acc) {
+        Set<String> removed = acc.removable();
+        return Preconditions.check(Preconditions.not(new DeclaresMethod<>(TEST_CASE_RUN_MATCHER)), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
+                doAfterVisit(getMigrationVisitor());
+                return c;
+            }
+
+            @Override
+            public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                return removed.contains(signature(method.getMethodType())) ? null : super.visitMethodDeclaration(method, ctx);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                J.NewClass nc = super.visitNewClass(newClass, ctx);
+                JavaType.Method constructor = nc.getConstructorType();
+                if (constructor != null && removed.contains(signature(constructor))) {
+                    nc = nc.withArguments(emptyList())
+                            .withConstructorType(constructor.withParameterNames(emptyList()).withParameterTypes(emptyList()));
+                }
+                return nc;
+            }
+
+            @Override
+            public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                if (("super".equals(method.getSimpleName()) || "this".equals(method.getSimpleName())) &&
+                        removed.contains(signature(method.getMethodType()))) {
+                    return null;
+                }
+                return super.visitMethodInvocation(method, ctx);
+            }
+        });
+    }
+
+    private TreeVisitor<?, ExecutionContext> getMigrationVisitor() {
         return Preconditions.check(Preconditions.and(
                         Preconditions.or(
                                 new UsesType<>("junit.framework.TestCase", false),
@@ -160,13 +343,6 @@ public class MigrateJUnitTestCase extends Recipe {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             updateCursor(md);
 
-            // After super.visitMethodDeclaration (which triggers visitMethodInvocation
-            // to remove super(testName)), check if this is now an empty constructor
-            if (md.isConstructor() &&
-                (md.getBody() == null || md.getBody().getStatements().isEmpty())) {
-                return null;
-            }
-
             // Remove suite() methods that return junit.framework.Test or TestSuite
             if (md.hasModifier(J.Modifier.Type.Static) &&
                 SUITE_MATCHER.matches(md.getMethodType()) &&
@@ -190,7 +366,6 @@ public class MigrateJUnitTestCase extends Recipe {
         @Override
         public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             // If the class no longer extends TestCase there should no longer be calls to TestCase.super()
-            // Plenty of edge cases around classes which extend classes which extend TestCase this doesn't account for
             if (TEST_CASE_SUPER_MATCHER.matches(method)) {
                 return null;
             }
