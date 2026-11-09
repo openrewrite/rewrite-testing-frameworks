@@ -23,6 +23,8 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class AnyToNullableTest implements RewriteTest {
@@ -212,4 +214,95 @@ class AnyToNullableTest implements RewriteTest {
         );
     }
 
+    @Test
+    void onlyChangesModulesDeclaringMockitoAll() {
+        rewriteRun(
+          mavenProject("legacy",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>legacy</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-all</artifactId>
+                            <version>1.10.19</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import static org.mockito.Mockito.any;
+                  import static org.mockito.Mockito.mock;
+                  import static org.mockito.Mockito.when;
+
+                  class LegacyTest {
+                      void test() {
+                          Comparable<Object> comparable = mock(Comparable.class);
+                          when(comparable.compareTo(any(Object.class))).thenReturn(0);
+                      }
+                  }
+                  """,
+                """
+                  import static org.mockito.ArgumentMatchers.nullable;
+                  import static org.mockito.Mockito.mock;
+                  import static org.mockito.Mockito.when;
+
+                  class LegacyTest {
+                      void test() {
+                          Comparable<Object> comparable = mock(Comparable.class);
+                          when(comparable.compareTo(nullable(Object.class))).thenReturn(0);
+                      }
+                  }
+                  """
+              )
+            )
+          ),
+          mavenProject("modern",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>modern</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.mockito</groupId>
+                            <artifactId>mockito-core</artifactId>
+                            <version>3.12.4</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import static org.mockito.Mockito.any;
+                  import static org.mockito.Mockito.mock;
+                  import static org.mockito.Mockito.when;
+
+                  class ModernTest {
+                      void test() {
+                          Comparable<Object> comparable = mock(Comparable.class);
+                          when(comparable.compareTo(any(Object.class))).thenReturn(0);
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
 }
