@@ -21,11 +21,13 @@ import org.openrewrite.*;
 import org.openrewrite.java.ChangeMethodName;
 import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.dependencies.FindDependency;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.tree.JavaSourceFile;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.HashSet;
+import java.util.Set;
 
-public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
+public class AnyToNullable extends ScanningRecipe<Set<@Nullable JavaProject>> {
     @Getter
     final String displayName = "Replace Mockito 1.x `anyString()`/`any()` with `nullable(Class)`";
 
@@ -33,18 +35,18 @@ public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
     final String description = "Since Mockito 2.10 `anyString()` and `any()` no longer matches null values. Use `nullable(Class)` instead.";
 
     @Override
-    public AtomicBoolean getInitialValue(ExecutionContext ctx) {
-        return new AtomicBoolean();
+    public Set<@Nullable JavaProject> getInitialValue(ExecutionContext ctx) {
+        return new HashSet<>();
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean acc) {
+    public TreeVisitor<?, ExecutionContext> getScanner(Set<@Nullable JavaProject> modulesWithMockitoAll) {
         FindDependency findDependency = new FindDependency("org.mockito", "mockito-all", null, null, null);
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (!acc.get() && tree != findDependency.getVisitor().visit(tree, ctx)) {
-                    acc.set(true);
+                if (tree != null && tree != findDependency.getVisitor().visit(tree, ctx)) {
+                    modulesWithMockitoAll.add(tree.getMarkers().findFirst(JavaProject.class).orElse(null));
                 }
                 return tree;
             }
@@ -52,20 +54,21 @@ public class AnyToNullable extends ScanningRecipe<AtomicBoolean> {
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(AtomicBoolean acc) {
-        return Preconditions.check(acc.get(), new TreeVisitor<Tree, ExecutionContext>() {
+    public TreeVisitor<?, ExecutionContext> getVisitor(Set<@Nullable JavaProject> modulesWithMockitoAll) {
+        return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
-            public @Nullable Tree preVisit(Tree tree, ExecutionContext ctx) {
-                if (tree instanceof JavaSourceFile) {
-                    stopAfterPreVisit();
+            public Tree preVisit(Tree tree, ExecutionContext ctx) {
+                stopAfterPreVisit();
+                if (tree instanceof JavaSourceFile &&
+                    modulesWithMockitoAll.contains(tree.getMarkers().findFirst(JavaProject.class).orElse(null))) {
                     doAfterVisit(new ChangeMethodName(
                             "org.mockito.Mockito any(java.lang.Class)", "nullable", null, null).getVisitor());
                     doAfterVisit(new ChangeMethodTargetToStatic("org.mockito.Mockito nullable(java.lang.Class)", "org.mockito.ArgumentMatchers", null, null, false).getVisitor());
                     doAfterVisit(new ChangeMethodTargetToStatic("org.mockito.Mockito any()", "org.mockito.ArgumentMatchers", null, null, false).getVisitor());
                     doAfterVisit(new AnyStringToNullable().getVisitor());
                 }
-                return super.preVisit(tree, ctx);
+                return tree;
             }
-        });
+        };
     }
 }
