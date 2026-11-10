@@ -22,7 +22,6 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -32,12 +31,10 @@ import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -111,16 +108,16 @@ public class UpdateBeforeAfterAnnotations extends ScanningRecipe<UpdateBeforeAft
 
             // Count @Before methods
             long beforeCount = cd.getBody().getStatements().stream()
-                    .filter(stmt -> stmt instanceof J.MethodDeclaration)
-                    .map(stmt -> (J.MethodDeclaration) stmt)
+                    .filter(J.MethodDeclaration.class::isInstance)
+                    .map(J.MethodDeclaration.class::cast)
                     .filter(method -> method.getLeadingAnnotations().stream()
                             .anyMatch(BEFORE_MATCHER::matches))
                     .count();
 
             // Count @After methods
             long afterCount = cd.getBody().getStatements().stream()
-                    .filter(stmt -> stmt instanceof J.MethodDeclaration)
-                    .map(stmt -> (J.MethodDeclaration) stmt)
+                    .filter(J.MethodDeclaration.class::isInstance)
+                    .map(J.MethodDeclaration.class::cast)
                     .filter(method -> method.getLeadingAnnotations().stream()
                             .anyMatch(AFTER_MATCHER::matches))
                     .count();
@@ -187,11 +184,11 @@ public class UpdateBeforeAfterAnnotations extends ScanningRecipe<UpdateBeforeAft
                                                                String junit4AnnotationFqn, ExecutionContext ctx) {
             // Find all methods with the target annotation
             List<J.MethodDeclaration> targetMethods = cd.getBody().getStatements().stream()
-                    .filter(stmt -> stmt instanceof J.MethodDeclaration)
-                    .map(stmt -> (J.MethodDeclaration) stmt)
+                    .filter(J.MethodDeclaration.class::isInstance)
+                    .map(J.MethodDeclaration.class::cast)
                     .filter(method -> method.getLeadingAnnotations().stream()
                             .anyMatch(matcher::matches))
-                    .collect(Collectors.toList());
+                    .collect(toList());
 
             if (targetMethods.size() <= 1) {
                 return cd;
@@ -210,7 +207,7 @@ public class UpdateBeforeAfterAnnotations extends ScanningRecipe<UpdateBeforeAft
             // Create consolidated method
             String methodBody = targetMethods.stream()
                     .map(m -> m.getSimpleName() + "();")
-                    .collect(Collectors.joining("\n        "));
+                    .collect(joining("\n        "));
 
             JavaTemplate template = JavaTemplate.builder(
                     "@" + jupiterAnnotation + "\n" +
