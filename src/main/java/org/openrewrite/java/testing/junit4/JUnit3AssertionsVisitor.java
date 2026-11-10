@@ -38,6 +38,8 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
     private static final String JUNIT3_ASSERT = "junit.framework.Assert";
     private static final String JUNIT4_ASSERT = "org.junit.Assert";
     private static final MethodMatcher JUNIT3_ASSERT_MATCHER = new MethodMatcher(JUNIT3_ASSERT + " *(..)", true);
+    // before JUnit 3.8, TestCase declared its own copies of the static assertions
+    private static final MethodMatcher JUNIT3_TESTCASE_MATCHER = new MethodMatcher("junit.framework.TestCase *(..)", true);
     private static final Set<String> SUPPORTED = new HashSet<>(Arrays.asList(
             "assertEquals", "assertNotNull", "assertNull", "assertSame", "assertNotSame",
             "assertTrue", "assertFalse", "fail"));
@@ -72,7 +74,7 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
         J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
         JavaType.Method type = m.getMethodType();
-        if (type == null || !retargets() || !SUPPORTED.contains(m.getSimpleName()) || !JUNIT3_ASSERT_MATCHER.matches(m) ||
+        if (type == null || !retargets() || !SUPPORTED.contains(m.getSimpleName()) || !(JUNIT3_ASSERT_MATCHER.matches(m) || JUNIT3_TESTCASE_MATCHER.matches(m)) ||
             !type.hasFlags(Flag.Static)) {
             return m;
         }
