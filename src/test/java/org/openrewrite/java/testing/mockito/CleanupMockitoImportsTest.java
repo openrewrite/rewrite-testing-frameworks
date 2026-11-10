@@ -34,7 +34,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "mockito-all-1.10"))
-          .parser(KotlinParser.builder().classpath("mockito-core", "mockito-kotlin"))
+          .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), "mockito-core-5", "mockito-kotlin-5"))
           .recipe(new CleanupMockitoImports());
     }
 

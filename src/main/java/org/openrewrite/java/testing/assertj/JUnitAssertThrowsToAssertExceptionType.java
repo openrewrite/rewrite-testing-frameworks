@@ -36,7 +36,6 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -169,7 +168,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                 return new JavaIsoVisitor<AtomicBoolean>() {
                     @Override
                     public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean safe) {
-                        if (safe.get() && Objects.equals(identifier.getFieldType(), variable)) {
+                        if (safe.get() && TypeUtils.isOfType(identifier.getFieldType(), variable)) {
                             Object parent = getCursor().getParentTreeCursor().getValue();
                             boolean ok = false;
                             if (parent instanceof J.VariableDeclarations.NamedVariable) {
@@ -209,7 +208,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
         public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
             J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, ctx);
             if (!TypeUtils.isOfClassType(mv.getTypeAsFullyQualified(), JUNIT_EXECUTABLE) ||
-                    mv.getVariables().stream().noneMatch(v -> Objects.equals(v.getVariableType(), variable))) {
+                    mv.getVariables().stream().noneMatch(v -> TypeUtils.isOfType(v.getVariableType(), variable))) {
                 return mv;
             }
 
@@ -227,7 +226,7 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
         public J.Identifier visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
             J.Identifier id = super.visitIdentifier(identifier, ctx);
             JavaType.Variable fieldType = id.getFieldType();
-            if (Objects.equals(fieldType, variable)) {
+            if (TypeUtils.isOfType(fieldType, variable)) {
                 return id.withType(THROWING_CALLABLE_TYPE).withFieldType(fieldType.withType(THROWING_CALLABLE_TYPE));
             }
             return id;

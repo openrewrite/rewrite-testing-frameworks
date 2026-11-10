@@ -28,6 +28,7 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeTree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,11 +84,13 @@ public class JMockitAnnotatedArgumentToMockito extends Recipe {
                                 // Retain argument order by iterating in reverse
                                 for (int i = mockedParameter.size() - 1; i >= 0; i--) {
                                     J.VariableDeclarations variableDeclarations = mockedParameter.get(i);
+                                    TypeTree typeExpression = variableDeclarations.getTypeExpression();
+                                    J rawType = typeExpression instanceof J.ParameterizedType ? ((J.ParameterizedType) typeExpression).getClazz() : typeExpression;
                                     md = addStatementsTemplate.apply(updateCursor(md),
                                             md.getBody().getCoordinates().firstStatement(),
-                                            variableDeclarations.getTypeExpression().toString(),
+                                            typeExpression.toString(),
                                             variableDeclarations.getVariables().get(0).getSimpleName(),
-                                            variableDeclarations.getTypeExpression().toString());
+                                            rawType.toString());
                                 }
                             }
                         }

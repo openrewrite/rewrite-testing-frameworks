@@ -29,7 +29,7 @@ class ThenThrowCheckedExceptionToRuntimeExceptionTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-                .classpathFromResources(new InMemoryExecutionContext(), "mockito-core")
+                .classpathFromResources(new InMemoryExecutionContext(), "mockito-core-3")
                 //language=java
                 .dependsOn(
                   """

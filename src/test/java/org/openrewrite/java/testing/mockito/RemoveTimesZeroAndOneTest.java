@@ -29,7 +29,7 @@ class RemoveTimesZeroAndOneTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core"))
+        spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "mockito-core-5"))
           .recipe(new RemoveTimesZeroAndOne());
     }
 

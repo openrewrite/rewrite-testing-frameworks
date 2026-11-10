@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
@@ -77,7 +78,7 @@ public class AssertEqualsNullToAssertNull extends Recipe {
                 for (JavaType.Method method : assertEquals.getDeclaringType().getMethods()) {
                     if ("assertNull".equals(method.getName()) &&
                             method.getParameterTypes().size() == parameterCount &&
-                            (messageType == null || messageType.equals(method.getParameterTypes().get(parameterCount - 1)))) {
+                            (messageType == null || TypeUtils.isOfType(messageType, method.getParameterTypes().get(parameterCount - 1)))) {
                         return method;
                     }
                 }

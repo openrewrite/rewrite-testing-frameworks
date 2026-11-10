@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.datafaker;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -29,7 +30,7 @@ class JavaFakerToDataFakerTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResource("/META-INF/rewrite/datafaker.yml", "org.openrewrite.java.testing.datafaker.JavaFakerToDataFaker")
-          .parser(JavaParser.fromJavaVersion().classpath("javafaker", "datafaker"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "javafaker-1", "datafaker-2"));
     }
 
     @DocumentExample

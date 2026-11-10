@@ -717,4 +717,61 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void mockUpQualifiedTypeArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Mock;
+              import mockit.MockUp;
+              import static org.junit.Assert.assertEquals;
+              import org.junit.Test;
+
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      new MockUp<MockUpTest.MyClazz>() {
+
+                          @Mock
+                          public int staticMethod() {
+                              return 1024;
+                          }
+                      };
+                      assertEquals(1024, MyClazz.staticMethod());
+                  }
+
+                  public static class MyClazz {
+                      public static int staticMethod() {
+                          return 0;
+                      }
+                  }
+              }
+              """,
+            """
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.mockStatic;
+
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+
+              public class MockUpTest {
+                  @Test
+                  public void test() {
+                      try (MockedStatic mockStaticMyClazz = mockStatic(MockUpTest.MyClazz.class)) {
+                          mockStaticMyClazz.when(() -> MockUpTest.MyClazz.staticMethod()).thenAnswer(invocation -> 1024);
+                          assertEquals(1024, MyClazz.staticMethod());
+                      }
+                  }
+
+                  public static class MyClazz {
+                      public static int staticMethod() {
+                          return 0;
+                      }
+                  }
+              }
+              """
+          ));
+    }
 }

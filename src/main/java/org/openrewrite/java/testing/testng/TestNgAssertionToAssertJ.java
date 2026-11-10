@@ -113,7 +113,7 @@ public class TestNgAssertionToAssertJ extends Recipe {
                 return new JavaIsoVisitor<AtomicInteger>() {
                     @Override
                     public J.Identifier visitIdentifier(J.Identifier identifier, AtomicInteger acc) {
-                        if (!identifier.getId().equals(declarationNameId) && target.equals(identifier.getFieldType())) {
+                        if (!identifier.getId().equals(declarationNameId) && TypeUtils.isOfType(target, identifier.getFieldType())) {
                             acc.incrementAndGet();
                         }
                         return identifier;

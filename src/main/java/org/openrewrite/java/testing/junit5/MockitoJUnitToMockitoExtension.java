@@ -140,7 +140,10 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     String strictness = null;
                     switch (method.getSimpleName()) {
                         case "strictness":
-                            strictness = method.getArguments().get(0).toString();
+                            Expression strictnessArgument = method.getArguments().get(0);
+                            strictness = strictnessArgument instanceof J.FieldAccess ?
+                                    ((J.FieldAccess) strictnessArgument).getSimpleName() :
+                                    strictnessArgument.toString();
                             break;
                         case "silent":
                             strictness = "Strictness.LENIENT";
@@ -194,7 +197,7 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                 if (statement instanceof J.VariableDeclarations) {
                     J.VariableDeclarations variables = (J.VariableDeclarations) statement;
                     if (variables.getLeadingAnnotations().stream().anyMatch(RULE::matches) &&
-                            variables.getVariables().stream().anyMatch(v -> field.equals(v.getVariableType()))) {
+                            variables.getVariables().stream().anyMatch(v -> TypeUtils.isOfType(field, v.getVariableType()))) {
                         return true;
                     }
                 }

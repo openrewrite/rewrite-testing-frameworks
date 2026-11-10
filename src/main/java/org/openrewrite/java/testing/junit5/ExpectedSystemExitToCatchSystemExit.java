@@ -251,7 +251,7 @@ public class ExpectedSystemExitToCatchSystemExit extends Recipe {
         List<J.Lambda> assertions = new ArrayList<>();
         for (int i = 0; i < statements.size(); i++) {
             Statement statement = statements.get(i);
-            if (!(statement instanceof J.MethodInvocation) || !rule.equals(referencedField(((J.MethodInvocation) statement).getSelect()))) {
+            if (!(statement instanceof J.MethodInvocation) || !TypeUtils.isOfType(rule, referencedField(((J.MethodInvocation) statement).getSelect()))) {
                 continue;
             }
             if (last >= 0 && last != i - 1) {

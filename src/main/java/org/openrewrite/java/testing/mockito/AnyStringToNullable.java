@@ -30,7 +30,7 @@ import org.openrewrite.java.tree.J;
 import java.time.Duration;
 
 public class AnyStringToNullable extends Recipe {
-    private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.Mockito anyString()");
+    private static final MethodMatcher ANY_STRING = new MethodMatcher("org.mockito.* anyString()");
 
     @Getter
     final String displayName = "Replace Mockito 1.x `anyString()` with `nullable(String.class)`";
@@ -48,7 +48,7 @@ public class AnyStringToNullable extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (ANY_STRING.matches(mi)) {
-                    maybeRemoveImport("org.mockito.Mockito.anyString");
+                    maybeRemoveImport(mi.getMethodType().getDeclaringType().getFullyQualifiedName() + ".anyString");
                     maybeAddImport("org.mockito.ArgumentMatchers", "nullable");
                     return JavaTemplate.builder("nullable(String.class)")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))

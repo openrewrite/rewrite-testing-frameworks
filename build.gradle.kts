@@ -52,14 +52,21 @@ recipeDependencies {
     parserClasspath("uk.org.webcompere:system-stubs-jupiter:2.1.8")
 
     testParserClasspath("com.github.database-rider:rider-spring:1.18.0")
+    testParserClasspath("com.github.javafaker:javafaker:1.0.2")
     testParserClasspath("com.google.guava:guava:33.5.0-jre")
     testParserClasspath("com.google.truth:truth:1.4.5")
+    testParserClasspath("com.tngtech.archunit:archunit:0.23.1")
     testParserClasspath("io.cucumber:cucumber-core:4.8.1")
     testParserClasspath("io.cucumber:cucumber-junit:4.8.1")
     testParserClasspath("io.cucumber:cucumber-junit:7.34.8")
     testParserClasspath("io.grpc:grpc-testing:1.+")
+    testParserClasspath("net.datafaker:datafaker:2.+")
     testParserClasspath("org.easymock:easymock:5.6.0")
+    testParserClasspath("org.hamcrest:hamcrest-core:1.3")
+    testParserClasspath("org.hamcrest:hamcrest-library:1.3")
+    testParserClasspath("org.jboss.arquillian.junit:arquillian-junit-core:1.10.2.Final")
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")
+    testParserClasspath("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testParserClasspath("org.powermock:powermock-api-mockito2:2.0.9")
     testParserClasspath("org.powermock:powermock-api-support:2.0.9")
     testParserClasspath("org.powermock:powermock-core:2.0.9")
@@ -68,6 +75,7 @@ recipeDependencies {
     testParserClasspath("org.springframework.boot:spring-boot-test:3.2.+")
 
     testParserClasspath("org.testcontainers:nginx:1.+")
+    testParserClasspath("org.testcontainers:kafka:1.20.6")
 
     testParserClasspath("org.testcontainers:testcontainers:2.0.1")
     testParserClasspath("org.testcontainers:testcontainers-cassandra:2.0.1")
@@ -82,6 +90,12 @@ recipeDependencies {
 
 val rewriteVersion = rewriteRecipe.rewriteVersion.get()
 dependencies {
+    constraints {
+        runtimeOnly("com.google.guava:guava:33.8.0-jre") {
+            because("CVE-2026-102554, fixed in Guava 33.7.2")
+        }
+    }
+
     implementation(platform("org.openrewrite:rewrite-bom:${rewriteVersion}"))
     implementation("org.openrewrite:rewrite-java")
     implementation("org.openrewrite:rewrite-gradle")
@@ -106,25 +120,12 @@ dependencies {
         exclude("io.github.eisop","dataflow-errorprone")
     }
 
-    testRuntimeOnly("org.openrewrite:rewrite-java-21")
-    testRuntimeOnly("org.openrewrite:rewrite-java-25")
     testImplementation("org.openrewrite:rewrite-groovy")
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.openrewrite:rewrite-kotlin")
     testImplementation("org.openrewrite:rewrite-properties")
     testImplementation("org.openrewrite.gradle.tooling:model:${rewriteVersion}")
     testRuntimeOnly(gradleApi())
-
-    testRuntimeOnly("com.tngtech.archunit:archunit:0.23.1")
-    testRuntimeOnly("com.github.javafaker:javafaker:latest.release") {
-        exclude(group = "org.yaml", module = "snakeyaml")
-    }
-    testRuntimeOnly("net.datafaker:datafaker:latest.release") {
-        exclude(group = "org.yaml", module = "snakeyaml")
-    }
-    testRuntimeOnly("org.jboss.arquillian.junit:arquillian-junit-core:latest.release")
-    testRuntimeOnly("org.mockito.kotlin:mockito-kotlin:5.4.0")
-    testRuntimeOnly("org.testng:testng:latest.release")
 }
 
 tasks.test {

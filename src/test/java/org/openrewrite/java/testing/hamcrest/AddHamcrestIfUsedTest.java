@@ -58,7 +58,7 @@ class AddHamcrestIfUsedTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AddHamcrestIfUsed())
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest", "junit-4"));
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "hamcrest-3", "junit-4"));
     }
 
     @DocumentExample
@@ -66,7 +66,7 @@ class AddHamcrestIfUsedTest implements RewriteTest {
     void migrationAddsDependencyForExpectedExceptionMessage() {
         rewriteRun(
           spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest")),
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
           mavenProject("example",
             pomXml(
               """

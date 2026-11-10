@@ -121,6 +121,99 @@ class JUnit5to6MigrationTest implements RewriteTest {
     }
 
     @Test
+    void upgradesExplicitPlatformAndVintageVersionsInMaven() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(java(
+              """
+                import org.junit.jupiter.api.Test;
+                class ExampleTest {
+                    @Test
+                    void test() {}
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>5.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.platform</groupId>
+                            <artifactId>junit-platform-launcher</artifactId>
+                            <version>1.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.vintage</groupId>
+                            <artifactId>junit-vintage-engine</artifactId>
+                            <version>5.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-platform-launcher</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
+                .containsPattern("<artifactId>junit-vintage-engine</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradesExistingGradleLauncherInsteadOfOnlyAddingIfMissing() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          mavenProject("project",
+            srcTestJava(java(
+              """
+                import org.junit.jupiter.api.Test;
+                class ExampleTest {
+                    @Test
+                    void test() {}
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            buildGradle(
+              """
+                plugins {
+                    id 'java-library'
+                }
+                repositories {
+                    mavenCentral()
+                }
+                dependencies {
+                    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+                    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.14.1'
+                    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.14.1'
+                }
+                test {
+                    useJUnitPlatform()
+                }
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("org.junit.platform:junit-platform-launcher:6\\.\\d+\\.\\d+")
+                .containsPattern("org.junit.vintage:junit-vintage-engine:6\\.\\d+\\.\\d+")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
     void leavesMavenModuleUsingTestNgAlone() {
         rewriteRun(
           mavenProject("project",
@@ -319,6 +412,59 @@ class JUnit5to6MigrationTest implements RewriteTest {
               spec -> spec.after(actual -> assertThat(actual)
                 .containsPattern("<artifactId>junit-jupiter-api</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
                 .doesNotContain("junit-jupiter-migrationsupport")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradesCucumber() {
+        rewriteRun(
+          mavenProject("project",
+            srcTestJava(java(
+              """
+                import org.junit.jupiter.api.Test;
+                class ExampleTest {
+                    @Test
+                    void test() {}
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>5.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.platform</groupId>
+                            <artifactId>junit-platform-suite</artifactId>
+                            <version>1.14.1</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>io.cucumber</groupId>
+                            <artifactId>cucumber-junit-platform-engine</artifactId>
+                            <version>7.34.3</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-platform-suite</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
+                .containsPattern("<artifactId>cucumber-junit-platform-engine</artifactId>\\s*<version>8\\.\\d+\\.\\d+</version>")
                 .actual())
             )
           )

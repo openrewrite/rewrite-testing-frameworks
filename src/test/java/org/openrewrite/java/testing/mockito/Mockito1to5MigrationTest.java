@@ -36,7 +36,7 @@ class Mockito1to5MigrationTest implements RewriteTest {
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api",
-              "mockito-core",
+              "mockito-core-3",
               "mockito-junit-jupiter"))
           .recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to5Migration");
     }

@@ -686,7 +686,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             return null;
         }
         for (J.VariableDeclarations.NamedVariable variable : stringConstants()) {
-            if (constant.equals(variable.getVariableType())) {
+            if (TypeUtils.isOfType(constant, variable.getVariableType())) {
                 return (String) ((J.Literal) requireNonNull(variable.getInitializer())).getValue();
             }
         }

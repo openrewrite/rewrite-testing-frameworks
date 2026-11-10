@@ -68,6 +68,14 @@ recipeList:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter*
       newVersion: 6.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.platform
+      artifactId: "*"
+      newVersion: 6.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.vintage
+      artifactId: "*"
+      newVersion: 6.x
   # Gradle no longer adds junit-platform-launcher to the test runtime classpath automatically;
   # for Maven the maven-surefire-plugin already provides it, so only Gradle builds are changed.
   - org.openrewrite.gradle.AddDependency:
@@ -110,3 +118,5 @@ recipeList:
   - org.openrewrite.properties.DeleteProperty:
       propertyKey: junit.jupiter.params.arguments.conversion.locale.format
   - org.openrewrite.java.testing.wiremock.UpgradeWiremockDependencyVersion
+  # Cucumber-JVM 8 requires JUnit 6.1, and the Java 17 this migration is already gated on
+  - org.openrewrite.cucumber.jvm.UpgradeCucumber8x

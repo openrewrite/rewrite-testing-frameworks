@@ -26,6 +26,9 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
+
+import java.util.stream.IntStream;
 
 public class AssertTrueNegationToAssertFalse extends Recipe {
     private static final MethodMatcher ASSERT_TRUE = new MethodMatcher(
@@ -63,7 +66,9 @@ public class AssertTrueNegationToAssertFalse extends Recipe {
             private JavaType.Method assertFalseMethodType(JavaType.Method assertTrue) {
                 for (JavaType.Method method : assertTrue.getDeclaringType().getMethods()) {
                     if ("assertFalse".equals(method.getName()) &&
-                            method.getParameterTypes().equals(assertTrue.getParameterTypes())) {
+                            method.getParameterTypes().size() == assertTrue.getParameterTypes().size() &&
+                            IntStream.range(0, method.getParameterTypes().size()).allMatch(i -> TypeUtils.isOfType(
+                                    method.getParameterTypes().get(i), assertTrue.getParameterTypes().get(i)))) {
                         return method;
                     }
                 }

@@ -605,8 +605,6 @@ class AssertToAssertionsTest implements RewriteTest {
               import java.util.logging.Level;
               import java.util.logging.Logger;
 
-              import static org.junit.jupiter.api.Assertions.fail;
-
               public class UltimateQuestionTest {
 
                   private static final int THE_ANSWER = 42;
@@ -756,8 +754,6 @@ class AssertToAssertionsTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
 
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-
               public class UltimateQuestionTest {
 
                   private static final int THE_ANSWER = 42;
@@ -789,6 +785,35 @@ class AssertToAssertionsTest implements RewriteTest {
                       for (int actual : actuals) {
                           Assertions.assertEquals(expected, actual, message);
                       }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertWildcardWithComment() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.junit./* legacy */Assert.*;
+
+              class MyTest {
+                  void foo() {
+                      assertEquals(1, 2);
+                      fail();
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  void foo() {
+                      assertEquals(1, 2);
+                      fail();
                   }
               }
               """

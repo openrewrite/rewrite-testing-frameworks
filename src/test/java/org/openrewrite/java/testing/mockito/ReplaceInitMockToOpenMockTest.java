@@ -32,7 +32,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-                "mockito-core",
+                "mockito-core-3",
                 "mockito-junit-jupiter",
                 "junit-4",
                 "junit-jupiter-api-5"))
@@ -582,7 +582,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     void replaceInitMocksToOpenMocksKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-3")),
           //language=kotlin
           kotlin(
             """
@@ -643,7 +643,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     void annotatedAfterEachMethodIsAlreadyPresentKotlin() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-3")),
           //language=kotlin
           kotlin(
             """
@@ -711,7 +711,7 @@ class ReplaceInitMockToOpenMockTest implements RewriteTest {
     void kotlinNestedInnerClassBacktickNamesAndExtensionFunctions() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core")),
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "mockito-core-3")),
           //language=kotlin
           kotlin(
             """

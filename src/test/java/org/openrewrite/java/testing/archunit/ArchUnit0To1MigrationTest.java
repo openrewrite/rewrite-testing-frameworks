@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.archunit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -32,7 +33,7 @@ class ArchUnit0To1MigrationTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpath("archunit-0.23.1"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "archunit-0.23.1"))
           .recipeFromResource("/META-INF/rewrite/archunit.yml", "org.openrewrite.java.testing.archunit.ArchUnit0to1Migration");
     }
 
