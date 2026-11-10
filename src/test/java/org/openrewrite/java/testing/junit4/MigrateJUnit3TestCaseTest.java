@@ -881,4 +881,50 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void suiteOfMemberClassesQualifiesThem() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              public class ParserTest {
+                  public static Test suite() {
+                      final TestSuite suite = new TestSuite();
+                      suite.addTest(OneTest.suite());
+                      return suite;
+                  }
+
+                  static class OneTest extends TestCase {
+                      public static Test suite() {
+                          return new TestSuite(OneTest.class);
+                      }
+
+                      public void testIt() {
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Suite;
+
+              @RunWith(Suite.class)
+              @Suite.SuiteClasses({ParserTest.OneTest.class})
+              public class ParserTest {
+                  static class OneTest {
+                      @Test
+                      public void testIt() {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }

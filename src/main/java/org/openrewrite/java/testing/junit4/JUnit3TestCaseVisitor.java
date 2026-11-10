@@ -211,10 +211,34 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         }
         maybeAddImport("org.junit.runner.RunWith");
         maybeAddImport("org.junit.runners.Suite");
-        String placeholders = String.join(", ", Collections.nCopies(suite.classes.size(), "#{any()}"));
-        return template("@RunWith(Suite.class)\n@Suite.SuiteClasses({" + placeholders + "})")
+        // the annotation sits outside the class body, so a member class of this class needs its outer class's name
+        List<String> parts = new ArrayList<>();
+        List<Object> args = new ArrayList<>();
+        for (Expression literal : suite.classes) {
+            String qualified = memberClassLiteral(cd, literal);
+            if (qualified != null) {
+                parts.add(qualified);
+            } else {
+                parts.add("#{any()}");
+                args.add(literal);
+            }
+        }
+        return template("@RunWith(Suite.class)\n@Suite.SuiteClasses({" + String.join(", ", parts) + "})")
                 .imports("org.junit.runner.RunWith", "org.junit.runners.Suite").build()
-                .apply(getCursor(), cd.getCoordinates().addAnnotation(AFTER_OVERRIDE), suite.classes.toArray());
+                .apply(getCursor(), cd.getCoordinates().addAnnotation(AFTER_OVERRIDE), args.toArray());
+    }
+
+    private static @Nullable String memberClassLiteral(J.ClassDeclaration outer, Expression literal) {
+        if (!(literal instanceof J.FieldAccess) || ((J.FieldAccess) literal).getTarget() instanceof J.FieldAccess ||
+            outer.getType() == null) {
+            return null;
+        }
+        JavaType.FullyQualified target = TypeUtils.asFullyQualified(((J.FieldAccess) literal).getTarget().getType());
+        if (target == null || target.getOwningClass() == null ||
+            !target.getOwningClass().getFullyQualifiedName().equals(outer.getType().getFullyQualifiedName())) {
+            return null;
+        }
+        return outer.getSimpleName() + "." + target.getClassName().substring(target.getClassName().lastIndexOf('.') + 1) + ".class";
     }
 
     /**
