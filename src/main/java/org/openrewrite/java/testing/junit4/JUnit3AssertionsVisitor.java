@@ -57,6 +57,16 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         migrateFailureTypes = false;
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
         if (migrateFailureTypes) {
+            // static imports of assertions through a subclass, which no longer inherits them, if nothing uses them any more
+            for (J.Import anImport : cu.getImports()) {
+                if (anImport.isStatic() && SUPPORTED.contains(anImport.getQualid().getSimpleName()) &&
+                    anImport.getQualid().getTarget().getType() != null) {
+                    JavaType.FullyQualified owner = TypeUtils.asFullyQualified(anImport.getQualid().getTarget().getType());
+                    if (owner != null && !JUNIT4_ASSERT.equals(owner.getFullyQualifiedName())) {
+                        maybeRemoveImport(owner.getFullyQualifiedName() + "." + anImport.getQualid().getSimpleName());
+                    }
+                }
+            }
             doAfterVisit(new ChangeType("junit.framework.AssertionFailedError", "java.lang.AssertionError", true).getVisitor());
             doAfterVisit(new ChangeType("junit.framework.ComparisonFailure", "org.junit.ComparisonFailure", true).getVisitor());
         }

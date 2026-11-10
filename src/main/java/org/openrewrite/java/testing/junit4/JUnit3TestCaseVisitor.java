@@ -317,7 +317,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         J.Block block = cd.getBody();
         return cd.withBody(template("@" + annotation + "\npublic static void " + unique + "()" + throwsClause + " " + body.printTrimmed(getCursor()))
                 .imports("org.junit." + annotation).contextSensitive().build()
-                .apply(new Cursor(getCursor(), block), block.getCoordinates().addMethodDeclaration((a, b) -> 1)));
+                .apply(new Cursor(getCursor(), block), block.getCoordinates().lastStatement()));
     }
 
     private static boolean hasMethod(J.ClassDeclaration cd, String name) {

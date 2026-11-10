@@ -340,4 +340,44 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void staticImportThroughATestBaseClassIsRemoved() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              package a;
+
+              import junit.framework.TestCase;
+
+              public abstract class Base extends TestCase {
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              package a;
+
+              import static a.Base.assertEquals;
+
+              public class FooTest extends Base {
+                  public void testX() {
+                      assertEquals(1, 2);
+                  }
+              }
+              """,
+            """
+              package a;
+
+              public class FooTest extends Base {
+                  public void testX() {
+                      org.junit.Assert.assertEquals(1, 2);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
