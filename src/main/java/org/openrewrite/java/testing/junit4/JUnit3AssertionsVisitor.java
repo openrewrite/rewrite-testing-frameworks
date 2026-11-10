@@ -167,6 +167,10 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
             return m;
         }
         Expression arg = args.get(cast);
+        if (arg instanceof J.Unary) {
+            // (Object) -1 would read as a subtraction
+            arg = new J.Parentheses<>(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(arg.withPrefix(Space.EMPTY)));
+        }
         JavaType.ShallowClass object = JavaType.ShallowClass.build("java.lang.Object");
         J.TypeCast typeCast = new J.TypeCast(randomId(), arg.getPrefix(), Markers.EMPTY,
                 new J.ControlParentheses<>(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.<TypeTree>build(

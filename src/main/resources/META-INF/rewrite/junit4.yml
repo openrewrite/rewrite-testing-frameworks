@@ -32,6 +32,17 @@ recipeList:
   - org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase
   - org.openrewrite.java.testing.junit4.MigrateJUnit3Assertions
   - org.openrewrite.java.testing.junit4.UpgradeJUnit3Dependency
+  # a build that only had JUnit 3 transitively has no org.junit to compile the migrated tests against
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: junit
+      artifactId: junit
+      version: 4.13.x
+      onlyIfUsing: org.junit.*
+      scope: test
+  # JUnit 4.13 ships both, and a file that imports the members of both has ambiguous calls
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.junit.matchers.JUnitMatchers containsString(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.CoreMatchers
   # JUnit 3 tests did not need Hamcrest, but the JUnit 4 runner does
   - org.openrewrite.maven.RemoveExclusion:
       groupId: junit

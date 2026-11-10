@@ -21,7 +21,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class JUnit3to4MigrationTest implements RewriteTest {
@@ -175,6 +175,98 @@ class JUnit3to4MigrationTest implements RewriteTest {
                   </dependency>
                 </dependencies>
               </project>
+              """
+          )
+        );
+    }
+
+    @Test
+    void addsJUnit4WhenTheBuildOnlyHadJUnit3Transitively() {
+        rewriteRun(
+          // the dependency is added once the migrated tests use org.junit
+          spec -> spec.expectedCyclesThatMakeChanges(2),
+          mavenProject("app",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class FooTest extends TestCase {
+                      public void testIt() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Test;
+
+                  public class FooTest {
+                      @Test
+                      public void testIt() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <groupId>com.example</groupId>
+                  <artifactId>app</artifactId>
+                  <version>1.0</version>
+                </project>
+                """,
+              """
+                <project>
+                  <groupId>com.example</groupId>
+                  <artifactId>app</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.13.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void junitMatchersContainsStringMovesToCoreMatchers() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-core-1.3")),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              import static org.junit.Assert.assertThat;
+              import static org.junit.matchers.JUnitMatchers.containsString;
+
+              public class FooTest extends TestCase {
+                  public void testIt() {
+                      assertThat("abc", containsString("b"));
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.junit.Assert.assertThat;
+
+              public class FooTest {
+                  @Test
+                  public void testIt() {
+                      assertThat("abc", containsString("b"));
+                  }
+              }
               """
           )
         );

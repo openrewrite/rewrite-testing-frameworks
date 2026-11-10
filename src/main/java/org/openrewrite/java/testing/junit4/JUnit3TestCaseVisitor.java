@@ -476,7 +476,8 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
                     i == 0 && s instanceof J.MethodInvocation && "super".equals(((J.MethodInvocation) s).getSimpleName()) &&
                     ((J.MethodInvocation) s).getArguments().stream().allMatch(a -> a instanceof J.Empty) ? null : s);
             c = c.withBody(body.withStatements(statements));
-            if (statements.isEmpty() && c.getParameters().stream().allMatch(p -> p instanceof J.Empty)) {
+            // a constructor that throws stays, as a subclass constructor may need to declare what its superclass throws
+            if (statements.isEmpty() && c.getThrows() == null && c.getParameters().stream().allMatch(p -> p instanceof J.Empty)) {
                 return null;
             }
         }

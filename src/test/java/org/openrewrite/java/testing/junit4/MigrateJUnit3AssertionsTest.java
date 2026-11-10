@@ -246,4 +246,33 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void negativeCastArgumentIsParenthesized() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FooTest extends TestCase {
+                  public void testX() {
+                      assertEquals(-2.3, Double.valueOf(-2.3));
+                  }
+              }
+              """,
+            """
+              import junit.framework.TestCase;
+
+              import static org.junit.Assert.assertEquals;
+
+              public class FooTest extends TestCase {
+                  public void testX() {
+                      assertEquals((Object) (-2.3), Double.valueOf(-2.3));
+                  }
+              }
+              """
+          )
+        );
+    }
 }
