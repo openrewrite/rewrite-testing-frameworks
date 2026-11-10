@@ -1350,4 +1350,67 @@ class MinimumJreConditionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void rangeFullyQualifiedMax() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledForJreRange;
+
+              class MyTest {
+                  @Test
+                  @EnabledForJreRange(min = org.junit.jupiter.api.condition.JRE.JAVA_11, max = org.junit.jupiter.api.condition.JRE.JAVA_17)
+                  void testOnJava11To17() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre(JRE.JAVA_17)
+                  void testOnJava11To17() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void enabledOnJreWithCommentInConstant() {
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre({JRE.JAVA_11, JRE./* lts */JAVA_21})
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre(JRE./* lts */JAVA_21)
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
