@@ -365,7 +365,29 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
                 md = makePublic(addAnnotation(md, "@After", "org.junit.After", ctx));
             }
         }
+        // JUnit 3 ignored these annotations, JUnit 4 insists on public methods
+        if (!md.hasModifier(J.Modifier.Type.Public) && !md.isConstructor() && md.getLeadingAnnotations().stream()
+                .anyMatch(a -> JUNIT4_TEST.matches(a) || JUNIT4_BEFORE.matches(a) || JUNIT4_AFTER.matches(a))) {
+            md = makeAccessPublic(md);
+        }
         return removeObsoleteOverride(md, ctx);
+    }
+
+    private static J.MethodDeclaration makeAccessPublic(J.MethodDeclaration md) {
+        if (md.hasModifier(J.Modifier.Type.Protected) || md.hasModifier(J.Modifier.Type.Private)) {
+            return md.withModifiers(ListUtils.map(md.getModifiers(), m ->
+                    m.getType() == J.Modifier.Type.Protected || m.getType() == J.Modifier.Type.Private ? m.withType(J.Modifier.Type.Public) : m));
+        }
+        J.Modifier pub = new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null, J.Modifier.Type.Public, Collections.emptyList());
+        if (!md.getModifiers().isEmpty()) {
+            return md.withModifiers(ListUtils.concat(pub.withPrefix(md.getModifiers().get(0).getPrefix()),
+                    ListUtils.mapFirst(md.getModifiers(), m -> m.withPrefix(Space.SINGLE_SPACE))));
+        }
+        if (md.getReturnTypeExpression() != null) {
+            return md.withModifiers(Collections.singletonList(pub.withPrefix(md.getReturnTypeExpression().getPrefix())))
+                    .withReturnTypeExpression(md.getReturnTypeExpression().withPrefix(Space.SINGLE_SPACE));
+        }
+        return md;
     }
 
     private boolean calledInFile(String name) {

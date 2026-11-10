@@ -1072,4 +1072,72 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void annotatedNonPublicMethodsBecomePublic() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+
+              public class FooTest extends TestCase {
+                  @Before
+                  protected void setUp() {
+                  }
+
+                  @After
+                  protected void tearDown() {
+                  }
+
+                  @Test
+                  void testIt() {
+                  }
+              }
+              """,
+            """
+              import org.junit.After;
+              import org.junit.Before;
+              import org.junit.Test;
+
+              public class FooTest {
+                  @Before
+                  public void setUp() {
+                  }
+
+                  @After
+                  public void tearDown() {
+                  }
+
+                  @Test
+                  public void testIt() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveClassWithAnExplicitRunnerUntouched() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.JUnit4;
+
+              @RunWith(JUnit4.class)
+              public class FooTest extends TestCase {
+                  public void testIt() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -87,6 +87,9 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
             classesInFile.add(info.fqn);
             analyzeConstructors(classDecl, info);
             pinIfTestCaseImplementsInterfaceMethod(type, info);
+            if (classDecl.getLeadingAnnotations().stream().anyMatch(a -> "RunWith".equals(a.getSimpleName()))) {
+                acc.pin(info.fqn, "a runner chosen with @RunWith decides which methods run, whereas the TestCase conventions do not apply to it");
+            }
         }
         return super.visitClassDeclaration(classDecl, ctx);
     }
