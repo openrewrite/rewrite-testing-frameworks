@@ -103,6 +103,10 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
+        if (c == cu) {
+            // nothing migrated; a file with incomplete type attribution would otherwise lose imports it still needs
+            return c;
+        }
         // right away, as an import of junit.framework.Test would keep org.junit.Test from being added
         for (String type : Arrays.asList("junit.framework.TestCase", "junit.framework.Test", "junit.framework.TestSuite",
                 "junit.framework.JUnit4TestAdapter", "junit.extensions.TestSetup", "junit.textui.TestRunner")) {
