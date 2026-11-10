@@ -93,7 +93,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
-  - org.openrewrite.java.testing.junit5.UseTestMethodOrder
   - org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.junit.Assert assertEquals(.., Object[], Object[])"
@@ -106,6 +105,8 @@ recipeList:
   - org.openrewrite.java.testing.junit5.TempDirNonFinal
   - org.openrewrite.java.testing.junit5.TestRuleToTestInfo
   - org.openrewrite.java.testing.junit5.UpdateBeforeAfterAnnotations
+  # Consolidation needs the original JUnit 4 ordering annotation.
+  - org.openrewrite.java.testing.junit5.UseTestMethodOrder
   - org.openrewrite.java.testing.junit5.UpdateTestAnnotation
   - org.openrewrite.java.testing.junit5.TimeoutRuleToClassAnnotation
   - org.openrewrite.java.testing.junit5.AddMissingTestBeforeAfterAnnotations
