@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -182,6 +183,43 @@ class JMockitAnnotatedArgumentToMockitoTest implements RewriteTest {
               
                   void test() {
                       assertNotNull(mockedObject);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockedGenericArgument() {
+        //language=java
+        rewriteRun(
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().importReferencedTypes(false).build()),
+          java(
+            """
+              import mockit.Mocked;
+
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              class A {
+                  void test(@Mocked List<String> list) {
+                      assertNotNull(list);
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mockito;
+
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              class A {
+                  void test() {
+                      List<String> list = Mockito.mock(List.class);
+                      assertNotNull(list);
                   }
               }
               """
