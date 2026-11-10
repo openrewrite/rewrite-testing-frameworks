@@ -86,6 +86,10 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
         final Set<UUID> suites = new HashSet<>();
         final Map<String, SuiteShape.Kind> suiteKindByClass = new HashMap<>();
         /**
+         * What the {@code suite()} of a class consumes, which only counts while that suite is removed.
+         */
+        final Map<String, Set<UUID>> consumedBySuite = new HashMap<>();
+        /**
          * Class literals passed to JUnit 3 APIs, and calls of {@code suite()}, with the class they refer to.
          */
         final Map<UUID, String> junitClassLiterals = new HashMap<>();
@@ -121,16 +125,28 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
                 return;
             }
             resolved = true;
-            junitClassLiterals.forEach((id, fqn) -> {
-                if (!consumed.contains(id)) {
-                    pin(fqn, "its class is passed to a JUnit 3 API without a JUnit 4 equivalent");
-                }
-            });
-            suiteCalls.forEach((id, fqn) -> {
-                if (!consumed.contains(id)) {
-                    pin(fqn, "its suite() method is called");
-                }
-            });
+            boolean pinnedMore = true;
+            while (pinnedMore) {
+                pinnedMore = false;
+                // a suite() that stays no longer consumes the classes and suites it lists
+                consumedBySuite.forEach((fqn, ids) -> {
+                    if (classes.containsKey(fqn) && pinnedBecause.containsKey(fqn)) {
+                        consumed.removeAll(ids);
+                    }
+                });
+                int before = pinnedBecause.size();
+                junitClassLiterals.forEach((id, fqn) -> {
+                    if (!consumed.contains(id)) {
+                        pin(fqn, "its class is passed to a JUnit 3 API without a JUnit 4 equivalent");
+                    }
+                });
+                suiteCalls.forEach((id, fqn) -> {
+                    if (!consumed.contains(id)) {
+                        pin(fqn, "its suite() method is called");
+                    }
+                });
+                pinnedMore = pinnedBecause.size() != before;
+            }
             for (String fqn : unsafeNameArgument) {
                 ClassInfo info = classes.get(fqn);
                 if (info != null && info.nameConstructor) {

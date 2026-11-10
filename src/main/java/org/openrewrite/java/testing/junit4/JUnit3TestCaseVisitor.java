@@ -285,6 +285,12 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         if (md.isConstructor()) {
             return migrateConstructor(md, acc.classes.get(declaringFqn));
         }
+        if (isNoArgVoid(md) && md.hasModifier(J.Modifier.Type.Static) && md.hasModifier(J.Modifier.Type.Public) &&
+            md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT4_TEST::matches) &&
+            !calledInFile(md.getSimpleName())) {
+            // JUnit 3 ran static test methods, whereas JUnit 4 rejects them
+            md = md.withModifiers(ListUtils.map(md.getModifiers(), m -> m.getType() == J.Modifier.Type.Static ? null : m));
+        }
         if (isNoArgVoid(md) && !md.hasModifier(J.Modifier.Type.Static) && !md.hasModifier(J.Modifier.Type.Abstract)) {
             if (md.getSimpleName().startsWith("test") && md.hasModifier(J.Modifier.Type.Public) &&
                 md.getLeadingAnnotations().stream().noneMatch(JUNIT4_TEST::matches)) {
@@ -298,6 +304,45 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         return removeObsoleteOverride(md, ctx);
     }
 
+    private boolean calledInFile(String name) {
+        J.CompilationUnit cu = getCursor().firstEnclosing(J.CompilationUnit.class);
+        if (cu == null) {
+            return true;
+        }
+        boolean[] called = {false};
+        new JavaIsoVisitor<boolean[]>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, boolean[] c) {
+                if (name.equals(m.getSimpleName())) {
+                    c[0] = true;
+                }
+                return super.visitMethodInvocation(m, c);
+            }
+        }.visit(cu, called);
+        return called[0];
+    }
+
+    /**
+     * Whether some type of the file is named like the annotation, which would then be that type.
+     */
+    private boolean declaresTypeNamed(String simpleName) {
+        J.CompilationUnit cu = getCursor().firstEnclosing(J.CompilationUnit.class);
+        if (cu == null) {
+            return false;
+        }
+        boolean[] found = {false};
+        new JavaIsoVisitor<boolean[]>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, boolean[] f) {
+                if (simpleName.equals(cd.getSimpleName())) {
+                    f[0] = true;
+                }
+                return super.visitClassDeclaration(cd, f);
+            }
+        }.visit(cu, found);
+        return found[0];
+    }
+
     private static boolean isNoArgVoid(J.MethodDeclaration md) {
         return md.getParameters().stream().allMatch(p -> p instanceof J.Empty) &&
                md.getReturnTypeExpression() != null && md.getReturnTypeExpression().getType() == JavaType.Primitive.Void;
@@ -307,11 +352,17 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
      * Built by hand, as a template would resolve {@code @Test} to {@code junit.framework.Test} while that is imported.
      */
     private J.MethodDeclaration addAnnotation(J.MethodDeclaration md, String annotation, String fqn, ExecutionContext ctx) {
-        maybeAddImport(fqn);
+        boolean qualify = declaresTypeNamed(annotation.substring(1));
+        if (!qualify) {
+            maybeAddImport(fqn);
+        }
         Space newLine = Space.format("\n" + md.getPrefix().getIndent());
-        J.Annotation added = new J.Annotation(randomId(), md.getLeadingAnnotations().isEmpty() ? Space.EMPTY : newLine, Markers.EMPTY,
+        NameTree annotationType = qualify ?
+                (NameTree) TypeTree.build(fqn).withType(JavaType.ShallowClass.build(fqn)) :
                 new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), annotation.substring(1),
-                        JavaType.ShallowClass.build(fqn), null), null);
+                        JavaType.ShallowClass.build(fqn), null);
+        J.Annotation added = new J.Annotation(randomId(), md.getLeadingAnnotations().isEmpty() ? Space.EMPTY : newLine, Markers.EMPTY,
+                annotationType, null);
         boolean first = md.getLeadingAnnotations().isEmpty();
         J.MethodDeclaration m = md.withLeadingAnnotations(ListUtils.concat(md.getLeadingAnnotations(), added));
         if (first) {

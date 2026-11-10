@@ -785,4 +785,100 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void staticTestMethodBecomesAnInstanceMethod() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FooTest extends TestCase {
+                  public static void testCopy() {
+                      assertTrue(true);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.Assert.assertTrue;
+
+              public class FooTest {
+                  @Test
+                  public void testCopy() {
+                      assertTrue(true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void qualifyTestAnnotationWhenAClassIsNamedTest() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class Test extends TestCase {
+                  public void testIt() {
+                  }
+              }
+              """,
+            """
+              public class Test {
+                  @org.junit.Test
+                  public void testIt() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepSuiteCalledByAnAggregateThatStays() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              public class AllTest extends TestCase {
+                  public AllTest(String name) {
+                      super(name);
+                  }
+
+                  public static Test suite() {
+                      TestSuite suite = new TestSuite(AllTest.class);
+                      suite.addTest(OneTest.suite());
+                      return suite;
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              public class OneTest extends TestCase {
+                  public static TestSuite suite() {
+                      return new TestSuite(OneTest.class);
+                  }
+
+                  public void testIt() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

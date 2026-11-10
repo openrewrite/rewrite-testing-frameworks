@@ -243,6 +243,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
                     acc.suites.add(method.getId());
                     acc.suiteKindByClass.put(declaringFqn, shape.kind);
                     acc.consumed.addAll(shape.consumed);
+                    acc.consumedBySuite.computeIfAbsent(declaringFqn, k -> new java.util.HashSet<>()).addAll(shape.consumed);
                     if (testCase && shape.kind == SuiteShape.Kind.AGGREGATE) {
                         acc.pin(declaringFqn, "its suite() method collects other test classes");
                     }
