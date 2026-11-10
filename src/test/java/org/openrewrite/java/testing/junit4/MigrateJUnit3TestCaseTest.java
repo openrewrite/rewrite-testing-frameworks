@@ -1176,4 +1176,40 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void testAnnotationOnAHelperIsDropped() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import org.junit.Test;
+
+              public class FooTest extends TestCase {
+                  @Test
+                  public static int helper(String s) {
+                      return 1;
+                  }
+
+                  public void testIt() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              public class FooTest {
+                  public static int helper(String s) {
+                      return 1;
+                  }
+
+                  @Test
+                  public void testIt() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

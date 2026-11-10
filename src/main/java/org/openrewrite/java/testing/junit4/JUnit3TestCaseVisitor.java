@@ -365,6 +365,11 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
                 md = makePublic(addAnnotation(md, "@After", "org.junit.After", ctx));
             }
         }
+        // JUnit 3 ignored @Test on a helper that is no test method, which JUnit 4 rejects
+        if (!md.isConstructor() && md.getLeadingAnnotations().stream().anyMatch(JUNIT4_TEST::matches) &&
+            (!isNoArgVoid(md) || md.hasModifier(J.Modifier.Type.Static) && !md.getSimpleName().startsWith("test"))) {
+            md = (J.MethodDeclaration) new RemoveAnnotationVisitor(JUNIT4_TEST).visitNonNull(md, ctx, getCursor().getParentOrThrow());
+        }
         // JUnit 3 ignored @BeforeClass on a method that ran for every test, and JUnit 4 demands that it is static
         if (!md.hasModifier(J.Modifier.Type.Static)) {
             for (String once : Arrays.asList("org.junit.BeforeClass", "org.junit.AfterClass")) {
