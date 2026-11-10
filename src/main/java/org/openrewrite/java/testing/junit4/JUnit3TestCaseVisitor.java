@@ -310,8 +310,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
             return migrateConstructor(md, acc.classes.get(declaringFqn));
         }
         if (isNoArgVoid(md) && md.hasModifier(J.Modifier.Type.Static) && md.hasModifier(J.Modifier.Type.Public) &&
-            md.getSimpleName().startsWith("test") && md.getLeadingAnnotations().stream().noneMatch(JUNIT4_TEST::matches) &&
-            !calledInFile(md.getSimpleName())) {
+            md.getSimpleName().startsWith("test") && !calledInFile(md.getSimpleName())) {
             // JUnit 3 ran static test methods, whereas JUnit 4 rejects them
             md = md.withModifiers(ListUtils.map(md.getModifiers(), m -> m.getType() == J.Modifier.Type.Static ? null : m));
         }

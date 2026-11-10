@@ -927,4 +927,32 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void annotatedStaticTestMethodBecomesAnInstanceMethod() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import org.junit.Test;
+
+              public class FooTest extends TestCase {
+                  @Test
+                  public static void testCopy() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              public class FooTest {
+                  @Test
+                  public void testCopy() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
