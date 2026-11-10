@@ -1140,4 +1140,40 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void beforeClassOnAnInstanceMethodIsDropped() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import org.junit.BeforeClass;
+
+              public class FooTest extends TestCase {
+                  @BeforeClass
+                  public void setUp() {
+                  }
+
+                  public void testIt() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Before;
+              import org.junit.Test;
+
+              public class FooTest {
+                  @Before
+                  public void setUp() {
+                  }
+
+                  @Test
+                  public void testIt() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
