@@ -215,4 +215,35 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void primitiveComparedToBoxedFloatingPointStaysUnambiguous() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FooTest extends TestCase {
+                  public void testX() {
+                      assertEquals(0.25, Double.valueOf(0.25));
+                      assertEquals("m", Float.valueOf(1f), 1f);
+                  }
+              }
+              """,
+            """
+              import junit.framework.TestCase;
+
+              import static org.junit.Assert.assertEquals;
+
+              public class FooTest extends TestCase {
+                  public void testX() {
+                      assertEquals((Object) 0.25, Double.valueOf(0.25));
+                      assertEquals("m", Float.valueOf(1f), (Object) 1f);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -132,6 +132,8 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         if (args.size() - first != 2) {
             return m;
         }
+        m = castPrimitiveComparedToBoxedFloatingPoint(m, first);
+        args = m.getArguments();
         JavaType.Primitive a = floatingPoint(args.get(first).getType());
         JavaType.Primitive b = floatingPoint(args.get(first + 1).getType());
         if (a == null || b == null) {
@@ -144,6 +146,42 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         List<Expression> newArgs = new ArrayList<>(args);
         newArgs.add(delta);
         return m.withArguments(newArgs);
+    }
+
+    /**
+     * JUnit 3 compared a primitive with a boxed {@code Double} or {@code Float} as two objects. With
+     * {@code assertEquals(double, double)} in JUnit 4 such a call is ambiguous, so the primitive is cast to
+     * {@code Object}, which keeps the comparison of two boxed values.
+     */
+    private J.MethodInvocation castPrimitiveComparedToBoxedFloatingPoint(J.MethodInvocation m, int first) {
+        List<Expression> args = m.getArguments();
+        Expression left = args.get(first);
+        Expression right = args.get(first + 1);
+        int cast = isBoxedFloatingPoint(right.getType()) && left.getType() instanceof JavaType.Primitive &&
+                   isNumeric((JavaType.Primitive) left.getType()) ? first :
+                isBoxedFloatingPoint(left.getType()) && right.getType() instanceof JavaType.Primitive &&
+                isNumeric((JavaType.Primitive) right.getType()) ? first + 1 : -1;
+        if (cast < 0) {
+            return m;
+        }
+        Expression arg = args.get(cast);
+        JavaType.ShallowClass object = JavaType.ShallowClass.build("java.lang.Object");
+        J.TypeCast typeCast = new J.TypeCast(randomId(), arg.getPrefix(), Markers.EMPTY,
+                new J.ControlParentheses<>(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.<TypeTree>build(
+                        new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "Object", object, null))),
+                arg.withPrefix(Space.SINGLE_SPACE));
+        List<Expression> newArgs = new ArrayList<>(args);
+        newArgs.set(cast, typeCast);
+        return m.withArguments(newArgs);
+    }
+
+    private static boolean isBoxedFloatingPoint(@Nullable JavaType type) {
+        return TypeUtils.isOfClassType(type, "java.lang.Double") || TypeUtils.isOfClassType(type, "java.lang.Float");
+    }
+
+    private static boolean isNumeric(JavaType.Primitive type) {
+        return type != JavaType.Primitive.Boolean && type != JavaType.Primitive.String && type != JavaType.Primitive.Null &&
+               type != JavaType.Primitive.Void && type != JavaType.Primitive.None;
     }
 
     private static JavaType.@Nullable Primitive floatingPoint(@Nullable JavaType type) {
