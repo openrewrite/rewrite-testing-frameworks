@@ -38,7 +38,6 @@ public class MigrateJUnit3Assertions extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(
                 Preconditions.and(
-                        SupportsAnnotations.precondition(),
                         Preconditions.or(
                                 new UsesType<>("junit.framework.Assert", false),
                                 new UsesType<>("junit.framework.TestCase", false)),

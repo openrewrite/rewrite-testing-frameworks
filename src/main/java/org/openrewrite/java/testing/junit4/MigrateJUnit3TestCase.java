@@ -47,13 +47,11 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
         return Preconditions.check(
-                Preconditions.and(
-                        SupportsAnnotations.precondition(),
-                        Preconditions.or(
-                                new UsesType<>("junit.framework.TestCase", false),
-                                new UsesType<>("junit.framework.Test", false),
-                                new UsesType<>("junit.framework.TestSuite", false),
-                                new UsesType<>("junit.textui.TestRunner", false))),
+                Preconditions.or(
+                        new UsesType<>("junit.framework.TestCase", false),
+                        new UsesType<>("junit.framework.Test", false),
+                        new UsesType<>("junit.framework.TestSuite", false),
+                        new UsesType<>("junit.textui.TestRunner", false)),
                 new JUnit3Scanner(acc));
     }
 
@@ -61,7 +59,7 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         acc.resolve();
         // no UsesType: callers of a constructor that loses its test name need not use anything from JUnit
-        return Preconditions.check(SupportsAnnotations.precondition(), new JUnit3TestCaseVisitor(acc, unmigrated));
+        return new JUnit3TestCaseVisitor(acc, unmigrated);
     }
 
     /**
