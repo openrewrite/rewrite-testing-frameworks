@@ -266,6 +266,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
         JavaType.Method type = method.getMethodType();
         if (type != null) {
+            recordArgumentsOfJUnit3Types(type, method.getArguments());
             String declaring = type.getDeclaringType().getFullyQualifiedName();
             String enclosing = enclosingTestCase();
             if (TEST_RUNNERS.contains(declaring)) {
@@ -288,6 +289,18 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
             }
         }
         return super.visitMethodInvocation(method, ctx);
+    }
+
+    private void recordArgumentsOfJUnit3Types(JavaType.Method type, List<Expression> args) {
+        List<JavaType> parameters = type.getParameterTypes();
+        for (int i = 0; i < args.size() && i < parameters.size(); i++) {
+            JavaType.FullyQualified parameter = TypeUtils.asFullyQualified(parameters.get(i));
+            JavaType.FullyQualified argument = TypeUtils.asFullyQualified(args.get(i).getType());
+            if (parameter != null && argument != null && parameter.getFullyQualifiedName().startsWith("junit.framework.") &&
+                !argument.getFullyQualifiedName().startsWith("junit.framework.")) {
+                acc.passedAsJUnit3Type.add(argument.getFullyQualifiedName());
+            }
+        }
     }
 
     private static boolean isThisOrSuper(Expression e) {
@@ -324,6 +337,9 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
 
     @Override
     public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+        if (newClass.getConstructorType() != null) {
+            recordArgumentsOfJUnit3Types(newClass.getConstructorType(), newClass.getArguments());
+        }
         JavaType.FullyQualified created = TypeUtils.asFullyQualified(newClass.getType());
         if (created != null) {
             String fqn = created.getFullyQualifiedName();

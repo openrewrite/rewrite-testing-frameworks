@@ -78,6 +78,13 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
             !type.hasFlags(Flag.Static)) {
             return m;
         }
+        JavaType.FullyQualified declaring = type.getDeclaringType();
+        String name = m.getSimpleName();
+        if (!declaring.getFullyQualifiedName().startsWith("junit.") &&
+            declaring.getMethods().stream().anyMatch(declared -> declared.getName().equals(name))) {
+            // a test base class of the project that declares its own assertion of that name
+            return m;
+        }
         migrateFailureTypes = true;
         m = addDeltaToFloatingPointComparison(m);
         maybeRemoveImport(JUNIT3_ASSERT);
@@ -167,8 +174,10 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
             return m;
         }
         Expression arg = args.get(cast);
-        if (arg instanceof J.Unary) {
-            // (Object) -1 would read as a subtraction
+        if (!(arg instanceof J.Identifier || arg instanceof J.Literal || arg instanceof J.FieldAccess ||
+              arg instanceof J.MethodInvocation || arg instanceof J.NewClass || arg instanceof J.ArrayAccess ||
+              arg instanceof J.Parentheses || arg instanceof J.TypeCast)) {
+            // a cast binds tighter than an operator: (Object) -1 would read as a subtraction
             arg = new J.Parentheses<>(randomId(), Space.EMPTY, Markers.EMPTY, JRightPadded.build(arg.withPrefix(Space.EMPTY)));
         }
         JavaType.ShallowClass object = JavaType.ShallowClass.build("java.lang.Object");

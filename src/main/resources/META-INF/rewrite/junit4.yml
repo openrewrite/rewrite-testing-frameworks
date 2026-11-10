@@ -32,12 +32,13 @@ recipeList:
   - org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase
   - org.openrewrite.java.testing.junit4.MigrateJUnit3Assertions
   - org.openrewrite.java.testing.junit4.UpgradeJUnit3Dependency
-  # a build that only had JUnit 3 transitively has no org.junit to compile the migrated tests against
+  # a build that only had JUnit 3 transitively has no org.junit to compile the migrated tests against; the use of
+  # junit.framework is what is scanned for, as it is gone once the tests are migrated
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: junit
       artifactId: junit
       version: 4.13.x
-      onlyIfUsing: org.junit.*
+      onlyIfUsing: junit.framework.*
       scope: test
   # JUnit 4.13 ships both, and a file that imports the members of both has ambiguous calls
   - org.openrewrite.java.ChangeMethodTargetToStatic:

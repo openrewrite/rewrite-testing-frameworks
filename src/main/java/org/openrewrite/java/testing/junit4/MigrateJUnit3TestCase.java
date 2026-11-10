@@ -92,6 +92,10 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
          */
         final Map<UUID, String> junitClassLiterals = new HashMap<>();
         final Map<UUID, String> suiteCalls = new HashMap<>();
+        /**
+         * Classes of arguments passed where a {@code junit.framework} type is asked for.
+         */
+        final Set<String> passedAsJUnit3Type = new HashSet<>();
         private boolean resolved;
 
         void pin(@Nullable String fqn, String reason) {
@@ -123,6 +127,9 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
                 return;
             }
             resolved = true;
+            for (String fqn : passedAsJUnit3Type) {
+                pin(fqn, "instances are passed where a junit.framework type is expected");
+            }
             boolean pinnedMore = true;
             while (pinnedMore) {
                 pinnedMore = false;

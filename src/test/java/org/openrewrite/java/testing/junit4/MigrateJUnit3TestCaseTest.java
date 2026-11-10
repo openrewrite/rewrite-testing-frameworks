@@ -1043,4 +1043,33 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void leaveClassPassedAsAJUnit3Test() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FooTest extends TestCase {
+                  public void testIt() {
+                      Util.run(this);
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              class Util {
+                  static void run(TestCase test) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

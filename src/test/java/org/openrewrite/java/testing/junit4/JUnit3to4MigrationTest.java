@@ -183,8 +183,6 @@ class JUnit3to4MigrationTest implements RewriteTest {
     @Test
     void addsJUnit4WhenTheBuildOnlyHadJUnit3Transitively() {
         rewriteRun(
-          // the dependency is added once the migrated tests use org.junit
-          spec -> spec.expectedCyclesThatMakeChanges(2),
           mavenProject("app",
             srcTestJava(
               //language=java

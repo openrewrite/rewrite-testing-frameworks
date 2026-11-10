@@ -275,4 +275,69 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void parenthesizeACompoundCastArgument() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FooTest extends TestCase {
+                  public void testX() {
+                      int i = 1;
+                      assertEquals((double) i + 0.1, Double.valueOf(1.1));
+                  }
+              }
+              """,
+            """
+              import junit.framework.TestCase;
+
+              import static org.junit.Assert.assertEquals;
+
+              public class FooTest extends TestCase {
+                  public void testX() {
+                      int i = 1;
+                      assertEquals((Object) ((double) i + 0.1), Double.valueOf(1.1));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveAssertionsOfAProjectTestBaseClass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              package a;
+
+              import junit.framework.TestCase;
+
+              public class Base extends TestCase {
+                  public static void assertEquals(Object a, Object b, int c) {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+
+              import static a.Base.assertEquals;
+
+              public class FooTest {
+                  @Test
+                  public void testX() {
+                      assertEquals("a", "b", 1);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
