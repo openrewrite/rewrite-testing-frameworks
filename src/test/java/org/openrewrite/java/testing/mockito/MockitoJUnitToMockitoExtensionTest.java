@@ -1023,4 +1023,45 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void fullyQualifiedStrictness() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.mockito.junit.MockitoJUnit;
+              import org.mockito.junit.MockitoRule;
+
+              public class MyTest {
+
+                  @Rule
+                  public MockitoRule rule = MockitoJUnit.rule().strictness(org.mockito.quality.Strictness.LENIENT);
+
+                  @Test
+                  public void testing() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.junit.jupiter.MockitoExtension;
+              import org.mockito.junit.jupiter.MockitoSettings;
+              import org.mockito.quality.Strictness;
+
+              @ExtendWith(MockitoExtension.class)
+              @MockitoSettings(strictness = Strictness.LENIENT)
+              public class MyTest {
+
+                  @Test
+                  public void testing() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
