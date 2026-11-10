@@ -917,7 +917,7 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
               @RunWith(Suite.class)
               @Suite.SuiteClasses({ParserTest.OneTest.class})
               public class ParserTest {
-                  static class OneTest {
+                  public static class OneTest {
                       @Test
                       public void testIt() {
                       }
@@ -949,6 +949,61 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
               public class FooTest {
                   @Test
                   public void testCopy() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void memberClassWithSuiteMethodThatStaysBecomesPublic() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+
+              public class ParserTest {
+                  public static Test suite() {
+                      final TestSuite suite = new TestSuite();
+                      suite.addTest(OneTest.suite());
+                      return suite;
+                  }
+
+                  static class OneTest extends TestCase {
+                      public static Test suite() {
+                          TestSuite s = new TestSuite(OneTest.class);
+                          s.setName("one");
+                          return s;
+                      }
+
+                      public void testIt() {
+                      }
+                  }
+              }
+              """,
+            """
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Suite;
+
+              @RunWith(Suite.class)
+              @Suite.SuiteClasses({ParserTest.OneTest.class})
+              public class ParserTest {
+                  public static class OneTest extends TestCase {
+                      public static Test suite() {
+                          TestSuite s = new TestSuite(OneTest.class);
+                          s.setName("one");
+                          return s;
+                      }
+
+                      public void testIt() {
+                      }
                   }
               }
               """

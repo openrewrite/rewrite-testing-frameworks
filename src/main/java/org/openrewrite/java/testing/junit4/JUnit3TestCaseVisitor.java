@@ -150,9 +150,46 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
             }
         } else if (aggregator) {
             updateCursor(cd);
+            cd = publicMemberSuiteClasses(cd, suite);
+            updateCursor(cd);
             cd = addSuiteAnnotations(cd, suite);
         }
         return cd;
+    }
+
+    /**
+     * A suite runner reaches a {@code suite()} method by reflection, which needs its class to be accessible.
+     */
+    private static J.ClassDeclaration publicMemberSuiteClasses(J.ClassDeclaration cd, SuiteShape suite) {
+        Set<String> listed = new HashSet<>();
+        for (Expression literal : suite.classes) {
+            String qualified = memberClassLiteral(cd, literal);
+            if (qualified != null) {
+                listed.add(qualified.substring(cd.getSimpleName().length() + 1, qualified.length() - ".class".length()));
+            }
+        }
+        if (listed.isEmpty()) {
+            return cd;
+        }
+        return cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), st -> {
+            if (!(st instanceof J.ClassDeclaration) || !listed.contains(((J.ClassDeclaration) st).getSimpleName()) ||
+                ((J.ClassDeclaration) st).hasModifier(J.Modifier.Type.Public)) {
+                return st;
+            }
+            J.ClassDeclaration member = (J.ClassDeclaration) st;
+            List<J.Modifier> modifiers = ListUtils.map(member.getModifiers(),
+                    m -> m.getType() == J.Modifier.Type.Private || m.getType() == J.Modifier.Type.Protected ? m.withType(J.Modifier.Type.Public) : m);
+            if (!member.hasModifier(J.Modifier.Type.Private) && !member.hasModifier(J.Modifier.Type.Protected)) {
+                J.Modifier pub = new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null, J.Modifier.Type.Public, Collections.emptyList());
+                if (modifiers.isEmpty()) {
+                    return member.withModifiers(Collections.singletonList(pub)).getPadding()
+                            .withKind(member.getPadding().getKind().withPrefix(Space.SINGLE_SPACE));
+                }
+                pub = pub.withPrefix(modifiers.get(0).getPrefix());
+                modifiers = ListUtils.concat(pub, ListUtils.mapFirst(modifiers, m -> m.withPrefix(Space.SINGLE_SPACE)));
+            }
+            return member.withModifiers(modifiers);
+        })));
     }
 
     private static @Nullable SuiteShape suiteOf(J.ClassDeclaration cd) {
