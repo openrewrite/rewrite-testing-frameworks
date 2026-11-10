@@ -140,7 +140,10 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
                     String strictness = null;
                     switch (method.getSimpleName()) {
                         case "strictness":
-                            strictness = method.getArguments().get(0).toString();
+                            Expression strictnessArgument = method.getArguments().get(0);
+                            strictness = strictnessArgument instanceof J.FieldAccess ?
+                                    ((J.FieldAccess) strictnessArgument).getSimpleName() :
+                                    strictnessArgument.toString();
                             break;
                         case "silent":
                             strictness = "Strictness.LENIENT";
