@@ -56,6 +56,8 @@ preconditions:
       artifactIdPattern: testng*
       invertMarking: true
 recipeList:
+  # JUnit 3 tests become JUnit 4 first, so that the rest of this migration only has to deal with JUnit 4
+  - org.openrewrite.java.testing.junit4.JUnit3to4Migration
   - org.openrewrite.java.testing.junit5.MigrateSystemRules
   - org.openrewrite.java.testing.junit5.WireMockRuleToWireMockServer
   - org.openrewrite.java.testing.junit5.UseWiremockExtension
@@ -94,6 +96,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
+  # Only what JUnit3to4Migration left behind because JUnit 4 has no equivalent: unlike that, this goes straight to Jupiter
   - org.openrewrite.java.testing.junit5.MigrateJUnitTestCase
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.junit.Assert assertEquals(.., Object[], Object[])"
