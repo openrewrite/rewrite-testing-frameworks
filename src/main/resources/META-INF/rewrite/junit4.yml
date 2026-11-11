@@ -31,7 +31,11 @@ preconditions:
 recipeList:
   - org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase
   - org.openrewrite.java.testing.junit4.MigrateJUnit3Assertions
-  - org.openrewrite.java.testing.junit4.UpgradeJUnit3Dependency
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: junit
+      artifactId: junit
+      newVersion: 4.13.x
+      overrideManagedVersion: true
   # a build that only had JUnit 3 transitively has no org.junit to compile the migrated tests against; the use of
   # junit.framework is what is scanned for, as it is gone once the tests are migrated
   - org.openrewrite.java.dependencies.AddDependency:
@@ -50,19 +54,3 @@ recipeList:
       artifactId: junit
       exclusionGroupId: org.hamcrest
       exclusionArtifactId: hamcrest-core
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.junit4.UpgradeJUnit3Dependency
-displayName: Upgrade `junit:junit` to 4.13.x
-description: >-
-  Upgrades the `junit:junit` dependency of Maven and Gradle builds to JUnit 4.13.x. That is what the migrated tests use,
-  for rules such as `TestName` that older versions lack, and it includes the `junit.framework` classes for JUnit 3 tests that are not migrated.
-tags:
-  - testing
-  - junit
-recipeList:
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: junit
-      artifactId: junit
-      newVersion: 4.13.x
-      overrideManagedVersion: true

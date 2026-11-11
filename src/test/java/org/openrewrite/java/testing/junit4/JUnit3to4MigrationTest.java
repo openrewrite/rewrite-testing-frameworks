@@ -21,6 +21,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -52,10 +53,10 @@ class JUnit3to4MigrationTest implements RewriteTest {
                 </dependencies>
               </project>
               """,
-            spec -> spec.after(actual -> {
-                org.assertj.core.api.Assertions.assertThat(actual).containsPattern("<version>4\\.13\\.2</version>").doesNotContain("3.8.1");
-                return actual;
-            })
+            spec -> spec.after(actual -> assertThat(actual)
+              .containsPattern("<version>4\\.13\\.2</version>")
+              .doesNotContain("3.8.1")
+              .actual())
           ),
           //language=java
           java(
