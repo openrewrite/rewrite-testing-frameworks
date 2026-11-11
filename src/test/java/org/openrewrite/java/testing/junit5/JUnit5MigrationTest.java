@@ -436,7 +436,7 @@ class JUnit5MigrationTest implements RewriteTest {
                   """,
                 spec -> spec.after(src -> {
                     return assertThat(src)
-                            .contains("org.junit.jupiter.api.Test")
+                            .contains("import org.junit.jupiter.api.Test;")
                             .doesNotContain("junit.framework").actual();
                 })
               )

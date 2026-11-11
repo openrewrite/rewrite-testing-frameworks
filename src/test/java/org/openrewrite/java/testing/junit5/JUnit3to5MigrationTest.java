@@ -60,6 +60,7 @@ class JUnit3to5MigrationTest implements RewriteTest {
             """
               import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.Test;
 
               public class MathTest {
                   protected long value;
@@ -69,7 +70,7 @@ class JUnit3to5MigrationTest implements RewriteTest {
                       value = 2;
                   }
 
-                  @org.junit.jupiter.api.Test
+                  @Test
                   public void testAdd() {
                       Assertions.assertEquals(4, value + 2);
                   }
