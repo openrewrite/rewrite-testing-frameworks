@@ -21,17 +21,19 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-class RemoveJUnit4DependencyUnlessJUnit3UsedTest implements RewriteTest {
+class RemoveJUnit4DependenciesUnlessJUnit3UsedTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
-          .recipe(new RemoveJUnit4DependencyUnlessJUnit3Used());
+          .recipe(new RemoveJUnit4DependenciesUnlessJUnit3Used());
     }
 
     private static final String POM_WITH_JUNIT = """
@@ -62,20 +64,24 @@ class RemoveJUnit4DependencyUnlessJUnit3UsedTest implements RewriteTest {
     @Test
     void keptWhileATestSuiteIsUsed() {
         rewriteRun(
-          //language=java
-          srcTestJava(java(
-            """
-              import junit.framework.Test;
-              import junit.framework.TestSuite;
-
-              class AllTests {
-                  static Test suite() {
-                      return new TestSuite();
-                  }
-              }
+          mavenProject("project",
+            //language=java
+            srcTestJava(java(
               """
-          )),
-          pomXml(POM_WITH_JUNIT)
+                import junit.framework.Test;
+                import junit.framework.TestSuite;
+
+                class AllTests {
+                    static Test suite() {
+                        return new TestSuite();
+                    }
+                }
+                """
+            )),
+            pomXml(POM_WITH_JUNIT, spec -> spec.after(pom -> assertThat(pom)
+              .contains("<artifactId>junit</artifactId>")
+              .contains("<artifactId>junit-vintage-engine</artifactId>").actual()))
+          )
         );
     }
 
