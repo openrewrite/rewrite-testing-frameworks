@@ -120,7 +120,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
 
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-        usesTestResult = new UsesType<>("junit.framework.TestResult", true).visit(cu, ctx) != cu;
+        usesTestResult = new UsesType<>("junit.framework.TestResult", false).visit(cu, ctx) != cu;
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
         if (c == cu) {
             // nothing migrated; a file with incomplete type attribution would otherwise lose imports it still needs

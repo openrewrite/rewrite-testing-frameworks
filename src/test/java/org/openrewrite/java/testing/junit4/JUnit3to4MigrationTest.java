@@ -342,4 +342,53 @@ class JUnit3to4MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void assertionsOfClassWithTestRunnerRunAreMigratedInOneCycle() {
+        // TestRunner.run returns a TestResult, which is no reason to leave the assertions alone
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.Test;
+              import junit.framework.TestCase;
+              import junit.framework.TestSuite;
+              import junit.textui.TestRunner;
+
+              public class TestCoreTags extends TestCase {
+                  public static void main(String[] args) {
+                      TestRunner.run(suite());
+                  }
+
+                  public static Test suite() {
+                      return new TestSuite(TestCoreTags.class);
+                  }
+
+                  public void testArgs() throws Exception {
+                      String text = "x";
+                      assertEquals("Produces", "one", text);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.JUnitCore;
+
+              import static org.junit.Assert.assertEquals;
+
+              public class TestCoreTags {
+                  public static void main(String[] args) {
+                      JUnitCore.runClasses(TestCoreTags.class);
+                  }
+
+                  @Test
+                  public void testArgs() throws Exception {
+                      String text = "x";
+                      assertEquals("Produces", "one", text);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

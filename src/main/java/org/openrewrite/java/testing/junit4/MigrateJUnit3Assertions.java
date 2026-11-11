@@ -41,7 +41,7 @@ public class MigrateJUnit3Assertions extends Recipe {
                         Preconditions.or(
                                 new UsesType<>("junit.framework.Assert", false),
                                 new UsesType<>("junit.framework.TestCase", false)),
-                        Preconditions.not(new UsesType<>("junit.framework.TestResult", true))),
+                        Preconditions.not(new UsesType<>("junit.framework.TestResult", false))),
                 new JUnit3AssertionsVisitor());
     }
 }
