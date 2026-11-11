@@ -45,6 +45,10 @@ public class MigrateJUnitTestCase extends Recipe {
     private static final AnnotationMatcher JUNIT_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*After*");
     private static final AnnotationMatcher JUNIT_BEFORE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.*Before*");
     private static final MethodMatcher TEST_CASE_RUN_MATCHER = new MethodMatcher("junit.framework.TestCase run(junit.framework.TestResult)", true);
+    // the rest of what a TestCase can override of how JUnit 3 runs it, none of which Jupiter has
+    private static final MethodMatcher TEST_CASE_RUN_BARE_MATCHER = new MethodMatcher("junit.framework.TestCase runBare()", true);
+    private static final MethodMatcher TEST_CASE_RUN_TEST_MATCHER = new MethodMatcher("junit.framework.TestCase runTest()", true);
+    private static final MethodMatcher TEST_CASE_CREATE_RESULT_MATCHER = new MethodMatcher("junit.framework.TestCase createResult()", true);
     private static final MethodMatcher SET_NAME_MATCHER = new MethodMatcher("junit.framework.TestCase setName(String)");
     private static final MethodMatcher SET_UP_MATCHER = new MethodMatcher("junit.framework.TestCase setUp()");
     private static final MethodMatcher TEAR_DOWN_MATCHER = new MethodMatcher("junit.framework.TestCase tearDown()");
@@ -77,7 +81,11 @@ public class MigrateJUnitTestCase extends Recipe {
                         ),
                         // A TestCase overriding run(TestResult) participates in the JUnit 3 execution model,
                         // which has no Jupiter equivalent, so leave it untouched rather than half-migrate it
-                        Preconditions.not(new DeclaresMethod<>(TEST_CASE_RUN_MATCHER))
+                        Preconditions.not(Preconditions.or(
+                                new DeclaresMethod<>(TEST_CASE_RUN_MATCHER),
+                                new DeclaresMethod<>(TEST_CASE_RUN_BARE_MATCHER),
+                                new DeclaresMethod<>(TEST_CASE_RUN_TEST_MATCHER),
+                                new DeclaresMethod<>(TEST_CASE_CREATE_RESULT_MATCHER)))
                 ),
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override

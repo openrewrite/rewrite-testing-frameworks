@@ -711,4 +711,27 @@ class MigrateJUnitTestCaseTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void skipTestCaseOverridingRunTest() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class BaseTestCase extends TestCase {
+                  @Override
+                  protected void runTest() throws Throwable {
+                      System.out.println(getName());
+                      super.runTest();
+                  }
+
+                  public void testDummy() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
