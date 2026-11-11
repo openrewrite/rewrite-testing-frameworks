@@ -572,6 +572,15 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
     }
 
     private J.@Nullable MethodInvocation replaceTestRunner(J.MethodInvocation run) {
+        if (JUnit3Scanner.isMainOfTestClasses(run)) {
+            maybeAddImport("org.junit.runner.JUnitCore");
+            StringBuilder args = new StringBuilder();
+            for (Expression e : ((J.NewArray) run.getArguments().get(0).unwrap()).getInitializer()) {
+                args.append(args.length() == 0 ? "" : ", ").append(e.printTrimmed(getCursor()));
+            }
+            return template("JUnitCore.main(" + args + ")").imports("org.junit.runner.JUnitCore").build()
+                    .apply(getCursor(), run.getCoordinates().replace());
+        }
         if (!"run".equals(run.getSimpleName()) || run.getArguments().size() != 1) {
             return null;
         }

@@ -306,6 +306,28 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         }
     }
 
+    /**
+     * {@code TestRunner.main(new String[]{"a.B"})}, which is {@code JUnitCore.main("a.B")}, as long as the arguments are
+     * the names of classes and not options of the JUnit 3 runner.
+     */
+    static boolean isMainOfTestClasses(J.MethodInvocation run) {
+        if (!"main".equals(run.getSimpleName()) || run.getArguments().size() != 1 ||
+            !(run.getArguments().get(0).unwrap() instanceof J.NewArray)) {
+            return false;
+        }
+        J.NewArray array = (J.NewArray) run.getArguments().get(0).unwrap();
+        if (array.getInitializer() == null || array.getInitializer().isEmpty()) {
+            return false;
+        }
+        for (Expression e : array.getInitializer()) {
+            if (!(e instanceof J.Literal) || !(((J.Literal) e).getValue() instanceof String) ||
+                ((String) ((J.Literal) e).getValue()).startsWith("-")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static boolean isThisOrSuper(Expression e) {
         return e instanceof J.Identifier && ("this".equals(((J.Identifier) e).getSimpleName()) || "super".equals(((J.Identifier) e).getSimpleName()));
     }
@@ -315,6 +337,9 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
      * as a statement, which is {@code JUnitCore.runClasses(A.class)}.
      */
     private boolean recognizedTestRunnerCall(J.MethodInvocation run) {
+        if (isMainOfTestClasses(run)) {
+            return true;
+        }
         if (!"run".equals(run.getSimpleName()) || run.getArguments().size() != 1 ||
             !(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
             return false;

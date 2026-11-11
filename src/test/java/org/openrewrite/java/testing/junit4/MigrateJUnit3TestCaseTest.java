@@ -762,6 +762,62 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
+    void testRunnerMainWithClassNames() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FooTest extends TestCase {
+                  public static void main(String[] args) {
+                      junit.textui.TestRunner.main(new String[]{"FooTest"});
+                  }
+
+                  public void testSomething() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.JUnitCore;
+
+              public class FooTest {
+                  public static void main(String[] args) {
+                      JUnitCore.main("FooTest");
+                  }
+
+                  @Test
+                  public void testSomething() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveTestRunnerMainWithOptions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public class FooTest extends TestCase {
+                  public static void main(String[] args) {
+                      junit.textui.TestRunner.main(new String[]{"-wait", "FooTest"});
+                  }
+
+                  public void testSomething() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void leaveClassWhoseInterfaceIsImplementedByTestCase() {
         rewriteRun(
           //language=java
