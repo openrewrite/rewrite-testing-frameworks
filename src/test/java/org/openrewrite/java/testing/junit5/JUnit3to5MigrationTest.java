@@ -81,8 +81,8 @@ class JUnit3to5MigrationTest implements RewriteTest {
     }
 
     @Test
-    void classJUnit4CannotRepresentStillReachesJupiter() {
-        // setName has no JUnit 4 equivalent, so JUnit3to4Migration leaves the class for the Jupiter-only fallback
+    void classJUnit4CannotRepresentStaysJUnit3() {
+        // setName has no JUnit 4 equivalent, so the class is left alone rather than half-migrated
         //language=java
         rewriteRun(
           java(
@@ -92,19 +92,6 @@ class JUnit3to5MigrationTest implements RewriteTest {
               public class NamedTest extends TestCase {
                   public void testAdd() {
                       setName("add");
-                      assertEquals(4, 2 + 2);
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertEquals;
-
-              public class NamedTest {
-                  @Test
-                  public void testAdd() {
-                      //setName("add");
                       assertEquals(4, 2 + 2);
                   }
               }
