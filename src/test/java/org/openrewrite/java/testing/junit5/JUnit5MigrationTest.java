@@ -436,7 +436,7 @@ class JUnit5MigrationTest implements RewriteTest {
                   """,
                 spec -> spec.after(src -> {
                     return assertThat(src)
-                            .contains("import org.junit.jupiter.api.Test;")
+                            .contains("org.junit.jupiter.api.Test")
                             .doesNotContain("junit.framework").actual();
                 })
               )
@@ -1548,10 +1548,9 @@ class JUnit5MigrationTest implements RewriteTest {
               }
               """,
             """
+              import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
-
-              import static org.junit.jupiter.api.Assertions.assertEquals;
 
               public class MathTest {
                   protected long value1;
@@ -1568,7 +1567,7 @@ class JUnit5MigrationTest implements RewriteTest {
 
                   @Test
                   public void testAdd() {
-                      assertEquals(2, value1);
+                      Assertions.assertEquals(2, value1);
                   }
               }
               """

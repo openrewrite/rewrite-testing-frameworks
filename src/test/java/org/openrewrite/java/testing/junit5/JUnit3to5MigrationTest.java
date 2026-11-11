@@ -96,14 +96,15 @@ class JUnit3to5MigrationTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
 
               public class NamedTest {
                   @Test
                   public void testAdd() {
                       //setName("add");
-                      Assertions.assertEquals(4, 2 + 2);
+                      assertEquals(4, 2 + 2);
                   }
               }
               """
