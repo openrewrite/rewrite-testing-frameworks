@@ -421,6 +421,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void addJupiterWhenOnlyTestCaseIsUsed() {
         rewriteRun(
+          // the sources are JUnit 4 after the first cycle, which is when `junit:junit` can go
+          spec -> spec.cycles(2).expectedCyclesThatMakeChanges(2),
           mavenProject("project",
             srcTestJava(
               //language=java

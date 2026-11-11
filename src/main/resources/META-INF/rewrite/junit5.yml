@@ -122,9 +122,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
   - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
   - org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
-  - org.openrewrite.java.dependencies.RemoveDependency:
-      groupId: junit
-      artifactId: junit
+  - org.openrewrite.java.testing.junit5.RemoveJUnit4DependencyUnlessJUnit3Used
   - org.openrewrite.maven.RemoveManagedDependency:
       groupId: junit
       artifactId: junit
