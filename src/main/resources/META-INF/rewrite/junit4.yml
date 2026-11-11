@@ -30,7 +30,6 @@ preconditions:
   - org.openrewrite.Singleton
 recipeList:
   - org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase
-  - org.openrewrite.java.testing.junit4.MigrateJUnit3Assertions
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: junit
       artifactId: junit

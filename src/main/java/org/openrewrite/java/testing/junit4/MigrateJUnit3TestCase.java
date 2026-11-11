@@ -35,6 +35,7 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
             "`test*` methods get `@Test`, `setUp` and `tearDown` get `@Before` and `@After`, `getName()` reads a `TestName` rule, " +
             "and the `suite()` method becomes `@BeforeClass`/`@AfterClass` or `@RunWith(Suite.class)` where it has an equivalent. " +
             "The `TestCase(String)` constructor is removed together with the test name its callers pass, across source files. " +
+            "Assertions move to `org.junit.Assert`. " +
             "A class that would behave differently under JUnit 4, such as one that overrides `run(TestResult)`, " +
             "reports to a `TestResult`, passes its instances around as `Test`s or needs the test name, " +
             "is left as it is, and listed in a data table. JUnit 4 keeps running those through its JUnit 3 adapter.";

@@ -26,6 +26,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.RemoveImport;
 import org.openrewrite.java.search.FindAnnotations;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
 import org.openrewrite.java.testing.junit4.table.UnmigratedJUnit3Tests;
 import org.openrewrite.java.tree.*;
@@ -53,6 +54,8 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
 
     private final Accumulator acc;
     private final UnmigratedJUnit3Tests unmigrated;
+    // a TestResult tells an AssertionFailedError (a failure) from any other error, which JUnit 4 assertions do not throw
+    private boolean usesTestResult;
 
     JUnit3TestCaseVisitor(Accumulator acc, UnmigratedJUnit3Tests unmigrated) {
         this.acc = acc;
@@ -80,9 +83,24 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         return false;
     }
 
+    /**
+     * Whether the cursor is in a test class that is left as it is, or nested in one.
+     */
+    private boolean inUnmigratedClass() {
+        for (Cursor c = getCursor(); c != null; c = c.getParent()) {
+            if (c.getValue() instanceof J.ClassDeclaration) {
+                String fqn = fqn(c.getValue());
+                if (fqn != null && acc.classes.containsKey(fqn) && !acc.isMigrated(fqn)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     boolean retargets() {
-        return inMigratedClass();
+        return !usesTestResult && !inUnmigratedClass();
     }
 
     private J.@Nullable ClassDeclaration directlyDeclaringClass() {
@@ -102,6 +120,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
 
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+        usesTestResult = new UsesType<>("junit.framework.TestResult", true).visit(cu, ctx) != cu;
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
         if (c == cu) {
             // nothing migrated; a file with incomplete type attribution would otherwise lose imports it still needs

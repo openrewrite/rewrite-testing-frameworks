@@ -270,4 +270,76 @@ class JUnit3to4MigrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void unmigratedTestCaseKeepsItsAssertions() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.AssertionFailedError;
+              import junit.framework.TestCase;
+
+              public class PinnedTest extends TestCase {
+                  public PinnedTest(int x) {
+                  }
+
+                  public void testIt() {
+                      assertEquals(1, 1);
+                      try {
+                          fail("x");
+                      } catch (AssertionFailedError e) {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void migratesAssertionsOutsideTestCases() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.Assert;
+
+              public class Checks {
+                  public static void check(int x) {
+                      Assert.assertEquals(1, x);
+                  }
+              }
+              """,
+            """
+              import org.junit.Assert;
+
+              public class Checks {
+                  public static void check(int x) {
+                      Assert.assertEquals(1, x);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leavesAssertionsOfTestResultUsers() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.Assert;
+              import junit.framework.TestResult;
+
+              public class Listener {
+                  public void check(TestResult result) {
+                      Assert.assertTrue(result.wasSuccessful());
+                  }
+              }
+              """
+          )
+        );
+    }
 }
