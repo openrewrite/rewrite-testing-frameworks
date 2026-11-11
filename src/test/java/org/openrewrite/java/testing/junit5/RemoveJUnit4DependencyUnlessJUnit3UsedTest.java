@@ -40,11 +40,19 @@ class RemoveJUnit4DependencyUnlessJUnit3UsedTest implements RewriteTest {
           <groupId>org.example</groupId>
           <artifactId>project</artifactId>
           <version>0.0.1</version>
+          <dependencyManagement>
+              <dependencies>
+                  <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.13.2</version>
+                  </dependency>
+              </dependencies>
+          </dependencyManagement>
           <dependencies>
               <dependency>
                   <groupId>junit</groupId>
                   <artifactId>junit</artifactId>
-                  <version>4.13.2</version>
                   <scope>test</scope>
               </dependency>
           </dependencies>

@@ -24,11 +24,12 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.dependencies.RemoveDependency;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.maven.RemoveManagedDependency;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Removes {@code junit:junit}, unless some source file still uses the JUnit 3 suites and runners that
+ * Removes {@code junit:junit} and its managed version, unless some source file still uses the JUnit 3 suites and runners that
  * JUnit Jupiter has no equivalent for, which only {@code junit:junit} provides.
  */
 @EqualsAndHashCode(callSuper = false)
@@ -95,10 +96,15 @@ public class RemoveJUnit4DependencyUnlessJUnit3Used extends ScanningRecipe<Remov
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         TreeVisitor<?, ExecutionContext> remove = acc.remove.getVisitor(acc.removeAcc);
+        // the version of a dependency that stays is managed where it was
+        TreeVisitor<?, ExecutionContext> removeManaged = new RemoveManagedDependency("junit", "junit", null).getVisitor();
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                return acc.junit3Used.get() ? tree : remove.visit(tree, ctx);
+                if (acc.junit3Used.get()) {
+                    return tree;
+                }
+                return removeManaged.visit(remove.visit(tree, ctx), ctx);
             }
         };
     }
