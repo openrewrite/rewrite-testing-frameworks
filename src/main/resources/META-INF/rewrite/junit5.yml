@@ -123,6 +123,21 @@ recipeList:
   - org.openrewrite.java.testing.junit5.RemoveJUnit4DependenciesUnlessJUnit3Used
   - org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
   - org.openrewrite.java.testing.junit5.AddJupiterDependencies
+  # Older Gradle versions supply a platform launcher that does not align with the Jupiter engine added above
+  - org.openrewrite.gradle.AddDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-launcher
+      version: 1.x
+      onlyIfUsing: org.junit..*
+      configuration: testRuntimeOnly
+      acceptTransitive: true
+  - org.openrewrite.gradle.AddDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-launcher
+      version: 1.x
+      onlyIfUsing: junit.framework..*
+      configuration: testRuntimeOnly
+      acceptTransitive: true
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-params

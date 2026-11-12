@@ -804,6 +804,7 @@ class JUnit5MigrationTest implements RewriteTest {
                 """,
               spec -> spec.after(actual -> assertThat(actual)
                 .containsPattern("testImplementation\\(\"org\\.junit\\.jupiter:junit-jupiter:5\\.\\d+\\.\\d+\"\\)")
+                .containsPattern("testRuntimeOnly\\(\"org\\.junit\\.platform:junit-platform-launcher:1\\.\\d+\\.\\d+\"\\)")
                 .contains("tasks.withType<Test>().configureEach {\n    useJUnitPlatform()\n}")
                 .doesNotContain("junit:junit")
                 .actual())
