@@ -65,6 +65,11 @@ recipeList:
       groupId: org.mockito
       artifactId: "*"
       newVersion: 5.x
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.mockito
+      oldArtifactId: mockito-all
+      newArtifactId: mockito-core
+      newVersion: 5.x
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: net.bytebuddy
       artifactId: byte-buddy*
