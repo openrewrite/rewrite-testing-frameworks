@@ -166,6 +166,10 @@ preconditions:
   - org.openrewrite.maven.search.DoesNotIncludeDependency:
       groupId: org.junit.jupiter
       artifactId: junit-jupiter-migrationsupport
+  # the vintage engine kept for JUnit 3 tests cannot run without junit:junit
+  - org.openrewrite.maven.search.DoesNotIncludeDependency:
+      groupId: org.junit.vintage
+      artifactId: junit-vintage-engine
 recipeList:
   - org.openrewrite.maven.ExcludeDependency:
       groupId: junit
