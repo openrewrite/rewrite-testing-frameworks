@@ -37,9 +37,8 @@ class PowerMockitoDoStubbingToMockitoTest implements RewriteTest {
               "powermock-api-mockito-1"
             ))
           .recipe(new PowerMockitoDoStubbingToMockito())
-          .typeValidationOptions(TypeValidation.builder()
-            .identifiers(false)
-            .build());
+          // The input's `Calendar` in `PowerMockito.spy(Calendar.getInstance())` is left without a type
+          .typeValidationOptions(TypeValidation.all().identifiers(false));
     }
 
     @DocumentExample

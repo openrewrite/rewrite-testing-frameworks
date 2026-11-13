@@ -471,6 +471,53 @@ class JUnit5to6MigrationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void addsJackson3ForPioneerJsonSources() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5", "junit-pioneer-2")),
+          mavenProject("project",
+            //language=java
+            srcTestJava(java(
+              """
+                import org.junit.jupiter.params.ParameterizedTest;
+                import org.junitpioneer.jupiter.json.JsonSource;
+
+                class MyTest {
+                    @ParameterizedTest
+                    @JsonSource("[{ name: 'Yoda' }]")
+                    void test(String name) {
+                    }
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit-pioneer</groupId>
+                            <artifactId>junit-pioneer</artifactId>
+                            <version>2.3.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<groupId>tools\\.jackson\\.core</groupId>\\s*<artifactId>jackson-databind</artifactId>\\s*<version>3\\.\\d+\\.\\d+</version>\\s*<scope>test</scope>")
+                .actual())
+            )
+          )
+        );
+    }
+
     //language=java
     private static final String JUNIT5_EXTENSION = """
       import org.junit.jupiter.api.extension.ExtensionContext;

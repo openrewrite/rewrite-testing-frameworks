@@ -26,14 +26,24 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaCoordinates;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toCollection;
+import static org.openrewrite.Tree.randomId;
 
 public class ReplaceRemovedConstructors extends Recipe {
 
@@ -44,6 +54,10 @@ public class ReplaceRemovedConstructors extends Recipe {
     private static final String HTTP_ADMIN_CLIENT = "com.github.tomakehurst.wiremock.client.HttpAdminClient";
     private static final String ADMIN = "com.github.tomakehurst.wiremock.core.Admin";
     private static final String AUTHENTICATOR = "com.github.tomakehurst.wiremock.security.ClientAuthenticator";
+    private static final String IN_MEMORY_REQUEST_JOURNAL_STORE = "com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore";
+    private static final String STORE_BACKED_REQUEST_JOURNAL = "com.github.tomakehurst.wiremock.verification.StoreBackedRequestJournal";
+    private static final MethodMatcher NO_ARG_IN_MEMORY_REQUEST_JOURNAL_STORE = new MethodMatcher(IN_MEMORY_REQUEST_JOURNAL_STORE + " <constructor>()");
+    private static final MethodMatcher STORE_BACKED_REQUEST_JOURNAL_WITH_MAX_ENTRIES = new MethodMatcher(STORE_BACKED_REQUEST_JOURNAL + " <constructor>(java.lang.Integer, java.util.Map, com.github.tomakehurst.wiremock.store.RequestJournalStore)");
 
     // `WireMock(String scheme, String host)` is deliberately absent: it left the port undefined, while
     // `WireMockBuilder` defaults it to 8080, so rewriting it would change which port the client talks to.
@@ -71,6 +85,11 @@ public class ReplaceRemovedConstructors extends Recipe {
             new Replacement(REQUEST_PATTERN,
                     REQUEST_PATTERN + " <constructor>(com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition)",
                     "new RequestPattern.Builder().setCustomMatcherDefinition(#{any()}).build()"),
+
+            // A `null` limit leaves the store unbounded, as the no-arg one was; 3.x trimmed it from the journal instead
+            new Replacement(IN_MEMORY_REQUEST_JOURNAL_STORE,
+                    IN_MEMORY_REQUEST_JOURNAL_STORE + " <constructor>()",
+                    "new InMemoryRequestJournalStore(null)"),
 
             new Replacement(WIRE_MOCK,
                     WIRE_MOCK + " <constructor>()",
@@ -138,18 +157,23 @@ public class ReplaceRemovedConstructors extends Recipe {
     final String description = "WireMock 4 made its primary domain classes immutable, leaving only the canonical " +
             "all arguments constructor on each and moving everything else behind a builder. Replace the removed " +
             "convenience constructors of `StubMapping`, `ResponseDefinition`, `RequestPattern` and " +
-            "`WireMock` with the equivalent builder call, and `RequestPattern.everything()` with " +
-            "`RequestPattern.ANYTHING`.";
+            "`WireMock` with the equivalent builder call, `RequestPattern.everything()` with " +
+            "`RequestPattern.ANYTHING`, and the no-arg `InMemoryRequestJournalStore` constructor with the one " +
+            "taking a `null`, meaning unbounded, maximum number of entries. That includes the `super()` call of " +
+            "subclasses, and a journal limit passed to `StoreBackedRequestJournal` moves onto its in-memory store.";
 
     @SuppressWarnings("unchecked")
     private static TreeVisitor<?, ExecutionContext>[] usesAnyReplacedConstructor() {
-        return Stream.of(
+        List<TreeVisitor<?, ExecutionContext>> preconditions = Stream.of(
                         REPLACEMENTS.stream().map(Replacement::getMatcher),
                         ADMIN_CLIENT_FOLDS.stream().map(Replacement::getMatcher),
                         Stream.of(WIRE_MOCK_FROM_ADMIN, REQUEST_PATTERN_EVERYTHING))
                 .flatMap(matchers -> matchers)
                 .map(matcher -> (TreeVisitor<?, ExecutionContext>) new UsesMethod<ExecutionContext>(matcher))
-                .toArray(TreeVisitor[]::new);
+                .collect(toCollection(ArrayList::new));
+        // A subclass calls the removed constructor implicitly, which `UsesMethod` does not see
+        preconditions.add(new UsesType<>(IN_MEMORY_REQUEST_JOURNAL_STORE, false));
+        return preconditions.toArray(new TreeVisitor[0]);
     }
 
     @Override
@@ -159,9 +183,55 @@ public class ReplaceRemovedConstructors extends Recipe {
                 new JavaVisitor<ExecutionContext>() {
 
                     @Override
+                    public J visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        J.ClassDeclaration c = (J.ClassDeclaration) super.visitClassDeclaration(classDecl, ctx);
+                        if (!extendsInMemoryRequestJournalStore(c) || c.getBody().getStatements().stream().anyMatch(s -> s instanceof J.MethodDeclaration && ((J.MethodDeclaration) s).isConstructor())) {
+                            return c;
+                        }
+                        // The implicit default constructor calls the removed no-arg one, so spell it out
+                        Statement firstMethod = c.getBody().getStatements().stream().filter(J.MethodDeclaration.class::isInstance).findFirst().orElse(null);
+                        JavaCoordinates coordinates = firstMethod == null ? c.getBody().getCoordinates().lastStatement() : firstMethod.getCoordinates().before();
+                        String visibility = c.hasModifier(J.Modifier.Type.Public) ? "public " : c.hasModifier(J.Modifier.Type.Protected) ? "protected " : c.hasModifier(J.Modifier.Type.Private) ? "private " : "";
+                        return JavaTemplate.builder(visibility + c.getSimpleName() + "() {\n    super(null);\n}")
+                                .contextSensitive()
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
+                                .build()
+                                .apply(updateCursor(c), coordinates);
+                    }
+
+                    @Override
+                    public J visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                        J.MethodDeclaration m = (J.MethodDeclaration) super.visitMethodDeclaration(method, ctx);
+                        if (!m.isConstructor() || m.getBody() == null || !extendsInMemoryRequestJournalStore(getCursor().firstEnclosing(J.ClassDeclaration.class))) {
+                            return m;
+                        }
+                        Statement first = m.getBody().getStatements().isEmpty() ? null : m.getBody().getStatements().get(0);
+                        if (first instanceof J.MethodInvocation && asList("super", "this").contains(((J.MethodInvocation) first).getSimpleName())) {
+                            return m;
+                        }
+                        return JavaTemplate.builder("super(null);")
+                                .contextSensitive()
+                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
+                                .build()
+                                .apply(updateCursor(m), m.getBody().getCoordinates().firstStatement());
+                    }
+
+                    @Override
                     public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                        if (STORE_BACKED_REQUEST_JOURNAL_WITH_MAX_ENTRIES.matches(newClass) && isNoArgInMemoryRequestJournalStore(newClass.getArguments().get(2))) {
+                            // 4.x dropped the journal's limit in favour of the store's own
+                            return JavaTemplate.builder("new StoreBackedRequestJournal(#{any()}, new InMemoryRequestJournalStore(#{any()}))")
+                                    .imports(STORE_BACKED_REQUEST_JOURNAL, IN_MEMORY_REQUEST_JOURNAL_STORE)
+                                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
+                                    .build()
+                                    .apply(getCursor(), newClass.getCoordinates().replace(), newClass.getArguments().get(1), newClass.getArguments().get(0));
+                        }
                         J.NewClass n = (J.NewClass) super.visitNewClass(newClass, ctx);
                         if (n.getBody() != null) {
+                            // The constructor type of an anonymous class is declared on the anonymous class itself
+                            if (n.getClazz() != null && TypeUtils.isOfClassType(n.getClazz().getType(), IN_MEMORY_REQUEST_JOURNAL_STORE) && n.getArguments().stream().allMatch(J.Empty.class::isInstance)) {
+                                return n.withArguments(singletonList(nullLiteral())).withConstructorType(withMaxEntries(n.getConstructorType()));
+                            }
                             // An anonymous subclass cannot become a builder call
                             return n;
                         }
@@ -183,6 +253,9 @@ public class ReplaceRemovedConstructors extends Recipe {
                     @Override
                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                         J.MethodInvocation m = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
+                        if ("super".equals(m.getSimpleName()) && NO_ARG_IN_MEMORY_REQUEST_JOURNAL_STORE.matches(m)) {
+                            return m.withArguments(singletonList(nullLiteral())).withMethodType(withMaxEntries(m.getMethodType()));
+                        }
                         if (REQUEST_PATTERN_EVERYTHING.matches(m)) {
                             maybeAddImport(REQUEST_PATTERN);
                             return JavaTemplate.builder("RequestPattern.ANYTHING")
@@ -192,6 +265,22 @@ public class ReplaceRemovedConstructors extends Recipe {
                                     .apply(getCursor(), m.getCoordinates().replace());
                         }
                         return m;
+                    }
+
+                    private boolean extendsInMemoryRequestJournalStore(J.@Nullable ClassDeclaration classDecl) {
+                        return classDecl != null && classDecl.getExtends() != null && TypeUtils.isOfClassType(classDecl.getExtends().getType(), IN_MEMORY_REQUEST_JOURNAL_STORE);
+                    }
+
+                    private boolean isNoArgInMemoryRequestJournalStore(Expression expression) {
+                        return expression instanceof J.NewClass && ((J.NewClass) expression).getBody() == null && NO_ARG_IN_MEMORY_REQUEST_JOURNAL_STORE.matches(expression);
+                    }
+
+                    private J.Literal nullLiteral() {
+                        return new J.Literal(randomId(), Space.EMPTY, Markers.EMPTY, null, "null", null, JavaType.Primitive.Null);
+                    }
+
+                    private JavaType.@Nullable Method withMaxEntries(JavaType.@Nullable Method constructor) {
+                        return constructor == null ? null : constructor.withParameterNames(singletonList("maxEntries")).withParameterTypes(singletonList(JavaType.ShallowClass.build("java.lang.Integer")));
                     }
 
                     // `new WireMock(new HttpAdminClient(..))` collapses to a single `WireMockBuilder` chain.
