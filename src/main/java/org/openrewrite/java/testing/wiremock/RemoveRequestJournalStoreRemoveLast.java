@@ -21,12 +21,14 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Statement;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -50,6 +52,17 @@ public class RemoveRequestJournalStoreRemoveLast extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(new DeclaresMethod<>(REMOVE_LAST),
                 new JavaIsoVisitor<ExecutionContext>() {
+
+                    @Override
+                    public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
+                        J.Block b = super.visitBlock(block, ctx);
+                        if (block.getStatements().isEmpty()) {
+                            return b;
+                        }
+                        Statement originalFirst = block.getStatements().get(0);
+                        return b.withStatements(ListUtils.mapFirst(b.getStatements(), s -> s.getId().equals(originalFirst.getId()) ? s :
+                                s.withPrefix(s.getPrefix().withWhitespace(originalFirst.getPrefix().getWhitespace()))));
+                    }
 
                     @Override
                     public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {

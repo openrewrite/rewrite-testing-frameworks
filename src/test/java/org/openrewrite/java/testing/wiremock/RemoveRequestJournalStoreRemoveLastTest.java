@@ -85,7 +85,6 @@ class RemoveRequestJournalStoreRemoveLastTest implements RewriteTest {
               import com.github.tomakehurst.wiremock.store.RequestJournalStore;
 
               abstract class CustomStore implements RequestJournalStore {
-
                   public void flush() {
                   }
               }
