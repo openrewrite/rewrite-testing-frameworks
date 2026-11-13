@@ -126,6 +126,90 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
     }
 
     @Test
+    void stringsReachingGatlingThroughOtherCalls() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import io.gatling.javaapi.core.*;
+
+              import java.util.Map;
+
+              import static io.gatling.javaapi.core.CoreDsl.*;
+              import static io.gatling.javaapi.http.HttpDsl.*;
+
+              public class HeaderSimulation extends Simulation {
+                  static final String PATH = "/computers/${id}";
+
+                  ScenarioBuilder scn = scenario("Headers")
+                    .exec(http("computer").get(PATH).headers(Map.of("X-Token", "${token}")));
+              }
+              """,
+            """
+              import io.gatling.javaapi.core.*;
+
+              import java.util.Map;
+
+              import static io.gatling.javaapi.core.CoreDsl.*;
+              import static io.gatling.javaapi.http.HttpDsl.*;
+
+              public class HeaderSimulation extends Simulation {
+                  static final String PATH = "/computers/#{id}";
+
+                  ScenarioBuilder scn = scenario("Headers")
+                    .exec(http("computer").get(PATH).headers(Map.of("X-Token", "#{token}")));
+              }
+              """
+          ),
+          scala(
+            """
+              import io.gatling.core.Predef._
+              import io.gatling.http.Predef._
+
+              class HeaderSimulation extends Simulation {
+                val scn = scenario("Headers")
+                  .exec(http("computer").get("/").headers(Map("X-Token" -> "${token}")))
+              }
+              """,
+            """
+              import io.gatling.core.Predef._
+              import io.gatling.http.Predef._
+
+              class HeaderSimulation extends Simulation {
+                val scn = scenario("Headers")
+                  .exec(http("computer").get("/").headers(Map("X-Token" -> "#{token}")))
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepStringsOnlyPassedToOtherLibraries() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import io.gatling.javaapi.core.Simulation;
+
+              public class PropertySimulation extends Simulation {
+                  String baseUrl = System.getProperty("baseUrl", "${BASE_URL}");
+              }
+              """
+          ),
+          scala(
+            """
+              import io.gatling.core.Predef._
+
+              class PropertySimulation extends Simulation {
+                val baseUrl = sys.props.getOrElse("baseUrl", "${BASE_URL}")
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void ignoreSourcesNotImportingGatling() {
         rewriteRun(
           //language=java
