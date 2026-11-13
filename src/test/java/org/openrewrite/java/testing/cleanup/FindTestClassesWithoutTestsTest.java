@@ -527,7 +527,8 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         @Test
         void unresolvedAnnotationsThatAreNotTestAnnotations() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses annotations that are not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
               srcTestJava(
                 //language=java
                 java(
@@ -621,7 +622,8 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         @Test
         void unresolvedAnnotationOutsideClassType() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses an annotation that is not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
               srcTestJava(
                 //language=java
                 java(
@@ -907,7 +909,8 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         @Test
         void composedAnnotationWithUnresolvedMetaAnnotation() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses a meta-annotation that is not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
               //language=java
               java(
                 """
@@ -1546,7 +1549,8 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         @Test
         void unresolvedTypesOnClass() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses types that are not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
               srcTestJava(
                 //language=java
                 java(
@@ -1618,7 +1622,8 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         @Test
         void unresolvedTypesInSuperclass() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses types that are not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
               srcTestJava(
                 //language=java
                 java(
@@ -1663,7 +1668,8 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         @Test
         void unresolvedNestedAnnotation() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses an annotation that is not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
               srcTestJava(
                 //language=java
                 java(
@@ -1702,7 +1708,8 @@ class FindTestClassesWithoutTestsTest implements RewriteTest {
         @Test
         void nestedTestWithLaterScannedComposedAnnotation() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses an annotation that is not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
               srcTestJava(
                 //language=java
                 java(

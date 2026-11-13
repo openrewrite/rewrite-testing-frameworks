@@ -95,7 +95,8 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     void changesReferencesToFolder() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          // The input uses `@After` without importing it, so the annotation has no type.
+          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java(
             """
               import org.junit.Rule;
@@ -560,7 +561,8 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     void fieldRetainsModifiers() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          // The input uses `File` without importing it, so its identifiers have no type.
+          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java(
             """
               import org.junit.ClassRule;

@@ -177,7 +177,8 @@ class CategoryToTagTest implements RewriteTest {
     void maintainAnnotationPositionAmongOtherAnnotations() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          // The input uses Lombok's `@Data`, which is not on the test classpath, so its annotation has no type.
+          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java("public interface FastTests {}"),
           java("public interface SlowTests {}"),
           java(
