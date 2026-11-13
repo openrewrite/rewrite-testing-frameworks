@@ -18,11 +18,16 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.tree.TypeUtils.isOfClassType;
 
 class UpdateMockWebServerMockResponseTest implements RewriteTest {
 
@@ -36,6 +41,16 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
               "okio-jvm-3.12",
               "junit-4"
             ))
+          .afterParser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "mockwebserver3",
+              "okhttp-4.10",
+              "okio-jvm-3.12"
+            ))
+          .recipeQualityValidation(RecipeQualityValidation.builder()
+            .parserTypedTrees(true)
+            .compilableOutput(true)
+            .build())
           .recipe(new UpdateMockWebServerMockResponse());
     }
 
@@ -203,6 +218,58 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                       });
                   }
               }
+              """,
+            // Neither TypeValidation nor parserTypedTrees checks that a method declaration's return type is resolved
+            spec -> spec.afterRecipe(cu -> new JavaIsoVisitor<Integer>() {
+                @Override
+                public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, Integer p) {
+                    if ("dispatch".equals(method.getSimpleName())) {
+                        assertThat(method.getReturnTypeExpression().getType())
+                          .matches(type -> isOfClassType(type, "mockwebserver3.MockResponse"));
+                    }
+                    return super.visitMethodDeclaration(method, p);
+                }
+            }.visit(cu, 0))
+          )
+        );
+    }
+
+    @Test
+    void ownMethodTakesBuilder() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import okhttp3.mockwebserver.MockResponse;
+              import okhttp3.mockwebserver.MockWebServer;
+
+              class A {
+                  MockWebServer server;
+
+                  void enqueue(MockResponse response) {
+                      server.enqueue(response);
+                  }
+
+                  void test() {
+                      enqueue(new MockResponse().setResponseCode(200));
+                  }
+              }
+              """,
+            """
+              import mockwebserver3.MockResponse;
+              import mockwebserver3.MockWebServer;
+
+              class A {
+                  MockWebServer server;
+
+                  void enqueue(MockResponse.Builder response) {
+                      server.enqueue(response.build());
+                  }
+
+                  void test() {
+                      enqueue(new MockResponse.Builder().code(200));
+                  }
+              }
               """
           )
         );
@@ -249,6 +316,9 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                       MockResponse mrR = mockResponse.withPush(pushPromise);
                       MockResponse mrS = mockResponse.withSettings(settings);
                       MockResponse mrT = mockResponse.withWebSocketUpgrade(webSocketListener);
+                      mockResponse.headers(new Headers.Builder().build());
+                      mockResponse.status("OK");
+                      mockResponse.trailers(new Headers.Builder().build());
                   }
               }
               """,
@@ -288,6 +358,9 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                       MockResponse.Builder mrR = mockResponse.addPush(pushPromise);
                       MockResponse.Builder mrS = mockResponse.settings(settings);
                       MockResponse.Builder mrT = mockResponse.webSocketUpgrade(webSocketListener);
+                      mockResponse.headers(new Headers.Builder().build());
+                      mockResponse.status("OK");
+                      mockResponse.trailers(new Headers.Builder().build());
                   }
               }
               """
