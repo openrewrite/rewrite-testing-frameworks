@@ -20,9 +20,7 @@ name: org.openrewrite.java.testing.gatling.UpgradeToGatling3_16
 displayName: Upgrade Gatling to 3.16
 description: >-
   Upgrade Gatling 3.x simulations written in Scala, Java or Kotlin to Gatling 3.16, following the upgrade guides from
-  3.0 onward. Bumps the Gatling dependencies along with the Maven and Gradle plugins, replaces the `${}` Expression
-  Language with `#{}`, migrates the DSL methods removed along the way and writes Scala durations as `5.seconds` rather
-  than `5 seconds`. Changes needing a judgement call are left alone: Gatling 3.10 requires Java 11,
+  3.0 onward. Changes needing a judgement call are left alone: Gatling 3.10 requires Java 11,
   `gatling-maven-plugin` 4 no longer compiles Scala so Maven projects with Scala simulations need the
   `scala-maven-plugin`, and JMS moved to `jakarta.jms` in 3.14.
 preconditions:
