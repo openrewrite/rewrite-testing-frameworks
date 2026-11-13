@@ -109,6 +109,13 @@ recipeList:
       groupId: org.junit-pioneer
       artifactId: junit-pioneer
       newVersion: 3.x
+  # Pioneer 3 reads JSON argument sources with Jackson 3, which it leaves to the user to provide
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: tools.jackson.core
+      artifactId: jackson-databind
+      version: 3.x
+      onlyIfUsing: org.junitpioneer.jupiter.json..*
+      acceptTransitive: true
   - org.openrewrite.java.testing.junit6.RemoveInterceptDynamicTest
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junit.jupiter.engine.Constants
