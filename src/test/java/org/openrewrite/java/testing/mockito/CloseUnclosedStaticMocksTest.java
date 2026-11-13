@@ -19,10 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -58,7 +56,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void shouldWrapMockStaticInTryWithResources() {
         //language=java
         rewriteRun(
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -138,7 +135,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void shouldWrapMockStaticInTryWithResourcesMultipleMocks() {
         //language=java
         rewriteRun(
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -185,7 +181,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void shouldAddClassVariableForBeforeEach() {
         //language=java
         rewriteRun(
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import org.junit.jupiter.api.BeforeEach;
@@ -236,7 +231,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void shouldAddClassVariableForBeforeAll() {
         //language=java
         rewriteRun(
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import org.junit.jupiter.api.BeforeAll;
@@ -287,7 +281,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void shouldAddCloseToExistingAfterEach() {
         //language=java
         rewriteRun(
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import org.junit.jupiter.api.AfterEach;
@@ -345,7 +338,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void shouldHandleExistingMockedStaticVariables() {
         //language=java
         rewriteRun(
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import org.junit.jupiter.api.BeforeEach;
@@ -461,7 +453,6 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     void withNestedClass() {
         //language=java
         rewriteRun(
-          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import org.junit.jupiter.api.BeforeAll;

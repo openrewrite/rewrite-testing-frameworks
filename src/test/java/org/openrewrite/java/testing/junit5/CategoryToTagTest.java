@@ -22,7 +22,6 @@ import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -177,34 +176,30 @@ class CategoryToTagTest implements RewriteTest {
     void maintainAnnotationPositionAmongOtherAnnotations() {
         //language=java
         rewriteRun(
-          // The input uses Lombok's `@Data`, which is not on the test classpath, so its annotation has no type.
-          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java("public interface FastTests {}"),
           java("public interface SlowTests {}"),
           java(
             """
-              import lombok.Data;
-              import org.junit.experimental.categories.Category;
+                            import org.junit.experimental.categories.Category;
 
               import java.lang.annotation.Documented;
 
               @Documented
               @Category({FastTests.class, SlowTests.class})
-              @Data
+              @Deprecated
               public class B {
 
               }
               """,
             """
-              import lombok.Data;
-              import org.junit.jupiter.api.Tag;
+                            import org.junit.jupiter.api.Tag;
 
               import java.lang.annotation.Documented;
 
               @Documented
               @Tag("FastTests")
               @Tag("SlowTests")
-              @Data
+              @Deprecated
               public class B {
 
               }

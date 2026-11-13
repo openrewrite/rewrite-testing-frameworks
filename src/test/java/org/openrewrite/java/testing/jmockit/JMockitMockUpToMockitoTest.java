@@ -112,6 +112,7 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpMultipleTest() {
         //language=java
         rewriteRun(
+          // The recipe's template cannot resolve the user type `Foo`, so the output's `Foo` and `mockFoo` identifiers have no type.
           spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """

@@ -23,7 +23,6 @@ import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.groovy.Assertions.groovy;
 import static org.openrewrite.java.Assertions.java;
@@ -95,10 +94,9 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     void changesReferencesToFolder() {
         //language=java
         rewriteRun(
-          // The input uses `@After` without importing it, so the annotation has no type.
-          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java(
             """
+              import org.junit.After;
               import org.junit.Rule;
               import org.junit.rules.TemporaryFolder;
 
@@ -113,6 +111,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
               }
               """,
             """
+              import org.junit.After;
               import org.junit.jupiter.api.io.TempDir;
 
               import java.io.File;
@@ -561,12 +560,12 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
     void fieldRetainsModifiers() {
         //language=java
         rewriteRun(
-          // The input uses `File` without importing it, so its identifiers have no type.
-          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java(
             """
               import org.junit.ClassRule;
               import org.junit.rules.TemporaryFolder;
+
+              import java.io.File;
 
               public class MyTest {
                   @ClassRule
