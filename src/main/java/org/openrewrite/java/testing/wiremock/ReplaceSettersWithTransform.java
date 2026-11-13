@@ -210,6 +210,9 @@ public class ReplaceSettersWithTransform extends Recipe {
                         // final; locals assigned to anywhere, receivers this recipe assigns to included, are not
                         Set<String> reassigned = reassignedLocals();
                         if (isLocal(select)) {
+                            if (capturedByLambdaOrInnerClass(receiverName(select))) {
+                                return null;
+                            }
                             reassigned.add(receiverName(select));
                         }
                         if (referencesAny(method.getArguments(), reassigned)) {
@@ -223,10 +226,7 @@ public class ReplaceSettersWithTransform extends Recipe {
                     // or will not be once their mutators become `transform` assignments.
                     private Set<String> reassignedLocals() {
                         Set<String> reassigned = new HashSet<>();
-                        J scope = getCursor().firstEnclosing(J.MethodDeclaration.class);
-                        if (scope == null) {
-                            scope = getCursor().firstEnclosing(J.ClassDeclaration.class);
-                        }
+                        J scope = enclosingScope();
                         if (scope == null) {
                             return reassigned;
                         }
@@ -279,6 +279,32 @@ public class ReplaceSettersWithTransform extends Recipe {
                             }
                         }.visit(scope, reassigned);
                         return reassigned;
+                    }
+
+                    private @Nullable J enclosingScope() {
+                        J.MethodDeclaration method = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                        return method != null ? method : getCursor().firstEnclosing(J.ClassDeclaration.class);
+                    }
+
+                    // Assigning the transformed copy back to a local captured elsewhere breaks its effective finality
+                    private boolean capturedByLambdaOrInnerClass(String name) {
+                        J scope = enclosingScope();
+                        if (scope == null) {
+                            return false;
+                        }
+                        return new JavaIsoVisitor<AtomicBoolean>() {
+                            @Override
+                            public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
+                                if (name.equals(identifier.getSimpleName()) && getCursor().getPathAsStream().anyMatch(p -> p != scope && capturesLocals(p))) {
+                                    found.set(true);
+                                }
+                                return identifier;
+                            }
+                        }.reduce(scope, new AtomicBoolean()).get();
+                    }
+
+                    private boolean capturesLocals(Object tree) {
+                        return tree instanceof J.Lambda || tree instanceof J.ClassDeclaration || tree instanceof J.NewClass && ((J.NewClass) tree).getBody() != null;
                     }
 
                     // Assigning the copy back only compiles when the receiver is something we can write to.

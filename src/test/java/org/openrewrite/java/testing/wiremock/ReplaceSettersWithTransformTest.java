@@ -556,6 +556,51 @@ class ReplaceSettersWithTransformTest implements RewriteTest {
         }
 
         @Test
+        void localCapturedByALaterLambdaIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.extension.Parameters;
+
+                  import java.util.function.Supplier;
+
+                  class Transformers {
+                      Supplier<Object> greeting(Parameters parameters) {
+                          parameters.put("greeting", "hello");
+                          return () -> parameters.get("greeting");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void localCapturedByAnAnonymousClassIsLeftAlone() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+
+                  class Stubs {
+                      Runnable describe(StubMapping mapping) {
+                          mapping.setName("name");
+                          return new Runnable() {
+                              @Override
+                              public void run() {
+                                  System.out.println(mapping);
+                              }
+                          };
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
         void nonAssignableReceiverIsLeftAlone() {
             rewriteRun(
               //language=java
