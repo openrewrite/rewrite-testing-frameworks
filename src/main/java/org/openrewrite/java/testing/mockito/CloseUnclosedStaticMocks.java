@@ -124,7 +124,8 @@ public class CloseUnclosedStaticMocks extends Recipe {
                     String varName = generateMockedVarName(mockedClassName);
                     J.Assignment assignment = JavaTemplate.apply(varName + " = #{any()}", updateCursor(mi), mi.getCoordinates().replace(), mi);
                     boolean isStatic = Boolean.TRUE.equals(getCursor().getNearestMessage("staticMethod"));
-                    doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varName, mockedClassName, isStatic));
+                    doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varName, mockedClassName,
+                            mi.getType() instanceof JavaType.Parameterized ? (JavaType.Parameterized) mi.getType() : null, isStatic));
                     return assignment;
                 }
             }
@@ -137,7 +138,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                 if (assignment.getVariable() instanceof J.Identifier) {
                     JavaType.Variable varType = ((J.Identifier) assignment.getVariable()).getFieldType();
                     if (varType != null && varType.getOwner() instanceof JavaType.Class) {
-                        doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varType.getName(), null, varType.getFlags().contains(Flag.Static)));
+                        doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varType.getName(), null, null, varType.getFlags().contains(Flag.Static)));
                     }
                 }
             }
@@ -159,7 +160,9 @@ public class CloseUnclosedStaticMocks extends Recipe {
             if (mockedClassName != null) {
                 boolean isStatic = vd.hasModifier(J.Modifier.Type.Static) ||
                                 Boolean.TRUE.equals(getCursor().getNearestMessage("staticMethod"));
-                doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varName, mockedClassName, isStatic));
+                J.MethodInvocation mockStatic = (J.MethodInvocation) namedVariable.getInitializer();
+                doAfterVisit(new DeclareMockVarAndClose(getScopedClassName(), varName, mockedClassName,
+                        mockStatic.getType() instanceof JavaType.Parameterized ? (JavaType.Parameterized) mockStatic.getType() : null, isStatic));
                 return JavaTemplate.builder(varName + " = #{any()}").contextSensitive().build()
                         .apply(updateCursor(vd), vd.getCoordinates().replace(), namedVariable.getInitializer());
             }
@@ -209,6 +212,13 @@ public class CloseUnclosedStaticMocks extends Recipe {
                 return null;
             }
             J.Try tryWithResources = (J.Try) applied;
+            if (statement instanceof J.MethodInvocation && ((J.MethodInvocation) statement).getType() instanceof JavaType.Parameterized) {
+                JavaType.Parameterized mockedStaticType = (JavaType.Parameterized) ((J.MethodInvocation) statement).getType();
+                tryWithResources = tryWithResources.withResources(ListUtils.map(tryWithResources.getResources(), resource ->
+                        resource.getVariableDeclarations() instanceof J.VariableDeclarations ?
+                                resource.withVariableDeclarations(withMockedStaticType((J.VariableDeclarations) resource.getVariableDeclarations(), mockedStaticType)) :
+                                resource));
+            }
             return maybeAutoFormat(tryWithResources, tryWithResources.withBody(findSuccessorStatements(statement, block)), ctx);
         }
 
@@ -290,6 +300,8 @@ public class CloseUnclosedStaticMocks extends Recipe {
         @Nullable
         private final String mockedClassName;
 
+        private final JavaType.@Nullable Parameterized mockedStaticType;
+
         private final boolean isStatic;
 
         private boolean closed = false;
@@ -299,6 +311,71 @@ public class CloseUnclosedStaticMocks extends Recipe {
             if (!classDecl.getSimpleName().equals(scopedClassName)) {
                 return classDecl;
             }
+            return typeReferencesToTheMockVar(declareAndClose(classDecl, ctx));
+        }
+
+        /**
+         * The templates that assign and close the variable cannot see the field they refer to, so give their
+         * references the type of the declaration.
+         */
+        private J.ClassDeclaration typeReferencesToTheMockVar(J.ClassDeclaration cd) {
+            JavaType.Variable declared = null;
+            for (Statement st : cd.getBody().getStatements()) {
+                if (st instanceof J.VariableDeclarations) {
+                    for (J.VariableDeclarations.NamedVariable v : ((J.VariableDeclarations) st).getVariables()) {
+                        if (v.getSimpleName().equals(varName) && v.getVariableType() != null) {
+                            declared = v.getVariableType();
+                        }
+                    }
+                }
+            }
+            if (declared == null) {
+                return cd;
+            }
+            JavaType.Variable fieldType = declared;
+            return (J.ClassDeclaration) new JavaIsoVisitor<Integer>() {
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                    if (identifier.getSimpleName().equals(varName) && (identifier.getType() == null ||
+                            identifier.getFieldType() == null || identifier.getFieldType().getType() instanceof JavaType.Unknown)) {
+                        return identifier.withType(fieldType.getType()).withFieldType(fieldType);
+                    }
+                    return identifier;
+                }
+
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                    J.MethodInvocation mi = super.visitMethodInvocation(method, p);
+                    if (mi.getMethodType() == null && mi.getSelect() instanceof J.Identifier &&
+                        ((J.Identifier) mi.getSelect()).getSimpleName().equals(varName) &&
+                        mi.getSimpleName().equals("closeOnDemand") && fieldType.getType() instanceof JavaType.FullyQualified) {
+                        JavaType.Method closeOnDemand = findNoArgMethod((JavaType.FullyQualified) fieldType.getType(), "closeOnDemand");
+                        if (closeOnDemand != null) {
+                            return mi.withMethodType(closeOnDemand).withName(mi.getName().withType(closeOnDemand));
+                        }
+                    }
+                    return mi;
+                }
+            }.visitNonNull(cd, 0);
+        }
+
+        private JavaType.@Nullable Method findNoArgMethod(JavaType.FullyQualified type, String name) {
+            for (JavaType.Method m : type.getMethods()) {
+                if (m.getName().equals(name) && m.getParameterTypes().isEmpty()) {
+                    return m;
+                }
+            }
+            for (JavaType.FullyQualified iface : type.getInterfaces()) {
+                JavaType.Method m = findNoArgMethod(iface, name);
+                if (m != null) {
+                    return m;
+                }
+            }
+            JavaType.FullyQualified supertype = type.getSupertype();
+            return supertype == null ? null : findNoArgMethod(supertype, name);
+        }
+
+        private J.ClassDeclaration declareAndClose(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = classDecl;
             if (!isVarDeclared(cd, varName)) {
                 String modifier = isStatic ? "static " : "";
@@ -308,6 +385,12 @@ public class CloseUnclosedStaticMocks extends Recipe {
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-5"))
                         .imports("org.mockito.MockedStatic")
                         .build().apply(getCursor(), classDecl.getBody().getCoordinates().firstStatement());
+                if (mockedStaticType != null) {
+                    cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), st ->
+                            st instanceof J.VariableDeclarations && ((J.VariableDeclarations) st).getVariables().stream()
+                                    .anyMatch(v -> v.getSimpleName().equals(varName)) ?
+                                    withMockedStaticType((J.VariableDeclarations) st, mockedStaticType) : st)));
+                }
             }
             cd = super.visitClassDeclaration(cd, ctx);
             if (closed) {
@@ -372,6 +455,29 @@ public class CloseUnclosedStaticMocks extends Recipe {
                     .flatMap(vd -> vd.getVariables().stream())
                     .anyMatch(var -> var.getSimpleName().equals(varName));
         }
+    }
+
+    /**
+     * A template cannot resolve the user's own mocked class, so the declaration it writes has no types. Gives it the
+     * types of the {@code mockStatic} call it replaces.
+     */
+    private static J.VariableDeclarations withMockedStaticType(J.VariableDeclarations vd, JavaType.Parameterized mockedStaticType) {
+        TypeTree typeExpression = vd.getTypeExpression();
+        if (typeExpression instanceof J.ParameterizedType) {
+            J.ParameterizedType parameterized = (J.ParameterizedType) typeExpression;
+            List<JavaType> typeArguments = mockedStaticType.getTypeParameters();
+            if (parameterized.getTypeParameters() != null) {
+                List<Expression> parameters = parameterized.getTypeParameters();
+                parameterized = parameterized.withTypeParameters(ListUtils.map(parameters, (i, p) ->
+                        p instanceof J.Identifier && i < typeArguments.size() ? ((J.Identifier) p).withType(typeArguments.get(i)) : p));
+            }
+            typeExpression = parameterized.withType(mockedStaticType);
+        }
+        return vd.withTypeExpression(typeExpression).withVariables(ListUtils.map(vd.getVariables(), v -> {
+            JavaType.Variable variableType = v.getVariableType();
+            return v.withName(v.getName().withType(mockedStaticType))
+                    .withVariableType(variableType == null ? null : variableType.withType(mockedStaticType));
+        }));
     }
 
     private enum MethodType {

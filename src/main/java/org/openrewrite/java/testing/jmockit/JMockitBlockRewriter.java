@@ -23,6 +23,7 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Tree;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
@@ -170,7 +171,57 @@ class JMockitBlockRewriter {
             wrapStatementsInBlock();
         }
 
+        if (isVerificationsInOrder()) {
+            typeInOrderReferences();
+        }
         return methodBody;
+    }
+
+    /**
+     * The templates that call {@code inOrder.verify(..)} cannot see the {@code InOrder} variable declared by another
+     * template, so give their references to it the type of the declaration.
+     */
+    private void typeInOrderReferences() {
+        String inOrderName = verificationsInOrderIdx > 0 ? "inOrder" + verificationsInOrderIdx : "inOrder";
+        JavaType.Variable[] declared = new JavaType.Variable[1];
+        new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Integer p) {
+                if (variable.getSimpleName().equals(inOrderName) && variable.getVariableType() != null) {
+                    declared[0] = variable.getVariableType();
+                }
+                return super.visitVariable(variable, p);
+            }
+        }.visit(methodBody, 0);
+        if (declared[0] == null) {
+            return;
+        }
+        JavaType.Variable fieldType = declared[0];
+        methodBody = (J.Block) new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                if (identifier.getSimpleName().equals(inOrderName) && (identifier.getType() == null ||
+                        identifier.getFieldType() == null || identifier.getFieldType().getType() instanceof JavaType.Unknown)) {
+                    return identifier.withType(fieldType.getType()).withFieldType(fieldType);
+                }
+                return identifier;
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, p);
+                if (mi.getMethodType() == null && mi.getSimpleName().equals("verify") && mi.getSelect() instanceof J.Identifier &&
+                    ((J.Identifier) mi.getSelect()).getSimpleName().equals(inOrderName) &&
+                    fieldType.getType() instanceof JavaType.FullyQualified) {
+                    for (JavaType.Method candidate : ((JavaType.FullyQualified) fieldType.getType()).getMethods()) {
+                        if (candidate.getName().equals("verify") && candidate.getParameterTypes().size() == mi.getArguments().size()) {
+                            return mi.withMethodType(candidate).withName(mi.getName().withType(candidate));
+                        }
+                    }
+                }
+                return mi;
+            }
+        }.visitNonNull(methodBody, 0);
     }
 
     private void wrapStatementsInBlock() {
