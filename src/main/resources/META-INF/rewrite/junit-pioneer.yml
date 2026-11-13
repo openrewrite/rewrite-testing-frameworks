@@ -46,6 +46,12 @@ recipeList:
       oldFullyQualifiedTypeName: org.junitpioneer.jupiter.RestoreSystemProperties
       newFullyQualifiedTypeName: org.junit.jupiter.api.util.RestoreSystemProperties
   - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.ReadsSystemProperty
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.ReadsSystemProperty
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.junitpioneer.jupiter.WritesSystemProperty
+      newFullyQualifiedTypeName: org.junit.jupiter.api.util.WritesSystemProperty
+  - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.junitpioneer.jupiter.ReadsDefaultLocale
       newFullyQualifiedTypeName: org.junit.jupiter.api.util.ReadsDefaultLocale
   - org.openrewrite.java.ChangeType:

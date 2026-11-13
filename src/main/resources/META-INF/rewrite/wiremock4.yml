@@ -39,25 +39,25 @@ recipeList:
       oldArtifactId: wiremock-jetty12
       newGroupId: org.wiremock
       newArtifactId: wiremock
-      newVersion: 4.0.0-beta.40
+      newVersion: 4.0.0-beta.41
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.wiremock
       artifactId: wiremock
-      newVersion: 4.0.0-beta.40
+      newVersion: 4.0.0-beta.41
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.wiremock
       artifactId: wiremock-standalone
-      newVersion: 4.0.0-beta.40
+      newVersion: 4.0.0-beta.41
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-junit5
-      version: 4.0.0-beta.40
+      version: 4.0.0-beta.41
       onlyIfUsing: com.github.tomakehurst.wiremock.junit5.*
       scope: test
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-junit4
-      version: 4.0.0-beta.40
+      version: 4.0.0-beta.41
       onlyIfUsing: com.github.tomakehurst.wiremock.junit.WireMock*Rule
       scope: test
   - org.openrewrite.java.dependencies.AddDependency:
@@ -75,9 +75,11 @@ recipeList:
       artifactId: jetty-xml
       version: 12.1.x
       onlyIfUsing: org.eclipse.jetty.xml.*
+  - org.openrewrite.java.testing.wiremock.AddWiremockHttpClientApache5
   - org.openrewrite.java.testing.wiremock.Wiremock4RelocatedTypes
   - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
   - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
+  - org.openrewrite.java.testing.wiremock.RemoveRequestJournalStoreRemoveLastOverride
   - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
   - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
   - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf
@@ -88,6 +90,9 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: com.github.tomakehurst.wiremock.http.RequestMethod value()
       newMethodName: getName
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.github.tomakehurst.wiremock.matching.RequestPattern getMatcher()
+      newMethodName: getInlineCustomMatcher
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.wiremock.RemoveDuplicateContentTypeHeaders
@@ -311,3 +316,41 @@ recipeList:
       oldFullyQualifiedTypeName: com.github.tomakehurst.wiremock.http.MimeType
       newFullyQualifiedTypeName: com.github.tomakehurst.wiremock.common.entity.MimeType
       ignoreDefinition: true
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.wiremock.AddWiremockHttpClientApache5
+displayName: Add `wiremock-httpclient-apache5` where its types are used
+description: >-
+  WireMock 4.x moved its Apache HTTP client support, such as `ApacheHttpClientFactory`, into the
+  `wiremock-httpclient-apache5` module, which `wiremock` only puts on the runtime classpath. Add it where code uses
+  those types, except alongside `wiremock-standalone`, which already bundles them.
+tags:
+  - testing
+  - wiremock
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.wiremock
+      artifactIdPattern: wiremock-standalone
+      invertMarking: true
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: com.github.tomakehurst
+      artifactIdPattern: wiremock*standalone
+      invertMarking: true
+recipeList:
+  # `onlyIfUsing` is matched against the sources as they were before `Wiremock4RelocatedTypes` moved these types
+  # into `com.github.tomakehurst.wiremock.http.client.apache5`, hence their 3.x names.
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.wiremock
+      artifactId: wiremock-httpclient-apache5
+      version: 4.0.0-beta.41
+      onlyIfUsing: com.github.tomakehurst.wiremock.http.client.Apache*
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.wiremock
+      artifactId: wiremock-httpclient-apache5
+      version: 4.0.0-beta.41
+      onlyIfUsing: com.github.tomakehurst.wiremock.http.NetworkAddressRulesAdheringDnsResolver
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.wiremock
+      artifactId: wiremock-httpclient-apache5
+      version: 4.0.0-beta.41
+      onlyIfUsing: com.github.tomakehurst.wiremock.http.ssl.TrustSelfSignedStrategy
