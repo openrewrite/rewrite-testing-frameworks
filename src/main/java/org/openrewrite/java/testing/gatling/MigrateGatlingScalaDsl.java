@@ -24,6 +24,7 @@ import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -35,6 +36,9 @@ import static org.openrewrite.Tree.randomId;
 public class MigrateGatlingScalaDsl extends Recipe {
 
     private static final String DECLARED_NAMES = "GATLING_DECLARED_NAMES";
+
+    // The Scala standard library is type attributed, and has methods like `Map#transform((k, v) => ..)` of its own
+    private static final MethodMatcher SCALA_COLLECTIONS = new MethodMatcher("scala.collection..* *(..)");
 
     // Deprecated in 3.7 or earlier and removed in 3.11, or renamed along with the injector in 3.12
     private static final Map<String, String> RENAMES = new HashMap<>();
@@ -132,7 +136,7 @@ public class MigrateGatlingScalaDsl extends Recipe {
                 }
                 J.MethodInvocation m = (J.MethodInvocation) j;
                 String name = m.getSimpleName();
-                if (m.getSelect() == null || isDeclared(name)) {
+                if (m.getSelect() == null || isDeclared(name) || SCALA_COLLECTIONS.matches(m)) {
                     return m;
                 }
                 Integer connections = MAX_CONNECTIONS_PER_HOST.get(name);

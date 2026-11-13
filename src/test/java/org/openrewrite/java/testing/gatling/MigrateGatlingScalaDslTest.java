@@ -161,6 +161,21 @@ class MigrateGatlingScalaDslTest implements RewriteTest {
     }
 
     @Test
+    void keepScalaCollectionTransform() {
+        rewriteRun(
+          scala(
+            """
+              import io.gatling.core.Predef._
+
+              class Collections {
+                val incremented = Map("a" -> 1).transform((key, value) => value + 1)
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void keepNamesDeclaredInTheSource() {
         rewriteRun(
           scala(
