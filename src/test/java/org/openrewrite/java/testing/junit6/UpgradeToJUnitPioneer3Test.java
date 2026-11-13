@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit6;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -111,133 +112,136 @@ class UpgradeToJUnitPioneer3Test implements RewriteTest {
         );
     }
 
-    @Test
-    void leavesModuleWithoutPioneerAlone() {
-        rewriteRun(
-          mavenProject("project",
-            //language=java
-            srcTestJava(java(
-              """
-                import org.junit.jupiter.api.Test;
+    @Nested
+    class NoChange {
+        @Test
+        void withoutPioneer() {
+            rewriteRun(
+              mavenProject("project",
+                //language=java
+                srcTestJava(java(
+                  """
+                    import org.junit.jupiter.api.Test;
 
-                class MyTest {
-                    @Test
-                    void test() {
+                    class MyTest {
+                        @Test
+                        void test() {
+                        }
                     }
-                }
-                """,
-              spec -> spec.markers(javaVersion(17))
-            )),
-            //language=xml
-            pomXml(
-              """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>com.example</groupId>
-                    <artifactId>example</artifactId>
-                    <version>1.0.0</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.junit.jupiter</groupId>
-                            <artifactId>junit-jupiter</artifactId>
-                            <version>5.14.0</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """
-            )
-          )
-        );
-    }
+                    """,
+                  spec -> spec.markers(javaVersion(17))
+                )),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>example</artifactId>
+                        <version>1.0.0</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.junit.jupiter</groupId>
+                                <artifactId>junit-jupiter</artifactId>
+                                <version>5.14.0</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """
+                )
+              )
+            );
+        }
 
-    @Test
-    void leavesModuleBelowJava17Alone() {
-        rewriteRun(
-          mavenProject("project",
-            //language=java
-            srcTestJava(java(
-              """
-                import org.junitpioneer.jupiter.DefaultTimeZone;
-                import org.junitpioneer.jupiter.RetryingTest;
+        @Test
+        void belowJava17() {
+            rewriteRun(
+              mavenProject("project",
+                //language=java
+                srcTestJava(java(
+                  """
+                    import org.junitpioneer.jupiter.DefaultTimeZone;
+                    import org.junitpioneer.jupiter.RetryingTest;
 
-                class MyTest {
-                    @RetryingTest(3)
-                    @DefaultTimeZone("UTC")
-                    void flaky() {
+                    class MyTest {
+                        @RetryingTest(3)
+                        @DefaultTimeZone("UTC")
+                        void flaky() {
+                        }
                     }
-                }
-                """,
-              spec -> spec.markers(javaVersion(11))
-            )),
-            //language=xml
-            pomXml(
-              """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>com.example</groupId>
-                    <artifactId>example</artifactId>
-                    <version>1.0.0</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.junit-pioneer</groupId>
-                            <artifactId>junit-pioneer</artifactId>
-                            <version>2.3.0</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """
-            )
-          )
-        );
-    }
+                    """,
+                  spec -> spec.markers(javaVersion(11))
+                )),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>example</artifactId>
+                        <version>1.0.0</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.junit-pioneer</groupId>
+                                <artifactId>junit-pioneer</artifactId>
+                                <version>2.3.0</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """
+                )
+              )
+            );
+        }
 
-    @Test
-    void leavesModuleThatAlsoUsesTestNgAlone() {
-        rewriteRun(
-          mavenProject("project",
-            //language=java
-            srcTestJava(java(
-              """
-                import org.junitpioneer.jupiter.DefaultTimeZone;
-                import org.testng.annotations.Test;
+        @Test
+        void alsoUsingTestNg() {
+            rewriteRun(
+              mavenProject("project",
+                //language=java
+                srcTestJava(java(
+                  """
+                    import org.junitpioneer.jupiter.DefaultTimeZone;
+                    import org.testng.annotations.Test;
 
-                class MyTest {
-                    @Test
-                    @DefaultTimeZone("UTC")
-                    void test() {
+                    class MyTest {
+                        @Test
+                        @DefaultTimeZone("UTC")
+                        void test() {
+                        }
                     }
-                }
-                """,
-              spec -> spec.markers(javaVersion(17))
-            )),
-            //language=xml
-            pomXml(
-              """
-                <project>
-                    <modelVersion>4.0.0</modelVersion>
-                    <groupId>com.example</groupId>
-                    <artifactId>example</artifactId>
-                    <version>1.0.0</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.junit-pioneer</groupId>
-                            <artifactId>junit-pioneer</artifactId>
-                            <version>2.3.0</version>
-                            <scope>test</scope>
-                        </dependency>
-                        <dependency>
-                            <groupId>org.testng</groupId>
-                            <artifactId>testng</artifactId>
-                            <version>7.10.2</version>
-                            <scope>test</scope>
-                        </dependency>
-                    </dependencies>
-                </project>
-                """
-            )
-          )
-        );
+                    """,
+                  spec -> spec.markers(javaVersion(17))
+                )),
+                //language=xml
+                pomXml(
+                  """
+                    <project>
+                        <modelVersion>4.0.0</modelVersion>
+                        <groupId>com.example</groupId>
+                        <artifactId>example</artifactId>
+                        <version>1.0.0</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.junit-pioneer</groupId>
+                                <artifactId>junit-pioneer</artifactId>
+                                <version>2.3.0</version>
+                                <scope>test</scope>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.testng</groupId>
+                                <artifactId>testng</artifactId>
+                                <version>7.10.2</version>
+                                <scope>test</scope>
+                            </dependency>
+                        </dependencies>
+                    </project>
+                    """
+                )
+              )
+            );
+        }
     }
 }
