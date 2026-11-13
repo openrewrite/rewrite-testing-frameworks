@@ -16,7 +16,7 @@
 package org.openrewrite.java.testing.wiremock;
 
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -28,73 +28,53 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.search.DeclaresMethod;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.trait.Comments;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+public class RemoveRequestJournalStoreRemoveLastOverride extends Recipe {
 
-public class RemoveRequestJournalStoreRemoveLast extends Recipe {
-
-    private static final MethodMatcher REMOVE_LAST =
-            new MethodMatcher("com.github.tomakehurst.wiremock.store.RequestJournalStore removeLast()", true);
-
+    private static final MethodMatcher REMOVE_LAST = new MethodMatcher("com.github.tomakehurst.wiremock.store.RequestJournalStore removeLast()", true);
+    private static final MethodMatcher WIREMOCK_REMOVE_LAST = new MethodMatcher("com.github.tomakehurst.wiremock..* removeLast()");
     private static final AnnotationMatcher OVERRIDE = new AnnotationMatcher("@java.lang.Override");
+    private static final String TODO = " TODO WireMock 4 no longer calls `removeLast()`, so evict surplus entries from `add(..)` instead";
 
     @Getter
-    final String displayName = "Remove `removeLast()` from custom WireMock request journal stores";
+    final String displayName = "Drop `@Override` from `removeLast()` in custom WireMock request journal stores";
 
     @Getter
-    final String description = "WireMock 4 dropped `removeLast()` from `RequestJournalStore`, as the request journal " +
-            "no longer trims its store after every addition; a store wanting a maximum number of entries now evicts " +
-            "the oldest ones itself. Remove the implementations, which no longer override anything, or where the " +
-            "same file still calls `removeLast()` keep the method and only drop its `@Override`.";
+    final String description = "WireMock 4 dropped `removeLast()` from `RequestJournalStore`, as the request journal no longer trims its store after every addition; a store wanting a maximum number of entries now evicts the oldest ones itself. Keep the implementations, which code may still call directly, but drop their `@Override` and any `super.removeLast()` delegation, and add a `TODO` to move the eviction into `add(..)`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new DeclaresMethod<>(REMOVE_LAST),
-                new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new DeclaresMethod<>(REMOVE_LAST), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
+                if (!REMOVE_LAST.matches(m.getMethodType())) {
+                    return m;
+                }
+                m = (J.MethodDeclaration) new RemoveAnnotationVisitor(OVERRIDE).visitNonNull(m, ctx, getCursor().getParentOrThrow());
+                if (m.getBody() != null) {
+                    m = m.withBody(m.getBody().withStatements(ListUtils.filter(m.getBody().getStatements(), s -> !isSuperRemoveLast(s))));
+                }
+                Comments comments = Comments.of(new Cursor(getCursor().getParentOrThrow(), m));
+                return comments.hasComment(TODO) ? m : comments.comment(TODO, Comments.Placement.BEFORE, lastLineOf(m.getPrefix()));
+            }
 
-                    @Override
-                    public J.Block visitBlock(J.Block block, ExecutionContext ctx) {
-                        J.Block b = super.visitBlock(block, ctx);
-                        if (block.getStatements().isEmpty()) {
-                            return b;
-                        }
-                        Statement originalFirst = block.getStatements().get(0);
-                        return b.withStatements(ListUtils.mapFirst(b.getStatements(), s -> s.getId().equals(originalFirst.getId()) ? s :
-                                s.withPrefix(s.getPrefix().withWhitespace(originalFirst.getPrefix().getWhitespace()))));
-                    }
+            private String lastLineOf(Space prefix) {
+                String whitespace = prefix.getComments().isEmpty() ? prefix.getWhitespace() : prefix.getComments().get(prefix.getComments().size() - 1).getSuffix();
+                int lineStart = whitespace.lastIndexOf('\n');
+                return lineStart < 0 ? " " : whitespace.substring(lineStart);
+            }
 
-                    @Override
-                    public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                        J.MethodDeclaration m = super.visitMethodDeclaration(method, ctx);
-                        if (!REMOVE_LAST.matches(m.getMethodType())) {
-                            return m;
-                        }
-                        if (!calledInThisFile()) {
-                            return null;
-                        }
-                        return (J.MethodDeclaration) new RemoveAnnotationVisitor(OVERRIDE)
-                                .visitNonNull(m, ctx, getCursor().getParentOrThrow());
-                    }
-
-                    private boolean calledInThisFile() {
-                        return new JavaIsoVisitor<AtomicBoolean>() {
-                            // A `super.removeLast()` inside an implementation goes away along with it
-                            @Override
-                            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, AtomicBoolean found) {
-                                return REMOVE_LAST.matches(method.getMethodType()) ? method :
-                                        super.visitMethodDeclaration(method, found);
-                            }
-
-                            @Override
-                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
-                                if (REMOVE_LAST.matches(method)) {
-                                    found.set(true);
-                                }
-                                return super.visitMethodInvocation(method, found);
-                            }
-                        }.reduce(getCursor().firstEnclosingOrThrow(J.CompilationUnit.class), new AtomicBoolean()).get();
-                    }
-                });
+            private boolean isSuperRemoveLast(Statement statement) {
+                if (!(statement instanceof J.MethodInvocation)) {
+                    return false;
+                }
+                J.MethodInvocation invocation = (J.MethodInvocation) statement;
+                return WIREMOCK_REMOVE_LAST.matches(invocation) && invocation.getSelect() instanceof J.Identifier && "super".equals(((J.Identifier) invocation.getSelect()).getSimpleName());
+            }
+        });
     }
 }

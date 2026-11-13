@@ -80,7 +80,7 @@ recipeList:
   - org.openrewrite.java.testing.wiremock.Wiremock4RelocatedTypes
   - org.openrewrite.java.testing.wiremock.ReplaceRemovedConstructors
   - org.openrewrite.java.testing.wiremock.ReplaceSettersWithTransform
-  - org.openrewrite.java.testing.wiremock.RemoveRequestJournalStoreRemoveLast
+  - org.openrewrite.java.testing.wiremock.RemoveRequestJournalStoreRemoveLastOverride
   - org.openrewrite.java.testing.wiremock.MigrateStubMappingUuidToId
   - org.openrewrite.java.testing.wiremock.MigrateContentTypeHeaderCharset
   - org.openrewrite.java.testing.wiremock.MigrateRequestMethodIsOneOf

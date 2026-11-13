@@ -930,6 +930,44 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void customRequestJournalStore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              public class AuditingStore extends InMemoryRequestJournalStore {
+                  int evictions;
+
+                  @Override
+                  public void removeLast() {
+                      evictions++;
+                      super.removeLast();
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              public class AuditingStore extends InMemoryRequestJournalStore {
+                  int evictions;
+
+                  public AuditingStore() {
+                      super(null);
+                  }
+
+                  // TODO WireMock 4 no longer calls `removeLast()`, so evict surplus entries from `add(..)` instead
+                  public void removeLast() {
+                      evictions++;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void requestPatternGetMatcherBecomesGetInlineCustomMatcher() {
         rewriteRun(
           //language=java
