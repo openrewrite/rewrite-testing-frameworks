@@ -33,8 +33,7 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
         spec
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
-          .recipe(new CleanupKotlinJUnit5AssertionImports())
-          .typeValidationOptions(TypeValidation.all().methodInvocations(false));
+          .recipe(new CleanupKotlinJUnit5AssertionImports());
     }
 
     @DocumentExample
@@ -42,6 +41,8 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
     void removesStaticAssertionsWildcardImportWhenApiWildcardPresent() {
         //language=kotlin
         rewriteRun(
+          // The Kotlin parser leaves calls such as `assertNull(null)` without a method type.
+          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
           kotlin(
             """
               import org.junit.jupiter.api.*

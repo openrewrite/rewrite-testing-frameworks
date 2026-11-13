@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -36,6 +37,10 @@ class UpdateMockWebServerTest implements RewriteTest {
               "junit-4",
               "junit-jupiter-api-5",
               "mockwebserver-3.14"))
+          .recipeQualityValidation(RecipeQualityValidation.builder()
+            .parserTypedTrees(true)
+            .compilableOutput(true)
+            .build())
           .recipe(new UpdateMockWebServer());
     }
 
