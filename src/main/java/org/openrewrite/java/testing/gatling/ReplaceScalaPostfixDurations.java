@@ -21,7 +21,10 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JLeftPadded;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Markers;
 
 import java.util.Arrays;

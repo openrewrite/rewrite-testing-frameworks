@@ -27,11 +27,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
@@ -161,8 +157,7 @@ public class MigrateGatlingScalaDsl extends Recipe {
     }
 
     private static Set<String> declaredNames(JavaSourceFile sourceFile) {
-        Set<String> names = new HashSet<>();
-        new JavaIsoVisitor<Set<String>>() {
+        return new JavaIsoVisitor<Set<String>>() {
             @Override
             public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> n) {
                 n.add(variable.getSimpleName());
@@ -180,8 +175,7 @@ public class MigrateGatlingScalaDsl extends Recipe {
                 n.add(classDecl.getSimpleName());
                 return super.visitClassDeclaration(classDecl, n);
             }
-        }.visit(sourceFile, names);
-        return names;
+        }.reduce(sourceFile, new HashSet<>());
     }
 
     private static JContainer<Expression> connectionsArgument(int connections) {

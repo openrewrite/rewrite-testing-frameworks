@@ -33,7 +33,11 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ReplaceGatlingDollarExpressionLanguage())
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "gatling-core-3.9", "gatling-core-java-3.9", "gatling-http-3.9", "gatling-http-java-3.9"));
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "gatling-core-3.9",
+              "gatling-core-java-3.9",
+              "gatling-http-3.9",
+              "gatling-http-java-3.9"));
     }
 
     @DocumentExample
