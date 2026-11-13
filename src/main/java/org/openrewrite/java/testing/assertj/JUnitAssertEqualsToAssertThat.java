@@ -72,6 +72,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
+                            .contextSensitive()
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);
