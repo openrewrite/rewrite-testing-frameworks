@@ -15,7 +15,7 @@ recipeDependencies {
     parserClasspath("com.squareup.okhttp3:mockwebserver:3.14.9")
     parserClasspath("com.squareup.okhttp3:mockwebserver:4.10.0")
     parserClasspath("com.squareup.okhttp3:mockwebserver3:5.1.0")
-    parserClasspath("io.gatling:gatling-core:3.16.0") // bounds the Java SDK's builders
+    parserClasspath("io.gatling:gatling-core:3.16.0")
     parserClasspath("io.gatling:gatling-core-java:3.16.0")
     parserClasspath("junit:junit:4.+")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
@@ -23,7 +23,7 @@ recipeDependencies {
     parserClasspath("org.easytesting:fest-assert-core:2.+")
     parserClasspath("org.hamcrest:hamcrest:3.+")
     parserClasspath("org.jboss.byteman:byteman-bmunit5:4.0.25")
-    parserClasspath("org.jmockit:jmockit:1.22") // last version with NonStrictExpectations
+    parserClasspath("org.jmockit:jmockit:1.22")
     parserClasspath("org.jmockit:jmockit:1.49")
     parserClasspath("org.jspecify:jspecify:1.+")
     parserClasspath("org.junit.jupiter:junit-jupiter-api:5.+")
@@ -48,7 +48,7 @@ recipeDependencies {
     parserClasspath("org.testcontainers:junit-jupiter:1.20.6")
     parserClasspath("org.testng:testng:7.+")
     parserClasspath("org.wiremock:wiremock:3.13.2")
-    parserClasspath("org.wiremock:wiremock-core:4.0.0-beta.40") // no 4.0.0 GA yet, and a dynamic 4.+ skips pre-releases
+    parserClasspath("org.wiremock:wiremock-core:4.0.0-beta.40")
     parserClasspath("pl.pragmatists:JUnitParams:1.+")
     parserClasspath("uk.org.webcompere:system-stubs-core:2.1.8")
     parserClasspath("uk.org.webcompere:system-stubs-jupiter:2.1.8")
@@ -61,9 +61,8 @@ recipeDependencies {
     testParserClasspath("io.cucumber:cucumber-core:4.8.1")
     testParserClasspath("io.cucumber:cucumber-junit:4.8.1")
     testParserClasspath("io.cucumber:cucumber-junit:7.34.8")
-    // The Java SDK's builders are bounded by the Scala ones, so both are needed for type attribution
     testParserClasspath("io.gatling:gatling-core:3.9.5")
-    testParserClasspath("io.gatling:gatling-core-java:3.9.5") // last version with `exitBlockOnFail(ChainBuilder)`
+    testParserClasspath("io.gatling:gatling-core-java:3.9.5")
     testParserClasspath("io.gatling:gatling-http:3.9.5")
     testParserClasspath("io.gatling:gatling-http-java:3.9.5")
     testParserClasspath("io.grpc:grpc-testing:1.+")
@@ -137,7 +136,6 @@ dependencies {
 }
 
 tasks.test {
-    // The `TestNgToAssertJTest` tests require a lot of memory for the `JavaTemplate` caching
     maxHeapSize = "1g"
 }
 
