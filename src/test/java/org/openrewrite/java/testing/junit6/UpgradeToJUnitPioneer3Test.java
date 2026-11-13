@@ -36,7 +36,7 @@ class UpgradeToJUnitPioneer3Test implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(),
-              "junit-jupiter-api-6", "junit-pioneer-2"))
+              "junit-jupiter-api-6", "junit-pioneer-2", "testng-7"))
           .recipeFromResources("org.openrewrite.java.testing.junit6.UpgradeToJUnitPioneer3");
     }
 
@@ -183,6 +183,54 @@ class UpgradeToJUnitPioneer3Test implements RewriteTest {
                             <groupId>org.junit-pioneer</groupId>
                             <artifactId>junit-pioneer</artifactId>
                             <version>2.3.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void leavesModuleThatAlsoUsesTestNgAlone() {
+        rewriteRun(
+          mavenProject("project",
+            //language=java
+            srcTestJava(java(
+              """
+                import org.junitpioneer.jupiter.DefaultTimeZone;
+                import org.testng.annotations.Test;
+
+                class MyTest {
+                    @Test
+                    @DefaultTimeZone("UTC")
+                    void test() {
+                    }
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit-pioneer</groupId>
+                            <artifactId>junit-pioneer</artifactId>
+                            <version>2.3.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.testng</groupId>
+                            <artifactId>testng</artifactId>
+                            <version>7.10.2</version>
                             <scope>test</scope>
                         </dependency>
                     </dependencies>
