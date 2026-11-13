@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.scala.ScalaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -37,7 +38,8 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
               "gatling-core-3.9",
               "gatling-core-java-3.9",
               "gatling-http-3.9",
-              "gatling-http-java-3.9"));
+              "gatling-http-java-3.9"))
+          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(), "gatling-core-3.9", "gatling-http-3.9"));
     }
 
     @DocumentExample

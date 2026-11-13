@@ -17,6 +17,8 @@ package org.openrewrite.java.testing.gatling;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.scala.ScalaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -26,7 +28,8 @@ class ReplaceScalaPostfixDurationsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new ReplaceScalaPostfixDurations());
+        spec.recipe(new ReplaceScalaPostfixDurations())
+          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(), "gatling-core-3.9", "gatling-http-3.9"));
     }
 
     @DocumentExample

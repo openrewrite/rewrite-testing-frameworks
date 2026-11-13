@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.scala.ScalaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -39,7 +40,8 @@ class UpgradeToGatling3_16Test implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipeFromResources("org.openrewrite.java.testing.gatling.UpgradeToGatling3_16")
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), GATLING_3_9))
-          .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), GATLING_3_9));
+          .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(), GATLING_3_9))
+          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(), GATLING_3_9));
     }
 
     @DocumentExample

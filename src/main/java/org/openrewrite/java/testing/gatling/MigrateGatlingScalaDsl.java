@@ -20,25 +20,19 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 public class MigrateGatlingScalaDsl extends Recipe {
-
-    private static final String DECLARED_NAMES = "GATLING_DECLARED_NAMES";
-
-    // The Scala standard library is type attributed, and has methods like `Map#transform((k, v) => ..)` of its own
-    private static final MethodMatcher SCALA_COLLECTIONS = new MethodMatcher("scala.collection..* *(..)");
 
     // Deprecated in 3.7 or earlier and removed in 3.11, or renamed along with the injector in 3.12
     private static final Map<String, String> RENAMES = new HashMap<>();
@@ -80,30 +74,23 @@ public class MigrateGatlingScalaDsl extends Recipe {
             "`ignoreProtocolChecks` and `ignoreProtocolHeaders`, `stopInjector` to `stopLoadGenerator` and the " +
             "`maxConnectionsPerHostLikeXXX` browser presets to `maxConnectionsPerHost(n)`. Also rename feeder " +
             "`convert` to `transform`, and the check `transform` and `transformOption` taking the `Session` to " +
-            "`transformWithSession` and `transformOptionWithSession`, as done in 3.4. Scala sources are not " +
-            "reliably type attributed, so methods are matched by name in sources importing Gatling, skipping " +
-            "names the source declares itself.";
+            "`transformWithSession` and `transformOptionWithSession`, as done in 3.4. Methods are matched " +
+            "by name in sources importing Gatling, as their declaring types changed between versions, skipping " +
+            "those attributed to types outside Gatling, such as the source's own and the Scala library's.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return Preconditions.check(GatlingSources.importingGatling(false), new JavaVisitor<ExecutionContext>() {
 
             @Override
-            public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (tree instanceof JavaSourceFile) {
-                    getCursor().putMessage(DECLARED_NAMES, declaredNames((JavaSourceFile) tree));
-                }
-                return super.visit(tree, ctx);
-            }
-
-            @Override
             public J visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
                 J.Identifier i = (J.Identifier) super.visitIdentifier(identifier, ctx);
                 String newName = RENAMES.get(i.getSimpleName());
-                if (newName != null && !isDeclared(i.getSimpleName())) {
-                    return i.withSimpleName(newName);
+                if (newName == null || getCursor().getParentTreeCursor().getValue() instanceof J.MethodDeclaration ||
+                    !mayBeGatling(i.getFieldType() != null ? i.getFieldType() : i.getType())) {
+                    return i;
                 }
-                return i;
+                return i.withSimpleName(newName);
             }
 
             @Override
@@ -114,7 +101,7 @@ public class MigrateGatlingScalaDsl extends Recipe {
                 }
                 J.FieldAccess fa = (J.FieldAccess) j;
                 Integer connections = MAX_CONNECTIONS_PER_HOST.get(fa.getSimpleName());
-                if (connections == null || isDeclared(fa.getSimpleName())) {
+                if (connections == null || !mayBeGatling(fa.getTarget().getType())) {
                     return fa;
                 }
                 return new J.MethodInvocation(
@@ -136,7 +123,7 @@ public class MigrateGatlingScalaDsl extends Recipe {
                 }
                 J.MethodInvocation m = (J.MethodInvocation) j;
                 String name = m.getSimpleName();
-                if (m.getSelect() == null || isDeclared(name) || SCALA_COLLECTIONS.matches(m)) {
+                if (m.getSelect() == null || !mayBeGatling(m.getMethodType())) {
                     return m;
                 }
                 Integer connections = MAX_CONNECTIONS_PER_HOST.get(name);
@@ -152,34 +139,22 @@ public class MigrateGatlingScalaDsl extends Recipe {
                 }
                 return m;
             }
-
-            private boolean isDeclared(String name) {
-                Set<String> declared = getCursor().getNearestMessage(DECLARED_NAMES);
-                return declared != null && declared.contains(name);
-            }
         });
     }
 
-    private static Set<String> declaredNames(JavaSourceFile sourceFile) {
-        return new JavaIsoVisitor<Set<String>>() {
-            @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> n) {
-                n.add(variable.getSimpleName());
-                return super.visitVariable(variable, n);
-            }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, Set<String> n) {
-                n.add(method.getSimpleName());
-                return super.visitMethodDeclaration(method, n);
-            }
-
-            @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, Set<String> n) {
-                n.add(classDecl.getSimpleName());
-                return super.visitClassDeclaration(classDecl, n);
-            }
-        }.reduce(sourceFile, new HashSet<>());
+    // Gatling's DSL may lack type attribution, while the source's own declarations and the Scala library have it
+    private static boolean mayBeGatling(@Nullable JavaType type) {
+        if (type == null || type instanceof JavaType.Unknown) {
+            return true;
+        }
+        if (type instanceof JavaType.Method) {
+            return mayBeGatling(((JavaType.Method) type).getDeclaringType());
+        }
+        if (type instanceof JavaType.Variable) {
+            return mayBeGatling(((JavaType.Variable) type).getOwner());
+        }
+        return type instanceof JavaType.FullyQualified &&
+                ((JavaType.FullyQualified) type).getFullyQualifiedName().startsWith("io.gatling.");
     }
 
     private static JContainer<Expression> connectionsArgument(int connections) {

@@ -68,7 +68,7 @@ public class ReplaceGatlingDollarExpressionLanguage extends Recipe {
         for (Cursor c = literal.getParentTreeCursor(); !isStatementBoundary(c.getValue()); c = c.getParentTreeCursor()) {
             if (c.getValue() instanceof MethodCall) {
                 JavaType.Method methodType = ((MethodCall) c.getValue()).getMethodType();
-                // Gatling's Scala DSL is not type attributed, so an untyped call could be Gatling's
+                // Gatling's calls are untyped when it is missing from the classpath
                 if (methodType == null || methodType.getDeclaringType().getFullyQualifiedName().startsWith("io.gatling.")) {
                     return false;
                 }

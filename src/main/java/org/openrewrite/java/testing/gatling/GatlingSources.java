@@ -24,8 +24,7 @@ import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.marker.SearchResult;
 
 /**
- * Finds Gatling simulations by their imports rather than by type attribution, since Scala sources
- * are not reliably attributed against the Gatling Scala DSL.
+ * Finds Gatling simulations by their imports, which also finds sources parsed without Gatling on the classpath.
  */
 final class GatlingSources {
 
