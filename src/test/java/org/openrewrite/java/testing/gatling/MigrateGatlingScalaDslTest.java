@@ -161,6 +161,29 @@ class MigrateGatlingScalaDslTest implements RewriteTest {
     }
 
     @Test
+    void scalaScript() {
+        rewriteRun(
+          scala(
+            """
+              import io.gatling.core.Predef._
+
+              class ScriptSimulation extends Simulation {
+                setUp(scenario("Script").inject(heavisideUsers(10).during(5)))
+              }
+              """,
+            """
+              import io.gatling.core.Predef._
+
+              class ScriptSimulation extends Simulation {
+                setUp(scenario("Script").inject(stressPeakUsers(10).during(5)))
+              }
+              """,
+            spec -> spec.path("ScriptSimulation.sc")
+          )
+        );
+    }
+
+    @Test
     void keepScalaCollectionTransform() {
         rewriteRun(
           scala(

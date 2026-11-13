@@ -33,7 +33,8 @@ final class GatlingSources {
     }
 
     static boolean isScala(JavaSourceFile sourceFile) {
-        return sourceFile.getSourcePath().toString().endsWith(".scala");
+        String path = sourceFile.getSourcePath().toString();
+        return path.endsWith(".scala") || path.endsWith(".sc");
     }
 
     static boolean importsGatling(JavaSourceFile sourceFile) {
