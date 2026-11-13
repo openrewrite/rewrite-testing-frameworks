@@ -450,7 +450,8 @@ class SimplifyAssertJEqualityAssertionTest implements RewriteTest {
         @Test
         void unknownTypes() {
             rewriteRun(
-              spec -> spec.typeValidationOptions(TypeValidation.none()),
+              // The input deliberately uses types that are not on the classpath.
+              spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false).methodDeclarations(false)),
               //language=java
               java(
                 """

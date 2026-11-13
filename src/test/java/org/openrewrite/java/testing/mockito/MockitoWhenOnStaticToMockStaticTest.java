@@ -22,6 +22,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -71,9 +72,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               "junit-jupiter-api-5",
               "mockito-core-5"
             ))
-          // Known limitation with: /*~~(Identifier type is missing or malformed)~~>*/A
-          .afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build())
-        ;
+          // Known limitation: the recipe's output has an identifier `A` without a type
+          .recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false)));
     }
 
     @DocumentExample
@@ -2229,7 +2229,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void shouldNotModifyKotlinFilesUsingMockitoWhen() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
           //language=kotlin
           kotlin(
             """
@@ -2280,7 +2279,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void shouldRewriteKotlinMockitoWhenInsideMockStaticUseWithImplicitIt() {
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().methodInvocations(false))),
           //language=kotlin
           kotlin(
             """
@@ -2323,7 +2322,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void shouldRewriteKotlinMockitoWhenInsideMockStaticUseWithNamedParam() {
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().methodInvocations(false))),
           //language=kotlin
           kotlin(
             """
@@ -2366,7 +2365,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void shouldRewriteKotlinMockitoWhenWithMultipleStatementsInUseBlock() {
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().methodInvocations(false))),
           //language=kotlin
           kotlin(
             """
@@ -2413,7 +2412,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void shouldRewriteKotlinMockitoWhenWithClassLevelMockedStaticProperty() {
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().methodInvocations(false))),
           //language=kotlin
           kotlin(
             """
@@ -2470,7 +2469,7 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void shouldRetainKotlinStubbingMethodOtherThanThenReturn() {
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().methodInvocations(false))),
           //language=kotlin
           kotlin(
             """
@@ -2509,7 +2508,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     @Test
     void shouldNotRewriteKotlinMockitoWhenWhenStaticClassDoesNotMatchUseReceiver() {
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.none()),
           //language=kotlin
           kotlin(
             """
