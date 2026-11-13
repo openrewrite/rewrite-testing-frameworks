@@ -20,10 +20,9 @@ name: org.openrewrite.java.testing.wiremock.Wiremock3to4Migration
 displayName: Upgrade WireMock to 4.x
 description: >-
   Upgrade WireMock to 4.x, which requires Java 17, ships Jetty 12.1 by default, splits JUnit support out
-  into separate modules and makes the primary domain classes immutable. This recipe does not change the Java
-  version, so a project still compiling for an older one needs moving to Java 17 as well. Note that
-  `RequestMethod.GET_OR_HEAD` is a multi method matcher in 4.x rather than a method named `GET_OR_HEAD`, so code
-  reading a name off that particular constant needs a look.
+  into separate modules and makes the primary domain classes immutable. Note that `RequestMethod.GET_OR_HEAD`
+  is a multi method matcher in 4.x rather than a method named `GET_OR_HEAD`, so code reading a name off that
+  particular constant needs a look.
 preconditions:
   - org.openrewrite.Singleton
 tags:
