@@ -25,6 +25,8 @@ import org.openrewrite.test.RewriteTest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.javaVersion;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class UpgradeToJUnitPioneer3Test implements RewriteTest {
@@ -42,67 +44,69 @@ class UpgradeToJUnitPioneer3Test implements RewriteTest {
     @Test
     void migratesRemovedExtensionsAndUpgradesJUnit() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junitpioneer.jupiter.DefaultTimeZone;
-              import org.junitpioneer.jupiter.RetryingTest;
-              import org.junitpioneer.jupiter.WritesSystemProperty;
+          mavenProject("project",
+            //language=java
+            srcTestJava(java(
+              """
+                import org.junit.jupiter.api.Test;
+                import org.junitpioneer.jupiter.DefaultTimeZone;
+                import org.junitpioneer.jupiter.RetryingTest;
+                import org.junitpioneer.jupiter.WritesSystemProperty;
 
-              class MyTest {
-                  @RetryingTest(3)
-                  @DefaultTimeZone("UTC")
-                  @WritesSystemProperty
-                  void flaky() {
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Test;
-              import org.junit.jupiter.api.util.DefaultTimeZone;
-              import org.junit.jupiter.api.util.WritesSystemProperty;
-              import org.junitpioneer.jupiter.RetryingTest;
+                class MyTest {
+                    @RetryingTest(3)
+                    @DefaultTimeZone("UTC")
+                    @WritesSystemProperty
+                    void flaky() {
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+                import org.junit.jupiter.api.util.DefaultTimeZone;
+                import org.junit.jupiter.api.util.WritesSystemProperty;
+                import org.junitpioneer.jupiter.RetryingTest;
 
-              class MyTest {
-                  @RetryingTest(3)
-                  @DefaultTimeZone("UTC")
-                  @WritesSystemProperty
-                  void flaky() {
-                  }
-              }
-              """,
-            spec -> spec.markers(javaVersion(17))
-          ),
-          //language=xml
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>example</artifactId>
-                  <version>1.0.0</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.junit.jupiter</groupId>
-                          <artifactId>junit-jupiter</artifactId>
-                          <version>5.14.0</version>
-                          <scope>test</scope>
-                      </dependency>
-                      <dependency>
-                          <groupId>org.junit-pioneer</groupId>
-                          <artifactId>junit-pioneer</artifactId>
-                          <version>2.3.0</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
-              """,
-            // junit-pioneer only moves once 3.0.0 is released, as 3.x does not select release candidates
-            spec -> spec.after(actual -> assertThat(actual)
-              .containsPattern("<artifactId>junit-jupiter</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
-              .containsPattern("<artifactId>junit-pioneer</artifactId>\\s*<version>(2\\.3\\.0|3\\.\\d+\\.\\d+)</version>")
-              .actual())
+                class MyTest {
+                    @RetryingTest(3)
+                    @DefaultTimeZone("UTC")
+                    @WritesSystemProperty
+                    void flaky() {
+                    }
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>5.14.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit-pioneer</groupId>
+                            <artifactId>junit-pioneer</artifactId>
+                            <version>2.3.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              // junit-pioneer only moves once 3.0.0 is released, as 3.x does not select release candidates
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("<artifactId>junit-jupiter</artifactId>\\s*<version>6\\.\\d+\\.\\d+</version>")
+                .containsPattern("<artifactId>junit-pioneer</artifactId>\\s*<version>(2\\.3\\.0|3\\.\\d+\\.\\d+)</version>")
+                .actual())
+            )
           )
         );
     }
@@ -110,37 +114,39 @@ class UpgradeToJUnitPioneer3Test implements RewriteTest {
     @Test
     void leavesModuleWithoutPioneerAlone() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.jupiter.api.Test;
-
-              class MyTest {
-                  @Test
-                  void test() {
-                  }
-              }
-              """,
-            spec -> spec.markers(javaVersion(17))
-          ),
-          //language=xml
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>example</artifactId>
-                  <version>1.0.0</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.junit.jupiter</groupId>
-                          <artifactId>junit-jupiter</artifactId>
-                          <version>5.14.0</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
+          mavenProject("project",
+            //language=java
+            srcTestJava(java(
               """
+                import org.junit.jupiter.api.Test;
+
+                class MyTest {
+                    @Test
+                    void test() {
+                    }
+                }
+                """,
+              spec -> spec.markers(javaVersion(17))
+            )),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter</artifactId>
+                            <version>5.14.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
@@ -148,39 +154,41 @@ class UpgradeToJUnitPioneer3Test implements RewriteTest {
     @Test
     void leavesModuleBelowJava17Alone() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junitpioneer.jupiter.DefaultTimeZone;
-              import org.junitpioneer.jupiter.RetryingTest;
-
-              class MyTest {
-                  @RetryingTest(3)
-                  @DefaultTimeZone("UTC")
-                  void flaky() {
-                  }
-              }
-              """,
-            spec -> spec.markers(javaVersion(11))
-          ),
-          //language=xml
-          pomXml(
-            """
-              <project>
-                  <modelVersion>4.0.0</modelVersion>
-                  <groupId>com.example</groupId>
-                  <artifactId>example</artifactId>
-                  <version>1.0.0</version>
-                  <dependencies>
-                      <dependency>
-                          <groupId>org.junit-pioneer</groupId>
-                          <artifactId>junit-pioneer</artifactId>
-                          <version>2.3.0</version>
-                          <scope>test</scope>
-                      </dependency>
-                  </dependencies>
-              </project>
+          mavenProject("project",
+            //language=java
+            srcTestJava(java(
               """
+                import org.junitpioneer.jupiter.DefaultTimeZone;
+                import org.junitpioneer.jupiter.RetryingTest;
+
+                class MyTest {
+                    @RetryingTest(3)
+                    @DefaultTimeZone("UTC")
+                    void flaky() {
+                    }
+                }
+                """,
+              spec -> spec.markers(javaVersion(11))
+            )),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit-pioneer</groupId>
+                            <artifactId>junit-pioneer</artifactId>
+                            <version>2.3.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
