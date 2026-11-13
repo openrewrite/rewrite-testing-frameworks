@@ -22,7 +22,8 @@ description: >-
   Upgrade Gatling 3.x simulations written in Scala, Java or Kotlin to Gatling 3.16, following the upgrade guides from
   3.0 onward. Changes needing a judgement call are left alone: Gatling 3.10 requires Java 11,
   `gatling-maven-plugin` 4 no longer compiles Scala so Maven projects with Scala simulations need the
-  `scala-maven-plugin`, and JMS moved to `jakarta.jms` in 3.14.
+  `scala-maven-plugin`, and JMS moved to `jakarta.jms` in 3.14. The `${}` Expression Language in `ElFileBody`
+  template files is not rewritten either.
 preconditions:
   - org.openrewrite.Singleton
 tags:
