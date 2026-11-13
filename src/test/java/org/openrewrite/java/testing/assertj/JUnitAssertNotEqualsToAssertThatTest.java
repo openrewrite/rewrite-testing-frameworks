@@ -22,7 +22,6 @@ import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -160,7 +159,6 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
     void doubleCloseToWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -202,7 +200,6 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
     void doubleObjectsCloseToWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -283,7 +280,6 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
     void floatCloseToWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -324,7 +320,6 @@ class JUnitAssertNotEqualsToAssertThatTest implements RewriteTest {
     void fullyQualifiedMethodWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;

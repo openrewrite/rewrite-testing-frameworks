@@ -44,7 +44,6 @@ class AssertToAssertionsTest implements RewriteTest {
     void stringArgumentIsMethodInvocation() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.Test;
@@ -454,7 +453,8 @@ class AssertToAssertionsTest implements RewriteTest {
     void missingTypeInfo() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          // The input deliberately lacks type information.
+          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java(
             """
               import static org.junit.Assert.*;
@@ -482,7 +482,8 @@ class AssertToAssertionsTest implements RewriteTest {
     void migratesAssertStatementsWithMissingTypeInfo() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          // The input deliberately lacks type information.
+          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           java(
             """
               import static org.junit.Assert.assertNotNull;
@@ -556,7 +557,8 @@ class AssertToAssertionsTest implements RewriteTest {
     @Test
     void dontSwapArgumentsForFailWithMissingTypeInformationInJavadoc() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          // The input deliberately lacks type information.
+          spec -> spec.typeValidationOptions(TypeValidation.all().identifiers(false)),
           //language=java
           java(
             """
@@ -711,7 +713,8 @@ class AssertToAssertionsTest implements RewriteTest {
     @Test
     void onlyModifyBrokenJavadocLinksThatAreReferencingAJunitAssertMethod() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          // The input calls an `assertEquals` overload that does not exist, so the invocation has no method type.
+          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
           //language=java
           java(
             """

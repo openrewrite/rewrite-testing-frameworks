@@ -1201,6 +1201,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         // A freshly-migrated `assertThrows` lambda (e.g. from `@Test(expected = ...)`) can carry arguments whose type
         // is not attributed yet; those must be left inline rather than crashing while rendering a variable declaration
         rewriteRun(
+          // The input deliberately uses variables of an unknown type (`unknownA`, `unknownB`).
           spec -> spec.typeValidationOptions(TypeValidation.builder().identifiers(false).build()),
           //language=java
           java(

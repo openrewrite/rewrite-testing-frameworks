@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -160,7 +161,6 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
     void doubleCloseToWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -201,7 +201,6 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
     void doubleObjectsCloseToWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -282,7 +281,6 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
     void floatCloseToWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -323,7 +321,6 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
     void fullyQualifiedMethodWithMessage() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -365,7 +362,7 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
         //language=java
         rewriteRun(
           // The JavaParer in JavaTemplate only has AssertJ on the classpath, and for now is not .contextSenstive()
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().methodInvocations(false))),
           java(
             """
               import org.junit.jupiter.api.Assertions;

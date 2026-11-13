@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -37,7 +38,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
     void whenMultipleMocks() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import mockit.VerificationsInOrder;
@@ -96,7 +97,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
     void whenTimes() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import mockit.VerificationsInOrder;
@@ -152,7 +153,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
     void whenThreeBlocks() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import mockit.VerificationsInOrder;
@@ -223,7 +224,7 @@ class JMockitVerificationsInOrderToMockitoTest implements RewriteTest {
     void whenTwoBlocks() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               import mockit.VerificationsInOrder;

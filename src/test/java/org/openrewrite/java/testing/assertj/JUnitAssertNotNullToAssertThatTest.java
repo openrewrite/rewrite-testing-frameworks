@@ -20,6 +20,7 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -81,7 +82,6 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
     void singleStaticMethodWithMessageString() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -160,7 +160,6 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
     void inlineReference() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -202,7 +201,6 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
     void mixedReferences() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -248,7 +246,7 @@ class JUnitAssertNotNullToAssertThatTest implements RewriteTest {
     void importAddedForCustomArguments() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().methodInvocations(false))),
           java(
             """
               import org.junit.jupiter.api.Test;
