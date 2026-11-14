@@ -57,15 +57,9 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         migrateFailureTypes = false;
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
         if (migrateFailureTypes) {
-            // static imports of assertions through a subclass, which no longer inherits them, if nothing uses them any more
-            for (J.Import anImport : cu.getImports()) {
-                if (anImport.isStatic() && SUPPORTED.contains(anImport.getQualid().getSimpleName()) &&
-                    anImport.getQualid().getTarget().getType() != null) {
-                    JavaType.FullyQualified owner = TypeUtils.asFullyQualified(anImport.getQualid().getTarget().getType());
-                    if (owner != null && !JUNIT4_ASSERT.equals(owner.getFullyQualifiedName())) {
-                        maybeRemoveImport(owner.getFullyQualifiedName() + "." + anImport.getQualid().getSimpleName());
-                    }
-                }
+            // also those that nothing calls, as a migrated subclass no longer inherits what they import
+            for (String name : SUPPORTED) {
+                removeStaticImportsThroughSubclasses(name);
             }
             doAfterVisit(new ChangeType("junit.framework.AssertionFailedError", "java.lang.AssertionError", true).getVisitor());
             doAfterVisit(new ChangeType("junit.framework.ComparisonFailure", "org.junit.ComparisonFailure", true).getVisitor());
@@ -102,6 +96,7 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
         JavaType.Method retargeted = m.getMethodType() == null ? null : m.getMethodType().withDeclaringType(JUNIT4_ASSERT_TYPE);
         if (m.getSelect() == null && !hidesStaticImport(m.getSimpleName())) {
+            removeStaticImportsThroughSubclasses(m.getSimpleName());
             maybeAddImport(JUNIT4_ASSERT, m.getSimpleName(), false);
             return m.withMethodType(retargeted).withName(m.getName().withType(retargeted));
         }
@@ -113,6 +108,21 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         }
         return m.getPadding().withSelect(JRightPadded.build((Expression) select))
                 .withMethodType(retargeted).withName(m.getName().withType(retargeted));
+    }
+
+    /**
+     * A static import of the assertion through a subclass of {@code TestCase} would clash with the one added for
+     * {@code org.junit.Assert}.
+     */
+    private void removeStaticImportsThroughSubclasses(String name) {
+        for (J.Import anImport : getCursor().firstEnclosingOrThrow(J.CompilationUnit.class).getImports()) {
+            if (anImport.isStatic() && name.equals(anImport.getQualid().getSimpleName())) {
+                JavaType.FullyQualified owner = TypeUtils.asFullyQualified(anImport.getQualid().getTarget().getType());
+                if (owner != null && !JUNIT4_ASSERT.equals(owner.getFullyQualifiedName())) {
+                    maybeRemoveImport(owner.getFullyQualifiedName() + "." + name);
+                }
+            }
+        }
     }
 
     /**
