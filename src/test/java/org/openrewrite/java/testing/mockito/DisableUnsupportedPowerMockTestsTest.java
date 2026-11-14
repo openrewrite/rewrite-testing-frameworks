@@ -291,4 +291,69 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void commentsOutInitializerAndRemovesAnnotationsHoldingUsageOfADisabledClass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              public class Service {
+                  static void init() {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.core.spi.support.AbstractPowerMockTestListenerBase;
+
+              public class Listener extends AbstractPowerMockTestListenerBase {
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PowerMockListener;
+
+              import static org.powermock.api.support.membermodification.MemberMatcher.method;
+              import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+              @PowerMockListener(Listener.class)
+              public class ServiceTest {
+                  static {
+                      suppress(method(Service.class, "init"));
+                  }
+
+                  @Test
+                  public void works() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Ignore;
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PowerMockListener;
+
+              import static org.powermock.api.support.membermodification.MemberMatcher.method;
+              import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+              @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+              public class ServiceTest {
+                  static {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // suppress(method(Service.class, "init"));
+                  }
+
+                  @Test
+                  public void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
