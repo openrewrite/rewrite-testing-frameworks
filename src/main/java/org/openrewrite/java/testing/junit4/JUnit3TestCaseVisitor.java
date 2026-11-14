@@ -129,7 +129,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
                 public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                     J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                     String fqn = fqn(cd);
-                    return acc.isUnmigrated(fqn) ? SearchResult.found(cd, "Not migrated from JUnit 3: " + acc.pinnedBecause.get(fqn)) : cd;
+                    return acc.isUnmigrated(fqn) ? SearchResult.found(cd, "Not migrated from JUnit 3: " + acc.pinReasonByFqn.get(fqn)) : cd;
                 }
             });
         }
@@ -159,7 +159,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         }
         boolean testCase = acc.isMigrated(fqn);
         migrateFailureTypes |= testCase;
-        SuiteShape suite = acc.suiteKindByClass.containsKey(fqn) ? suiteOf(classDecl) : null;
+        SuiteShape suite = acc.suiteKindByFqn.containsKey(fqn) ? suiteOf(classDecl) : null;
         boolean aggregator = !testCase && suite != null && suite.kind == SuiteShape.Kind.AGGREGATE;
 
         J.ClassDeclaration cd = classDecl;
@@ -395,7 +395,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
             return super.visitMethodDeclaration(method, ctx);
         }
         boolean testCase = acc.isMigrated(declaringFqn);
-        if (SuiteShape.isSuiteMethod(method) && acc.suites.contains(method.getId()) && acc.removesSuite(declaringFqn)) {
+        if (SuiteShape.isSuiteMethod(method) && acc.suiteMethodIds.contains(method.getId()) && acc.removesSuite(declaringFqn)) {
             return null;
         }
         if (!testCase) {
@@ -404,7 +404,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
         updateCursor(md);
         if (md.isConstructor()) {
-            return migrateConstructor(md, acc.classes.get(declaringFqn));
+            return migrateConstructor(md, acc.testCasesByFqn.get(declaringFqn));
         }
         if (isNoArgVoid(md) && md.hasModifier(J.Modifier.Type.Static) && md.hasModifier(J.Modifier.Type.Public) &&
             md.getSimpleName().startsWith("test") && !calledInFile(md.getSimpleName())) {
@@ -623,7 +623,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         }
         Expression arg = run.getArguments().get(0).unwrap();
         Expression classLiteral = null;
-        if (arg instanceof J.FieldAccess && acc.consumed.contains(arg.getId())) {
+        if (arg instanceof J.FieldAccess && acc.consumedIds.contains(arg.getId())) {
             classLiteral = arg;
         } else if (arg instanceof J.NewClass && ((J.NewClass) arg).getArguments().size() == 1 &&
                    ((J.NewClass) arg).getArguments().get(0).unwrap() instanceof J.FieldAccess) {

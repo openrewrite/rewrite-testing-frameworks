@@ -50,7 +50,7 @@ final class SuiteShape {
     /**
      * Ids of the class literals and {@code suite()} calls that the shape takes care of.
      */
-    final Set<UUID> consumed = new HashSet<>();
+    final Set<UUID> consumedIds = new HashSet<>();
     final J.@Nullable MethodDeclaration setUp;
     final J.@Nullable MethodDeclaration tearDown;
 
@@ -79,12 +79,12 @@ final class SuiteShape {
             return null;
         }
         Expression returned = ((J.Return) last).getExpression().unwrap();
-        Set<UUID> consumed = new HashSet<>();
+        Set<UUID> consumedIds = new HashSet<>();
 
         if (statements.size() == 1 && returned instanceof J.NewClass) {
             J.NewClass nc = (J.NewClass) returned;
             if (isType(nc, "junit.extensions.TestSetup") && nc.getArguments().size() == 1 && nc.getBody() != null) {
-                List<Expression> inner = suiteOfClasses(nc.getArguments().get(0), consumed);
+                List<Expression> inner = suiteOfClasses(nc.getArguments().get(0), consumedIds);
                 if (inner == null || inner.size() != 1 || !refersTo(inner.get(0), enclosingClass)) {
                     return null;
                 }
@@ -104,14 +104,14 @@ final class SuiteShape {
                     }
                 }
                 SuiteShape shape = new SuiteShape(Kind.SETUP, inner, setUp, tearDown);
-                shape.consumed.addAll(consumed);
+                shape.consumedIds.addAll(consumedIds);
                 return shape;
             }
-            List<Expression> classes = suiteOfClasses(returned, consumed);
+            List<Expression> classes = suiteOfClasses(returned, consumedIds);
             if (classes == null) {
                 return null;
             }
-            return of(classes, enclosingClass, consumed);
+            return of(classes, enclosingClass, consumedIds);
         }
 
         // TestSuite suite = new TestSuite(); suite.addTestSuite(A.class); ...; return suite;
@@ -127,7 +127,7 @@ final class SuiteShape {
         List<Expression> classes = new ArrayList<>();
         if (init instanceof J.NewClass && isType((J.NewClass) init, "junit.framework.TestSuite") && ((J.NewClass) init).getBody() == null) {
             // TestSuite suite = new TestSuite(A.class); return suite;
-            List<Expression> initial = suiteOfClasses(init, consumed);
+            List<Expression> initial = suiteOfClasses(init, consumedIds);
             if (initial != null) {
                 classes.addAll(initial);
             } else if (!((J.NewClass) init).getArguments().stream().allMatch(a -> a instanceof J.Empty || a.unwrap() instanceof J.Literal)) {
@@ -150,7 +150,7 @@ final class SuiteShape {
             }
             Expression arg = add.getArguments().get(0).unwrap();
             if ("addTestSuite".equals(add.getSimpleName())) {
-                Expression literal = classLiteral(arg, consumed);
+                Expression literal = classLiteral(arg, consumedIds);
                 if (literal == null) {
                     return null;
                 }
@@ -159,10 +159,10 @@ final class SuiteShape {
                 if (arg instanceof J.MethodInvocation && "suite".equals(((J.MethodInvocation) arg).getSimpleName()) &&
                     ((J.MethodInvocation) arg).getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
                     ((J.MethodInvocation) arg).getSelect() != null) {
-                    consumed.add(arg.getId());
+                    consumedIds.add(arg.getId());
                     classes.add(classLiteralOf(((J.MethodInvocation) arg).getSelect()));
                 } else {
-                    List<Expression> inner = suiteOfClasses(arg, consumed);
+                    List<Expression> inner = suiteOfClasses(arg, consumedIds);
                     if (inner == null) {
                         return null;
                     }
@@ -175,24 +175,24 @@ final class SuiteShape {
         if (classes.isEmpty()) {
             return null;
         }
-        return of(classes, enclosingClass, consumed);
+        return of(classes, enclosingClass, consumedIds);
     }
 
-    private static @Nullable SuiteShape of(List<Expression> classes, @Nullable String enclosingClass, Set<UUID> consumed) {
+    private static @Nullable SuiteShape of(List<Expression> classes, @Nullable String enclosingClass, Set<UUID> consumedIds) {
         SuiteShape shape;
         if (classes.size() == 1 && enclosingClass != null && refersTo(classes.get(0), enclosingClass)) {
             shape = new SuiteShape(Kind.SELF, classes, null, null);
         } else {
             shape = new SuiteShape(Kind.AGGREGATE, classes, null, null);
         }
-        shape.consumed.addAll(consumed);
+        shape.consumedIds.addAll(consumedIds);
         return shape;
     }
 
     /**
      * {@code new TestSuite(A.class, B.class)}, {@code new JUnit4TestAdapter(A.class)}
      */
-    private static @Nullable List<Expression> suiteOfClasses(Expression e, Set<UUID> consumed) {
+    private static @Nullable List<Expression> suiteOfClasses(Expression e, Set<UUID> consumedIds) {
         Expression expr = e.unwrap();
         if (!(expr instanceof J.NewClass) || ((J.NewClass) expr).getBody() != null) {
             return null;
@@ -206,7 +206,7 @@ final class SuiteShape {
             if (arg instanceof J.Empty) {
                 continue;
             }
-            Expression literal = classLiteral(arg.unwrap(), consumed);
+            Expression literal = classLiteral(arg.unwrap(), consumedIds);
             if (literal == null) {
                 return null;
             }
@@ -215,9 +215,9 @@ final class SuiteShape {
         return classes.isEmpty() ? null : classes;
     }
 
-    private static @Nullable Expression classLiteral(Expression e, Set<UUID> consumed) {
+    private static @Nullable Expression classLiteral(Expression e, Set<UUID> consumedIds) {
         if (e instanceof J.FieldAccess && "class".equals(((J.FieldAccess) e).getSimpleName())) {
-            consumed.add(e.getId());
+            consumedIds.add(e.getId());
             return e.withPrefix(Space.EMPTY);
         }
         return null;
