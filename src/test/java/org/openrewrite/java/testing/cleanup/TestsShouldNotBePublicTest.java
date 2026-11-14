@@ -33,6 +33,7 @@ import javax.tools.ToolProvider;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -835,11 +836,12 @@ class TestsShouldNotBePublicTest implements RewriteTest {
               .as("Compile the actual base and intermediate fixtures: %s", diagnostics)
               .isTrue();
         }
-        byte[] middleClass = Files.readAllBytes(classes.resolve("middle/MiddleTest.class"));
+        // The parser must see the base only as source, behind the binary intermediate class
+        Files.delete(classes.resolve("base/BaseTest.class"));
+        List<Path> classpath = new ArrayList<>(JavaParser.dependenciesFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"));
+        classpath.add(classes);
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")
-            .classpath(middleClass)),
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpath(classpath)),
           java(baseSource),
           java(
             """
