@@ -1551,9 +1551,10 @@ class JUnit5MigrationTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
 
               public class MathTest {
                   protected long value1;
@@ -1570,7 +1571,7 @@ class JUnit5MigrationTest implements RewriteTest {
 
                   @Test
                   public void testAdd() {
-                      Assertions.assertEquals(2, value1);
+                      assertEquals(2, value1);
                   }
               }
               """

@@ -58,9 +58,10 @@ class JUnit3to5MigrationTest implements RewriteTest {
               }
               """,
             """
-              import org.junit.jupiter.api.Assertions;
               import org.junit.jupiter.api.BeforeEach;
               import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
 
               public class MathTest {
                   protected long value;
@@ -72,7 +73,7 @@ class JUnit3to5MigrationTest implements RewriteTest {
 
                   @Test
                   public void testAdd() {
-                      Assertions.assertEquals(4, value + 2);
+                      assertEquals(4, value + 2);
                   }
               }
               """
@@ -92,6 +93,46 @@ class JUnit3to5MigrationTest implements RewriteTest {
               public class NamedTest extends TestCase {
                   public void testAdd() {
                       setName("add");
+                      assertEquals(4, 2 + 2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void subclassOfMigratedBaseStaticallyImportsAssertions() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import junit.framework.TestCase;
+
+              public abstract class BaseTest extends TestCase {
+              }
+              """,
+            """
+              public abstract class BaseTest {
+              }
+              """
+          ),
+          java(
+            """
+              public class ChildTest extends BaseTest {
+                  public void testAdd() {
+                      assertEquals(4, 2 + 2);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              public class ChildTest extends BaseTest {
+                  @Test
+                  public void testAdd() {
                       assertEquals(4, 2 + 2);
                   }
               }

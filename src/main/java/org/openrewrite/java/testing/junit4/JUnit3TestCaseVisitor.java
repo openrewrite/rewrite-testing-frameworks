@@ -164,6 +164,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
                 Accumulator.TEST_CASE.equals(TypeUtils.asFullyQualified(cd.getExtends().getType()).getFullyQualifiedName())) {
                 cd = cd.withExtends(null);
             }
+            cd = withoutTestCaseSupertype(cd);
             if (suite != null && suite.kind == SuiteShape.Kind.SETUP) {
                 cd = addOneTimeLifecycleMethods(cd, suite, ctx);
             }
@@ -174,6 +175,33 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
             cd = addSuiteAnnotations(cd, suite);
         }
         return cd;
+    }
+
+    /**
+     * Recipes that run later in the same cycle see the type, not the {@code extends} clause, so an assertion would
+     * still look inherited from {@code TestCase} and shadow the static import it moves to.
+     */
+    private static J.ClassDeclaration withoutTestCaseSupertype(J.ClassDeclaration cd) {
+        if (!(cd.getType() instanceof JavaType.Class)) {
+            return cd;
+        }
+        JavaType.Class type = withoutTestCase((JavaType.Class) cd.getType());
+        return cd.withType(type).withName(cd.getName().withType(type));
+    }
+
+    private static JavaType.Class withoutTestCase(JavaType.Class type) {
+        JavaType.FullyQualified supertype = type.getSupertype();
+        if (supertype == null) {
+            return type;
+        }
+        if (Accumulator.TEST_CASE.equals(supertype.getFullyQualifiedName())) {
+            JavaType.FullyQualified object = supertype;
+            while (object.getSupertype() != null) {
+                object = object.getSupertype();
+            }
+            return type.withSupertype(object);
+        }
+        return supertype instanceof JavaType.Class ? type.withSupertype(withoutTestCase((JavaType.Class) supertype)) : type;
     }
 
     /**
