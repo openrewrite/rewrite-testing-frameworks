@@ -50,7 +50,7 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
     String displayName = "Remove `junit:junit` and the vintage engine unless JUnit 3 types are still used";
 
     @Getter
-    String description = "Removes the `junit:junit` and `junit-vintage-engine` dependencies, unless a source file still uses `junit.framework` " +
+    String description = "Removes the `junit:junit` and `junit-vintage-engine` dependencies from each module, unless a source file of that module still uses `junit.framework` " +
                          "or the other JUnit 3 packages, such as test classes that extend a base class from a library. " +
                          "Then both stay, and the vintage engine is added if it is missing, so that Jupiter runs those tests.";
 
