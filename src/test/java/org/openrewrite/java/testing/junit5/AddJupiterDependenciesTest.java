@@ -67,11 +67,9 @@ class AddJupiterDependenciesTest implements RewriteTest {
                     <version>0.0.1</version>
                 </project>
                 """,
-              spec -> spec.after(pom -> {
-                  return assertThat(pom)
+              spec -> spec.after(pom -> assertThat(pom)
                           .contains("junit-jupiter")
-                          .contains("<scope>test</scope>").actual();
-              })
+                          .contains("<scope>test</scope>").actual())
             )
           )
         );
@@ -472,11 +470,9 @@ class AddJupiterDependenciesTest implements RewriteTest {
                     <version>0.0.1</version>
                 </project>
                 """,
-              spec -> spec.after(pom -> {
-                  return assertThat(pom)
+              spec -> spec.after(pom -> assertThat(pom)
                           .contains("junit-jupiter")
-                          .doesNotContain("<scope>test</scope>").actual();
-              })
+                          .doesNotContain("<scope>test</scope>").actual())
             )
           )
         );
@@ -591,11 +587,9 @@ class AddJupiterDependenciesTest implements RewriteTest {
                     <version>0.0.1</version>
                 </project>
                 """,
-              spec -> spec.after(pom -> {
-                  return assertThat(pom)
+              spec -> spec.after(pom -> assertThat(pom)
                           .contains("junit-jupiter")
-                          .contains("<scope>test</scope>").actual();
-              })
+                          .contains("<scope>test</scope>").actual())
             )
           )
         );

@@ -434,11 +434,9 @@ class JUnit5MigrationTest implements RewriteTest {
                       }
                   }
                   """,
-                spec -> spec.after(src -> {
-                    return assertThat(src)
+                spec -> spec.after(src -> assertThat(src)
                             .contains("import org.junit.jupiter.api.Test;")
-                            .doesNotContain("junit.framework").actual();
-                })
+                            .doesNotContain("junit.framework").actual())
               )
             ),
             pomXml(
@@ -459,11 +457,9 @@ class JUnit5MigrationTest implements RewriteTest {
                     </dependencies>
                 </project>
                 """,
-              spec -> spec.after(pom -> {
-                  return assertThat(pom)
+              spec -> spec.after(pom -> assertThat(pom)
                           .contains("<artifactId>junit-jupiter</artifactId>")
-                          .doesNotContain("<artifactId>junit</artifactId>").actual();
-              })
+                          .doesNotContain("<artifactId>junit</artifactId>").actual())
             )
           )
         );
