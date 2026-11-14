@@ -58,6 +58,11 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private static final String WHITEBOX_REPLACED = "whiteboxReplaced";
 
+    private static final String REFLECTIVE_EXCEPTIONS_UNCAUGHT = "whiteboxReflectiveExceptionsUncaught";
+
+    private static final List<String> CATCHES_REFLECTIVE_EXCEPTIONS = Arrays.asList(
+            "java.lang.ReflectiveOperationException", "java.lang.Exception", "java.lang.Throwable");
+
     private static final String HIERARCHY_LOOKUP_NEEDED = "whiteboxHierarchyLookupNeeded";
 
     static final String FIELD_LOOKUP_HELPER = "declaredFieldInHierarchy";
@@ -349,8 +354,11 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             // Declaring `throws` is the readable option and is what a test method would do anyway, but it is
             // only safe where nothing depends on the signature: a caller elsewhere in the file would stop
             // compiling, and an override such as `Runnable.run()` could not legally widen at all. Those get the
-            // reflection wrapped instead.
-            md = canWidenSignature(md) ? addThrowsExceptionIfAbsent(md) : wrapBodyInTryCatch(md, ctx);
+            // reflection wrapped instead. Neither is needed where the method already catches what it throws,
+            // and a catch of `ReflectiveOperationException` would then not even compile, being unreachable.
+            if (getCursor().getMessage(REFLECTIVE_EXCEPTIONS_UNCAUGHT, false)) {
+                md = canWidenSignature(md) ? addThrowsExceptionIfAbsent(md) : wrapBodyInTryCatch(md, ctx);
+            }
             maybeRemoveImport(WHITEBOX_FQN);
             maybeAddImport(reflectiveImport, false);
             return maybeAutoFormat(method, md, ctx);
@@ -532,6 +540,9 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private void recordReplacement(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, WHITEBOX_REPLACED, true);
+        if (!isCaughtByEnclosingTry(getCursor())) {
+            getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, REFLECTIVE_EXCEPTIONS_UNCAUGHT, true);
+        }
         // onlyIfReferenced=false: the class literals were only just templated in, so the type
         // attribution `maybeAddImport` looks for is not there yet.
         for (String paramImport : resolvedParamImports(resolvedMethod)) {
@@ -541,6 +552,47 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         if (ownerImport != null) {
             maybeAddImport(ownerImport, false);
         }
+    }
+
+    /**
+     * Whether the block the reflection was inserted into is the body of a {@code try}, in the same method, that
+     * catches every {@link ReflectiveOperationException}.
+     */
+    private static boolean isCaughtByEnclosingTry(Cursor blockCursor) {
+        Object child = blockCursor.getValue();
+        for (Cursor c = blockCursor.getParentTreeCursor(); ; c = c.getParentTreeCursor()) {
+            Object value = c.getValue();
+            if (value instanceof J.MethodDeclaration || value instanceof J.Lambda || value instanceof J.NewClass ||
+                value instanceof J.ClassDeclaration || value instanceof JavaSourceFile) {
+                return false;
+            }
+            if (value instanceof J.Try && child instanceof J.Block &&
+                ((J.Try) value).getBody().getId().equals(((J.Block) child).getId())) {
+                for (J.Try.Catch aCatch : ((J.Try) value).getCatches()) {
+                    if (catchesReflectiveExceptions(aCatch.getParameter().getTree().getType())) {
+                        return true;
+                    }
+                }
+            }
+            child = value;
+        }
+    }
+
+    private static boolean catchesReflectiveExceptions(@Nullable JavaType caught) {
+        if (caught instanceof JavaType.MultiCatch) {
+            for (JavaType alternative : ((JavaType.MultiCatch) caught).getThrowableTypes()) {
+                if (catchesReflectiveExceptions(alternative)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        for (String type : CATCHES_REFLECTIVE_EXCEPTIONS) {
+            if (TypeUtils.isOfClassType(caught, type)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<String> templateImports(JavaType.@Nullable Method resolvedMethod) {
