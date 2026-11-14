@@ -23,19 +23,22 @@ import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.dependencies.AddDependency;
 import org.openrewrite.java.dependencies.RemoveDependency;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.maven.ExcludeDependency;
 import org.openrewrite.maven.RemoveManagedDependency;
+import org.openrewrite.maven.tree.MavenResolutionResult;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
 
 /**
- * Removes {@code junit:junit}, its managed version and the vintage engine, unless a source file still uses
- * {@code junit.framework} or the other JUnit 3 packages, which only {@code junit:junit} provides and only the
- * vintage engine runs. Then the vintage engine is added instead.
+ * Removes {@code junit:junit}, its managed version and the vintage engine from each module, unless a source file of
+ * that module still uses {@code junit.framework} or the other JUnit 3 packages, which only {@code junit:junit} provides
+ * and only the vintage engine runs. Then the vintage engine is added instead.
  */
 @EqualsAndHashCode(callSuper = false)
 @Value
@@ -53,7 +56,8 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
 
     @Value
     public static class Accumulator {
-        AtomicBoolean junit3Used;
+        Set<@Nullable JavaProject> withJavaSources = new HashSet<>();
+        Set<@Nullable JavaProject> usingJUnit3 = new HashSet<>();
         RemoveDependency removeJUnit;
         RemoveDependency.Accumulator removeJUnitAcc;
         RemoveDependency removeVintage;
@@ -69,7 +73,7 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
         AddDependency addVintage = new AddDependency("org.junit.vintage", "junit-vintage-engine", "5.x", null,
                 "junit.framework..*", null, null, null, null, "test",
                 null, null, null, false);
-        return new Accumulator(new AtomicBoolean(),
+        return new Accumulator(
                 removeJUnit, removeJUnit.getInitialValue(ctx),
                 removeVintage, removeVintage.getInitialValue(ctx),
                 addVintage, addVintage.getInitialValue(ctx));
@@ -94,12 +98,12 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
 
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                if (!acc.junit3Used.get()) {
-                    for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-                        if (type instanceof JavaType.FullyQualified && isJUnit3((JavaType.FullyQualified) type)) {
-                            acc.junit3Used.set(true);
-                            break;
-                        }
+                JavaProject project = cu.getMarkers().findFirst(JavaProject.class).orElse(null);
+                acc.withJavaSources.add(project);
+                for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
+                    if (type instanceof JavaType.FullyQualified && isJUnit3((JavaType.FullyQualified) type)) {
+                        acc.usingJUnit3.add(project);
+                        break;
                     }
                 }
                 return cu;
@@ -117,6 +121,22 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
         return false;
     }
 
+    /**
+     * A parent, aggregator or root build has no sources of its own, but may declare or manage the dependency for
+     * modules that still use JUnit 3.
+     */
+    private static boolean keepsJUnit(Tree tree, Accumulator acc) {
+        JavaProject project = tree.getMarkers().findFirst(JavaProject.class).orElse(null);
+        if (acc.usingJUnit3.contains(project)) {
+            return true;
+        }
+        if (acc.usingJUnit3.isEmpty()) {
+            return false;
+        }
+        MavenResolutionResult mrr = tree.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+        return !acc.withJavaSources.contains(project) || mrr != null && !mrr.getModules().isEmpty();
+    }
+
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         TreeVisitor<?, ExecutionContext> removeJUnit = acc.removeJUnit.getVisitor(acc.removeJUnitAcc);
@@ -129,7 +149,7 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (acc.junit3Used.get()) {
+                if (tree != null && keepsJUnit(tree, acc)) {
                     return addVintage.visit(tree, ctx);
                 }
                 Tree t = removeJUnit.visit(tree, ctx);

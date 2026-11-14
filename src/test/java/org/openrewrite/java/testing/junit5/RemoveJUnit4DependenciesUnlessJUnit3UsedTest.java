@@ -105,4 +105,118 @@ class RemoveJUnit4DependenciesUnlessJUnit3UsedTest implements RewriteTest {
             """)
         );
     }
+
+    @Test
+    void decidedPerModule() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5")),
+          mavenProject("parent",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>0.0.1</version>
+                    <packaging>pom</packaging>
+                    <modules>
+                        <module>a</module>
+                        <module>b</module>
+                    </modules>
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>junit</groupId>
+                                <artifactId>junit</artifactId>
+                                <version>4.13.2</version>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                </project>
+                """
+            ),
+            mavenProject("a",
+              //language=java
+              srcTestJava(java(
+                """
+                  import junit.framework.TestCase;
+
+                  class LegacyTest extends TestCase {
+                  }
+                  """
+              )),
+              pomXml(
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>org.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>0.0.1</version>
+                      </parent>
+                      <artifactId>a</artifactId>
+                      <dependencies>
+                          <dependency>
+                              <groupId>junit</groupId>
+                              <artifactId>junit</artifactId>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """,
+                spec -> spec.after(pom -> assertThat(pom)
+                  .contains("<artifactId>junit</artifactId>")
+                  .contains("<artifactId>junit-vintage-engine</artifactId>")
+                  .actual())
+              )
+            ),
+            mavenProject("b",
+              //language=java
+              srcTestJava(java(
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  class ModernTest {
+                      @Test
+                      void works() {
+                      }
+                  }
+                  """
+              )),
+              pomXml(
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>org.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>0.0.1</version>
+                      </parent>
+                      <artifactId>b</artifactId>
+                      <dependencies>
+                          <dependency>
+                              <groupId>junit</groupId>
+                              <artifactId>junit</artifactId>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """,
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>org.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>0.0.1</version>
+                      </parent>
+                      <artifactId>b</artifactId>
+                  </project>
+                  """
+              )
+            )
+          )
+        );
+    }
 }
