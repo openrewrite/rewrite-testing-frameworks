@@ -32,8 +32,12 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
 
 import java.util.List;
+
+import static java.util.Collections.emptyList;
+import static org.openrewrite.Tree.randomId;
 
 public class UpdateMockWebServerDispatcher extends Recipe {
     private static final String OLD_DISPATCHER_FQN = "okhttp3.mockwebserver.Dispatcher";
@@ -109,12 +113,8 @@ public class UpdateMockWebServerDispatcher extends Recipe {
 
                 // Pre-pin the return type to mockwebserver3.MockResponse so the blanket
                 // ChangeType(MockResponse -> Builder) that runs next won't match it.
-                m = JavaTemplate.builder("MockResponse")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockwebserver3"))
-                        .imports(NEW_MOCK_RESPONSE_FQN)
-                        .build()
-                        .apply(new Cursor(getCursor().getParentOrThrow(), m),
-                                ((Expression) m.getReturnTypeExpression()).getCoordinates().replace());
+                m = m.withReturnTypeExpression(new J.Identifier(randomId(), rte.getPrefix(), Markers.EMPTY,
+                        emptyList(), "MockResponse", mockResponseType, null));
                 JavaType.Method methodType = m.getMethodType();
                 if (methodType != null) {
                     JavaType.Method updatedMethodType = methodType.withReturnType(mockResponseType);

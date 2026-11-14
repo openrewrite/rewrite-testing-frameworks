@@ -29,6 +29,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.ShortenFullyQualifiedTypeReferences;
+import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -49,9 +50,9 @@ public class SystemPropertyRulesToPioneer extends Recipe {
     private static final String CLEAR_SYSTEM_PROPERTIES = PACKAGE + ".ClearSystemProperties";
     private static final String RESTORE_SYSTEM_PROPERTIES = PACKAGE + ".RestoreSystemProperties";
 
-    private static final String PIONEER_SET = "org.junitpioneer.jupiter.SetSystemProperty";
-    private static final String PIONEER_CLEAR = "org.junitpioneer.jupiter.ClearSystemProperty";
-    private static final String PIONEER_RESTORE = "org.junitpioneer.jupiter.RestoreSystemProperties";
+    private static final String PIONEER_PACKAGE = "org.junitpioneer.jupiter";
+    // JUnit Jupiter 6.1 adopted Pioneer's system property extensions, which Pioneer 3 then removed
+    private static final String JUPITER_PACKAGE = "org.junit.jupiter.api.util";
 
     private static final MethodMatcher PROVIDE_AND = new MethodMatcher(PROVIDE_SYSTEM_PROPERTY + " and(String, String)");
 
@@ -59,7 +60,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
     final String displayName = "Migrate System Rules system property rules to JUnit Pioneer annotations";
 
     @Getter
-    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations. Only rules that take string literals and are not used elsewhere in the test are migrated; the others are left for the migration to System Stubs.";
+    final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations, or with their JUnit Jupiter equivalents when JUnit Jupiter 6.1 or later is on the classpath. Only rules that take string literals and are not used elsewhere in the test are migrated; the others are left for the migration to System Stubs.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -68,13 +69,14 @@ public class SystemPropertyRulesToPioneer extends Recipe {
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 JavaSourceFile sourceFile = getCursor().firstEnclosingOrThrow(JavaSourceFile.class);
+                String pkg = hasJupiterSystemProperties(sourceFile) ? JUPITER_PACKAGE : PIONEER_PACKAGE;
 
                 Map<Statement, List<PioneerAnnotation>> annotationsByField = new IdentityHashMap<>();
                 List<PioneerAnnotation> annotations = new ArrayList<>();
                 for (Statement statement : cd.getBody().getStatements()) {
                     if (statement instanceof J.VariableDeclarations) {
                         J.VariableDeclarations field = (J.VariableDeclarations) statement;
-                        List<PioneerAnnotation> fieldAnnotations = pioneerAnnotations(field);
+                        List<PioneerAnnotation> fieldAnnotations = pioneerAnnotations(field, pkg);
                         if (fieldAnnotations != null && isOnlyDeclared(field, sourceFile) &&
                             !mayBeUsedElsewhere(field, getCursor())) {
                             annotationsByField.put(field, fieldAnnotations);
@@ -100,9 +102,9 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                     }
                 }
 
-                boolean restoring = hasAnnotation(cd, PIONEER_RESTORE);
+                boolean restoring = hasAnnotation(cd, "RestoreSystemProperties");
                 for (PioneerAnnotation annotation : annotations) {
-                    if (PIONEER_RESTORE.equals(annotation.fqn)) {
+                    if (annotation.fqn.endsWith(".RestoreSystemProperties")) {
                         if (restoring) {
                             continue;
                         }
@@ -111,14 +113,14 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                     maybeAddImport(annotation.fqn);
                     cd = JavaTemplate.builder(annotation.template)
                             .imports(annotation.fqn)
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-pioneer-2", "junit-jupiter-api-5"))
+                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, JUPITER_PACKAGE.equals(pkg) ? "junit-jupiter-api-6" : "junit-pioneer-2"))
                             .build()
                             .apply(updateCursor(cd), cd.getCoordinates().addAnnotation(comparing(J.Annotation::getSimpleName)));
                 }
-                // Pioneer's @RestoreSystemProperties shares its simple name with the System Rules import being removed
+                // @RestoreSystemProperties shares its simple name with the System Rules import being removed
                 for (J.Annotation annotation : cd.getLeadingAnnotations()) {
                     if (annotation.getAnnotationType() instanceof J.FieldAccess &&
-                        TypeUtils.isOfClassType(annotation.getType(), PIONEER_RESTORE)) {
+                        TypeUtils.isOfClassType(annotation.getType(), pkg + ".RestoreSystemProperties")) {
                         doAfterVisit(ShortenFullyQualifiedTypeReferences.modifyOnly(annotation));
                     }
                 }
@@ -132,7 +134,14 @@ public class SystemPropertyRulesToPioneer extends Recipe {
         });
     }
 
-    private static @Nullable List<PioneerAnnotation> pioneerAnnotations(J.VariableDeclarations field) {
+    private static boolean hasJupiterSystemProperties(JavaSourceFile sourceFile) {
+        return sourceFile.getMarkers().findFirst(JavaSourceSet.class)
+                .map(sourceSet -> sourceSet.getClasspath().stream()
+                        .anyMatch(type -> (JUPITER_PACKAGE + ".SetSystemProperty").equals(type.getFullyQualifiedName())))
+                .orElse(false);
+    }
+
+    private static @Nullable List<PioneerAnnotation> pioneerAnnotations(J.VariableDeclarations field, String pkg) {
         if (!isRuleField(field)) {
             return null;
         }
@@ -143,17 +152,17 @@ public class SystemPropertyRulesToPioneer extends Recipe {
         }
         switch (type) {
             case PROVIDE_SYSTEM_PROPERTY:
-                return provideAnnotations(initializer);
+                return provideAnnotations(initializer, pkg);
             case CLEAR_SYSTEM_PROPERTIES:
-                return clearAnnotations(initializer);
+                return clearAnnotations(initializer, pkg);
             case RESTORE_SYSTEM_PROPERTIES:
-                return initializer instanceof J.NewClass ? singletonList(PioneerAnnotation.restore()) : null;
+                return initializer instanceof J.NewClass ? singletonList(PioneerAnnotation.restore(pkg)) : null;
             default:
                 return null;
         }
     }
 
-    private static @Nullable List<PioneerAnnotation> provideAnnotations(Expression initializer) {
+    private static @Nullable List<PioneerAnnotation> provideAnnotations(Expression initializer, String pkg) {
         Deque<List<Expression>> pairs = new ArrayDeque<>();
         Expression current = initializer;
         while (current instanceof J.MethodInvocation && PROVIDE_AND.matches((J.MethodInvocation) current)) {
@@ -179,9 +188,9 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                 return null;
             }
             if (J.Literal.isLiteralValue(value, null)) {
-                annotations.add(PioneerAnnotation.clear((J.Literal) key));
+                annotations.add(PioneerAnnotation.clear(pkg, (J.Literal) key));
             } else if (isStringLiteral(value)) {
-                annotations.add(PioneerAnnotation.set((J.Literal) key, (J.Literal) value));
+                annotations.add(PioneerAnnotation.set(pkg, (J.Literal) key, (J.Literal) value));
             } else {
                 return null;
             }
@@ -189,7 +198,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
         return annotations.isEmpty() ? null : annotations;
     }
 
-    private static @Nullable List<PioneerAnnotation> clearAnnotations(Expression initializer) {
+    private static @Nullable List<PioneerAnnotation> clearAnnotations(Expression initializer, String pkg) {
         if (!(initializer instanceof J.NewClass)) {
             return null;
         }
@@ -198,17 +207,16 @@ public class SystemPropertyRulesToPioneer extends Recipe {
             if (!isStringLiteral(key)) {
                 return null;
             }
-            annotations.add(PioneerAnnotation.clear((J.Literal) key));
+            annotations.add(PioneerAnnotation.clear(pkg, (J.Literal) key));
         }
         return annotations.isEmpty() ? null : annotations;
     }
 
-    // Pioneer rejects a class that sets or clears the same key more than once, which System Rules allowed
+    // Pioneer and Jupiter reject a class that sets or clears the same key more than once, which System Rules allowed
     private static boolean hasConflictingKeys(J.ClassDeclaration cd, List<PioneerAnnotation> annotations) {
         Set<Object> keys = new HashSet<>();
         for (J.Annotation existing : cd.getLeadingAnnotations()) {
-            if (TypeUtils.isOfClassType(existing.getType(), PIONEER_SET) ||
-                TypeUtils.isOfClassType(existing.getType(), PIONEER_CLEAR)) {
+            if (hasType(existing, "SetSystemProperty") || hasType(existing, "ClearSystemProperty")) {
                 keys.add(keyOf(existing));
             }
         }
@@ -233,8 +241,13 @@ public class SystemPropertyRulesToPioneer extends Recipe {
         return annotation;
     }
 
-    private static boolean hasAnnotation(J.ClassDeclaration cd, String fqn) {
-        return cd.getLeadingAnnotations().stream().anyMatch(a -> TypeUtils.isOfClassType(a.getType(), fqn));
+    private static boolean hasAnnotation(J.ClassDeclaration cd, String simpleName) {
+        return cd.getLeadingAnnotations().stream().anyMatch(a -> hasType(a, simpleName));
+    }
+
+    private static boolean hasType(J.Annotation annotation, String simpleName) {
+        return TypeUtils.isOfClassType(annotation.getType(), PIONEER_PACKAGE + "." + simpleName) ||
+               TypeUtils.isOfClassType(annotation.getType(), JUPITER_PACKAGE + "." + simpleName);
     }
 
     @Value
@@ -245,17 +258,17 @@ public class SystemPropertyRulesToPioneer extends Recipe {
         @Nullable
         Object key;
 
-        static PioneerAnnotation set(J.Literal key, J.Literal value) {
-            return new PioneerAnnotation(PIONEER_SET,
+        static PioneerAnnotation set(String pkg, J.Literal key, J.Literal value) {
+            return new PioneerAnnotation(pkg + ".SetSystemProperty",
                     "@SetSystemProperty(key = " + key.getValueSource() + ", value = " + value.getValueSource() + ")", key.getValue());
         }
 
-        static PioneerAnnotation clear(J.Literal key) {
-            return new PioneerAnnotation(PIONEER_CLEAR, "@ClearSystemProperty(key = " + key.getValueSource() + ")", key.getValue());
+        static PioneerAnnotation clear(String pkg, J.Literal key) {
+            return new PioneerAnnotation(pkg + ".ClearSystemProperty", "@ClearSystemProperty(key = " + key.getValueSource() + ")", key.getValue());
         }
 
-        static PioneerAnnotation restore() {
-            return new PioneerAnnotation(PIONEER_RESTORE, "@RestoreSystemProperties", null);
+        static PioneerAnnotation restore(String pkg) {
+            return new PioneerAnnotation(pkg + ".RestoreSystemProperties", "@RestoreSystemProperties", null);
         }
     }
 }

@@ -176,6 +176,7 @@ class CleanupMockitoImportsTest implements RewriteTest {
     void doNotRemoveMockStaticImportPossiblyAssociatedWithAnUntypedMockitoMethod() {
         //language=java
         rewriteRun(
+          // The input's `mockStatic(MyObject.class)` call is deliberately left without a method type.
           spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
           java(
             """
@@ -310,7 +311,6 @@ class CleanupMockitoImportsTest implements RewriteTest {
     @Test
     void doNotRemoveMockitoImportsForKotlin() {
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
           //language=kotlin
           kotlin(
             """

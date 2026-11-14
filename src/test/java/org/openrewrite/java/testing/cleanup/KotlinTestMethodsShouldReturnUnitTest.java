@@ -21,7 +21,6 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
@@ -34,9 +33,7 @@ class KotlinTestMethodsShouldReturnUnitTest implements RewriteTest {
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-jupiter-api-5", "junit-jupiter-params-5"))
-          .recipe(new KotlinTestMethodsShouldReturnUnit())
-          // https://github.com/openrewrite/rewrite/issues/6408
-          .typeValidationOptions(TypeValidation.all().methodInvocations(false));
+          .recipe(new KotlinTestMethodsShouldReturnUnit());
     }
 
     @DocumentExample

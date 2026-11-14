@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
@@ -185,7 +184,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     void whenClassArgumentMatcher() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import java.util.List;
@@ -873,7 +871,6 @@ class JMockitVerificationsToMockitoTest implements RewriteTest {
     void whenArrayArgumentMatcher() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().methodInvocations(false).build()),
           java(
             """
               import java.util.List;

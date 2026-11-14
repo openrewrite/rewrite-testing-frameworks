@@ -21,7 +21,6 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -81,7 +80,6 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
     void singleStaticMethodWithMessageString() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -121,7 +119,6 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
     void singleStaticMethodWithMessageSupplier() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -161,7 +158,6 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
     void inlineReference() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -203,7 +199,6 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
     void mixedReferences() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;
@@ -248,7 +243,6 @@ class JUnitAssertTrueToAssertThatTest implements RewriteTest {
     void leaveBooleanSuppliersAlone() {
         //language=java
         rewriteRun(
-          spec -> spec.typeValidationOptions(TypeValidation.none()),
           java(
             """
               import org.junit.jupiter.api.Test;

@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.jmockit;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
@@ -111,7 +112,9 @@ class JMockitMockUpToMockitoTest implements RewriteTest {
     void mockUpMultipleTest() {
         //language=java
         rewriteRun(
-          spec -> spec.afterTypeValidationOptions(TypeValidation.builder().identifiers(false).build()),
+          // `Foo` and `Bar` are declared in other files, and the template parser only sees the surrounding source plus Mockito, so the
+          // `Foo`/`mockFoo` identifiers the recipe writes have no type. Fixing it needs the recipe to stub the mocked type's methods.
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
           java(
             """
               package com.openrewrite;

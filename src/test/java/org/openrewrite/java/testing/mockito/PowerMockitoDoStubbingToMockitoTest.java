@@ -21,7 +21,6 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -34,12 +33,11 @@ class PowerMockitoDoStubbingToMockitoTest implements RewriteTest {
               "mockito-core-3.12",
               "junit-jupiter-api-5",
               "powermock-core-1",
-              "powermock-api-mockito-1"
+              "powermock-api-mockito-1",
+              "powermock-api-support-1",
+              "powermock-reflect-1"
             ))
-          .recipe(new PowerMockitoDoStubbingToMockito())
-          .typeValidationOptions(TypeValidation.builder()
-            .identifiers(false)
-            .build());
+          .recipe(new PowerMockitoDoStubbingToMockito());
     }
 
     @DocumentExample

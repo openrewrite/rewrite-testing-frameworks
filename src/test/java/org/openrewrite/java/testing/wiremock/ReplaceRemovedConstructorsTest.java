@@ -259,6 +259,189 @@ class ReplaceRemovedConstructorsTest implements RewriteTest {
     }
 
     @Test
+    void inMemoryRequestJournalStoreStaysUnbounded() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.store.RequestJournalStore;
+
+              class Stores {
+                  RequestJournalStore journal = new InMemoryRequestJournalStore();
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.store.RequestJournalStore;
+
+              class Stores {
+                  RequestJournalStore journal = new InMemoryRequestJournalStore(null);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void anonymousInMemoryRequestJournalStoreStaysUnbounded() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.store.RequestJournalStore;
+
+              class Stores {
+                  RequestJournalStore journal = new InMemoryRequestJournalStore() {
+                      @Override
+                      public void clear() {
+                      }
+                  };
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.store.RequestJournalStore;
+
+              class Stores {
+                  RequestJournalStore journal = new InMemoryRequestJournalStore(null) {
+                      @Override
+                      public void clear() {
+                      }
+                  };
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void explicitSuperCallOfInMemoryRequestJournalStoreSubclass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              class AuditingStore extends InMemoryRequestJournalStore {
+                  AuditingStore() {
+                      super();
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              class AuditingStore extends InMemoryRequestJournalStore {
+                  AuditingStore() {
+                      super(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void implicitSuperCallOfInMemoryRequestJournalStoreSubclass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              class AuditingStore extends InMemoryRequestJournalStore {
+                  private final String name;
+
+                  AuditingStore(String name) {
+                      this.name = name;
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              class AuditingStore extends InMemoryRequestJournalStore {
+                  private final String name;
+
+                  AuditingStore(String name) {
+                      super(null);
+                      this.name = name;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void defaultConstructorOfInMemoryRequestJournalStoreSubclass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              public class AuditingStore extends InMemoryRequestJournalStore {
+                  int evictions;
+
+                  @Override
+                  public void clear() {
+                      evictions = 0;
+                  }
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+
+              public class AuditingStore extends InMemoryRequestJournalStore {
+                  int evictions;
+
+                  public AuditingStore() {
+                      super(null);
+                  }
+
+                  @Override
+                  public void clear() {
+                      evictions = 0;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void journalLimitMovesOntoTheStore() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.verification.StoreBackedRequestJournal;
+
+              import java.util.Collections;
+
+              class Journals {
+                  StoreBackedRequestJournal journal = new StoreBackedRequestJournal(100, Collections.emptyMap(), new InMemoryRequestJournalStore());
+              }
+              """,
+            """
+              import com.github.tomakehurst.wiremock.store.InMemoryRequestJournalStore;
+              import com.github.tomakehurst.wiremock.verification.StoreBackedRequestJournal;
+
+              import java.util.Collections;
+
+              class Journals {
+                  StoreBackedRequestJournal journal = new StoreBackedRequestJournal(Collections.emptyMap(), new InMemoryRequestJournalStore(100));
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void requestPatternEverythingBecomesAnything() {
         rewriteRun(
           //language=java
