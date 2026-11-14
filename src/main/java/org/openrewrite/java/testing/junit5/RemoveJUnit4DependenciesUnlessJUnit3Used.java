@@ -44,8 +44,6 @@ import java.util.Set;
 @Value
 public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<RemoveJUnit4DependenciesUnlessJUnit3Used.Accumulator> {
 
-    private static final String[] JUNIT3_PACKAGES = {"junit.framework.", "junit.textui.", "junit.awtui.", "junit.swingui.", "junit.runner.", "junit.extensions."};
-
     @Getter
     String displayName = "Remove `junit:junit` and the vintage engine unless JUnit 3 types are still used";
 
@@ -71,7 +69,7 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
         RemoveDependency removeJUnit = new RemoveDependency("junit", "junit", null, null, null);
         RemoveDependency removeVintage = new RemoveDependency("org.junit.vintage", "junit-vintage-engine", null, null, null);
         AddDependency addVintage = new AddDependency("org.junit.vintage", "junit-vintage-engine", "5.x", null,
-                "junit.framework..*", null, null, null, null, "test",
+                "junit..*", null, null, null, null, "test",
                 null, null, null, false);
         return new Accumulator(
                 removeJUnit, removeJUnit.getInitialValue(ctx),
@@ -101,7 +99,7 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
                 JavaProject project = cu.getMarkers().findFirst(JavaProject.class).orElse(null);
                 acc.withJavaSources.add(project);
                 for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-                    if (type instanceof JavaType.FullyQualified && isJUnit3((JavaType.FullyQualified) type)) {
+                    if (type instanceof JavaType.FullyQualified && ((JavaType.FullyQualified) type).getFullyQualifiedName().startsWith("junit.")) {
                         acc.usingJUnit3.add(project);
                         break;
                     }
@@ -109,16 +107,6 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
                 return cu;
             }
         };
-    }
-
-    private static boolean isJUnit3(JavaType.FullyQualified type) {
-        String fqn = type.getFullyQualifiedName();
-        for (String p : JUNIT3_PACKAGES) {
-            if (fqn.startsWith(p)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
