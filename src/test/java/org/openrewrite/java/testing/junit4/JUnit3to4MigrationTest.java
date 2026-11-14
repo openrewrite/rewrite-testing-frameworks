@@ -292,6 +292,23 @@ class JUnit3to4MigrationTest implements RewriteTest {
                       }
                   }
               }
+              """,
+            """
+              import junit.framework.AssertionFailedError;
+              import junit.framework.TestCase;
+
+              /*~~(Not migrated from JUnit 3: declares a constructor with parameters, which JUnit 4 cannot supply)~~>*/public class PinnedTest extends TestCase {
+                  public PinnedTest(int x) {
+                  }
+
+                  public void testIt() {
+                      assertEquals(1, 1);
+                      try {
+                          fail("x");
+                      } catch (AssertionFailedError e) {
+                      }
+                  }
+              }
               """
           )
         );

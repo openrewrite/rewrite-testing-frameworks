@@ -28,9 +28,9 @@ import org.openrewrite.java.RemoveImport;
 import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
-import org.openrewrite.java.testing.junit4.table.UnmigratedJUnit3Tests;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.*;
 
@@ -53,13 +53,13 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
             Comparator.comparing(a -> "Override".equals(a.getSimpleName()) ? "" : a.getSimpleName());
 
     private final Accumulator acc;
-    private final UnmigratedJUnit3Tests unmigrated;
     // a TestResult tells an AssertionFailedError (a failure) from any other error, which JUnit 4 assertions do not throw
     private boolean usesTestResult;
 
-    JUnit3TestCaseVisitor(Accumulator acc, UnmigratedJUnit3Tests unmigrated) {
+    private boolean unmigratedInFile;
+
+    JUnit3TestCaseVisitor(Accumulator acc) {
         this.acc = acc;
-        this.unmigrated = unmigrated;
     }
 
     private JavaTemplate.Builder template(String code) {
@@ -89,8 +89,7 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
     private boolean inUnmigratedClass() {
         for (Cursor c = getCursor(); c != null; c = c.getParent()) {
             if (c.getValue() instanceof J.ClassDeclaration) {
-                String fqn = fqn(c.getValue());
-                if (fqn != null && acc.classes.containsKey(fqn) && !acc.isMigrated(fqn)) {
+                if (acc.isUnmigrated(fqn(c.getValue()))) {
                     return true;
                 }
             }
@@ -121,7 +120,19 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         usesTestResult = new UsesType<>("junit.framework.TestResult", false).visit(cu, ctx) != cu;
+        unmigratedInFile = false;
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
+        if (unmigratedInFile) {
+            // after the import cleanup below, which a file whose only change is this marker should not get
+            doAfterVisit(new JavaIsoVisitor<ExecutionContext>() {
+                @Override
+                public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                    J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+                    String fqn = fqn(cd);
+                    return acc.isUnmigrated(fqn) ? SearchResult.found(cd, "Not migrated from JUnit 3: " + acc.pinnedBecause.get(fqn)) : cd;
+                }
+            });
+        }
         if (c == cu) {
             // nothing migrated; a file with incomplete type attribution would otherwise lose imports it still needs
             return c;
@@ -142,10 +153,8 @@ class JUnit3TestCaseVisitor extends JUnit3AssertionsVisitor {
         if (fqn == null) {
             return super.visitClassDeclaration(classDecl, ctx);
         }
-        if (acc.classes.containsKey(fqn) && !acc.isMigrated(fqn)) {
-            unmigrated.insertRow(ctx, new UnmigratedJUnit3Tests.Row(
-                    getCursor().firstEnclosingOrThrow(JavaSourceFile.class).getSourcePath().toString(), fqn,
-                    acc.pinnedBecause.get(fqn)));
+        if (acc.isUnmigrated(fqn)) {
+            unmigratedInFile = true;
             return super.visitClassDeclaration(classDecl, ctx);
         }
         boolean testCase = acc.isMigrated(fqn);

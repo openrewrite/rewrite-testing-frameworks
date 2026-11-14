@@ -19,13 +19,10 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.testing.junit4.table.UnmigratedJUnit3Tests;
 
 import java.util.*;
 
 public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.Accumulator> {
-
-    transient UnmigratedJUnit3Tests unmigrated = new UnmigratedJUnit3Tests(this);
 
     @Getter
     final String displayName = "Migrate JUnit 3 `TestCase` classes to JUnit 4";
@@ -38,7 +35,7 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
             "Assertions move to `org.junit.Assert`. " +
             "A class that would behave differently under JUnit 4, such as one that overrides `run(TestResult)`, " +
             "reports to a `TestResult`, passes its instances around as `Test`s or needs the test name, " +
-            "is left as it is, and listed in a data table. JUnit 4 keeps running those through its JUnit 3 adapter.";
+            "is left as it is, and marked with the reason. JUnit 4 keeps running those through its JUnit 3 adapter.";
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
@@ -60,7 +57,7 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
         acc.resolve();
         // no UsesType: callers of a constructor that loses its test name need not use anything from JUnit
-        return new JUnit3TestCaseVisitor(acc, unmigrated);
+        return new JUnit3TestCaseVisitor(acc);
     }
 
     /**
@@ -107,6 +104,10 @@ public class MigrateJUnit3TestCase extends ScanningRecipe<MigrateJUnit3TestCase.
 
         boolean isMigrated(@Nullable String fqn) {
             return fqn != null && classes.containsKey(fqn) && !pinnedBecause.containsKey(fqn);
+        }
+
+        boolean isUnmigrated(@Nullable String fqn) {
+            return fqn != null && classes.containsKey(fqn) && pinnedBecause.containsKey(fqn);
         }
 
         /**

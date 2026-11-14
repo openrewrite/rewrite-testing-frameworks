@@ -96,6 +96,16 @@ class JUnit3to5MigrationTest implements RewriteTest {
                       assertEquals(4, 2 + 2);
                   }
               }
+              """,
+            """
+              import junit.framework.TestCase;
+
+              /*~~(Not migrated from JUnit 3: calls TestCase.setName())~~>*/public class NamedTest extends TestCase {
+                  public void testAdd() {
+                      setName("add");
+                      assertEquals(4, 2 + 2);
+                  }
+              }
               """
           )
         );

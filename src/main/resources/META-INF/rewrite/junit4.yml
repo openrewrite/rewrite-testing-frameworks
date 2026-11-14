@@ -21,7 +21,7 @@ displayName: JUnit 4 migration from JUnit 3
 description: >-
   Migrates JUnit 3 tests to JUnit 4. Test classes that extend `junit.framework.TestCase` get JUnit 4 annotations,
   their assertions move to `org.junit.Assert`, `junit:junit` is upgraded to 4.13.x, and a Maven exclusion of Hamcrest from it is removed.
-  Classes that would behave differently under JUnit 4 are left as they are, and listed in a data table;
+  Classes that would behave differently under JUnit 4 are left as they are, and marked with the reason;
   JUnit 4 still runs those through its JUnit 3 adapter.
 tags:
   - testing
