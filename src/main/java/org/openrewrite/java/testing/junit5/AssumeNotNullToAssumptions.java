@@ -62,6 +62,36 @@ public class AssumeNotNullToAssumptions {
         }
     }
 
+    @RecipeDescriptor(
+            name = "Transform `assumeNoException(throwable)` to `assumeTrue(throwable == null)`",
+            description = "Transform `Assume.assumeNoException(throwable)` to `Assumptions.assumeTrue(throwable == null, ...)`, as JUnit Jupiter has no `assumeNoException`.")
+    static class NoException {
+        @BeforeTemplate
+        void before(Throwable throwable) {
+            Assume.assumeNoException(throwable);
+        }
+
+        @AfterTemplate
+        void after(Throwable throwable) {
+            Assumptions.assumeTrue(throwable == null, String.valueOf(throwable));
+        }
+    }
+
+    @RecipeDescriptor(
+            name = "Transform `assumeNoException(message, throwable)` to `assumeTrue(throwable == null, message)`",
+            description = "Transform `Assume.assumeNoException(message, throwable)` to `Assumptions.assumeTrue(throwable == null, message)`, as JUnit Jupiter has no `assumeNoException`.")
+    static class NoExceptionWithMessage {
+        @BeforeTemplate
+        void before(String message, Throwable throwable) {
+            Assume.assumeNoException(message, throwable);
+        }
+
+        @AfterTemplate
+        void after(String message, Throwable throwable) {
+            Assumptions.assumeTrue(throwable == null, message);
+        }
+    }
+
     public static class SingleArgMatcher implements Matcher<Expression> {
         @Override
         public boolean matches(Expression e) {

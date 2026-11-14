@@ -49,8 +49,7 @@ public class AddJupiterDependencies extends ScanningRecipe<AddJupiterDependencie
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
-        // The scanner sees the sources before `MigrateJUnitTestCase` rewrites them, so a
-        // codebase of `junit.framework.TestCase` subclasses uses no `org.junit` type yet.
+        // A codebase of `junit.framework.TestCase` subclasses that has not been migrated yet uses no `org.junit` type.
         TreeVisitor<?, ExecutionContext> usesJUnit4 = addJupiterDependency("org.junit..*").getScanner(acc.jupiter);
         TreeVisitor<?, ExecutionContext> usesJUnit3 = addJupiterDependency("junit.framework..*").getScanner(acc.jupiter);
         TreeVisitor<?, ExecutionContext> usesJupiterParams = explicitJupiterDependency(

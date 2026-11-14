@@ -120,4 +120,74 @@ class AssumeNotNullToAssumptionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Assume;
+
+              class Test {
+                  void test() {
+                      try {
+                          Integer.parseInt("x");
+                      } catch (NumberFormatException e) {
+                          Assume.assumeNoException(e);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assumptions;
+
+              class Test {
+                  void test() {
+                      try {
+                          Integer.parseInt("x");
+                      } catch (NumberFormatException e) {
+                          Assumptions.assumeTrue(e == null, String.valueOf(e));
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noExceptionWithMessage() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Assume;
+
+              class Test {
+                  void test() {
+                      try {
+                          Integer.parseInt("x");
+                      } catch (NumberFormatException e) {
+                          Assume.assumeNoException("no parsing here", e);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assumptions;
+
+              class Test {
+                  void test() {
+                      try {
+                          Integer.parseInt("x");
+                      } catch (NumberFormatException e) {
+                          Assumptions.assumeTrue(e == null, "no parsing here");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -1,0 +1,55 @@
+#
+# Copyright 2024 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit4.JUnit3to4Migration
+displayName: JUnit 4 migration from JUnit 3
+description: >-
+  Migrates JUnit 3 tests to JUnit 4. Test classes that extend `junit.framework.TestCase` get JUnit 4 annotations,
+  their assertions move to `org.junit.Assert`, `junit:junit` is upgraded to 4.13.x, and a Maven exclusion of Hamcrest from it is removed.
+  Classes that would behave differently under JUnit 4 are left as they are, and marked with the reason;
+  JUnit 4 still runs those through its JUnit 3 adapter.
+tags:
+  - testing
+  - junit
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: junit
+      artifactId: junit
+      newVersion: 4.13.x
+      overrideManagedVersion: true
+  # a build that only had JUnit 3 transitively has no org.junit to compile the migrated tests against; the use of
+  # junit.framework is what is scanned for, as it is gone once the tests are migrated
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: junit
+      artifactId: junit
+      version: 4.13.x
+      onlyIfUsing: junit.framework.*
+      scope: test
+  # JUnit 4.13 ships both, and a file that imports the members of both has ambiguous calls
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.junit.matchers.JUnitMatchers containsString(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.CoreMatchers
+  # JUnit 3 tests did not need Hamcrest, but the JUnit 4 runner does
+  - org.openrewrite.maven.RemoveExclusion:
+      groupId: junit
+      artifactId: junit
+      exclusionGroupId: org.hamcrest
+      exclusionArtifactId: hamcrest-core

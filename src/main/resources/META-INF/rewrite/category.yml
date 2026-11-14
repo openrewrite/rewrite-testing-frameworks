@@ -128,6 +128,14 @@ tags:
   - junit
 ---
 type: specs.openrewrite.org/v1beta/category
+name: JUnit 4
+packageName: org.openrewrite.java.testing.junit4
+description: Recipes for migrating to [JUnit 4](https://junit.org/junit4/).
+tags:
+  - testing
+  - junit
+---
+type: specs.openrewrite.org/v1beta/category
 name: JUnit 6
 packageName: org.openrewrite.java.testing.junit6
 description: Recipes for migrating to [JUnit 6](https://junit.org/).
