@@ -463,9 +463,8 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                   @Test
                   public void test() {
                       System.out.println("foo");
-                      assertThrows(IllegalArgumentException.class, () -> {
-                          foo();
-                      }, "message");
+                      assertThrows(IllegalArgumentException.class, () ->
+                          foo(), "message");
                   }
                   void foo() {
                   }
