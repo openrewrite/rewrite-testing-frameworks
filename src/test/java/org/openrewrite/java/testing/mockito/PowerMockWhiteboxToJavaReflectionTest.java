@@ -229,4 +229,58 @@ class PowerMockWhiteboxToJavaReflectionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void staticMembersOfClassLiteralTargetAreLookedUpOnThatClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.concurrent.atomic.AtomicBoolean;
+
+              class ServletFlag {
+                  private static AtomicBoolean isRunningFromServlet = new AtomicBoolean(false);
+
+                  private static int twice(int value) {
+                      return value * 2;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.concurrent.atomic.AtomicBoolean;
+
+              import org.powermock.reflect.Whitebox;
+
+              class ServletFlagTest {
+                  void test() throws Exception {
+                      Whitebox.setInternalState(ServletFlag.class, "isRunningFromServlet", new AtomicBoolean(true));
+                      Object flag = Whitebox.getInternalState(ServletFlag.class, "isRunningFromServlet");
+                      int doubled = Whitebox.invokeMethod(ServletFlag.class, "twice", 2);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+              import java.lang.reflect.Method;
+              import java.util.concurrent.atomic.AtomicBoolean;
+
+              class ServletFlagTest {
+                  void test() throws Exception {
+                      Field isRunningFromServletField = ServletFlag.class.getDeclaredField("isRunningFromServlet");
+                      isRunningFromServletField.setAccessible(true);
+                      isRunningFromServletField.set(ServletFlag.class, new AtomicBoolean(true));
+                      Field isRunningFromServletField1 = ServletFlag.class.getDeclaredField("isRunningFromServlet");
+                      isRunningFromServletField1.setAccessible(true);
+                      Object flag = isRunningFromServletField1.get(ServletFlag.class);
+                      Method twiceMethod = ServletFlag.class.getDeclaredMethod("twice", int.class);
+                      twiceMethod.setAccessible(true);
+                      int doubled = (Integer) twiceMethod.invoke(ServletFlag.class, 2);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
