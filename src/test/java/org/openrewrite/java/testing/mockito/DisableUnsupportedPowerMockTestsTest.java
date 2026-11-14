@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.marker.JavaSourceSet;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.testing.mockito.table.PowerMockTestsDisabled;
 import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
@@ -26,7 +28,10 @@ import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
 
+import static java.util.Collections.emptyMap;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.Assertions.java;
 
 class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
@@ -285,6 +290,187 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
                       // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
                       // return target;
                       throw new UnsupportedOperationException("Disabled by the PowerMock migration");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    private static void testNg(RecipeSpec spec) {
+        spec.parser(JavaParser.fromJavaVersion()
+          .logCompilationWarningsAndErrors(true)
+          .classpathFromResources(new InMemoryExecutionContext(),
+            "testng-7",
+            "mockito-core-3.12",
+            "powermock-core-1",
+            "powermock-api-mockito-1",
+            "powermock-api-support-1",
+            "powermock-reflect-1"
+          ));
+    }
+
+    /// The test classpath of a project on TestNG before 6.13, which has no `@Ignore`
+    private static JavaSourceSet testNgWithoutIgnore() {
+        return new JavaSourceSet(randomId(), "test",
+          List.of(JavaType.ShallowClass.build("org.testng.annotations.Test")), emptyMap());
+    }
+
+    @Test
+    void disablesATestNgTestWithEnabledFalseBeforeTestNg613() {
+        rewriteRun(
+          DisableUnsupportedPowerMockTestsTest::testNg,
+          //language=java
+          java(
+            """
+              public class Service {
+                  private void init() {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.Test;
+
+              public class ServiceTest {
+                  @Test(groups = "unit")
+                  public void initializes() throws Exception {
+                      Service service = PowerMockito.spy(new Service());
+                      PowerMockito.verifyPrivate(service).invoke("init");
+                  }
+
+                  @Test
+                  public void unaffected() {
+                  }
+              }
+              """,
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.Test;
+
+              public class ServiceTest {
+                  @Test(groups = "unit", enabled = false)
+                  public void initializes() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Service service = PowerMockito.spy(new Service());
+                      // PowerMockito.verifyPrivate(service).invoke("init");
+                  }
+
+                  @Test
+                  public void unaffected() {
+                  }
+              }
+              """,
+            spec -> spec.markers(testNgWithoutIgnore())
+          )
+        );
+    }
+
+    @Test
+    void disablesEveryTestNgTestOfAClassWithEnabledFalseBeforeTestNg613() {
+        rewriteRun(
+          DisableUnsupportedPowerMockTestsTest::testNg,
+          //language=java
+          java(
+            """
+              public class Service {
+                  private void init() {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+
+              public class ServiceTest {
+                  @BeforeMethod
+                  public void setUp() throws Exception {
+                      Service service = PowerMockito.spy(new Service());
+                      PowerMockito.verifyPrivate(service).invoke("init");
+                  }
+
+                  @Test
+                  public void first() {
+                  }
+
+                  @Test(enabled = true)
+                  public void second() {
+                  }
+              }
+              """,
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+
+              public class ServiceTest {
+                  @BeforeMethod
+                  public void setUp() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Service service = PowerMockito.spy(new Service());
+                      // PowerMockito.verifyPrivate(service).invoke("init");
+                  }
+
+                  @Test(enabled = false)
+                  public void first() {
+                  }
+
+                  @Test(enabled = false)
+                  public void second() {
+                  }
+              }
+              """,
+            spec -> spec.markers(testNgWithoutIgnore())
+          )
+        );
+    }
+
+    @Test
+    void disablesATestNgTestWithIgnoreWhereTestNgHasIt() {
+        rewriteRun(
+          DisableUnsupportedPowerMockTestsTest::testNg,
+          //language=java
+          java(
+            """
+              public class Service {
+                  private void init() {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.Test;
+
+              public class ServiceTest {
+                  @Test
+                  public void initializes() throws Exception {
+                      Service service = PowerMockito.spy(new Service());
+                      PowerMockito.verifyPrivate(service).invoke("init");
+                  }
+              }
+              """,
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.Ignore;
+              import org.testng.annotations.Test;
+
+              public class ServiceTest {
+                  @Test
+                  @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+                  public void initializes() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Service service = PowerMockito.spy(new Service());
+                      // PowerMockito.verifyPrivate(service).invoke("init");
                   }
               }
               """
