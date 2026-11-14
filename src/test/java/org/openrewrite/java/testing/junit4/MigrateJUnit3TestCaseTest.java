@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit4;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -342,168 +343,6 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
-    void leaveClassUsingTheTestNameUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class MathTest extends TestCase {
-                  private final String label;
-
-                  public MathTest(String testName) {
-                      super(testName);
-                      label = "test " + testName;
-                  }
-
-                  public void testAdd() {
-                      assertEquals(2, 1 + 1);
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-
-              /*~~(Not migrated from JUnit 3: its (String) constructor uses the test name)~~>*/public class MathTest extends TestCase {
-                  private final String label;
-
-                  public MathTest(String testName) {
-                      super(testName);
-                      label = "test " + testName;
-                  }
-
-                  public void testAdd() {
-                      assertEquals(2, 1 + 1);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void leaveClassWhoseInstancesAreUsedAsTests() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.Test;
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              public class MathTest extends TestCase {
-                  public MathTest(String name) {
-                      super(name);
-                  }
-
-                  public static Test suite() {
-                      TestSuite suite = new TestSuite();
-                      suite.addTest(new MathTest("testAdd"));
-                      return suite;
-                  }
-
-                  public void testAdd() {
-                  }
-              }
-              """,
-            """
-              import junit.framework.Test;
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              /*~~(Not migrated from JUnit 3: its suite() method builds a suite that has no JUnit 4 equivalent)~~>*/public class MathTest extends TestCase {
-                  public MathTest(String name) {
-                      super(name);
-                  }
-
-                  public static Test suite() {
-                      TestSuite suite = new TestSuite();
-                      suite.addTest(new MathTest("testAdd"));
-                      return suite;
-                  }
-
-                  public void testAdd() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void leaveRunTestResultOverrideUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-              import junit.framework.TestResult;
-
-              public class MultiThreadedTest extends TestCase {
-                  private TestResult testResult;
-
-                  @Override
-                  public void run(TestResult result) {
-                      this.testResult = result;
-                      super.run(result);
-                  }
-
-                  public void testSomething() {
-                      assertTrue(true);
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-              import junit.framework.TestResult;
-
-              /*~~(Not migrated from JUnit 3: overrides TestCase.run())~~>*/public class MultiThreadedTest extends TestCase {
-                  private TestResult testResult;
-
-                  @Override
-                  public void run(TestResult result) {
-                      this.testResult = result;
-                      super.run(result);
-                  }
-
-                  public void testSomething() {
-                      assertTrue(true);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void leaveClassCallingSetNameUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class FooTest extends TestCase {
-                  public void testSomething() {
-                      setName("other");
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-
-              /*~~(Not migrated from JUnit 3: calls TestCase.setName())~~>*/public class FooTest extends TestCase {
-                  public void testSomething() {
-                      setName("other");
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void keepNonAssertionTestCaseReferences() {
         rewriteRun(
           //language=java
@@ -607,65 +446,6 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
 
               public class FooTest {
                   @Test
-                  public void testSomething() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void leaveSuiteBuiltFromLoops() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.Test;
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              public class FooTest extends TestCase {
-                  public static Test suite() {
-                      TestSuite suite = new TestSuite();
-                      for (String name : new String[] {"a", "b"}) {
-                          suite.addTest(new FooTest(name));
-                      }
-                      return suite;
-                  }
-
-                  private final String name;
-
-                  public FooTest(String name) {
-                      super("testSomething");
-                      this.name = name;
-                  }
-
-                  public void testSomething() {
-                  }
-              }
-              """,
-            """
-              import junit.framework.Test;
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              /*~~(Not migrated from JUnit 3: its (String) constructor passes something other than the test name to super)~~>*/public class FooTest extends TestCase {
-                  public static Test suite() {
-                      TestSuite suite = new TestSuite();
-                      for (String name : new String[] {"a", "b"}) {
-                          suite.addTest(new FooTest(name));
-                      }
-                      return suite;
-                  }
-
-                  private final String name;
-
-                  public FooTest(String name) {
-                      super("testSomething");
-                      this.name = name;
-                  }
-
                   public void testSomething() {
                   }
               }
@@ -885,72 +665,6 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
-    void leaveTestRunnerMainWithOptions() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class FooTest extends TestCase {
-                  public static void main(String[] args) {
-                      junit.textui.TestRunner.main(new String[]{"-wait", "FooTest"});
-                  }
-
-                  public void testSomething() {
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-
-              /*~~(Not migrated from JUnit 3: calls junit.textui.TestRunner.main, which has no JUnit 4 equivalent here)~~>*/public class FooTest extends TestCase {
-                  public static void main(String[] args) {
-                      junit.textui.TestRunner.main(new String[]{"-wait", "FooTest"});
-                  }
-
-                  public void testSomething() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void leaveClassWhoseInterfaceIsImplementedByTestCase() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              public interface Named {
-                  String getName();
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class NamedXaTest extends TestCase implements Named {
-                  public void testSomething() {
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-
-              /*~~(Not migrated from JUnit 3: TestCase provides getName(), which Named asks for)~~>*/public class NamedXaTest extends TestCase implements Named {
-                  public void testSomething() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void staticTestMethodBecomesAnInstanceMethod() {
         rewriteRun(
           //language=java
@@ -996,78 +710,6 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
             """
               public class Test {
                   @org.junit.Test
-                  public void testIt() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void keepSuiteCalledByAnAggregateThatStays() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.Test;
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              public class AllTest extends TestCase {
-                  public AllTest(String name) {
-                      super(name);
-                  }
-
-                  public static Test suite() {
-                      TestSuite suite = new TestSuite(AllTest.class);
-                      suite.addTest(OneTest.suite());
-                      return suite;
-                  }
-              }
-              """,
-            """
-              import junit.framework.Test;
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              /*~~(Not migrated from JUnit 3: its suite() method collects other test classes)~~>*/public class AllTest extends TestCase {
-                  public AllTest(String name) {
-                      super(name);
-                  }
-
-                  public static Test suite() {
-                      TestSuite suite = new TestSuite(AllTest.class);
-                      suite.addTest(OneTest.suite());
-                      return suite;
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              public class OneTest extends TestCase {
-                  public static TestSuite suite() {
-                      return new TestSuite(OneTest.class);
-                  }
-
-                  public void testIt() {
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-              import junit.framework.TestSuite;
-
-              /*~~(Not migrated from JUnit 3: its suite() method is called)~~>*/public class OneTest extends TestCase {
-                  public static TestSuite suite() {
-                      return new TestSuite(OneTest.class);
-                  }
-
                   public void testIt() {
                   }
               }
@@ -1239,44 +881,6 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
-    void leaveClassPassedAsAJUnit3Test() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class FooTest extends TestCase {
-                  public void testIt() {
-                      Util.run(this);
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-
-              /*~~(Not migrated from JUnit 3: instances are passed where a junit.framework type is expected)~~>*/public class FooTest extends TestCase {
-                  public void testIt() {
-                      Util.run(this);
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-
-              class Util {
-                  static void run(TestCase test) {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void annotatedNonPublicMethodsBecomePublic() {
         rewriteRun(
           //language=java
@@ -1316,37 +920,6 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
                   }
 
                   @Test
-                  public void testIt() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void leaveClassWithAnExplicitRunnerUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-              import org.junit.runner.RunWith;
-              import org.junit.runners.JUnit4;
-
-              @RunWith(JUnit4.class)
-              public class FooTest extends TestCase {
-                  public void testIt() {
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-              import org.junit.runner.RunWith;
-              import org.junit.runners.JUnit4;
-
-              /*~~(Not migrated from JUnit 3: a runner chosen with @RunWith decides which methods run, whereas the TestCase conventions do not apply to it)~~>*/@RunWith(JUnit4.class)
-              public class FooTest extends TestCase {
                   public void testIt() {
                   }
               }
@@ -1425,5 +998,436 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void leaveClassUsingTheTestNameUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class MathTest extends TestCase {
+                      private final String label;
+
+                      public MathTest(String testName) {
+                          super(testName);
+                          label = "test " + testName;
+                      }
+
+                      public void testAdd() {
+                          assertEquals(2, 1 + 1);
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+
+                  /*~~(Not migrated from JUnit 3: its (String) constructor uses the test name)~~>*/public class MathTest extends TestCase {
+                      private final String label;
+
+                      public MathTest(String testName) {
+                          super(testName);
+                          label = "test " + testName;
+                      }
+
+                      public void testAdd() {
+                          assertEquals(2, 1 + 1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveClassWhoseInstancesAreUsedAsTests() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.Test;
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  public class MathTest extends TestCase {
+                      public MathTest(String name) {
+                          super(name);
+                      }
+
+                      public static Test suite() {
+                          TestSuite suite = new TestSuite();
+                          suite.addTest(new MathTest("testAdd"));
+                          return suite;
+                      }
+
+                      public void testAdd() {
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.Test;
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  /*~~(Not migrated from JUnit 3: its suite() method builds a suite that has no JUnit 4 equivalent)~~>*/public class MathTest extends TestCase {
+                      public MathTest(String name) {
+                          super(name);
+                      }
+
+                      public static Test suite() {
+                          TestSuite suite = new TestSuite();
+                          suite.addTest(new MathTest("testAdd"));
+                          return suite;
+                      }
+
+                      public void testAdd() {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveRunTestResultOverrideUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+                  import junit.framework.TestResult;
+
+                  public class MultiThreadedTest extends TestCase {
+                      private TestResult testResult;
+
+                      @Override
+                      public void run(TestResult result) {
+                          this.testResult = result;
+                          super.run(result);
+                      }
+
+                      public void testSomething() {
+                          assertTrue(true);
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+                  import junit.framework.TestResult;
+
+                  /*~~(Not migrated from JUnit 3: overrides TestCase.run())~~>*/public class MultiThreadedTest extends TestCase {
+                      private TestResult testResult;
+
+                      @Override
+                      public void run(TestResult result) {
+                          this.testResult = result;
+                          super.run(result);
+                      }
+
+                      public void testSomething() {
+                          assertTrue(true);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveClassCallingSetNameUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class FooTest extends TestCase {
+                      public void testSomething() {
+                          setName("other");
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+
+                  /*~~(Not migrated from JUnit 3: calls TestCase.setName())~~>*/public class FooTest extends TestCase {
+                      public void testSomething() {
+                          setName("other");
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveSuiteBuiltFromLoops() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.Test;
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  public class FooTest extends TestCase {
+                      public static Test suite() {
+                          TestSuite suite = new TestSuite();
+                          for (String name : new String[] {"a", "b"}) {
+                              suite.addTest(new FooTest(name));
+                          }
+                          return suite;
+                      }
+
+                      private final String name;
+
+                      public FooTest(String name) {
+                          super("testSomething");
+                          this.name = name;
+                      }
+
+                      public void testSomething() {
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.Test;
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  /*~~(Not migrated from JUnit 3: its (String) constructor passes something other than the test name to super)~~>*/public class FooTest extends TestCase {
+                      public static Test suite() {
+                          TestSuite suite = new TestSuite();
+                          for (String name : new String[] {"a", "b"}) {
+                              suite.addTest(new FooTest(name));
+                          }
+                          return suite;
+                      }
+
+                      private final String name;
+
+                      public FooTest(String name) {
+                          super("testSomething");
+                          this.name = name;
+                      }
+
+                      public void testSomething() {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveTestRunnerMainWithOptions() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class FooTest extends TestCase {
+                      public static void main(String[] args) {
+                          junit.textui.TestRunner.main(new String[]{"-wait", "FooTest"});
+                      }
+
+                      public void testSomething() {
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+
+                  /*~~(Not migrated from JUnit 3: calls junit.textui.TestRunner.main, which has no JUnit 4 equivalent here)~~>*/public class FooTest extends TestCase {
+                      public static void main(String[] args) {
+                          junit.textui.TestRunner.main(new String[]{"-wait", "FooTest"});
+                      }
+
+                      public void testSomething() {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveClassWhoseInterfaceIsImplementedByTestCase() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  public interface Named {
+                      String getName();
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class NamedXaTest extends TestCase implements Named {
+                      public void testSomething() {
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+
+                  /*~~(Not migrated from JUnit 3: TestCase provides getName(), which Named asks for)~~>*/public class NamedXaTest extends TestCase implements Named {
+                      public void testSomething() {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void keepSuiteCalledByAnAggregateThatStays() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.Test;
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  public class AllTest extends TestCase {
+                      public AllTest(String name) {
+                          super(name);
+                      }
+
+                      public static Test suite() {
+                          TestSuite suite = new TestSuite(AllTest.class);
+                          suite.addTest(OneTest.suite());
+                          return suite;
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.Test;
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  /*~~(Not migrated from JUnit 3: its suite() method collects other test classes)~~>*/public class AllTest extends TestCase {
+                      public AllTest(String name) {
+                          super(name);
+                      }
+
+                      public static Test suite() {
+                          TestSuite suite = new TestSuite(AllTest.class);
+                          suite.addTest(OneTest.suite());
+                          return suite;
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  public class OneTest extends TestCase {
+                      public static TestSuite suite() {
+                          return new TestSuite(OneTest.class);
+                      }
+
+                      public void testIt() {
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+                  import junit.framework.TestSuite;
+
+                  /*~~(Not migrated from JUnit 3: its suite() method is called)~~>*/public class OneTest extends TestCase {
+                      public static TestSuite suite() {
+                          return new TestSuite(OneTest.class);
+                      }
+
+                      public void testIt() {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveClassPassedAsAJUnit3Test() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class FooTest extends TestCase {
+                      public void testIt() {
+                          Util.run(this);
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+
+                  /*~~(Not migrated from JUnit 3: instances are passed where a junit.framework type is expected)~~>*/public class FooTest extends TestCase {
+                      public void testIt() {
+                          Util.run(this);
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  class Util {
+                      static void run(TestCase test) {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveClassWithAnExplicitRunnerUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+                  import org.junit.runner.RunWith;
+                  import org.junit.runners.JUnit4;
+
+                  @RunWith(JUnit4.class)
+                  public class FooTest extends TestCase {
+                      public void testIt() {
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+                  import org.junit.runner.RunWith;
+                  import org.junit.runners.JUnit4;
+
+                  /*~~(Not migrated from JUnit 3: a runner chosen with @RunWith decides which methods run, whereas the TestCase conventions do not apply to it)~~>*/@RunWith(JUnit4.class)
+                  public class FooTest extends TestCase {
+                      public void testIt() {
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

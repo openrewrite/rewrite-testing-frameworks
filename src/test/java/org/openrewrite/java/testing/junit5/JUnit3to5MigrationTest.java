@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit5;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -82,36 +83,6 @@ class JUnit3to5MigrationTest implements RewriteTest {
     }
 
     @Test
-    void classJUnit4CannotRepresentStaysJUnit3() {
-        // setName has no JUnit 4 equivalent, so the class is left alone rather than half-migrated
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import junit.framework.TestCase;
-
-              public class NamedTest extends TestCase {
-                  public void testAdd() {
-                      setName("add");
-                      assertEquals(4, 2 + 2);
-                  }
-              }
-              """,
-            """
-              import junit.framework.TestCase;
-
-              /*~~(Not migrated from JUnit 3: calls TestCase.setName())~~>*/public class NamedTest extends TestCase {
-                  public void testAdd() {
-                      setName("add");
-                      assertEquals(4, 2 + 2);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void subclassOfMigratedBaseStaticallyImportsAssertions() {
         //language=java
         rewriteRun(
@@ -149,5 +120,38 @@ class JUnit3to5MigrationTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void classJUnit4CannotRepresentStaysJUnit3() {
+            // setName has no JUnit 4 equivalent, so the class is left alone rather than half-migrated
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class NamedTest extends TestCase {
+                      public void testAdd() {
+                          setName("add");
+                          assertEquals(4, 2 + 2);
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.TestCase;
+
+                  /*~~(Not migrated from JUnit 3: calls TestCase.setName())~~>*/public class NamedTest extends TestCase {
+                      public void testAdd() {
+                          setName("add");
+                          assertEquals(4, 2 + 2);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

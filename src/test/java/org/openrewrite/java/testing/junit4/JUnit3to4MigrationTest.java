@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit4;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
@@ -272,49 +273,6 @@ class JUnit3to4MigrationTest implements RewriteTest {
     }
 
     @Test
-    void unmigratedTestCaseKeepsItsAssertions() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.AssertionFailedError;
-              import junit.framework.TestCase;
-
-              public class PinnedTest extends TestCase {
-                  public PinnedTest(int x) {
-                  }
-
-                  public void testIt() {
-                      assertEquals(1, 1);
-                      try {
-                          fail("x");
-                      } catch (AssertionFailedError e) {
-                      }
-                  }
-              }
-              """,
-            """
-              import junit.framework.AssertionFailedError;
-              import junit.framework.TestCase;
-
-              /*~~(Not migrated from JUnit 3: declares a constructor with parameters, which JUnit 4 cannot supply)~~>*/public class PinnedTest extends TestCase {
-                  public PinnedTest(int x) {
-                  }
-
-                  public void testIt() {
-                      assertEquals(1, 1);
-                      try {
-                          fail("x");
-                      } catch (AssertionFailedError e) {
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void migratesAssertionsOutsideTestCases() {
         rewriteRun(
           //language=java
@@ -334,25 +292,6 @@ class JUnit3to4MigrationTest implements RewriteTest {
               public class Checks {
                   public static void check(int x) {
                       Assert.assertEquals(1, x);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void leavesAssertionsOfTestResultUsers() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.Assert;
-              import junit.framework.TestResult;
-
-              public class Listener {
-                  public void check(TestResult result) {
-                      Assert.assertTrue(result.wasSuccessful());
                   }
               }
               """
@@ -407,5 +346,70 @@ class JUnit3to4MigrationTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void unmigratedTestCaseKeepsItsAssertions() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.AssertionFailedError;
+                  import junit.framework.TestCase;
+
+                  public class PinnedTest extends TestCase {
+                      public PinnedTest(int x) {
+                      }
+
+                      public void testIt() {
+                          assertEquals(1, 1);
+                          try {
+                              fail("x");
+                          } catch (AssertionFailedError e) {
+                          }
+                      }
+                  }
+                  """,
+                """
+                  import junit.framework.AssertionFailedError;
+                  import junit.framework.TestCase;
+
+                  /*~~(Not migrated from JUnit 3: declares a constructor with parameters, which JUnit 4 cannot supply)~~>*/public class PinnedTest extends TestCase {
+                      public PinnedTest(int x) {
+                      }
+
+                      public void testIt() {
+                          assertEquals(1, 1);
+                          try {
+                              fail("x");
+                          } catch (AssertionFailedError e) {
+                          }
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leavesAssertionsOfTestResultUsers() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.Assert;
+                  import junit.framework.TestResult;
+
+                  public class Listener {
+                      public void check(TestResult result) {
+                          Assert.assertTrue(result.wasSuccessful());
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }

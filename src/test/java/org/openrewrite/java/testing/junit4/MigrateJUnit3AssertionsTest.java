@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.junit4;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -198,25 +199,6 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
     }
 
     @Test
-    void leaveTestResultUsersUntouched() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
-              import junit.framework.TestResult;
-
-              public class FooTest extends TestCase {
-                  public void run(TestResult result) {
-                      assertTrue(true);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void primitiveComparedToBoxedFloatingPointStaysUnambiguous() {
         rewriteRun(
           //language=java
@@ -308,40 +290,6 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
     }
 
     @Test
-    void leaveAssertionsOfAProjectTestBaseClass() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              package a;
-
-              import junit.framework.TestCase;
-
-              public class Base extends TestCase {
-                  public static void assertEquals(Object a, Object b, int c) {
-                  }
-              }
-              """
-          ),
-          //language=java
-          java(
-            """
-              import org.junit.Test;
-
-              import static a.Base.assertEquals;
-
-              public class FooTest {
-                  @Test
-                  public void testX() {
-                      assertEquals("a", "b", 1);
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void staticImportThroughATestBaseClassIsRemoved() {
         rewriteRun(
           //language=java
@@ -379,5 +327,61 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void leaveTestResultUsersUntouched() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+                  import junit.framework.TestResult;
+
+                  public class FooTest extends TestCase {
+                      public void run(TestResult result) {
+                          assertTrue(true);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void leaveAssertionsOfAProjectTestBaseClass() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  package a;
+
+                  import junit.framework.TestCase;
+
+                  public class Base extends TestCase {
+                      public static void assertEquals(Object a, Object b, int c) {
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  import static a.Base.assertEquals;
+
+                  public class FooTest {
+                      @Test
+                      public void testX() {
+                          assertEquals("a", "b", 1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }
