@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.MavenResolutionResult;
@@ -33,11 +34,9 @@ import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-/**
- * Spring Boot 2 manages both Mockito and Byte Buddy. Raising the managed Mockito without raising Byte Buddy leaves
- * a Mockito that fails to load its mock maker, such as with a `ClassNotFoundException` for
- * `net.bytebuddy.utility.GraalImageCode`.
- */
+/// Spring Boot 2 manages both Mockito and Byte Buddy. Raising the managed Mockito without raising Byte Buddy leaves
+/// a Mockito that fails to load its mock maker, such as with a `ClassNotFoundException` for
+/// `net.bytebuddy.utility.GraalImageCode`.
 class MockitoByteBuddyAlignmentTest implements RewriteTest {
 
     @Override
@@ -79,6 +78,18 @@ class MockitoByteBuddyAlignmentTest implements RewriteTest {
       }
       """;
 
+    @DocumentExample
+    @Test
+    void mockitoManagedByTheBomIsLeftAlone() {
+        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to5Migration"),
+          mavenProject("demo",
+            pomXml(SPRING_BOOT_2_1_POM.replaceAll("\\s*<version>2\\.23\\.4</version>", "")),
+            srcTestJava(java(TEST, spec -> spec.markers(javaVersion(17))))
+          )
+        );
+    }
+
     @Test
     void byteBuddyRaisedAlongWithMockito4() {
         rewriteRun(
@@ -104,17 +115,6 @@ class MockitoByteBuddyAlignmentTest implements RewriteTest {
                 assertAtLeast(resolvedVersion(pom, "net.bytebuddy", "byte-buddy"), "1.17.0");
                 assertAtLeast(resolvedVersion(pom, "net.bytebuddy", "byte-buddy-agent"), "1.17.0");
             })),
-            srcTestJava(java(TEST, spec -> spec.markers(javaVersion(17))))
-          )
-        );
-    }
-
-    @Test
-    void mockitoManagedByTheBomIsLeftAlone() {
-        rewriteRun(
-          spec -> spec.recipeFromResources("org.openrewrite.java.testing.mockito.Mockito1to5Migration"),
-          mavenProject("demo",
-            pomXml(SPRING_BOOT_2_1_POM.replaceAll("\\s*<version>2\\.23\\.4</version>", "")),
             srcTestJava(java(TEST, spec -> spec.markers(javaVersion(17))))
           )
         );
@@ -192,7 +192,6 @@ class MockitoByteBuddyAlignmentTest implements RewriteTest {
 
     private static void assertAtLeast(String actual, String minimum) {
         assertThat(new LatestRelease(null).compare(null, actual, minimum))
-          .as("%s is at least %s", actual, minimum)
-          .isGreaterThanOrEqualTo(0);
+                .as("%s is at least %s", actual, minimum).isNotNegative();
     }
 }

@@ -96,8 +96,8 @@ public class ImplausibleTimeoutToMinutes extends Recipe {
                         .imports(TIMEOUT, "java.util.concurrent.TimeUnit")
                         .build()
                         .apply(getCursor(), a.getCoordinates().replace());
-                maybeAddImport("java.util.concurrent.TimeUnit");
                 maybeRemoveImport("java.util.concurrent.TimeUnit.SECONDS");
+                maybeAddImport("java.util.concurrent.TimeUnit");
 
                 J.Assignment minutesValue = (J.Assignment) generated.getArguments().get(0);
                 J.Assignment minutesUnit = (J.Assignment) generated.getArguments().get(1);

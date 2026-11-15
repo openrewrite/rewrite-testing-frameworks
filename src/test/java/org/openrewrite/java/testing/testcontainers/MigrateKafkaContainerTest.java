@@ -29,7 +29,9 @@ class MigrateKafkaContainerTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new MigrateKafkaContainer())
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "kafka-1.20.6", "testcontainers-1.20.6", "junit-4"));
+            "kafka-1.20.6",
+            "testcontainers-1.20.6",
+            "junit-4"));
     }
 
     @DocumentExample
