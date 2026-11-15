@@ -21,8 +21,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
-import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -35,7 +35,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
@@ -798,7 +797,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
 
     @Test
     void preserveLifecycleMethodThroughBinaryIntermediateClass(@TempDir Path tempDir) throws Exception {
-        String baseSource = """
+        var baseSource = """
           package base;
 
           import org.junit.jupiter.api.BeforeEach;
@@ -827,7 +826,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
           """);
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         assertThat(compiler).isNotNull();
-        StringWriter diagnostics = new StringWriter();
+        var diagnostics = new StringWriter();
         try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null)) {
             assertThat(compiler.getTask(diagnostics, fileManager, null,
               List.of("-classpath", Path.of(BeforeEach.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toString(),
@@ -838,7 +837,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
         }
         // The parser must see the base only as source, behind the binary intermediate class
         Files.delete(classes.resolve("base/BaseTest.class"));
-        List<Path> classpath = new ArrayList<>(JavaParser.dependenciesFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"));
+        var classpath = new ArrayList<Path>(JavaParser.dependenciesFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"));
         classpath.add(classes);
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath(classpath)),
@@ -864,9 +863,9 @@ class TestsShouldNotBePublicTest implements RewriteTest {
               }
               """,
             spec -> spec.beforeRecipe(cu -> {
-                assertThat(cu.getClasses().get(0).getType().getSupertype().getFullyQualifiedName())
+                assertThat(cu.getClasses().getFirst().getType().getSupertype().getFullyQualifiedName())
                   .isEqualTo("middle.MiddleTest");
-                assertThat(cu.getClasses().get(0).getType().getSupertype().getSupertype().getFullyQualifiedName())
+                assertThat(cu.getClasses().getFirst().getType().getSupertype().getSupertype().getFullyQualifiedName())
                   .isEqualTo("base.BaseTest");
             })
           )
@@ -1232,7 +1231,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
                       return super.visitFieldAccess(fieldAccess, p).withType(null);
                   }
               }.visit(i, 0))
-              .collect(Collectors.toList())))
+              .toList()))
           )
         );
     }
@@ -1318,7 +1317,7 @@ class TestsShouldNotBePublicTest implements RewriteTest {
                               return super.visitFieldAccess(fieldAccess, p).withType(null);
                           }
                       }.visit(i, 0))
-                      .collect(Collectors.toList())));
+                      .toList()));
                 }
             }
           )

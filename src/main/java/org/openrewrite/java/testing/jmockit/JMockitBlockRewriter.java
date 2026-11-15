@@ -210,11 +210,11 @@ class JMockitBlockRewriter {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, p);
-                if (mi.getMethodType() == null && mi.getSimpleName().equals("verify") && mi.getSelect() instanceof J.Identifier &&
+                if (mi.getMethodType() == null && "verify".equals(mi.getSimpleName()) && mi.getSelect() instanceof J.Identifier &&
                     ((J.Identifier) mi.getSelect()).getSimpleName().equals(inOrderName) &&
                     fieldType.getType() instanceof JavaType.FullyQualified) {
                     for (JavaType.Method candidate : ((JavaType.FullyQualified) fieldType.getType()).getMethods()) {
-                        if (candidate.getName().equals("verify") && candidate.getParameterTypes().size() == mi.getArguments().size()) {
+                        if ("verify".equals(candidate.getName()) && candidate.getParameterTypes().size() == mi.getArguments().size()) {
                             return mi.withMethodType(candidate).withName(mi.getName().withType(candidate));
                         }
                     }

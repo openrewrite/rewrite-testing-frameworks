@@ -475,7 +475,10 @@ class JUnit5to6MigrationTest implements RewriteTest {
     void addsJackson3ForPioneerJsonSources() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "junit-jupiter-params-5", "junit-pioneer-2")),
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-jupiter-api-5",
+              "junit-jupiter-params-5",
+              "junit-pioneer-2")),
           mavenProject("project",
             //language=java
             srcTestJava(java(

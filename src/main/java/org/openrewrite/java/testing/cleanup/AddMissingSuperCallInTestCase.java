@@ -174,11 +174,9 @@ public class AddMissingSuperCallInTestCase extends ScanningRecipe<Set<String>> {
                     }
                     md = declareThrows(md, methodType, thrown);
                 }
-                md = JavaTemplate.builder("super." + methodType.getName() + "()")
-                        .build()
-                        .apply(updateCursor(md), setUp ?
-                                requireNonNull(md.getBody()).getCoordinates().firstStatement() :
-                                requireNonNull(md.getBody()).getCoordinates().lastStatement());
+                md = JavaTemplate.apply("super." + methodType.getName() + "()", updateCursor(md), setUp ?
+                        requireNonNull(md.getBody()).getCoordinates().firstStatement() :
+                        requireNonNull(md.getBody()).getCoordinates().lastStatement());
                 // The template cannot attribute `super` against a supertype it only knows from the type table
                 J.Block withCall = requireNonNull(md.getBody());
                 JavaType.Method superMethod = inherited;

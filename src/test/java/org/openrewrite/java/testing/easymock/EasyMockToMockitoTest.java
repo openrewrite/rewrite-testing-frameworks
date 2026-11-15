@@ -276,8 +276,8 @@ class EasyMockToMockitoTest implements RewriteTest {
                 """,
               spec -> spec.after(pom -> pom).afterRecipe(pom -> {
                   MavenResolutionResult resolution = pom.getMarkers().findFirst(MavenResolutionResult.class).orElseThrow();
-                  String mockito = resolution.findDependencies("org.mockito", "mockito-core", Scope.Test).get(0).getVersion();
-                  String byteBuddy = resolution.findDependencies("net.bytebuddy", "byte-buddy", Scope.Test).get(0).getVersion();
+                  String mockito = resolution.findDependencies("org.mockito", "mockito-core", Scope.Test).getFirst().getVersion();
+                  String byteBuddy = resolution.findDependencies("net.bytebuddy", "byte-buddy", Scope.Test).getFirst().getVersion();
                   assertThat(mockito).startsWith("5.");
                   assertThat(new LatestRelease(null).compare(null, byteBuddy, "1.17.0")).as(byteBuddy).isNotNegative();
               })
