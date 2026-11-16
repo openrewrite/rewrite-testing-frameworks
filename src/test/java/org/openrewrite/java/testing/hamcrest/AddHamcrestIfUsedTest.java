@@ -85,10 +85,8 @@ class AddHamcrestIfUsedTest implements RewriteTest {
                     </dependencies>
                 </project>
                 """,
-              spec -> spec.after(pom -> {
-                  return assertThat(pom).contains("<artifactId>hamcrest</artifactId>", "<artifactId>junit-jupiter</artifactId>")
-                          .doesNotContain("<artifactId>junit</artifactId>").actual();
-              })
+              spec -> spec.after(pom -> assertThat(pom).contains("<artifactId>hamcrest</artifactId>", "<artifactId>junit-jupiter</artifactId>")
+                          .doesNotContain("<artifactId>junit</artifactId>").actual())
             ),
             srcTestJava(java(
               """
@@ -108,13 +106,11 @@ class AddHamcrestIfUsedTest implements RewriteTest {
                     }
                 }
                 """,
-              spec -> spec.after(source -> {
-                  return assertThat(source).contains("import org.junit.jupiter.api.Test;",
+              spec -> spec.after(source -> assertThat(source).contains("import org.junit.jupiter.api.Test;",
                           "import static org.hamcrest.CoreMatchers.containsString;",
                           "import static org.hamcrest.MatcherAssert.assertThat;",
                           "assertThat(exception.getMessage(), containsString(\"bad\"));")
-                          .doesNotContain("ExpectedException").actual();
-              })
+                          .doesNotContain("ExpectedException").actual())
             ))
           )
         );

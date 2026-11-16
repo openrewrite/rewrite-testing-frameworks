@@ -81,7 +81,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                                 new UsesMethod<>(INTEGER_ASSERT_IS_EQUAL_TO, true),
                                 new UsesMethod<>(INTEGER_ASSERT_IS_GREATER_THAN, true),
                                 new UsesMethod<>(INTEGER_ASSERT_IS_LESS_THAN, true),
-                                new UsesMethod<>(LONG_ASSERT_IS_EQUAL_TO, true),
+                                new UsesMethod<>(LONG_IS_EQUAL_TO_MATCHER),
                                 new UsesMethod<>(LONG_ASSERT_IS_GREATER_THAN, true),
                                 new UsesMethod<>(LONG_ASSERT_IS_LESS_THAN, true)
                         )

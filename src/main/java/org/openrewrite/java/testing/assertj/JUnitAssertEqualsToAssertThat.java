@@ -31,10 +31,7 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.List;
 
-import static org.openrewrite.java.testing.assertj.JUnitDelta.floatingPointDeltaType;
-import static org.openrewrite.java.testing.assertj.JUnitDelta.isIntegralType;
-import static org.openrewrite.java.testing.assertj.JUnitDelta.isLiteralZero;
-import static org.openrewrite.java.testing.assertj.JUnitDelta.widenedTo;
+import static org.openrewrite.java.testing.assertj.JUnitDelta.*;
 
 public class JUnitAssertEqualsToAssertThat extends Recipe {
 

@@ -222,7 +222,7 @@ public class MinimumJreConditions extends Recipe {
                 J.NewArray array = (J.NewArray) versions;
                 JContainer<Expression> initializer = array.getPadding().getInitializer();
                 List<JRightPadded<Expression>> elements = initializer.getPadding().getElements();
-                List<JRightPadded<Expression>> kept = ListUtils.map(elements, e -> compareVersions(versionOf(e.getElement()), javaVersion) < 0 ? null : e);
+                List<JRightPadded<Expression>> kept = ListUtils.filter(elements, e -> !(compareVersions(versionOf(e.getElement()), javaVersion) < 0));
                 if (kept == elements || kept.isEmpty()) {
                     return array;
                 }

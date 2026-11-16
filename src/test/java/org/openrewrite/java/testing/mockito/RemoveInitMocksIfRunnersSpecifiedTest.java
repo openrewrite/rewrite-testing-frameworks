@@ -2060,7 +2060,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
 
     @Test
     void preserveObjectHandleRegardlessOfSourceOrder() {
-        String owner = """
+        var owner = """
           import org.junit.jupiter.api.extension.ExtendWith;
           import org.mockito.MockitoAnnotations;
           import org.mockito.junit.jupiter.MockitoExtension;
@@ -2074,7 +2074,7 @@ class RemoveInitMocksIfRunnersSpecifiedTest implements RewriteTest {
               }
           }
           """;
-        String reader = """
+        var reader = """
           class Reader {
               Object read(ManagedOwner owner) {
                   return owner.mocks;
