@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit4;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveImport;
 import org.openrewrite.java.search.UsesType;
@@ -63,7 +64,11 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         c = (J.CompilationUnit) new JUnit3AssertionsVisitor(cursor -> !usesTestResult && !inClass(cursor, plan::isUnmigrated), migratesTestCase)
                 .visitNonNull(c, ctx, parent);
         if (migratesTestCase || c != beforeAssertions) {
-            c = JUnit3AssertionsVisitor.migrateFailureTypes(c, ctx, parent);
+            // JUnit 4 assertions throw an AssertionError, which a catch of an AssertionFailedError would not catch
+            c = (J.CompilationUnit) new ChangeType("junit.framework.AssertionFailedError", "java.lang.AssertionError", true)
+                    .getVisitor().visitNonNull(c, ctx, parent);
+            c = (J.CompilationUnit) new ChangeType("junit.framework.ComparisonFailure", "org.junit.ComparisonFailure", true)
+                    .getVisitor().visitNonNull(c, ctx, parent);
         }
         if (c != cu || migratesTestCase) {
             // before @Test is added, as an import of junit.framework.Test would keep org.junit.Test from being imported;

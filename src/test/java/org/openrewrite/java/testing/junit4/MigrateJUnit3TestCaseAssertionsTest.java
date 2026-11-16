@@ -25,12 +25,12 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class MigrateJUnit3AssertionsTest implements RewriteTest {
+class MigrateJUnit3TestCaseAssertionsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
-          .recipe(new MigrateJUnit3Assertions());
+          .recipe(new MigrateJUnit3TestCase());
     }
 
     @DocumentExample
@@ -51,11 +51,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               }
               """,
             """
-              import junit.framework.TestCase;
+              import org.junit.Test;
 
               import static org.junit.Assert.*;
 
-              public class FooTest extends TestCase {
+              public class FooTest {
+                  @Test
                   public void testX() {
                       assertEquals(1, 2);
                       assertTrue("message", true);
@@ -85,10 +86,11 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               }
               """,
             """
-              import junit.framework.TestCase;
               import org.junit.Assert;
+              import org.junit.Test;
 
-              public class FooTest extends TestCase {
+              public class FooTest {
+                  @Test
                   public void testX() {
                       Assert.assertNull(null);
                       Assert.assertNotNull("x");
@@ -145,11 +147,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               }
               """,
             """
-              import junit.framework.TestCase;
+              import org.junit.Test;
 
               import static org.junit.Assert.assertEquals;
 
-              public class FooTest extends TestCase {
+              public class FooTest {
+                  @Test
                   public void testX() {
                       assertEquals(1.5, 3.0 / 2, 0.0);
                       assertEquals("msg", 1.5f, 3f / 2, 0.0f);
@@ -181,13 +184,14 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               }
               """,
             """
-              import junit.framework.TestCase;
               import org.junit.Assert;
+              import org.junit.Test;
 
-              public class FooTest extends TestCase {
+              public class FooTest {
                   void assertEquals(Object o) {
                   }
 
+                  @Test
                   public void testX() {
                       Assert.assertTrue(true);
                       Assert.assertEquals(1, 2);
@@ -214,11 +218,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               }
               """,
             """
-              import junit.framework.TestCase;
+              import org.junit.Test;
 
               import static org.junit.Assert.assertEquals;
 
-              public class FooTest extends TestCase {
+              public class FooTest {
+                  @Test
                   public void testX() {
                       assertEquals((Object) 0.25, Double.valueOf(0.25));
                       assertEquals("m", Float.valueOf(1f), (Object) 1f);
@@ -244,11 +249,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               }
               """,
             """
-              import junit.framework.TestCase;
+              import org.junit.Test;
 
               import static org.junit.Assert.assertEquals;
 
-              public class FooTest extends TestCase {
+              public class FooTest {
+                  @Test
                   public void testX() {
                       assertEquals((Object) (-2.3), Double.valueOf(-2.3));
                   }
@@ -274,11 +280,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
               }
               """,
             """
-              import junit.framework.TestCase;
+              import org.junit.Test;
 
               import static org.junit.Assert.assertEquals;
 
-              public class FooTest extends TestCase {
+              public class FooTest {
+                  @Test
                   public void testX() {
                       int i = 1;
                       assertEquals((Object) ((double) i + 0.1), Double.valueOf(1.1));
@@ -301,6 +308,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
 
               public abstract class Base extends TestCase {
               }
+              """,
+            """
+              package a;
+
+              public abstract class Base {
+              }
               """
           ),
           //language=java
@@ -319,9 +332,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
             """
               package a;
 
+              import org.junit.Test;
+
               import static org.junit.Assert.assertEquals;
 
               public class FooTest extends Base {
+                  @Test
                   public void testX() {
                       assertEquals(1, 2);
                   }
@@ -343,6 +359,12 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
 
               public abstract class Base extends TestCase {
               }
+              """,
+            """
+              package a;
+
+              public abstract class Base {
+              }
               """
           ),
           //language=java
@@ -362,11 +384,56 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
             """
               package a;
 
+              import org.junit.Test;
+
               import static org.junit.Assert.assertEquals;
 
               public class FooTest extends Base {
+                  @Test
                   public void testX() {
                       assertEquals(1, 2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void assertionsOfAProjectTestBaseClassStay() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              package a;
+
+              import junit.framework.TestCase;
+
+              public class Base extends TestCase {
+                  public static void assertEquals(Object a, Object b, int c) {
+                  }
+              }
+              """,
+            """
+              package a;
+
+              public class Base {
+                  public static void assertEquals(Object a, Object b, int c) {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+
+              import static a.Base.assertEquals;
+
+              public class FooTest {
+                  @Test
+                  public void testX() {
+                      assertEquals("a", "b", 1);
                   }
               }
               """
@@ -390,38 +457,14 @@ class MigrateJUnit3AssertionsTest implements RewriteTest {
                           assertTrue(true);
                       }
                   }
-                  """
-              )
-            );
-        }
-
-        @Test
-        void leaveAssertionsOfAProjectTestBaseClass() {
-            rewriteRun(
-              //language=java
-              java(
+                  """,
                 """
-                  package a;
-
                   import junit.framework.TestCase;
+                  import junit.framework.TestResult;
 
-                  public class Base extends TestCase {
-                      public static void assertEquals(Object a, Object b, int c) {
-                      }
-                  }
-                  """
-              ),
-              //language=java
-              java(
-                """
-                  import org.junit.Test;
-
-                  import static a.Base.assertEquals;
-
-                  public class FooTest {
-                      @Test
-                      public void testX() {
-                          assertEquals("a", "b", 1);
+                  /*~~(Not migrated from JUnit 3: overrides TestCase.run())~~>*/public class FooTest extends TestCase {
+                      public void run(TestResult result) {
+                          assertTrue(true);
                       }
                   }
                   """

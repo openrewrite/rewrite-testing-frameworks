@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.junit4;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.*;
@@ -51,10 +50,6 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
     private final boolean migratesTestCase;
     private boolean retargeted;
 
-    JUnit3AssertionsVisitor() {
-        this(cursor -> true, false);
-    }
-
     /**
      * @param retargets        whether the assertion at a cursor moves to {@code org.junit.Assert}
      * @param migratesTestCase whether the file declares a test class that no longer extends {@code TestCase}, and so
@@ -63,16 +58,6 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
     JUnit3AssertionsVisitor(Predicate<Cursor> retargets, boolean migratesTestCase) {
         this.retargets = retargets;
         this.migratesTestCase = migratesTestCase;
-    }
-
-    /**
-     * JUnit 4 assertions throw an {@code AssertionError}, which a catch of an {@code AssertionFailedError} would not catch.
-     */
-    static J.CompilationUnit migrateFailureTypes(J.CompilationUnit cu, ExecutionContext ctx, Cursor parent) {
-        J.CompilationUnit c = (J.CompilationUnit) new ChangeType("junit.framework.AssertionFailedError", "java.lang.AssertionError", true)
-                .getVisitor().visitNonNull(cu, ctx, parent);
-        return (J.CompilationUnit) new ChangeType("junit.framework.ComparisonFailure", "org.junit.ComparisonFailure", true)
-                .getVisitor().visitNonNull(c, ctx, parent);
     }
 
     @Override
