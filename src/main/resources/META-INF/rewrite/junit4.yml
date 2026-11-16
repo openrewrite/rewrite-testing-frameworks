@@ -16,6 +16,26 @@
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit4.UseCoreMatchersContainsString
+displayName: Use Hamcrest `CoreMatchers.containsString` over `JUnitMatchers.containsString`
+description: >-
+  JUnit 4.13 ships both, and a file that imports the members of both has ambiguous calls. Only modules on JUnit 4.11
+  or later are changed, as `CoreMatchers.containsString` comes with the Hamcrest 1.3 that those depend on; earlier
+  versions bundle a Hamcrest without it.
+tags:
+  - testing
+  - junit
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: junit
+      artifactIdPattern: junit
+      version: 4.11-4.99
+recipeList:
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.junit.matchers.JUnitMatchers containsString(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.CoreMatchers
+---
+type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.junit4.JUnit3to4Migration
 displayName: JUnit 4 migration from JUnit 3
 description: >-
@@ -41,10 +61,7 @@ recipeList:
       version: 4.13.x
       onlyIfUsing: junit.framework.*
       scope: test
-  # JUnit 4.13 ships both, and a file that imports the members of both has ambiguous calls
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.junit.matchers.JUnitMatchers containsString(..)
-      fullyQualifiedTargetTypeName: org.hamcrest.CoreMatchers
+  - org.openrewrite.java.testing.junit4.UseCoreMatchersContainsString
   # JUnit 3 tests did not need Hamcrest, but the JUnit 4 runner does
   - org.openrewrite.maven.RemoveExclusion:
       groupId: junit

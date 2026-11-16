@@ -240,36 +240,281 @@ class JUnit3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void upgradesJUnitManagedByAPropertyInTheParent() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>com.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <junit_version>4.10</junit_version>
+                </properties>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>${junit_version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>com.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <junit_version>4.13.2</junit_version>
+                </properties>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>${junit_version}</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """,
+            spec -> spec.path("pom.xml")
+          ),
+          mavenProject("child",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+                  public class FooTest extends TestCase {
+                      public void testIt() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Test;
+
+                  public class FooTest {
+                      @Test
+                      public void testIt() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradesJUnitWhenTheChildOverridesTheManagedVersionProperty() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>com.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <junit.version>4.13.1</junit.version>
+                </properties>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>${junit.version}</version>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>com.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <packaging>pom</packaging>
+                <modules>
+                  <module>child</module>
+                </modules>
+                <properties>
+                  <junit.version>4.13.2</junit.version>
+                </properties>
+                <dependencyManagement>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>${junit.version}</version>
+                    </dependency>
+                  </dependencies>
+                </dependencyManagement>
+              </project>
+              """,
+            spec -> spec.path("pom.xml")
+          ),
+          mavenProject("child",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
+
+                  public class FooTest extends TestCase {
+                      public void testIt() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Test;
+
+                  public class FooTest {
+                      @Test
+                      public void testIt() {
+                      }
+                  }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <properties>
+                    <junit.version>3.8.1</junit.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>${junit.version}</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <properties>
+                    <junit.version>4.13.2</junit.version>
+                  </properties>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>${junit.version}</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
     void junitMatchersContainsStringMovesToCoreMatchers() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-core-1.3")),
-          //language=java
-          java(
-            """
-              import junit.framework.TestCase;
+          mavenProject("app",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import junit.framework.TestCase;
 
-              import static org.junit.Assert.assertThat;
-              import static org.junit.matchers.JUnitMatchers.containsString;
+                  import static org.junit.Assert.assertThat;
+                  import static org.junit.matchers.JUnitMatchers.containsString;
 
-              public class FooTest extends TestCase {
-                  public void testIt() {
-                      assertThat("abc", containsString("b"));
+                  public class FooTest extends TestCase {
+                      public void testIt() {
+                          assertThat("abc", containsString("b"));
+                      }
                   }
-              }
-              """,
-            """
-              import org.junit.Test;
+                  """,
+                """
+                  import org.junit.Test;
 
-              import static org.hamcrest.CoreMatchers.containsString;
-              import static org.junit.Assert.assertThat;
+                  import static org.hamcrest.CoreMatchers.containsString;
+                  import static org.junit.Assert.assertThat;
 
-              public class FooTest {
-                  @Test
-                  public void testIt() {
-                      assertThat("abc", containsString("b"));
+                  public class FooTest {
+                      @Test
+                      public void testIt() {
+                          assertThat("abc", containsString("b"));
+                      }
                   }
-              }
+                  """
+              )
+            ),
+            //language=xml
+            pomXml(
               """
+                <project>
+                  <groupId>com.example</groupId>
+                  <artifactId>app</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                    <dependency>
+                      <groupId>junit</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>4.13.2</version>
+                      <scope>test</scope>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
           )
         );
     }
