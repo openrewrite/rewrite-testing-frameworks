@@ -22,6 +22,8 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.*;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * A migrated class no longer extends {@code TestCase}: calls of the {@code setUp()} and {@code tearDown()} it
  * inherited go, and {@code getName()} reads a {@code TestName} rule instead.
@@ -98,17 +100,15 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
     }
 
     private static boolean usesGetName(J.ClassDeclaration cd) {
-        boolean[] found = {false};
-        new JavaIsoVisitor<Integer>() {
+        return new JavaIsoVisitor<AtomicBoolean>() {
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, Integer p) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, AtomicBoolean found) {
                 if (isTestCaseGetName(m)) {
-                    found[0] = true;
+                    found.set(true);
                 }
-                return super.visitMethodInvocation(m, p);
+                return super.visitMethodInvocation(m, found);
             }
-        }.visit(cd.getBody(), 0);
-        return found[0];
+        }.reduce(cd.getBody(), new AtomicBoolean()).get();
     }
 
     private static boolean isTestCaseGetName(J.MethodInvocation m) {

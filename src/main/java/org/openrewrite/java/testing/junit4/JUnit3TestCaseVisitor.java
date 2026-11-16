@@ -26,6 +26,7 @@ import org.openrewrite.marker.SearchResult;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationVisitor.fqn;
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationVisitor.inClass;
@@ -83,14 +84,14 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
     }
 
     private boolean declaresMigratedClass(J.CompilationUnit cu) {
-        boolean[] found = {false};
-        new JavaIsoVisitor<Integer>() {
+        return new JavaIsoVisitor<AtomicBoolean>() {
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, Integer p) {
-                found[0] |= plan.isMigrated(fqn(cd));
-                return super.visitClassDeclaration(cd, p);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, AtomicBoolean found) {
+                if (plan.isMigrated(fqn(cd))) {
+                    found.set(true);
+                }
+                return super.visitClassDeclaration(cd, found);
             }
-        }.visit(cu, 0);
-        return found[0];
+        }.reduce(cu, new AtomicBoolean()).get();
     }
 }

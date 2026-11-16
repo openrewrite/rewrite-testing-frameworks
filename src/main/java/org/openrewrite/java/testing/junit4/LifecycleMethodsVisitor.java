@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -104,17 +105,15 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
         if (cu == null) {
             return true;
         }
-        boolean[] called = {false};
-        new JavaIsoVisitor<boolean[]>() {
+        return new JavaIsoVisitor<AtomicBoolean>() {
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, boolean[] c) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, AtomicBoolean called) {
                 if (name.equals(m.getSimpleName())) {
-                    c[0] = true;
+                    called.set(true);
                 }
-                return super.visitMethodInvocation(m, c);
+                return super.visitMethodInvocation(m, called);
             }
-        }.visit(cu, called);
-        return called[0];
+        }.reduce(cu, new AtomicBoolean()).get();
     }
 
     /**
@@ -125,17 +124,15 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
         if (cu == null) {
             return false;
         }
-        boolean[] found = {false};
-        new JavaIsoVisitor<boolean[]>() {
+        return new JavaIsoVisitor<AtomicBoolean>() {
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, boolean[] f) {
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, AtomicBoolean found) {
                 if (simpleName.equals(cd.getSimpleName())) {
-                    f[0] = true;
+                    found.set(true);
                 }
-                return super.visitClassDeclaration(cd, f);
+                return super.visitClassDeclaration(cd, found);
             }
-        }.visit(cu, found);
-        return found[0];
+        }.reduce(cu, new AtomicBoolean()).get();
     }
 
     /**

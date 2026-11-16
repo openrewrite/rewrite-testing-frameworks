@@ -22,6 +22,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationPlan.ClassInfo;
 
@@ -185,20 +186,20 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
     }
 
     private static boolean usesIdentifier(List<Statement> statements, String name) {
-        boolean[] found = {false};
-        JavaIsoVisitor<Integer> finder = new JavaIsoVisitor<Integer>() {
+        AtomicBoolean found = new AtomicBoolean();
+        JavaIsoVisitor<AtomicBoolean> finder = new JavaIsoVisitor<AtomicBoolean>() {
             @Override
-            public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+            public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean f) {
                 if (name.equals(identifier.getSimpleName())) {
-                    found[0] = true;
+                    f.set(true);
                 }
                 return identifier;
             }
         };
         for (Statement s : statements) {
-            finder.visit(s, 0);
+            finder.reduce(s, found);
         }
-        return found[0];
+        return found.get();
     }
 
     /**
