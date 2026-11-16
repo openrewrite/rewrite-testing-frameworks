@@ -20,6 +20,7 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,6 +31,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 class TestCaseClassVisitor extends JUnit3MigrationVisitor {
 
+    private static final MethodMatcher SET_UP = new MethodMatcher(JUnit3MigrationPlan.TEST_CASE + " setUp()");
+    private static final MethodMatcher TEAR_DOWN = new MethodMatcher(JUnit3MigrationPlan.TEST_CASE + " tearDown()");
+    private static final MethodMatcher GET_NAME = new MethodMatcher(JUnit3MigrationPlan.TEST_CASE + " getName()");
     private static final String TEST_NAME_FIELD = "testName";
 
     TestCaseClassVisitor(JUnit3MigrationPlan plan) {
@@ -56,16 +60,11 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
 
     @Override
     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-        JavaType.Method type = method.getMethodType();
-        if (type == null || !JUnit3MigrationPlan.TEST_CASE.equals(type.getDeclaringType().getFullyQualifiedName()) ||
-            type.hasFlags(Flag.Static) || !inMigratedClass()) {
-            return super.visitMethodInvocation(method, ctx);
-        }
-        if (("setUp".equals(type.getName()) || "tearDown".equals(type.getName())) &&
+        if ((SET_UP.matches(method) || TEAR_DOWN.matches(method)) && inMigratedClass() &&
             getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
             return null;
         }
-        if (isTestCaseGetName(method)) {
+        if (isTestCaseGetName(method) && inMigratedClass()) {
             return template(TEST_NAME_FIELD + ".getMethodName()").imports("org.junit.rules.TestName").contextSensitive().build()
                     .apply(getCursor(), method.getCoordinates().replace());
         }
@@ -112,9 +111,7 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
     }
 
     private static boolean isTestCaseGetName(J.MethodInvocation m) {
-        return "getName".equals(m.getSimpleName()) && m.getArguments().stream().allMatch(J.Empty.class::isInstance) &&
-               m.getMethodType() != null && JUnit3MigrationPlan.TEST_CASE.equals(m.getMethodType().getDeclaringType().getFullyQualifiedName()) &&
-               (m.getSelect() == null || m.getSelect() instanceof J.Identifier && "this".equals(((J.Identifier) m.getSelect()).getSimpleName()));
+        return GET_NAME.matches(m) && (m.getSelect() == null || m.getSelect() instanceof J.Identifier && "this".equals(((J.Identifier) m.getSelect()).getSimpleName()));
     }
 
     private J.ClassDeclaration addTestNameRule(J.ClassDeclaration cd) {
