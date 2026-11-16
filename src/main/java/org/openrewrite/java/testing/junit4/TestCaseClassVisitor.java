@@ -20,7 +20,6 @@ import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
 import org.openrewrite.java.tree.*;
 
 /**
@@ -31,13 +30,13 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
 
     private static final String TEST_NAME_FIELD = "testName";
 
-    TestCaseClassVisitor(Accumulator acc) {
-        super(acc);
+    TestCaseClassVisitor(JUnit3MigrationPlan plan) {
+        super(plan);
     }
 
     @Override
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-        if (!acc.isMigrated(fqn(classDecl))) {
+        if (!plan.isMigrated(fqn(classDecl))) {
             return super.visitClassDeclaration(classDecl, ctx);
         }
         J.ClassDeclaration cd = classDecl;
@@ -47,7 +46,7 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
         }
         cd = super.visitClassDeclaration(cd, ctx);
         if (cd.getExtends() != null && cd.getExtends().getType() != null &&
-            Accumulator.TEST_CASE.equals(TypeUtils.asFullyQualified(cd.getExtends().getType()).getFullyQualifiedName())) {
+            JUnit3MigrationPlan.TEST_CASE.equals(TypeUtils.asFullyQualified(cd.getExtends().getType()).getFullyQualifiedName())) {
             cd = cd.withExtends(null);
         }
         return withoutTestCaseSupertype(cd);
@@ -56,7 +55,7 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
     @Override
     public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
         JavaType.Method type = method.getMethodType();
-        if (type == null || !Accumulator.TEST_CASE.equals(type.getDeclaringType().getFullyQualifiedName()) ||
+        if (type == null || !JUnit3MigrationPlan.TEST_CASE.equals(type.getDeclaringType().getFullyQualifiedName()) ||
             type.hasFlags(Flag.Static) || !inMigratedClass()) {
             return super.visitMethodInvocation(method, ctx);
         }
@@ -88,7 +87,7 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
         if (supertype == null) {
             return type;
         }
-        if (Accumulator.TEST_CASE.equals(supertype.getFullyQualifiedName())) {
+        if (JUnit3MigrationPlan.TEST_CASE.equals(supertype.getFullyQualifiedName())) {
             JavaType.FullyQualified object = supertype;
             while (object.getSupertype() != null) {
                 object = object.getSupertype();
@@ -114,7 +113,7 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
 
     private static boolean isTestCaseGetName(J.MethodInvocation m) {
         return "getName".equals(m.getSimpleName()) && m.getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
-               m.getMethodType() != null && Accumulator.TEST_CASE.equals(m.getMethodType().getDeclaringType().getFullyQualifiedName()) &&
+               m.getMethodType() != null && JUnit3MigrationPlan.TEST_CASE.equals(m.getMethodType().getDeclaringType().getFullyQualifiedName()) &&
                (m.getSelect() == null || m.getSelect() instanceof J.Identifier && "this".equals(((J.Identifier) m.getSelect()).getSimpleName()));
     }
 

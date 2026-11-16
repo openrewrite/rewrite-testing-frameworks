@@ -21,7 +21,6 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveImport;
 import org.openrewrite.java.search.UsesType;
-import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.SearchResult;
 
@@ -39,28 +38,28 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
     private static final List<String> JUNIT3_IMPORTS = Arrays.asList("junit.framework.TestCase", "junit.framework.Test",
             "junit.framework.TestSuite", "junit.framework.JUnit4TestAdapter", "junit.extensions.TestSetup", "junit.textui.TestRunner");
 
-    private final Accumulator acc;
+    private final JUnit3MigrationPlan plan;
 
-    JUnit3TestCaseVisitor(Accumulator acc) {
-        this.acc = acc;
+    JUnit3TestCaseVisitor(JUnit3MigrationPlan plan) {
+        this.plan = plan;
     }
 
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         Cursor parent = getCursor().getParentOrThrow();
         // callers of a constructor that loses its test name need not use anything from JUnit
-        J.CompilationUnit c = (J.CompilationUnit) new NameConstructorVisitor(acc).visitNonNull(cu, ctx, parent);
+        J.CompilationUnit c = (J.CompilationUnit) new NameConstructorVisitor(plan).visitNonNull(cu, ctx, parent);
         if (new UsesType<>("junit..*", false).visit(c, ctx) == c) {
             return c;
         }
         boolean migratesTestCase = declaresMigratedClass(c);
         // a TestResult tells an AssertionFailedError (a failure) from any other error, which JUnit 4 assertions do not throw
         boolean usesTestResult = new UsesType<>("junit.framework.TestResult", false).visit(c, ctx) != c;
-        for (TreeVisitor<?, ExecutionContext> step : Arrays.asList(new TestCaseClassVisitor(acc), new SuiteVisitor(acc), new TestRunnerVisitor(acc))) {
+        for (TreeVisitor<?, ExecutionContext> step : Arrays.asList(new TestCaseClassVisitor(plan), new SuiteVisitor(plan), new TestRunnerVisitor(plan))) {
             c = (J.CompilationUnit) step.visitNonNull(c, ctx, parent);
         }
         J.CompilationUnit beforeAssertions = c;
-        c = (J.CompilationUnit) new JUnit3AssertionsVisitor(cursor -> !usesTestResult && !inClass(cursor, acc::isUnmigrated), migratesTestCase)
+        c = (J.CompilationUnit) new JUnit3AssertionsVisitor(cursor -> !usesTestResult && !inClass(cursor, plan::isUnmigrated), migratesTestCase)
                 .visitNonNull(c, ctx, parent);
         if (migratesTestCase || c != beforeAssertions) {
             c = JUnit3AssertionsVisitor.migrateFailureTypes(c, ctx, parent);
@@ -71,14 +70,14 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
             for (String type : JUNIT3_IMPORTS) {
                 c = (J.CompilationUnit) new RemoveImport<ExecutionContext>(type).visitNonNull(c, ctx, parent);
             }
-            c = (J.CompilationUnit) new LifecycleMethodsVisitor(acc).visitNonNull(c, ctx, parent);
+            c = (J.CompilationUnit) new LifecycleMethodsVisitor(plan).visitNonNull(c, ctx, parent);
         }
         return (J.CompilationUnit) new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                 J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                 String fqn = fqn(cd);
-                return acc.isUnmigrated(fqn) ? SearchResult.found(cd, "Not migrated from JUnit 3: " + acc.pinReasonByFqn.get(fqn)) : cd;
+                return plan.isUnmigrated(fqn) ? SearchResult.found(cd, "Not migrated from JUnit 3: " + plan.pinReasonByFqn.get(fqn)) : cd;
             }
         }.visitNonNull(c, ctx, parent);
     }
@@ -88,7 +87,7 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         new JavaIsoVisitor<Integer>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, Integer p) {
-                found[0] |= acc.isMigrated(fqn(cd));
+                found[0] |= plan.isMigrated(fqn(cd));
                 return super.visitClassDeclaration(cd, p);
             }
         }.visit(cu, 0);

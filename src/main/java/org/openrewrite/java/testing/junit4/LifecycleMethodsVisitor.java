@@ -20,7 +20,6 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveAnnotationVisitor;
-import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -42,14 +41,14 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
     private static final Set<String> SUPERTYPES_REMOVED_BY_MIGRATION = new HashSet<>(Arrays.asList(
             "junit.framework.TestCase", "junit.framework.Assert", "junit.framework.Test"));
 
-    LifecycleMethodsVisitor(Accumulator acc) {
-        super(acc);
+    LifecycleMethodsVisitor(JUnit3MigrationPlan plan) {
+        super(plan);
     }
 
     @Override
     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
         J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-        if (md.isConstructor() || md.getMethodType() == null || !acc.isMigrated(fqn(directlyDeclaringClass()))) {
+        if (md.isConstructor() || md.getMethodType() == null || !plan.isMigrated(fqn(directlyDeclaringClass()))) {
             return md;
         }
         updateCursor(md);

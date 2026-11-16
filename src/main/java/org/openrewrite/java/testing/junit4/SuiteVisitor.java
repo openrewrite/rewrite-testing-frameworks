@@ -21,7 +21,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -41,19 +40,19 @@ class SuiteVisitor extends JUnit3MigrationVisitor {
     private static final Comparator<J.Annotation> AFTER_OVERRIDE =
             Comparator.comparing(a -> "Override".equals(a.getSimpleName()) ? "" : a.getSimpleName());
 
-    SuiteVisitor(Accumulator acc) {
-        super(acc);
+    SuiteVisitor(JUnit3MigrationPlan plan) {
+        super(plan);
     }
 
     @Override
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
         String fqn = fqn(classDecl);
-        SuiteShape suite = fqn != null && acc.suiteKindByFqn.containsKey(fqn) && !acc.isUnmigrated(fqn) ? suiteOf(classDecl) : null;
+        SuiteShape suite = fqn != null && plan.suiteKindByFqn.containsKey(fqn) && !plan.isUnmigrated(fqn) ? suiteOf(classDecl) : null;
         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
         if (suite == null) {
             return cd;
         }
-        if (acc.isMigrated(fqn)) {
+        if (plan.isMigrated(fqn)) {
             return suite.kind == SuiteShape.Kind.SETUP ? addOneTimeLifecycleMethods(cd, suite) : cd;
         }
         if (suite.kind == SuiteShape.Kind.AGGREGATE) {
@@ -67,8 +66,8 @@ class SuiteVisitor extends JUnit3MigrationVisitor {
 
     @Override
     public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-        if (SuiteShape.isSuiteMethod(method) && acc.suiteMethodIds.contains(method.getId()) &&
-            acc.removesSuite(fqn(directlyDeclaringClass()))) {
+        if (SuiteShape.isSuiteMethod(method) && plan.suiteMethodIds.contains(method.getId()) &&
+            plan.removesSuite(fqn(directlyDeclaringClass()))) {
             return null;
         }
         return super.visitMethodDeclaration(method, ctx);

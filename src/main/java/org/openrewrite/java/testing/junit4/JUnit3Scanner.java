@@ -27,8 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
-import static org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.ClassInfo;
+import static org.openrewrite.java.testing.junit4.JUnit3MigrationPlan.ClassInfo;
 
 /**
  * Finds the {@code TestCase} subclasses in source and what in the code base would stop them from being migrated.
@@ -43,12 +42,12 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
             "junit.textui.TestRunner", "junit.swingui.TestRunner", "junit.awtui.TestRunner"));
     private static final Set<String> OBJECT_METHODS = new HashSet<>(Arrays.asList("toString", "equals", "hashCode"));
 
-    private final Accumulator acc;
+    private final JUnit3MigrationPlan plan;
     private final List<String> classesInFile = new ArrayList<>();
     private @Nullable String fileReason;
 
-    JUnit3Scanner(Accumulator acc) {
-        this.acc = acc;
+    JUnit3Scanner(JUnit3MigrationPlan plan) {
+        this.plan = plan;
     }
 
     @Override
@@ -72,7 +71,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
         if (fileReason != null) {
             for (String fqn : classesInFile) {
-                acc.pin(fqn, fileReason);
+                plan.pin(fqn, fileReason);
             }
         }
         return c;
@@ -83,12 +82,12 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         JavaType.FullyQualified type = classDecl.getType();
         if (type != null && isStrictTestCaseSubclass(type) && type.getSupertype() != null) {
             ClassInfo info = new ClassInfo(type.getFullyQualifiedName(), type.getSupertype().getFullyQualifiedName());
-            acc.testCasesByFqn.put(info.fqn, info);
+            plan.testCasesByFqn.put(info.fqn, info);
             classesInFile.add(info.fqn);
             analyzeConstructors(classDecl, info);
             pinIfTestCaseImplementsInterfaceMethod(type, info);
             if (classDecl.getLeadingAnnotations().stream().anyMatch(a -> "RunWith".equals(a.getSimpleName()))) {
-                acc.pin(info.fqn, "a runner chosen with @RunWith decides which methods run, whereas the TestCase conventions do not apply to it");
+                plan.pin(info.fqn, "a runner chosen with @RunWith decides which methods run, whereas the TestCase conventions do not apply to it");
             }
         }
         return super.visitClassDeclaration(classDecl, ctx);
@@ -101,7 +100,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         Set<String> testCaseMethods = new HashSet<>();
         List<JavaType.FullyQualified> interfaces = new ArrayList<>();
         for (JavaType.FullyQualified t = type; t != null; t = t.getSupertype()) {
-            if (Accumulator.TEST_CASE.equals(t.getFullyQualifiedName())) {
+            if (JUnit3MigrationPlan.TEST_CASE.equals(t.getFullyQualifiedName())) {
                 for (JavaType.Method m : t.getMethods()) {
                     if (m.hasFlags(Flag.Public) && !m.hasFlags(Flag.Static)) {
                         testCaseMethods.add(m.getName() + "/" + m.getParameterTypes().size());
@@ -119,7 +118,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
             }
             for (JavaType.Method m : iface.getMethods()) {
                 if (m.hasFlags(Flag.Abstract) && testCaseMethods.contains(m.getName() + "/" + m.getParameterTypes().size())) {
-                    acc.pin(info.fqn, "TestCase provides " + m.getName() + "(), which " + iface.getClassName() + " asks for");
+                    plan.pin(info.fqn, "TestCase provides " + m.getName() + "(), which " + iface.getClassName() + " asks for");
                 }
             }
             interfaces.addAll(iface.getInterfaces());
@@ -128,7 +127,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
 
     static boolean isStrictTestCaseSubclass(JavaType.FullyQualified type) {
         for (JavaType.FullyQualified t = type.getSupertype(); t != null; t = t.getSupertype()) {
-            if (Accumulator.TEST_CASE.equals(t.getFullyQualifiedName())) {
+            if (JUnit3MigrationPlan.TEST_CASE.equals(t.getFullyQualifiedName())) {
                 return true;
             }
         }
@@ -155,7 +154,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
                        TypeUtils.isString(((J.VariableDeclarations) params.get(0)).getType())) {
                 nameConstructor = ctor;
             } else {
-                acc.pin(info.fqn, "declares a constructor with parameters, which JUnit 4 cannot supply");
+                plan.pin(info.fqn, "declares a constructor with parameters, which JUnit 4 cannot supply");
             }
         }
         if (nameConstructor == null || nameConstructor.getBody() == null) {
@@ -171,19 +170,19 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
                 if (args.size() == 1 && args.get(0) instanceof J.Identifier && name.equals(((J.Identifier) args.get(0)).getSimpleName())) {
                     info.callsSuperWithName = true;
                 } else if (!(args.size() == 1 && args.get(0) instanceof J.Empty)) {
-                    acc.pin(info.fqn, "its (String) constructor passes something other than the test name to super");
+                    plan.pin(info.fqn, "its (String) constructor passes something other than the test name to super");
                     return;
                 }
                 rest = body.subList(1, body.size());
             } else if ("this".equals(first.getSimpleName())) {
-                acc.pin(info.fqn, "its (String) constructor delegates to another constructor");
+                plan.pin(info.fqn, "its (String) constructor delegates to another constructor");
                 return;
             }
         }
         if (usesIdentifier(rest, name)) {
-            acc.pin(info.fqn, "its (String) constructor uses the test name");
+            plan.pin(info.fqn, "its (String) constructor uses the test name");
         } else if (hasNoArgConstructor && !rest.isEmpty()) {
-            acc.pin(info.fqn, "it declares a (String) and a no-argument constructor that differ");
+            plan.pin(info.fqn, "it declares a (String) and a no-argument constructor that differ");
         } else {
             info.nameConstructor = true;
         }
@@ -213,7 +212,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         for (Cursor c = getCursor(); c != null; c = c.getParent()) {
             if (c.getValue() instanceof J.ClassDeclaration) {
                 JavaType.FullyQualified type = ((J.ClassDeclaration) c.getValue()).getType();
-                return type != null && acc.testCasesByFqn.containsKey(type.getFullyQualifiedName()) ? type.getFullyQualifiedName() : null;
+                return type != null && plan.testCasesByFqn.containsKey(type.getFullyQualifiedName()) ? type.getFullyQualifiedName() : null;
             }
         }
         return null;
@@ -235,28 +234,28 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         J.ClassDeclaration declaring = directlyDeclaringClass();
         if (declaring != null && declaring.getType() != null && method.getMethodType() != null) {
             String declaringFqn = declaring.getType().getFullyQualifiedName();
-            boolean testCase = acc.testCasesByFqn.containsKey(declaringFqn);
+            boolean testCase = plan.testCasesByFqn.containsKey(declaringFqn);
             if (SuiteShape.isSuiteMethod(method)) {
                 SuiteShape shape = SuiteShape.analyze(method, declaringFqn);
                 if (shape == null) {
                     if (testCase) {
-                        acc.pin(declaringFqn, "its suite() method builds a suite that has no JUnit 4 equivalent");
+                        plan.pin(declaringFqn, "its suite() method builds a suite that has no JUnit 4 equivalent");
                     }
                 } else {
-                    acc.suiteMethodIds.add(method.getId());
-                    acc.suiteKindByFqn.put(declaringFqn, shape.kind);
-                    acc.consumedIds.addAll(shape.consumedIds);
-                    acc.consumedIdsBySuiteFqn.computeIfAbsent(declaringFqn, k -> new java.util.HashSet<>()).addAll(shape.consumedIds);
+                    plan.suiteMethodIds.add(method.getId());
+                    plan.suiteKindByFqn.put(declaringFqn, shape.kind);
+                    plan.consumedIds.addAll(shape.consumedIds);
+                    plan.consumedIdsBySuiteFqn.computeIfAbsent(declaringFqn, k -> new java.util.HashSet<>()).addAll(shape.consumedIds);
                     if (testCase && shape.kind == SuiteShape.Kind.AGGREGATE) {
-                        acc.pin(declaringFqn, "its suite() method collects other test classes");
+                        plan.pin(declaringFqn, "its suite() method collects other test classes");
                     }
                 }
             } else if (testCase && !method.isConstructor() && !"setUp".equals(method.getSimpleName()) &&
                        !"tearDown".equals(method.getSimpleName()) && !OBJECT_METHODS.contains(method.getSimpleName())) {
                 for (JavaType.Method overridden = TypeUtils.findOverriddenMethod(method.getMethodType()).orElse(null);
                      overridden != null; overridden = TypeUtils.findOverriddenMethod(overridden).orElse(null)) {
-                    if (Accumulator.TEST_CASE.equals(overridden.getDeclaringType().getFullyQualifiedName())) {
-                        acc.pin(declaringFqn, "overrides TestCase." + method.getSimpleName() + "()");
+                    if (JUnit3MigrationPlan.TEST_CASE.equals(overridden.getDeclaringType().getFullyQualifiedName())) {
+                        plan.pin(declaringFqn, "overrides TestCase." + method.getSimpleName() + "()");
                         break;
                     }
                 }
@@ -276,18 +275,18 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
                 if (!recognizedTestRunnerCall(method)) {
                     fileReason = "calls " + declaring + "." + method.getSimpleName() + ", which has no JUnit 4 equivalent here";
                 }
-            } else if (Accumulator.TEST_CASE.equals(declaring) && enclosing != null && !type.hasFlags(Flag.Static)) {
+            } else if (JUnit3MigrationPlan.TEST_CASE.equals(declaring) && enclosing != null && !type.hasFlags(Flag.Static)) {
                 boolean ownOrSuper = method.getSelect() == null || isThisOrSuper(method.getSelect());
                 // calls on some other object only need the type TestCase, which is still there
                 if (ownOrSuper && !("setUp".equals(type.getName()) || "tearDown".equals(type.getName()) || "getName".equals(type.getName()) ||
                                     "<constructor>".equals(type.getName()))) {
-                    acc.pin(enclosing, "calls TestCase." + type.getName() + "()");
+                    plan.pin(enclosing, "calls TestCase." + type.getName() + "()");
                 }
             } else if ("suite".equals(type.getName()) && method.getArguments().stream().allMatch(a -> a instanceof J.Empty)) {
-                acc.suiteCallFqnById.put(method.getId(), declaring);
+                plan.suiteCallFqnById.put(method.getId(), declaring);
             } else if ("super".equals(method.getSimpleName()) || "this".equals(method.getSimpleName())) {
                 if (method.getArguments().size() == 1 && !isSafeNameArgument(method.getArguments().get(0))) {
-                    acc.unsafeNameArgumentFqns.add(declaring);
+                    plan.unsafeNameArgumentFqns.add(declaring);
                 }
             }
         }
@@ -301,7 +300,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
             JavaType.FullyQualified argument = TypeUtils.asFullyQualified(args.get(i).getType());
             if (parameter != null && argument != null && parameter.getFullyQualifiedName().startsWith("junit.framework.") &&
                 !argument.getFullyQualifiedName().startsWith("junit.framework.")) {
-                acc.passedAsJUnit3TypeFqns.add(argument.getFullyQualifiedName());
+                plan.passedAsJUnit3TypeFqns.add(argument.getFullyQualifiedName());
             }
         }
     }
@@ -346,17 +345,17 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         }
         Expression arg = run.getArguments().get(0).unwrap();
         if (arg instanceof J.FieldAccess && "class".equals(((J.FieldAccess) arg).getSimpleName())) {
-            acc.consumedIds.add(arg.getId());
+            plan.consumedIds.add(arg.getId());
             return true;
         }
         if (arg instanceof J.MethodInvocation && "suite".equals(((J.MethodInvocation) arg).getSimpleName())) {
-            acc.consumedIds.add(arg.getId());
+            plan.consumedIds.add(arg.getId());
             return true;
         }
         if (arg instanceof J.NewClass && ((J.NewClass) arg).getBody() == null && ((J.NewClass) arg).getArguments().size() == 1) {
             Expression inner = ((J.NewClass) arg).getArguments().get(0).unwrap();
             if (inner instanceof J.FieldAccess && "class".equals(((J.FieldAccess) inner).getSimpleName())) {
-                acc.consumedIds.add(inner.getId());
+                plan.consumedIds.add(inner.getId());
                 return true;
             }
         }
@@ -372,13 +371,13 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
         if (created != null) {
             String fqn = created.getFullyQualifiedName();
             if (newClass.getArguments().size() == 1 && !isSafeNameArgument(newClass.getArguments().get(0))) {
-                acc.unsafeNameArgumentFqns.add(fqn);
+                plan.unsafeNameArgumentFqns.add(fqn);
             }
             Object parent = getCursor().getParentTreeCursor().getValue();
             boolean directlyUsed = parent instanceof J.Block ||
                                    parent instanceof J.MethodInvocation && ((J.MethodInvocation) parent).getSelect() == newClass;
             if (!directlyUsed) {
-                acc.pin(fqn, "instances are used as junit.framework.Test");
+                plan.pin(fqn, "instances are used as junit.framework.Test");
             }
         }
         return super.visitNewClass(newClass, ctx);
@@ -388,7 +387,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
     public J.MemberReference visitMemberReference(J.MemberReference memberRef, ExecutionContext ctx) {
         JavaType.FullyQualified type = TypeUtils.asFullyQualified(memberRef.getContaining().getType());
         if ("new".equals(memberRef.getReference().getSimpleName()) && type != null) {
-            acc.unsafeNameArgumentFqns.add(type.getFullyQualifiedName());
+            plan.unsafeNameArgumentFqns.add(type.getFullyQualifiedName());
         }
         return super.visitMemberReference(memberRef, ctx);
     }
@@ -407,7 +406,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
                             TypeUtils.asFullyQualified(((J.NewClass) parent).getType()).getFullyQualifiedName();
                 }
                 if (callee != null && callee.startsWith("junit.")) {
-                    acc.classLiteralFqnById.put(fieldAccess.getId(), target.getFullyQualifiedName());
+                    plan.classLiteralFqnById.put(fieldAccess.getId(), target.getFullyQualifiedName());
                 }
             }
         }

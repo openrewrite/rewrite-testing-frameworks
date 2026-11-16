@@ -23,21 +23,20 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 
 import java.util.function.Predicate;
 
 /**
- * One step of the migration of {@code TestCase} classes, which decides from the {@link Accumulator} what to migrate.
+ * One step of the migration of {@code TestCase} classes, which decides from the {@link JUnit3MigrationPlan} what to migrate.
  */
 abstract class JUnit3MigrationVisitor extends JavaIsoVisitor<ExecutionContext> {
 
-    final Accumulator acc;
+    final JUnit3MigrationPlan plan;
 
-    JUnit3MigrationVisitor(Accumulator acc) {
-        this.acc = acc;
+    JUnit3MigrationVisitor(JUnit3MigrationPlan plan) {
+        this.plan = plan;
     }
 
     static JavaTemplate.Builder template(String code) {
@@ -61,7 +60,7 @@ abstract class JUnit3MigrationVisitor extends JavaIsoVisitor<ExecutionContext> {
     }
 
     boolean inMigratedClass() {
-        return inClass(getCursor(), acc::isMigrated);
+        return inClass(getCursor(), plan::isMigrated);
     }
 
     J.@Nullable ClassDeclaration directlyDeclaringClass() {

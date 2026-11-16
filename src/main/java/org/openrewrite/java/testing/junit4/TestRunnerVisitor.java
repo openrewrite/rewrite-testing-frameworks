@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.junit4;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -36,8 +35,8 @@ class TestRunnerVisitor extends JUnit3MigrationVisitor {
     private static final Set<String> TEST_RUNNERS = new HashSet<>(Arrays.asList(
             "junit.textui.TestRunner", "junit.swingui.TestRunner", "junit.awtui.TestRunner"));
 
-    TestRunnerVisitor(Accumulator acc) {
-        super(acc);
+    TestRunnerVisitor(JUnit3MigrationPlan plan) {
+        super(plan);
     }
 
     @Override
@@ -67,14 +66,14 @@ class TestRunnerVisitor extends JUnit3MigrationVisitor {
         }
         Expression arg = run.getArguments().get(0).unwrap();
         Expression classLiteral = null;
-        if (arg instanceof J.FieldAccess && acc.consumedIds.contains(arg.getId())) {
+        if (arg instanceof J.FieldAccess && plan.consumedIds.contains(arg.getId())) {
             classLiteral = arg;
         } else if (arg instanceof J.NewClass && ((J.NewClass) arg).getArguments().size() == 1 &&
                    ((J.NewClass) arg).getArguments().get(0).unwrap() instanceof J.FieldAccess) {
             classLiteral = ((J.NewClass) arg).getArguments().get(0).unwrap();
         } else if (arg instanceof J.MethodInvocation && "suite".equals(((J.MethodInvocation) arg).getSimpleName()) &&
                    ((J.MethodInvocation) arg).getMethodType() != null &&
-                   acc.removesSuite(((J.MethodInvocation) arg).getMethodType().getDeclaringType().getFullyQualifiedName())) {
+                   plan.removesSuite(((J.MethodInvocation) arg).getMethodType().getDeclaringType().getFullyQualifiedName())) {
             J.MethodInvocation suite = (J.MethodInvocation) arg;
             Expression select = suite.getSelect();
             if (select == null) {
@@ -88,7 +87,7 @@ class TestRunnerVisitor extends JUnit3MigrationVisitor {
             return null;
         }
         // a test class that stays a JUnit 3 test is still accepted by the JUnit 3 runner
-        if (!(arg instanceof J.MethodInvocation) && !acc.isMigrated(fqnOfClassLiteral((J.FieldAccess) classLiteral))) {
+        if (!(arg instanceof J.MethodInvocation) && !plan.isMigrated(fqnOfClassLiteral((J.FieldAccess) classLiteral))) {
             return null;
         }
         maybeAddImport("org.junit.runner.JUnitCore");
