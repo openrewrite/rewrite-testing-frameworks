@@ -225,6 +225,18 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
         return mi;
     }
 
+    @Override
+    public J visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
+        J j = super.visitFieldAccess(fieldAccess, ctx);
+        if (j instanceof J.FieldAccess) {
+            J.FieldAccess fa = (J.FieldAccess) j;
+            if ("root".equals(fa.getSimpleName()) && TypeUtils.isOfClassType(fa.getTarget().getType(), TEMPORARY_FOLDER)) {
+                return fa.getTarget().withPrefix(fa.getPrefix());
+            }
+        }
+        return j;
+    }
+
     private J.Identifier toFileIdentifier(TypeTree typeTree) {
         JavaType.ShallowClass fileType = JavaType.ShallowClass.build("java.io.File");
         return new J.Identifier(randomId(), typeTree.getPrefix(), Markers.EMPTY, emptyList(), fileType.getClassName(), fileType, null);

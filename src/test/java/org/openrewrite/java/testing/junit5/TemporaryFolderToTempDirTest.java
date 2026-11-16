@@ -73,7 +73,7 @@ class TemporaryFolderToTempDirTest implements RewriteTest {
                 File temporaryFolder
 
                 def setup() {
-                    projectDir = temporaryFolder.root
+                    projectDir = temporaryFolder
                     buildFile = newFile(temporaryFolder, 'build.gradle')
                     settingsFile = newFile(temporaryFolder, 'settings.gradle')
                 }
