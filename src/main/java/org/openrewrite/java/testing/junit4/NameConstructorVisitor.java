@@ -44,7 +44,7 @@ class NameConstructorVisitor extends JUnit3MigrationVisitor {
             return md;
         }
         boolean nameConstructor = plan.testCasesByFqn.get(declaringFqn).nameConstructor;
-        if (nameConstructor && md.getParameters().stream().anyMatch(p -> p instanceof J.VariableDeclarations)) {
+        if (nameConstructor && md.getParameters().stream().anyMatch(J.VariableDeclarations.class::isInstance)) {
             md = md.withParameters(singletonList(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY)));
         }
         if (md.getBody() != null) {
@@ -52,10 +52,10 @@ class NameConstructorVisitor extends JUnit3MigrationVisitor {
             J.Block body = md.getBody();
             List<Statement> statements = ListUtils.map(body.getStatements(), (i, s) ->
                     i == 0 && s instanceof J.MethodInvocation && "super".equals(((J.MethodInvocation) s).getSimpleName()) &&
-                    ((J.MethodInvocation) s).getArguments().stream().allMatch(a -> a instanceof J.Empty) ? null : s);
+                    ((J.MethodInvocation) s).getArguments().stream().allMatch(J.Empty.class::isInstance) ? null : s);
             md = md.withBody(body.withStatements(statements));
             // a constructor that throws stays, as a subclass constructor may need to declare what its superclass throws
-            if (statements.isEmpty() && md.getThrows() == null && md.getParameters().stream().allMatch(p -> p instanceof J.Empty)) {
+            if (statements.isEmpty() && md.getThrows() == null && md.getParameters().stream().allMatch(J.Empty.class::isInstance)) {
                 return null;
             }
         }

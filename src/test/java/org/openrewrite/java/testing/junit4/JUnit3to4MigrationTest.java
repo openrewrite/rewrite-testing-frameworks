@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit4;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -34,6 +35,7 @@ class JUnit3to4MigrationTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.testing.junit4.JUnit3to4Migration");
     }
 
+    @DocumentExample
     @Test
     void migratesTestsAndTheDependency() {
         rewriteRun(

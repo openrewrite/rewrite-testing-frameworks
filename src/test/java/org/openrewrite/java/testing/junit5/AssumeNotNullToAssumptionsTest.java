@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
@@ -31,6 +32,42 @@ class AssumeNotNullToAssumptionsTest implements RewriteTest {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new AssumeNotNullToAssumptionsRecipes());
+    }
+
+    @DocumentExample
+    @Test
+    void noException() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Assume;
+
+              class Test {
+                  void test() {
+                      try {
+                          Integer.parseInt("x");
+                      } catch (NumberFormatException e) {
+                          Assume.assumeNoException(e);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Assumptions;
+
+              class Test {
+                  void test() {
+                      try {
+                          Integer.parseInt("x");
+                      } catch (NumberFormatException e) {
+                          Assumptions.assumeTrue(e == null, String.valueOf(e));
+                      }
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/886")
@@ -114,41 +151,6 @@ class AssumeNotNullToAssumptionsTest implements RewriteTest {
               class Test {
                   void test(Object... objects) {
                       Stream.of(objects).forEach((o) -> Assumptions.assumeFalse(o == null));
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void noException() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.junit.Assume;
-
-              class Test {
-                  void test() {
-                      try {
-                          Integer.parseInt("x");
-                      } catch (NumberFormatException e) {
-                          Assume.assumeNoException(e);
-                      }
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.Assumptions;
-
-              class Test {
-                  void test() {
-                      try {
-                          Integer.parseInt("x");
-                      } catch (NumberFormatException e) {
-                          Assumptions.assumeTrue(e == null, String.valueOf(e));
-                      }
                   }
               }
               """

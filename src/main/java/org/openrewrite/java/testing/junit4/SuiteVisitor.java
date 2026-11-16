@@ -25,8 +25,10 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.joining;
 import static org.openrewrite.Tree.randomId;
 
 /**
@@ -105,9 +107,9 @@ class SuiteVisitor extends JUnit3MigrationVisitor {
             List<J.Modifier> modifiers = ListUtils.map(member.getModifiers(),
                     m -> m.getType() == J.Modifier.Type.Private || m.getType() == J.Modifier.Type.Protected ? m.withType(J.Modifier.Type.Public) : m);
             if (!member.hasModifier(J.Modifier.Type.Private) && !member.hasModifier(J.Modifier.Type.Protected)) {
-                J.Modifier pub = new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null, J.Modifier.Type.Public, Collections.emptyList());
+                J.Modifier pub = new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null, J.Modifier.Type.Public, emptyList());
                 if (modifiers.isEmpty()) {
-                    return member.withModifiers(Collections.singletonList(pub)).getPadding()
+                    return member.withModifiers(singletonList(pub)).getPadding()
                             .withKind(member.getPadding().getKind().withPrefix(Space.SINGLE_SPACE));
                 }
                 pub = pub.withPrefix(modifiers.get(0).getPrefix());
@@ -179,7 +181,7 @@ class SuiteVisitor extends JUnit3MigrationVisitor {
             }
         }.visit(original.getBody(), 0, getCursor());
         String throwsClause = original.getThrows() == null || original.getThrows().isEmpty() ? "" :
-                " throws " + original.getThrows().stream().map(t -> t.printTrimmed(getCursor())).collect(Collectors.joining(", "));
+                " throws " + original.getThrows().stream().map(t -> t.printTrimmed(getCursor())).collect(joining(", "));
         String unique = name;
         for (int i = 2; hasMethod(cd, unique); i++) {
             unique = name + i;

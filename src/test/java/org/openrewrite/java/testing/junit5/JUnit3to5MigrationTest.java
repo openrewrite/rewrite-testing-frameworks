@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -24,21 +25,22 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-/**
- * JUnit 3 reaches Jupiter through {@code JUnit3to4Migration} followed by the rest of {@code JUnit4to5Migration}.
- */
 class JUnit3to5MigrationTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3", "junit-jupiter-api-5"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "junit-4",
+              "hamcrest-3",
+              "junit-jupiter-api-5"))
           .recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration");
     }
 
+    @DocumentExample
     @Test
-    void testCaseGoesStraightToJupiter() {
+    void migratesTestCaseStraightToJupiter() {
         //language=java
         rewriteRun(
           java(

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -61,51 +62,7 @@ class RemoveJUnit4DependenciesUnlessJUnit3UsedTest implements RewriteTest {
       </project>
       """;
 
-    @Test
-    void keptWhileATestSuiteIsUsed() {
-        rewriteRun(
-          mavenProject("project",
-            //language=java
-            srcTestJava(java(
-              """
-                import junit.framework.Test;
-                import junit.framework.TestSuite;
-
-                class AllTests {
-                    static Test suite() {
-                        return new TestSuite();
-                    }
-                }
-                """
-            )),
-            pomXml(POM_WITH_JUNIT, spec -> spec.after(pom -> assertThat(pom)
-              .contains("<artifactId>junit</artifactId>")
-              .contains("<artifactId>junit-vintage-engine</artifactId>").actual()))
-          )
-        );
-    }
-
-    @Test
-    void removedOtherwise() {
-        rewriteRun(
-          //language=java
-          srcTestJava(java(
-            """
-              class Plain {
-              }
-              """
-          )),
-          pomXml(POM_WITH_JUNIT, """
-            <project>
-                <modelVersion>4.0.0</modelVersion>
-                <groupId>org.example</groupId>
-                <artifactId>project</artifactId>
-                <version>0.0.1</version>
-            </project>
-            """)
-        );
-    }
-
+    @DocumentExample
     @Test
     void decidedPerModule() {
         rewriteRun(
@@ -216,6 +173,53 @@ class RemoveJUnit4DependenciesUnlessJUnit3UsedTest implements RewriteTest {
                   """
               )
             )
+          )
+        );
+    }
+
+    @Test
+    void keptWhileATestSuiteIsUsed() {
+        rewriteRun(
+          mavenProject("project",
+            //language=java
+            srcTestJava(java(
+              """
+                import junit.framework.Test;
+                import junit.framework.TestSuite;
+
+                class AllTests {
+                    static Test suite() {
+                        return new TestSuite();
+                    }
+                }
+                """
+            )),
+            pomXml(POM_WITH_JUNIT, spec -> spec.after(pom -> assertThat(pom)
+              .contains("<artifactId>junit</artifactId>")
+              .contains("<artifactId>junit-vintage-engine</artifactId>").actual()))
+          )
+        );
+    }
+
+    @Test
+    void removedOtherwise() {
+        rewriteRun(
+          //language=java
+          srcTestJava(java(
+            """
+              class Plain {
+              }
+              """
+          )),
+          pomXml(POM_WITH_JUNIT,
+            """
+            <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>org.example</groupId>
+                <artifactId>project</artifactId>
+                <version>0.0.1</version>
+            </project>
+            """
           )
         );
     }

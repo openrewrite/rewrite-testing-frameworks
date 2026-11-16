@@ -22,6 +22,8 @@ import org.openrewrite.marker.Markers;
 
 import java.util.*;
 
+import static java.util.Collections.emptyList;
+
 /**
  * The shapes of a JUnit 3 {@code public static Test suite()} method that have a JUnit 4 equivalent.
  */
@@ -63,7 +65,7 @@ final class SuiteShape {
 
     static boolean isSuiteMethod(J.MethodDeclaration md) {
         return "suite".equals(md.getSimpleName()) && md.hasModifier(J.Modifier.Type.Static) &&
-               md.getParameters().stream().allMatch(p -> p instanceof J.Empty) && md.getBody() != null &&
+               md.getParameters().stream().allMatch(J.Empty.class::isInstance) && md.getBody() != null &&
                md.getMethodType() != null &&
                (TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.Test") ||
                 TypeUtils.isOfClassType(md.getMethodType().getReturnType(), "junit.framework.TestSuite"));
@@ -91,7 +93,7 @@ final class SuiteShape {
                 J.MethodDeclaration setUp = null;
                 J.MethodDeclaration tearDown = null;
                 for (Statement s : nc.getBody().getStatements()) {
-                    if (!(s instanceof J.MethodDeclaration) || !((J.MethodDeclaration) s).getParameters().stream().allMatch(p -> p instanceof J.Empty)) {
+                    if (!(s instanceof J.MethodDeclaration) || !((J.MethodDeclaration) s).getParameters().stream().allMatch(J.Empty.class::isInstance)) {
                         return null;
                     }
                     J.MethodDeclaration m = (J.MethodDeclaration) s;
@@ -157,7 +159,7 @@ final class SuiteShape {
                 classes.add(literal);
             } else if ("addTest".equals(add.getSimpleName())) {
                 if (arg instanceof J.MethodInvocation && "suite".equals(((J.MethodInvocation) arg).getSimpleName()) &&
-                    ((J.MethodInvocation) arg).getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
+                    ((J.MethodInvocation) arg).getArguments().stream().allMatch(J.Empty.class::isInstance) &&
                     ((J.MethodInvocation) arg).getSelect() != null) {
                     consumedIds.add(arg.getId());
                     classes.add(classLiteralOf(((J.MethodInvocation) arg).getSelect()));
@@ -228,7 +230,7 @@ final class SuiteShape {
      */
     static Expression classLiteralOf(Expression type) {
         return new J.FieldAccess(Tree.randomId(), Space.EMPTY, Markers.EMPTY, type.withPrefix(Space.EMPTY),
-                JLeftPadded.build(new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), "class", null, null)),
+                JLeftPadded.build(new J.Identifier(Tree.randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), "class", null, null)),
                 JavaType.ShallowClass.build("java.lang.Class"));
     }
 

@@ -21,11 +21,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationPlan.ClassInfo;
 
@@ -282,7 +278,7 @@ class JUnit3Scanner extends JavaIsoVisitor<ExecutionContext> {
                                     "<constructor>".equals(type.getName()))) {
                     plan.pin(enclosing, "calls TestCase." + type.getName() + "()");
                 }
-            } else if ("suite".equals(type.getName()) && method.getArguments().stream().allMatch(a -> a instanceof J.Empty)) {
+            } else if ("suite".equals(type.getName()) && method.getArguments().stream().allMatch(J.Empty.class::isInstance)) {
                 plan.suiteCallFqnById.put(method.getId(), declaring);
             } else if ("super".equals(method.getSimpleName()) || "this".equals(method.getSimpleName())) {
                 if (method.getArguments().size() == 1 && !isSafeNameArgument(method.getArguments().get(0))) {

@@ -21,10 +21,10 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 
 /**
@@ -78,7 +78,7 @@ class TestRunnerVisitor extends JUnit3MigrationVisitor {
             Expression select = suite.getSelect();
             if (select == null) {
                 JavaType.FullyQualified declaring = suite.getMethodType().getDeclaringType();
-                select = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(),
+                select = new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(),
                         SuiteShape.simpleName(declaring.getFullyQualifiedName()), declaring, null);
             }
             classLiteral = SuiteShape.classLiteralOf(select);

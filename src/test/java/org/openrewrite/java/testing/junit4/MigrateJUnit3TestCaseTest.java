@@ -455,7 +455,7 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
-    void testSetupBecomesBeforeAndAfterClass() {
+    void suiteWithTestSetupBecomesBeforeAndAfterClass() {
         rewriteRun(
           //language=java
           java(
@@ -595,7 +595,7 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
-    void testRunnerMainForClass() {
+    void replacesTestRunnerMainForClass() {
         rewriteRun(
           //language=java
           java(
@@ -630,7 +630,7 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
-    void testRunnerMainWithClassNames() {
+    void replacesTestRunnerMainWithClassNames() {
         rewriteRun(
           //language=java
           java(
@@ -965,7 +965,7 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
-    void testAnnotationOnAHelperIsDropped() {
+    void dropsTestAnnotationOnAHelper() {
         rewriteRun(
           //language=java
           java(

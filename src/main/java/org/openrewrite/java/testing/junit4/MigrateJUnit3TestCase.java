@@ -16,7 +16,10 @@
 package org.openrewrite.java.testing.junit4;
 
 import lombok.Getter;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Preconditions;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.search.UsesType;
 
 public class MigrateJUnit3TestCase extends ScanningRecipe<JUnit3MigrationPlan> {

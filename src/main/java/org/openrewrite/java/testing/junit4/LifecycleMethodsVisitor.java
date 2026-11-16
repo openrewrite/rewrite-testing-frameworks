@@ -23,8 +23,13 @@ import org.openrewrite.java.RemoveAnnotationVisitor;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 /**
@@ -90,7 +95,7 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
     }
 
     private static boolean isNoArgVoid(J.MethodDeclaration md) {
-        return md.getParameters().stream().allMatch(p -> p instanceof J.Empty) &&
+        return md.getParameters().stream().allMatch(J.Empty.class::isInstance) &&
                md.getReturnTypeExpression() != null && md.getReturnTypeExpression().getType() == JavaType.Primitive.Void;
     }
 
@@ -144,7 +149,7 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
         Space newLine = Space.format("\n" + md.getPrefix().getIndent());
         NameTree annotationType = qualify ?
                 (NameTree) TypeTree.build(fqn).withType(JavaType.ShallowClass.build(fqn)) :
-                new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, Collections.emptyList(), annotation.substring(1),
+                new J.Identifier(randomId(), Space.EMPTY, Markers.EMPTY, emptyList(), annotation.substring(1),
                         JavaType.ShallowClass.build(fqn), null);
         J.Annotation added = new J.Annotation(randomId(), md.getLeadingAnnotations().isEmpty() ? Space.EMPTY : newLine, Markers.EMPTY,
                 annotationType, null);
@@ -169,13 +174,13 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
             return md.withModifiers(ListUtils.map(md.getModifiers(), m ->
                     m.getType() == J.Modifier.Type.Protected || m.getType() == J.Modifier.Type.Private ? m.withType(J.Modifier.Type.Public) : m));
         }
-        J.Modifier pub = new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null, J.Modifier.Type.Public, Collections.emptyList());
+        J.Modifier pub = new J.Modifier(randomId(), Space.EMPTY, Markers.EMPTY, null, J.Modifier.Type.Public, emptyList());
         if (!md.getModifiers().isEmpty()) {
             return md.withModifiers(ListUtils.concat(pub.withPrefix(md.getModifiers().get(0).getPrefix()),
                     ListUtils.mapFirst(md.getModifiers(), m -> m.withPrefix(Space.SINGLE_SPACE))));
         }
         if (md.getReturnTypeExpression() != null) {
-            return md.withModifiers(Collections.singletonList(pub.withPrefix(md.getReturnTypeExpression().getPrefix())))
+            return md.withModifiers(singletonList(pub.withPrefix(md.getReturnTypeExpression().getPrefix())))
                     .withReturnTypeExpression(md.getReturnTypeExpression().withPrefix(Space.SINGLE_SPACE));
         }
         return md;

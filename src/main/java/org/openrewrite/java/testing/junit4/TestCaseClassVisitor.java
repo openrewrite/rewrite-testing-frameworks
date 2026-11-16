@@ -112,7 +112,7 @@ class TestCaseClassVisitor extends JUnit3MigrationVisitor {
     }
 
     private static boolean isTestCaseGetName(J.MethodInvocation m) {
-        return "getName".equals(m.getSimpleName()) && m.getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
+        return "getName".equals(m.getSimpleName()) && m.getArguments().stream().allMatch(J.Empty.class::isInstance) &&
                m.getMethodType() != null && JUnit3MigrationPlan.TEST_CASE.equals(m.getMethodType().getDeclaringType().getFullyQualifiedName()) &&
                (m.getSelect() == null || m.getSelect() instanceof J.Identifier && "this".equals(((J.Identifier) m.getSelect()).getSimpleName()));
     }
