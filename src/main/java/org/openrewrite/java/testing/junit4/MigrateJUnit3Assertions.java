@@ -16,11 +16,14 @@
 package org.openrewrite.java.testing.junit4;
 
 import lombok.Getter;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.J;
 
 public class MigrateJUnit3Assertions extends Recipe {
 
@@ -42,6 +45,13 @@ public class MigrateJUnit3Assertions extends Recipe {
                                 new UsesType<>("junit.framework.Assert", false),
                                 new UsesType<>("junit.framework.TestCase", false)),
                         Preconditions.not(new UsesType<>("junit.framework.TestResult", false))),
-                new JUnit3AssertionsVisitor());
+                new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                        Cursor parent = getCursor().getParentOrThrow();
+                        J.CompilationUnit c = (J.CompilationUnit) new JUnit3AssertionsVisitor().visitNonNull(cu, ctx, parent);
+                        return c == cu ? c : JUnit3AssertionsVisitor.migrateFailureTypes(c, ctx, parent);
+                    }
+                });
     }
 }

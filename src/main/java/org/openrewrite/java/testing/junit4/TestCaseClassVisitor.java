@@ -1,0 +1,131 @@
+/*
+ * Copyright 2026 the original author or authors.
+ * <p>
+ * Licensed under the Moderne Source Available License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://docs.moderne.io/licensing/moderne-source-available-license
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.openrewrite.java.testing.junit4;
+
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.testing.junit4.MigrateJUnit3TestCase.Accumulator;
+import org.openrewrite.java.tree.*;
+
+/**
+ * A migrated class no longer extends {@code TestCase}: calls of the {@code setUp()} and {@code tearDown()} it
+ * inherited go, and {@code getName()} reads a {@code TestName} rule instead.
+ */
+class TestCaseClassVisitor extends JUnit3MigrationVisitor {
+
+    private static final String TEST_NAME_FIELD = "testName";
+
+    TestCaseClassVisitor(Accumulator acc) {
+        super(acc);
+    }
+
+    @Override
+    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+        if (!acc.isMigrated(fqn(classDecl))) {
+            return super.visitClassDeclaration(classDecl, ctx);
+        }
+        J.ClassDeclaration cd = classDecl;
+        if (usesGetName(cd)) {
+            cd = addTestNameRule(cd);
+            setCursor(new Cursor(getCursor().getParentOrThrow(), cd));
+        }
+        cd = super.visitClassDeclaration(cd, ctx);
+        if (cd.getExtends() != null && cd.getExtends().getType() != null &&
+            Accumulator.TEST_CASE.equals(TypeUtils.asFullyQualified(cd.getExtends().getType()).getFullyQualifiedName())) {
+            cd = cd.withExtends(null);
+        }
+        return withoutTestCaseSupertype(cd);
+    }
+
+    @Override
+    public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+        JavaType.Method type = method.getMethodType();
+        if (type == null || !Accumulator.TEST_CASE.equals(type.getDeclaringType().getFullyQualifiedName()) ||
+            type.hasFlags(Flag.Static) || !inMigratedClass()) {
+            return super.visitMethodInvocation(method, ctx);
+        }
+        if (("setUp".equals(type.getName()) || "tearDown".equals(type.getName())) &&
+            getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
+            return null;
+        }
+        if (isTestCaseGetName(method)) {
+            return template(TEST_NAME_FIELD + ".getMethodName()").imports("org.junit.rules.TestName").contextSensitive().build()
+                    .apply(getCursor(), method.getCoordinates().replace());
+        }
+        return super.visitMethodInvocation(method, ctx);
+    }
+
+    /**
+     * Recipes that run later in the same cycle see the type, not the {@code extends} clause, so an assertion would
+     * still look inherited from {@code TestCase} and shadow the static import it moves to.
+     */
+    private static J.ClassDeclaration withoutTestCaseSupertype(J.ClassDeclaration cd) {
+        if (!(cd.getType() instanceof JavaType.Class)) {
+            return cd;
+        }
+        JavaType.Class type = withoutTestCase((JavaType.Class) cd.getType());
+        return cd.withType(type).withName(cd.getName().withType(type));
+    }
+
+    private static JavaType.Class withoutTestCase(JavaType.Class type) {
+        JavaType.FullyQualified supertype = type.getSupertype();
+        if (supertype == null) {
+            return type;
+        }
+        if (Accumulator.TEST_CASE.equals(supertype.getFullyQualifiedName())) {
+            JavaType.FullyQualified object = supertype;
+            while (object.getSupertype() != null) {
+                object = object.getSupertype();
+            }
+            return type.withSupertype(object);
+        }
+        return supertype instanceof JavaType.Class ? type.withSupertype(withoutTestCase((JavaType.Class) supertype)) : type;
+    }
+
+    private static boolean usesGetName(J.ClassDeclaration cd) {
+        boolean[] found = {false};
+        new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, Integer p) {
+                if (isTestCaseGetName(m)) {
+                    found[0] = true;
+                }
+                return super.visitMethodInvocation(m, p);
+            }
+        }.visit(cd.getBody(), 0);
+        return found[0];
+    }
+
+    private static boolean isTestCaseGetName(J.MethodInvocation m) {
+        return "getName".equals(m.getSimpleName()) && m.getArguments().stream().allMatch(a -> a instanceof J.Empty) &&
+               m.getMethodType() != null && Accumulator.TEST_CASE.equals(m.getMethodType().getDeclaringType().getFullyQualifiedName()) &&
+               (m.getSelect() == null || m.getSelect() instanceof J.Identifier && "this".equals(((J.Identifier) m.getSelect()).getSimpleName()));
+    }
+
+    private J.ClassDeclaration addTestNameRule(J.ClassDeclaration cd) {
+        maybeAddImport("org.junit.Rule");
+        maybeAddImport("org.junit.rules.TestName");
+        J.Block body = template("@Rule\npublic TestName " + TEST_NAME_FIELD + " = new TestName();")
+                .imports("org.junit.Rule", "org.junit.rules.TestName").build()
+                .apply(new Cursor(getCursor(), cd.getBody()), cd.getBody().getCoordinates().firstStatement());
+        return cd.withBody(body.withStatements(ListUtils.map(body.getStatements(), (i, st) ->
+                i == 1 && st.getPrefix().getComments().isEmpty() && st.getPrefix().getWhitespace().chars().filter(c -> c == '\n').count() < 2 ?
+                        st.withPrefix(Space.format("\n\n" + st.getPrefix().getIndent())) : st)));
+    }
+}

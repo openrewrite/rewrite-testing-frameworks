@@ -25,6 +25,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -46,39 +47,52 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     private static final JavaType.ShallowClass JUNIT4_ASSERT_TYPE = JavaType.ShallowClass.build(JUNIT4_ASSERT);
 
+    private final Predicate<Cursor> retargets;
+    private final boolean migratesTestCase;
+    private boolean retargeted;
+
+    JUnit3AssertionsVisitor() {
+        this(cursor -> true, false);
+    }
+
     /**
-     * JUnit 3 assertions throw {@code junit.framework.AssertionFailedError}, whereas those of JUnit 4 throw
-     * {@code java.lang.AssertionError}, so a catch of the former would no longer catch a failed assertion.
+     * @param retargets        whether the assertion at a cursor moves to {@code org.junit.Assert}
+     * @param migratesTestCase whether the file declares a test class that no longer extends {@code TestCase}, and so
+     *                         no longer inherits what static imports of its assertions through a subclass import
      */
-    boolean migrateFailureTypes;
+    JUnit3AssertionsVisitor(Predicate<Cursor> retargets, boolean migratesTestCase) {
+        this.retargets = retargets;
+        this.migratesTestCase = migratesTestCase;
+    }
+
+    /**
+     * JUnit 4 assertions throw an {@code AssertionError}, which a catch of an {@code AssertionFailedError} would not catch.
+     */
+    static J.CompilationUnit migrateFailureTypes(J.CompilationUnit cu, ExecutionContext ctx, Cursor parent) {
+        J.CompilationUnit c = (J.CompilationUnit) new ChangeType("junit.framework.AssertionFailedError", "java.lang.AssertionError", true)
+                .getVisitor().visitNonNull(cu, ctx, parent);
+        return (J.CompilationUnit) new ChangeType("junit.framework.ComparisonFailure", "org.junit.ComparisonFailure", true)
+                .getVisitor().visitNonNull(c, ctx, parent);
+    }
 
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-        migrateFailureTypes = false;
+        retargeted = false;
         J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
-        if (migrateFailureTypes) {
+        if (retargeted || migratesTestCase) {
             // also those that nothing calls, as a migrated subclass no longer inherits what they import
             for (String name : SUPPORTED) {
                 removeStaticImportsThroughSubclasses(name);
             }
-            doAfterVisit(new ChangeType("junit.framework.AssertionFailedError", "java.lang.AssertionError", true).getVisitor());
-            doAfterVisit(new ChangeType("junit.framework.ComparisonFailure", "org.junit.ComparisonFailure", true).getVisitor());
         }
         return c;
-    }
-
-    /**
-     * Whether the assertion at the cursor is retargeted.
-     */
-    boolean retargets() {
-        return true;
     }
 
     @Override
     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
         J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
         JavaType.Method type = m.getMethodType();
-        if (type == null || !retargets() || !SUPPORTED.contains(m.getSimpleName()) || !(JUNIT3_ASSERT_MATCHER.matches(m) || JUNIT3_TESTCASE_MATCHER.matches(m)) ||
+        if (type == null || !retargets.test(getCursor()) || !SUPPORTED.contains(m.getSimpleName()) || !(JUNIT3_ASSERT_MATCHER.matches(m) || JUNIT3_TESTCASE_MATCHER.matches(m)) ||
             !type.hasFlags(Flag.Static)) {
             return m;
         }
@@ -89,7 +103,7 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
             // a test base class of the project that declares its own assertion of that name
             return m;
         }
-        migrateFailureTypes = true;
+        retargeted = true;
         m = addDeltaToFloatingPointComparison(m);
         maybeRemoveImport(JUNIT3_ASSERT);
         maybeRemoveImport(JUNIT3_ASSERT + "." + m.getSimpleName());
