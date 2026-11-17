@@ -33,15 +33,15 @@ import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 import org.openrewrite.trait.Comments;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
+import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
+import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 
 // ExpectedException.isAnyExceptionExpected() is not migrated.
 public class ExpectedExceptionToAssertThrows extends Recipe {
@@ -189,27 +189,6 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }.reduce(statement, new AtomicBoolean(false)).get();
         }
 
-        /**
-         * The captured exception must not shadow or clash with a name the test already uses, whether declared
-         * in the method or the class (a field the moved statements read would otherwise resolve to the local).
-         */
-        private static String unusedExceptionName(Cursor cursor) {
-            Set<String> used = new HashSet<>();
-            Cursor scope = cursor.dropParentUntil(J.ClassDeclaration.class::isInstance);
-            new JavaIsoVisitor<Set<String>>() {
-                @Override
-                public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> names) {
-                    names.add(identifier.getSimpleName());
-                    return identifier;
-                }
-            }.visit(scope.<J.ClassDeclaration>getValue(), used);
-            String name = "exception";
-            for (int i = 1; used.contains(name); i++) {
-                name = "exception" + i;
-            }
-            return name;
-        }
-
         private static boolean closeThrowsCheckedException(@Nullable JavaType resourceType) {
             JavaType.Method close = findCloseMethod(TypeUtils.asFullyQualified(resourceType));
             if (close == null) {
@@ -267,7 +246,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             J.Block statementsAfterExpectExceptionBlock = new J.Block(randomId(), Space.EMPTY,
                     Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
                     emptyList(), Space.format(" ")).withStatements(statementsAfterExpectException);
-            String exceptionName = unusedExceptionName(getCursor());
+            String exceptionName = generateVariableName("exception", getCursor(), INCREMENT_NUMBER);
             String exceptionDeclParam = getCursor().pollMessage(HAS_MATCHER) != null ? "Throwable " + exceptionName + " = " : "";
             Object exceptionClass = getCursor().pollMessage(EXCEPTION_CLASS);
             if (exceptionClass == null) {
