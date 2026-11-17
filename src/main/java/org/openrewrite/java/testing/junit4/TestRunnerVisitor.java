@@ -32,7 +32,7 @@ import static org.openrewrite.Tree.randomId;
  */
 class TestRunnerVisitor extends JUnit3MigrationVisitor {
 
-    static final Set<String> TEST_RUNNERS = new HashSet<>(Arrays.asList(
+    private static final Set<String> TEST_RUNNERS = new HashSet<>(Arrays.asList(
             "junit.textui.TestRunner", "junit.swingui.TestRunner", "junit.awtui.TestRunner"));
 
     TestRunnerVisitor(JUnit3MigrationPlan plan) {

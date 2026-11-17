@@ -22,14 +22,12 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveImport;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Predicate;
 
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationVisitor.fqn;
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationVisitor.inClass;
@@ -44,6 +42,7 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     private final JUnit3MigrationPlan plan;
     private final UsesType<ExecutionContext> usesJUnit = new UsesType<>("junit..*", false);
+    private final UsesType<ExecutionContext> usesTestRunner = new UsesType<>("junit.*.TestRunner", false);
     // also through a project's own test base class, which UsesType follows the supertypes to
     private final UsesType<ExecutionContext> usesAssert = new UsesType<>("junit.framework.Assert", false);
     private final UsesType<ExecutionContext> usesTestCase = new UsesType<>(JUnit3MigrationPlan.TEST_CASE, false);
@@ -57,15 +56,11 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         Cursor parent = getCursor().getParentOrThrow();
-        boolean junit = matches(usesJUnit, cu, ctx);
-        // callers of a constructor that loses its test name need not use anything from JUnit
-        if (!junit && !usesClassDroppingNameArgument(cu)) {
+        // also a caller of a test class's constructor, as UsesType follows the class's supertypes to TestCase
+        if (!matches(usesJUnit, cu, ctx)) {
             return cu;
         }
         J.CompilationUnit c = (J.CompilationUnit) new NameConstructorVisitor(plan).visitNonNull(cu, ctx, parent);
-        if (!junit) {
-            return c;
-        }
         Set<String> declared = declaredClasses(c);
         boolean migratesTestCase = declared.stream().anyMatch(plan::isMigrated);
         if (migratesTestCase) {
@@ -74,7 +69,7 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         if (declared.stream().anyMatch(plan.suiteKindByFqn::containsKey)) {
             c = (J.CompilationUnit) new SuiteVisitor(plan).visitNonNull(c, ctx, parent);
         }
-        if (uses(cu, TestRunnerVisitor.TEST_RUNNERS::contains)) {
+        if (matches(usesTestRunner, cu, ctx)) {
             c = (J.CompilationUnit) new TestRunnerVisitor(plan).visitNonNull(c, ctx, parent);
         }
         J.CompilationUnit beforeAssertions = c;
@@ -115,19 +110,6 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
 
     private static boolean matches(UsesType<ExecutionContext> usesType, J.CompilationUnit cu, ExecutionContext ctx) {
         return usesType.visit(cu, ctx) != cu;
-    }
-
-    private boolean usesClassDroppingNameArgument(J.CompilationUnit cu) {
-        return !plan.nameArgumentDroppedFqns.isEmpty() && uses(cu, plan::dropsNameArgument);
-    }
-
-    private static boolean uses(J.CompilationUnit cu, Predicate<String> fqnMatches) {
-        for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-            if (type instanceof JavaType.FullyQualified && fqnMatches.test(((JavaType.FullyQualified) type).getFullyQualifiedName())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static Set<String> declaredClasses(J.CompilationUnit cu) {
