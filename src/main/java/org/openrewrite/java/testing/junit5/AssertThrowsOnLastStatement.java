@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
@@ -32,6 +33,8 @@ import org.openrewrite.staticanalysis.java.JavaFileChecker;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -113,6 +116,14 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                     J.Block body = (J.Block) lambda.getBody();
                     List<Statement> lambdaStatements = body.getStatements();
+                    if (lambdaStatements.isEmpty()) {
+                        return methodStatement;
+                    }
+
+                    Predicate<JavaType> mustStayInLambda = mustStayInLambda(arguments.get(0), m);
+                    if (lambdaStatements.subList(0, lambdaStatements.size() - 1).stream().anyMatch(s -> mayThrow(s, mustStayInLambda))) {
+                        return methodStatement;
+                    }
 
                     // TODO Check to see if last line in lambda does not use a non-final variable
 
@@ -124,7 +135,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                         List<Statement> variableAssignments = new ArrayList<>();
                         Space prefix = methodStatement.getPrefix().withComments(emptyList());
-                        final Statement newLambdaStatement = extractExpressionArguments(body, lambdaStatement, variableAssignments, prefix);
+                        final Statement newLambdaStatement = extractExpressionArguments(body, lambdaStatement, mustStayInLambda, variableAssignments, prefix);
                         J.MethodInvocation newAssertThrows = methodInvocation.withArguments(
                                 ListUtils.map(arguments, (argIdx, argument) -> {
                                     // The second argument is the lambda which is tested.
@@ -151,7 +162,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 })));
             }
 
-            private Statement extractExpressionArguments(J.Block body, Statement lambdaStatement, List<Statement> precedingVars, Space varPrefix) {
+            private Statement extractExpressionArguments(J.Block body, Statement lambdaStatement, Predicate<JavaType> mustStayInLambda, List<Statement> precedingVars, Space varPrefix) {
                 if (lambdaStatement instanceof J.MethodInvocation) {
                     boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
@@ -167,6 +178,11 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         JavaType type = e.getType();
                         if (type instanceof JavaType.Unknown ||
                                 type == JavaType.Primitive.None || type == JavaType.Primitive.Void || type == JavaType.Primitive.Null) {
+                            return e;
+                        }
+
+                        String typeName = getTypeName(type);
+                        if ((!kotlin && typeName == null) || mayThrow(e, mustStayInLambda)) {
                             return e;
                         }
 
@@ -186,35 +202,14 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(e.getType());
                         }
 
-                        Object variableTypeShort = "Object";
-                        JavaType variableTypeFqn = null;
-                        if (type instanceof JavaType.Primitive) {
-                            variableTypeShort = type.toString();
-                            variableTypeFqn = type;
-                        } else if (type instanceof JavaType.Parameterized) {
-                            JavaType.Parameterized paramType = (JavaType.Parameterized) type;
-                            // TODO look into possibly employing `TypeUtils.toString()` here, possibly with some changes upstream allowing for non-fully-qualified names
-                            variableTypeShort = buildParameterizedTypeName(paramType);
-                            variableTypeFqn = paramType;
-                            maybeAddImport(paramType.getFullyQualifiedName());
-                            for (JavaType typeParam : paramType.getTypeParameters()) {
-                                if (typeParam instanceof JavaType.FullyQualified) {
-                                    maybeAddImport(((JavaType.FullyQualified) typeParam).getFullyQualifiedName());
-                                }
-                            }
-                        } else if (type instanceof JavaType.FullyQualified) {
-                            JavaType.FullyQualified aClass = (JavaType.FullyQualified) type;
-                            variableTypeShort = aClass.getClassName();
-                            variableTypeFqn = aClass;
-                            maybeAddImport(aClass.getFullyQualifiedName());
-                        }
+                        maybeAddImports(type);
 
                         Cursor blockCursor = new Cursor(getCursor(), body);
                         Cursor c = new Cursor(blockCursor, lambdaStatement);
                         try {
-                            J.VariableDeclarations varDecl = JavaTemplate.apply("#{} #{} = #{any()};", c, lambdaStatement.getCoordinates().replace(), variableTypeShort, variableName, e);
-                            precedingVars.add(varDecl.withPrefix(varPrefix).withType(variableTypeFqn));
-                            return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(variableTypeFqn);
+                            J.VariableDeclarations varDecl = JavaTemplate.apply("#{} #{} = #{any()};", c, lambdaStatement.getCoordinates().replace(), typeName, variableName, e);
+                            precedingVars.add(varDecl.withPrefix(varPrefix).withType(type));
+                            return varDecl.getVariables().get(0).getName().withPrefix(e.getPrefix()).withType(type);
                         } catch (Exception ex) {
                             // Some types (e.g. anonymous or local classes) don't render as a valid variable
                             // declaration; leave the argument inline rather than failing the whole recipe run
@@ -223,6 +218,52 @@ public class AssertThrowsOnLastStatement extends Recipe {
                     }));
                 }
                 return lambdaStatement;
+            }
+
+            // Moving a call out of the lambda makes the test fail when it throws the expected exception, and breaks
+            // compilation when it declares a checked exception the test method doesn't
+            private Predicate<JavaType> mustStayInLambda(Expression exceptionClass, J.MethodDeclaration testMethod) {
+                JavaType.Parameterized classType = TypeUtils.asParameterized(exceptionClass.getType());
+                JavaType expected = classType != null && classType.getTypeParameters().size() == 1 ? classType.getTypeParameters().get(0) : null;
+                boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
+                List<NameTree> handled = testMethod.getThrows() == null ? emptyList() : testMethod.getThrows();
+                return thrown -> expected == null ||
+                        TypeUtils.isAssignableTo(expected, thrown) ||
+                        TypeUtils.isAssignableTo(thrown, expected) ||
+                        !kotlin && isChecked(thrown) && handled.stream().noneMatch(h -> TypeUtils.isAssignableTo(h.getType(), thrown));
+            }
+
+            private boolean isChecked(JavaType exception) {
+                return !TypeUtils.isAssignableTo("java.lang.RuntimeException", exception) &&
+                        !TypeUtils.isAssignableTo("java.lang.Error", exception);
+            }
+
+            private boolean mayThrow(J tree, Predicate<JavaType> mustStayInLambda) {
+                return new JavaIsoVisitor<AtomicBoolean>() {
+                    @Override
+                    public J preVisit(J t, AtomicBoolean found) {
+                        if (found.get()) {
+                            stopAfterPreVisit();
+                        } else if (t instanceof J.MethodInvocation || t instanceof J.NewClass) {
+                            JavaType.Method methodType = ((MethodCall) t).getMethodType();
+                            found.set(methodType == null || methodType.getThrownExceptions().stream().anyMatch(mustStayInLambda));
+                        }
+                        return t;
+                    }
+                }.reduce(tree, new AtomicBoolean()).get();
+            }
+
+            private void maybeAddImports(JavaType type) {
+                if (type instanceof JavaType.Array) {
+                    maybeAddImports(((JavaType.Array) type).getElemType());
+                } else if (type instanceof JavaType.FullyQualified) {
+                    maybeAddImport((JavaType.FullyQualified) type);
+                    if (type instanceof JavaType.Parameterized) {
+                        for (JavaType typeParam : ((JavaType.Parameterized) type).getTypeParameters()) {
+                            maybeAddImports(typeParam);
+                        }
+                    }
+                }
             }
 
             private String getVariableName(Expression e, Map<String, Integer> generatedVariableSuffixes) {
@@ -257,33 +298,34 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 return "x";
             }
 
-            private String buildParameterizedTypeName(JavaType.Parameterized paramType) {
-                StringBuilder sb = new StringBuilder(paramType.getClassName());
+            private @Nullable String buildParameterizedTypeName(JavaType.Parameterized paramType) {
                 List<JavaType> typeParams = paramType.getTypeParameters();
-                if (!typeParams.isEmpty()) {
-                    sb.append("<");
-                    for (int i = 0; i < typeParams.size(); i++) {
-                        if (i > 0) {
-                            sb.append(", ");
-                        }
-                        sb.append(getTypeName(typeParams.get(i)));
-                    }
-                    sb.append(">");
+                if (typeParams.isEmpty()) {
+                    return paramType.getClassName();
                 }
-                return sb.toString();
+                StringJoiner joiner = new StringJoiner(", ", paramType.getClassName() + "<", ">");
+                for (JavaType typeParam : typeParams) {
+                    String typeParamName = getTypeName(typeParam);
+                    if (typeParamName == null) {
+                        return null;
+                    }
+                    joiner.add(typeParamName);
+                }
+                return joiner.toString();
             }
 
-            private String getTypeName(JavaType type) {
+            private @Nullable String getTypeName(JavaType type) {
                 if (type instanceof JavaType.Parameterized) {
                     return buildParameterizedTypeName((JavaType.Parameterized) type);
-                } else if (type instanceof JavaType.FullyQualified) {
+                } else if (type instanceof JavaType.FullyQualified && !(type instanceof JavaType.Unknown)) {
                     return ((JavaType.FullyQualified) type).getClassName();
                 } else if (type instanceof JavaType.Primitive) {
                     return type.toString();
                 } else if (type instanceof JavaType.Array) {
-                    return getTypeName(((JavaType.Array) type).getElemType()) + "[]";
+                    String elemTypeName = getTypeName(((JavaType.Array) type).getElemType());
+                    return elemTypeName == null ? null : elemTypeName + "[]";
                 }
-                return "Object";
+                return null;
             }
 
             private String ensureUniqueVariableName(String variableName, Map<String, Integer> generatedVariableSuffixes) {
