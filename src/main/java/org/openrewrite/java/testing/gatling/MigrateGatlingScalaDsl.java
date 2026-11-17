@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.gatling;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.FindSourceFiles;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -82,7 +81,7 @@ public class MigrateGatlingScalaDsl extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.and(new FindSourceFiles("**/*.{scala,sc}").getVisitor(), new UsesType<>("io.gatling..*", false)), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("io.gatling..*", false), new JavaVisitor<ExecutionContext>() {
 
             @Override
             public J visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {

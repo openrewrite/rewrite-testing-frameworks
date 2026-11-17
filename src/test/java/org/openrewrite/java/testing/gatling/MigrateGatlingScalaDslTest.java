@@ -18,10 +18,12 @@ package org.openrewrite.java.testing.gatling;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.scala.ScalaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.scala.Assertions.scala;
 
 class MigrateGatlingScalaDslTest implements RewriteTest {
@@ -182,6 +184,29 @@ class MigrateGatlingScalaDslTest implements RewriteTest {
               }
               """,
             spec -> spec.path("ScriptSimulation.sc")
+          )
+        );
+    }
+
+    @Test
+    void keepJavaSdkTransform() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "gatling-core-3.9",
+            "gatling-core-java-3.9",
+            "gatling-http-3.9",
+            "gatling-http-java-3.9")),
+          //language=java
+          java(
+            """
+              import io.gatling.javaapi.core.CheckBuilder;
+
+              import static io.gatling.javaapi.core.CoreDsl.jsonPath;
+
+              class Checks {
+                  CheckBuilder.Final id = jsonPath("$.id").find().transform(String::toUpperCase).saveAs("id");
+              }
+              """
           )
         );
     }

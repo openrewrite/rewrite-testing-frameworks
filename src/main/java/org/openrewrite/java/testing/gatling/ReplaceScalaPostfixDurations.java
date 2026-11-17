@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.gatling;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.FindSourceFiles;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -61,7 +60,7 @@ public class ReplaceScalaPostfixDurations extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.and(new FindSourceFiles("**/*.{scala,sc}").getVisitor(), new UsesType<>("io.gatling..*", false)), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("io.gatling..*", false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
