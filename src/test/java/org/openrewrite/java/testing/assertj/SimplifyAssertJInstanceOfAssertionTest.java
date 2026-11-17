@@ -48,7 +48,6 @@ class SimplifyAssertJInstanceOfAssertionTest implements RewriteTest {
               class A {
                   void foo(Object error) {
                       assertThat(error instanceof RuntimeException).isTrue();
-                      assertThat(error instanceof RuntimeException).isFalse();
                   }
               }
               """,
@@ -58,7 +57,6 @@ class SimplifyAssertJInstanceOfAssertionTest implements RewriteTest {
               class A {
                   void foo(Object error) {
                       assertThat(error).isInstanceOf(RuntimeException.class);
-                      assertThat(error).isNotInstanceOf(RuntimeException.class);
                   }
               }
               """
@@ -103,7 +101,6 @@ class SimplifyAssertJInstanceOfAssertionTest implements RewriteTest {
 
               class A {
                   void foo(Object error) {
-                      assertThat(!(error instanceof RuntimeException)).isTrue();
                       assertThat(!(error instanceof RuntimeException)).isFalse();
                   }
               }
@@ -113,8 +110,26 @@ class SimplifyAssertJInstanceOfAssertionTest implements RewriteTest {
 
               class A {
                   void foo(Object error) {
-                      assertThat(error).isNotInstanceOf(RuntimeException.class);
                       assertThat(error).isInstanceOf(RuntimeException.class);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doesNotChangeNotInstanceOfAsItFailsOnNull() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class A {
+                  void foo(Object error) {
+                      assertThat(error instanceof RuntimeException).isFalse();
+                      assertThat(!(error instanceof RuntimeException)).isTrue();
                   }
               }
               """

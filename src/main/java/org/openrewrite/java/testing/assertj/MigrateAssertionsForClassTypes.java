@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
@@ -58,6 +59,24 @@ public class MigrateAssertionsForClassTypes extends Recipe {
             "java.util.function.LongPredicate",
             "java.util.function.DoublePredicate",
             "java.lang.Comparable",
+            "java.lang.CharSequence",
+            "java.math.BigInteger",
+            "java.util.Spliterator",
+            "java.util.concurrent.CompletionStage",
+            "java.util.concurrent.Future",
+            "java.util.concurrent.atomic.AtomicBoolean",
+            "java.util.concurrent.atomic.AtomicInteger",
+            "java.util.concurrent.atomic.AtomicIntegerArray",
+            "java.util.concurrent.atomic.AtomicIntegerFieldUpdater",
+            "java.util.concurrent.atomic.AtomicLong",
+            "java.util.concurrent.atomic.AtomicLongArray",
+            "java.util.concurrent.atomic.AtomicLongFieldUpdater",
+            "java.util.concurrent.atomic.AtomicMarkableReference",
+            "java.util.concurrent.atomic.AtomicReference",
+            "java.util.concurrent.atomic.AtomicReferenceArray",
+            "java.util.concurrent.atomic.AtomicReferenceFieldUpdater",
+            "java.util.concurrent.atomic.AtomicStampedReference",
+            "java.util.concurrent.atomic.LongAdder",
             "org.assertj.core.api.AssertProvider",
             "org.assertj.core.api.AssertDelegateTarget"
     );
@@ -90,6 +109,9 @@ public class MigrateAssertionsForClassTypes extends Recipe {
                     return mi;
                 }
                 JavaType.Method newType = mi.getMethodType().withName("assertThatObject");
+                // `AssertionsForClassTypes` has no `assertThatObject`, so the call has to move to `Assertions` right away
+                doAfterVisit(new ChangeMethodTargetToStatic(ASSERTIONS_FOR_CLASS_TYPES + " assertThatObject(..)",
+                        "org.assertj.core.api.Assertions", null, null, false).getVisitor());
                 return mi
                         .withName(mi.getName().withSimpleName("assertThatObject").withType(newType))
                         .withMethodType(newType);

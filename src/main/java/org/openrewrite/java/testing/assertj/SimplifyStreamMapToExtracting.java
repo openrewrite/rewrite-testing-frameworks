@@ -65,7 +65,9 @@ public class SimplifyStreamMapToExtracting extends Recipe {
 
                         // Check if map() is called on stream()
                         J.MethodInvocation mapCall = (J.MethodInvocation) mi.getArguments().get(0);
-                        if (!STREAM_MATCHER.matches(mapCall.getSelect())) {
+                        if (!STREAM_MATCHER.matches(mapCall.getSelect()) ||
+                            ((J.MethodInvocation) mapCall.getSelect()).getSelect() == null) {
+                            // An unqualified `stream()` inside a collection subclass has no select to pass on
                             return mi;
                         }
 

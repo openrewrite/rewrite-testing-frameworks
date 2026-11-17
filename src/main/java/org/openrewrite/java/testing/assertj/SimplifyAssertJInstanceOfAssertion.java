@@ -52,8 +52,8 @@ public class SimplifyAssertJInstanceOfAssertion extends Recipe {
 
     @Getter
     final String description = "Replace `assertThat(x instanceof Type).isTrue()` with the dedicated " +
-            "`assertThat(x).isInstanceOf(Type.class)`, and the negated and `isFalse()` variants with `isNotInstanceOf`, " +
-            "so failures describe the actual type rather than just `expected true but was false`.";
+            "`assertThat(x).isInstanceOf(Type.class)`, so failures describe the actual type rather than just `expected true but was false`. " +
+            "Assertions that `x` is not an instance are left alone, as `isNotInstanceOf` fails on `null` where `!(x instanceof Type)` holds.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -90,7 +90,11 @@ public class SimplifyAssertJInstanceOfAssertion extends Recipe {
                     return mi;
                 }
                 // isTrue + instanceof and isFalse + !instanceof both assert the type holds
-                String dedicatedAssertion = isTrue != negated ? "isInstanceOf" : "isNotInstanceOf";
+                // `isNotInstanceOf` fails on a null actual, whereas `!(null instanceof T)` holds, so only the positive form is equivalent
+                if (isTrue == negated) {
+                    return mi;
+                }
+                String dedicatedAssertion = "isInstanceOf";
 
                 // Preserve the original `assertThat` select (static import or qualified), only swapping its argument
                 J.MethodInvocation assertThat = (J.MethodInvocation) mi.getSelect();
