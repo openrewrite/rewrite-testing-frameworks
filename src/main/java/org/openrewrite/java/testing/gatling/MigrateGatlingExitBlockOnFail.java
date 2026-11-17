@@ -56,22 +56,19 @@ public class MigrateGatlingExitBlockOnFail extends Recipe {
                     return j;
                 }
                 J.MethodInvocation m = (J.MethodInvocation) j;
-                JavaType.Method methodType = m.getMethodType();
-                if (methodType == null) {
-                    return m;
-                }
-
-                if (methodType.hasFlags(Flag.Static)) {
-                    String qualifier = m.getSelect() == null ? "" : m.getSelect().printTrimmed(getCursor()) + ".";
-                    return template(qualifier + "exitBlockOnFail().on(" + CHAIN + ")", ctx)
+                if (m.getSelect() == null) {
+                    if (m.getMethodType() == null || !m.getMethodType().hasFlags(Flag.Static)) {
+                        return m;
+                    }
+                    return template("exitBlockOnFail().on(" + CHAIN + ")", ctx)
                             .apply(getCursor(), m.getCoordinates().replace(), m.getArguments().get(0));
                 }
-
-                JavaType.FullyQualified receiver = m.getSelect() == null ? null : TypeUtils.asFullyQualified(m.getSelect().getType());
-                if (receiver == null) {
+                // The select is either the receiver, or `CoreDsl` when the static method is qualified
+                JavaType.FullyQualified select = TypeUtils.asFullyQualified(m.getSelect().getType());
+                if (select == null) {
                     return m;
                 }
-                return template("#{any(" + receiver.getFullyQualifiedName() + ")}.exitBlockOnFail().on(" + CHAIN + ")", ctx)
+                return template("#{any(" + select.getFullyQualifiedName() + ")}.exitBlockOnFail().on(" + CHAIN + ")", ctx)
                         .apply(getCursor(), m.getCoordinates().replace(), m.getSelect(), m.getArguments().get(0));
             }
         });
