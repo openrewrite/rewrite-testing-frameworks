@@ -19,6 +19,7 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -32,8 +33,10 @@ import org.openrewrite.staticanalysis.LambdaBlockToExpression;
 import org.openrewrite.trait.Comments;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -62,7 +65,10 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
         private static final String HAS_MATCHER = "hasMatcher";
         private static final String EXCEPTION_CLASS = "exceptionClass";
         private static final String CANNOT_MIGRATE = "cannotMigrate";
-        private static final String CANNOT_MIGRATE_COMMENT = " TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.";
+        private static final String REASSIGNED_LOCAL_COMMENT = " TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.";
+        private static final String LIFECYCLE_METHOD_COMMENT = " TODO Migrate by hand and remove this rule: a setup or teardown method sets an expectation, which applies to the test as a whole and can not be wrapped in `assertThrows(..)`.";
+        private static final AnnotationMatcher LIFECYCLE_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.Before*", false);
+        private static final AnnotationMatcher LIFECYCLE_AFTER_ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.After*", false);
 
         private static final MethodMatcher EXPECTED_EXCEPTION_ALL_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect*(..)");
         private static final MethodMatcher EXPECTED_EXCEPTION_CLASS_MATCHER = new MethodMatcher("org.junit.rules.ExpectedException expect(java.lang.Class)");
@@ -81,14 +87,14 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
 
             // A method that could not be migrated still needs the rule, so leave the field and its imports in place.
-            boolean cannotMigrate = getCursor().getMessage(CANNOT_MIGRATE) != null;
+            String cannotMigrate = getCursor().getMessage(CANNOT_MIGRATE);
             Cursor bodyCursor = new Cursor(getCursor(), cd.getBody());
             return cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(), statement -> {
                 if (!isExpectedExceptionField(statement)) {
                     return statement;
                 }
-                if (cannotMigrate) {
-                    return Comments.of(new Cursor(bodyCursor, statement)).comment(CANNOT_MIGRATE_COMMENT);
+                if (cannotMigrate != null) {
+                    return Comments.of(new Cursor(bodyCursor, statement)).comment(cannotMigrate);
                 }
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.junit.rules.ExpectedException");
@@ -133,15 +139,33 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                         return method;
                     }
                     JavaType.Method methodType = method.getMethodType();
-                    if (methodType != null) {
-                        for (JavaType thrownException : methodType.getThrownExceptions()) {
-                            if (isCheckedException(thrownException)) {
-                                found.set(true);
-                                return method;
-                            }
+                    if (methodType == null) {
+                        // Unknown what it throws, so keep the `throws` clause
+                        found.set(true);
+                        return method;
+                    }
+                    for (JavaType thrownException : methodType.getThrownExceptions()) {
+                        if (isCheckedException(thrownException)) {
+                            found.set(true);
+                            return method;
                         }
                     }
                     return super.visitMethodInvocation(method, found);
+                }
+
+                @Override
+                public J.Try visitTry(J.Try tryable, AtomicBoolean found) {
+                    if (found.get()) {
+                        return tryable;
+                    }
+                    // try-with-resources implicitly calls `close()`
+                    for (J.Try.Resource resource : tryable.getResources() == null ? new ArrayList<J.Try.Resource>() : tryable.getResources()) {
+                        if (closeThrowsCheckedException(resource.getVariableDeclarations().getType())) {
+                            found.set(true);
+                            return tryable;
+                        }
+                    }
+                    return super.visitTry(tryable, found);
                 }
 
                 @Override
@@ -150,12 +174,14 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                         return newClass;
                     }
                     JavaType.Method constructorType = newClass.getConstructorType();
-                    if (constructorType != null) {
-                        for (JavaType thrownException : constructorType.getThrownExceptions()) {
-                            if (isCheckedException(thrownException)) {
-                                found.set(true);
-                                return newClass;
-                            }
+                    if (constructorType == null) {
+                        found.set(true);
+                        return newClass;
+                    }
+                    for (JavaType thrownException : constructorType.getThrownExceptions()) {
+                        if (isCheckedException(thrownException)) {
+                            found.set(true);
+                            return newClass;
                         }
                     }
                     return super.visitNewClass(newClass, found);
@@ -163,7 +189,63 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             }.reduce(statement, new AtomicBoolean(false)).get();
         }
 
-        private boolean isCheckedException(JavaType exceptionType) {
+        /**
+         * The captured exception must not shadow or clash with a name the test already uses, whether declared
+         * in the method or the class (a field the moved statements read would otherwise resolve to the local).
+         */
+        private static String unusedExceptionName(Cursor cursor) {
+            Set<String> used = new HashSet<>();
+            Cursor scope = cursor.dropParentUntil(J.ClassDeclaration.class::isInstance);
+            new JavaIsoVisitor<Set<String>>() {
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> names) {
+                    names.add(identifier.getSimpleName());
+                    return identifier;
+                }
+            }.visit(scope.<J.ClassDeclaration>getValue(), used);
+            String name = "exception";
+            for (int i = 1; used.contains(name); i++) {
+                name = "exception" + i;
+            }
+            return name;
+        }
+
+        private static boolean closeThrowsCheckedException(@Nullable JavaType resourceType) {
+            JavaType.Method close = findCloseMethod(TypeUtils.asFullyQualified(resourceType));
+            if (close == null) {
+                return true;
+            }
+            for (JavaType thrownException : close.getThrownExceptions()) {
+                if (isCheckedException(thrownException)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static JavaType.@Nullable Method findCloseMethod(JavaType.@Nullable FullyQualified type) {
+            if (type == null) {
+                return null;
+            }
+            for (JavaType.Method candidate : type.getMethods()) {
+                if ("close".equals(candidate.getName()) && candidate.getParameterTypes().isEmpty()) {
+                    return candidate;
+                }
+            }
+            JavaType.Method fromSuper = findCloseMethod(type.getSupertype());
+            if (fromSuper != null) {
+                return fromSuper;
+            }
+            for (JavaType.FullyQualified anInterface : type.getInterfaces()) {
+                fromSuper = findCloseMethod(anInterface);
+                if (fromSuper != null) {
+                    return fromSuper;
+                }
+            }
+            return null;
+        }
+
+        private static boolean isCheckedException(JavaType exceptionType) {
             return !TypeUtils.isAssignableTo("java.lang.RuntimeException", exceptionType) &&
                    !TypeUtils.isAssignableTo("java.lang.Error", exceptionType);
         }
@@ -178,14 +260,15 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 return b;
             }
             if (capturesNonEffectivelyFinalLocal(statementsAfterExpectException, getCursor())) {
-                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, CANNOT_MIGRATE, true);
-                getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, CANNOT_MIGRATE, true);
+                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, CANNOT_MIGRATE, REASSIGNED_LOCAL_COMMENT);
+                getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, CANNOT_MIGRATE, REASSIGNED_LOCAL_COMMENT);
                 return block;
             }
             J.Block statementsAfterExpectExceptionBlock = new J.Block(randomId(), Space.EMPTY,
                     Markers.EMPTY, new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
                     emptyList(), Space.format(" ")).withStatements(statementsAfterExpectException);
-            String exceptionDeclParam = getCursor().pollMessage(HAS_MATCHER) != null ? "Throwable exception = " : "";
+            String exceptionName = unusedExceptionName(getCursor());
+            String exceptionDeclParam = getCursor().pollMessage(HAS_MATCHER) != null ? "Throwable " + exceptionName + " = " : "";
             Object exceptionClass = getCursor().pollMessage(EXCEPTION_CLASS);
             if (exceptionClass == null) {
                 exceptionClass = "Exception.class";
@@ -212,7 +295,7 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                     Space.EMPTY,
                     Markers.EMPTY,
                     emptyList(),
-                    "exception",
+                    exceptionName,
                     JavaType.ShallowClass.build("java.lang.Throwable"),
                     null);
             b = b.withStatements(ListUtils.map(b.getStatements(), statement -> {
@@ -250,6 +333,12 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
             if (!EXPECTED_EXCEPTION_ALL_MATCHER.matches(method)) {
                 return method;
             }
+            J.MethodDeclaration enclosingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
+            if (enclosingMethod != null && isLifecycleMethod(enclosingMethod)) {
+                getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, CANNOT_MIGRATE, LIFECYCLE_METHOD_COMMENT);
+                getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, CANNOT_MIGRATE, LIFECYCLE_METHOD_COMMENT);
+                return method;
+            }
             getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).putMessage("hasExpectException", true);
             Cursor blockCursor = getCursor().dropParentUntil(J.Block.class::isInstance);
             blockCursor.computeMessageIfAbsent(FIRST_EXPECTED_EXCEPTION_METHOD_INVOCATION, k -> method);
@@ -266,6 +355,16 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
                 getCursor().putMessageOnFirstEnclosing(J.Block.class, HAS_MATCHER, true);
             }
             return method;
+        }
+
+        private static boolean isLifecycleMethod(J.MethodDeclaration method) {
+            for (J.Annotation annotation : method.getLeadingAnnotations()) {
+                if (LIFECYCLE_ANNOTATION_MATCHER.matches(annotation) ||
+                    LIFECYCLE_AFTER_ANNOTATION_MATCHER.matches(annotation)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /**
