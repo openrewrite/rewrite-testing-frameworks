@@ -52,7 +52,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final String INIT_METHODS_MAP = "named-parameters-map";
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
     private static final String TEST_INIT_METHODS = "test-init-methods";
-    private static final String UNSUPPORTED_COMMENT = " JunitParamsRunnerToParameterized conversion not supported";
+    private static final String UNSUPPORTED_COMMENT = " TODO JunitParamsRunnerToParameterized conversion not supported";
 
     @Getter
     final String displayName = "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@ParameterizedTest` tests";
