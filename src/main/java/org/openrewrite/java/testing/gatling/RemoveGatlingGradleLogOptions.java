@@ -29,7 +29,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -62,27 +61,19 @@ public class RemoveGatlingGradleLogOptions extends Recipe {
                     return m;
                 }
                 J.Block body = (J.Block) closure.getBody();
-                boolean changed = false;
-                boolean afterRemoved = false;
-                List<Statement> statements = new ArrayList<>();
-                for (Statement statement : body.getStatements()) {
+                List<Statement> original = body.getStatements();
+                List<Statement> statements = ListUtils.map(original, (i, statement) -> {
                     if (isLogOption(statement)) {
-                        changed = true;
-                        afterRemoved = true;
-                        continue;
+                        return null;
                     }
-                    statements.add(afterRemoved ? statement.withPrefix(withoutTrailingComment(statement.getPrefix())) : statement);
-                    afterRemoved = false;
-                }
-                if (!changed) {
+                    return i > 0 && isLogOption(original.get(i - 1)) ? statement.withPrefix(withoutTrailingComment(statement.getPrefix())) : statement;
+                });
+                if (statements == original) {
                     return m;
                 }
-                J.Block newBody = body.withStatements(statements);
-                if (afterRemoved) {
-                    newBody = newBody.withEnd(withoutTrailingComment(newBody.getEnd()));
-                }
-                J.Block finalBody = newBody;
-                return m.withArguments(ListUtils.map(m.getArguments(), a -> closure.withBody(finalBody)));
+                J.Block newBody = body.withStatements(statements)
+                        .withEnd(isLogOption(original.get(original.size() - 1)) ? withoutTrailingComment(body.getEnd()) : body.getEnd());
+                return m.withArguments(ListUtils.mapFirst(m.getArguments(), a -> closure.withBody(newBody)));
             }
         });
     }
