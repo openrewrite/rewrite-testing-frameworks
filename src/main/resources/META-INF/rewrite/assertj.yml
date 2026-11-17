@@ -161,11 +161,6 @@ recipeList:
       dedicatedAssertion: isEmpty
       requiredType: java.lang.String
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-      chainedAssertion: getString
-      assertToReplace: hasSize
-      dedicatedAssertion: isEmpty
-      requiredType: java.lang.String
-  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: equals
       assertToReplace: isTrue
       dedicatedAssertion: isEqualTo
@@ -230,16 +225,6 @@ recipeList:
       assertToReplace: isFalse
       dedicatedAssertion: isNotEmpty
       requiredType: java.lang.String
-  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-      chainedAssertion: length
-      assertToReplace: hasSize
-      dedicatedAssertion: hasSameSizeAs
-      requiredType: java.lang.String
-  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
-      chainedAssertion: getFile
-      assertToReplace: hasSize
-      dedicatedAssertion: isEmpty
-      requiredType: java.io.File
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertion:
       chainedAssertion: length
       assertToReplace: isZero
