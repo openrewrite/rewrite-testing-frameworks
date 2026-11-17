@@ -523,4 +523,61 @@ class RemoveTestPrefixTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void ignoreMethodOverriddenInAnotherFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class BaseTest {
+                  @Test
+                  void testFoo() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class SubTest extends BaseTest {
+                  @Override
+                  @Test
+                  void testFoo() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepImpliedMethodSourceWhenTestRenameIsSkipped() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.MethodSource;
+              import java.util.stream.Stream;
+              import static java.util.List.of;
+
+              class FooTest {
+                  @ParameterizedTest
+                  @MethodSource
+                  void testOf(Arguments args) {
+                  }
+
+                  static Stream<Arguments> testOf() {
+                      return Stream.of(Arguments.of(1));
+                  }
+              }
+              """
+          )
+        );
+    }
 }
