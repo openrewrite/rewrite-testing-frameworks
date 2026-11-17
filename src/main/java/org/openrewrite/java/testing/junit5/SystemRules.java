@@ -33,6 +33,7 @@ final class SystemRules {
     static final String CLASS_RULE = "org.junit.ClassRule";
     static final String MAY_BE_USED_ELSEWHERE_COMMENT = " TODO Migrate by hand: other classes, such as subclasses, may use this rule, which this migration does not see.";
 
+    private static final String TEST_RULE = "org.junit.rules.TestRule";
     private static final AnnotationMatcher RULE_ANNOTATION = new AnnotationMatcher("@org.junit.*Rule");
 
     private SystemRules() {
@@ -44,19 +45,25 @@ final class SystemRules {
     }
 
     /**
-     * Records, for each field, the source files that refer to it, so that a rule that a subclass in another file
-     * reads can be told apart from one that only its own file uses.
+     * Records, for each rule-typed field, the source files that refer to it, so that a rule that a subclass in another
+     * file reads can be told apart from one that only its own file uses.
      */
     static void scanFieldUsages(JavaSourceFile sourceFile, Map<String, Set<Path>> usages) {
         new JavaIsoVisitor<Map<String, Set<Path>>>() {
             @Override
             public J.Identifier visitIdentifier(J.Identifier identifier, Map<String, Set<Path>> acc) {
-                if (identifier.getFieldType() != null) {
-                    acc.computeIfAbsent(fieldKey(identifier.getFieldType()), k -> new HashSet<>()).add(sourceFile.getSourcePath());
+                JavaType.Variable variable = identifier.getFieldType();
+                if (variable != null && isRuleTypedField(variable)) {
+                    acc.computeIfAbsent(fieldKey(variable), k -> new HashSet<>()).add(sourceFile.getSourcePath());
                 }
                 return identifier;
             }
         }.visit(sourceFile, usages);
+    }
+
+    private static boolean isRuleTypedField(JavaType.Variable variable) {
+        return variable.getOwner() instanceof JavaType.FullyQualified &&
+               TypeUtils.isAssignableTo(TEST_RULE, variable.getType());
     }
 
     private static String fieldKey(JavaType.Variable variable) {
