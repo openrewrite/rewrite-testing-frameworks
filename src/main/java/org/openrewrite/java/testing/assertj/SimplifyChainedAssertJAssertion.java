@@ -173,8 +173,8 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                         .contextSensitive()
                         .staticImports(assertions + ".assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"));
-                if (template.contains("Path.of(")) {
-                    builder.imports("java.nio.file.Path");
+                if (template.contains("Paths.get(")) {
+                    builder.imports("java.nio.file.Paths");
                 }
                 J.MethodInvocation result = builder.build()
                         .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
@@ -221,11 +221,11 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
                 arguments.add(assertThatArgumentIsEmpty ? methodToReplaceArgument : assertThatArgument);
 
-                // Special case for Path.of() assertions
+                // Special case for Paths.get() assertions
                 if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw") &&
                     TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
-                    maybeAddImport("java.nio.file.Path");
-                    return "assertThat(#{any()}).%s(Path.of(#{any()}))";
+                    maybeAddImport("java.nio.file.Paths");
+                    return "assertThat(#{any()}).%s(Paths.get(#{any()}))";
                 }
 
                 return "assertThat(#{any()}).%s(#{any()})";

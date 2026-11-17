@@ -268,6 +268,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
               """,
             """
               import java.nio.file.Path;
+              import java.nio.file.Paths;
 
               import static org.assertj.core.api.Assertions.assertThat;
 
@@ -277,7 +278,7 @@ class SimplifyChainedAssertJAssertionTest implements RewriteTest {
                   }
 
                   void path(Path actual) {
-                      assertThat(actual).startsWithRaw(Path.of("prefix"));
+                      assertThat(actual).startsWithRaw(Paths.get("prefix"));
                   }
               }
               """

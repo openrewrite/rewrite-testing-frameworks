@@ -622,11 +622,11 @@ class AssertJBestPracticesTest implements RewriteTest {
               arguments(
                 "java.nio.file.Path",
                 "assertThat(x.startsWith(\"x\")).isTrue()",
-                "assertThat(x).startsWithRaw(Path.of(\"x\"))"),
+                "assertThat(x).startsWithRaw(Paths.get(\"x\"))"),
               arguments(
                 "java.nio.file.Path",
                 "assertThat(x.endsWith(\"y\")).isTrue()",
-                "assertThat(x).endsWithRaw(Path.of(\"y\"))"),
+                "assertThat(x).endsWithRaw(Paths.get(\"y\"))"),
               arguments(
                 "java.nio.file.Path",
                 "assertThat(x.getParent()).isEqualTo(y)",
@@ -738,10 +738,12 @@ class AssertJBestPracticesTest implements RewriteTest {
               .replaceAll("\\[\\]", "");
             // Primitives (e.g. int, float) have no package and need no import
             String imprt = fqType.contains(".") ? "import " + fqType + ";\n" : "";
+            String expectedImports = dedicatedAssertion.contains("Paths.get(") ?
+              imprt + "import java.nio.file.Paths;\n\n" : imprt;
             rewriteRun(
               java(
                 template.formatted(imprt, argumentsType, assertToReplace),
-                template.formatted(imprt, argumentsType, dedicatedAssertion)));
+                template.formatted(expectedImports, argumentsType, dedicatedAssertion)));
         }
     }
 
