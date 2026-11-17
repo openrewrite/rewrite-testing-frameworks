@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.gatling;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -188,73 +189,76 @@ class MigrateGatlingScalaDslTest implements RewriteTest {
         );
     }
 
-    @Test
-    void keepJavaSdkTransform() {
-        rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "gatling-core-3.9",
-            "gatling-core-java-3.9",
-            "gatling-http-3.9",
-            "gatling-http-java-3.9")),
-          //language=java
-          java(
-            """
-              import io.gatling.javaapi.core.CheckBuilder;
+    @Nested
+    class NoChange {
+        @Test
+        void keepJavaSdkTransform() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+                "gatling-core-3.9",
+                "gatling-core-java-3.9",
+                "gatling-http-3.9",
+                "gatling-http-java-3.9")),
+              //language=java
+              java(
+                """
+                  import io.gatling.javaapi.core.CheckBuilder;
 
-              import static io.gatling.javaapi.core.CoreDsl.jsonPath;
+                  import static io.gatling.javaapi.core.CoreDsl.jsonPath;
 
-              class Checks {
-                  CheckBuilder.Final id = jsonPath("$.id").find().transform(String::toUpperCase).saveAs("id");
-              }
-              """
-          )
-        );
-    }
+                  class Checks {
+                      CheckBuilder.Final id = jsonPath("$.id").find().transform(String::toUpperCase).saveAs("id");
+                  }
+                  """
+              )
+            );
+        }
 
-    @Test
-    void keepScalaCollectionTransform() {
-        rewriteRun(
-          scala(
-            """
-              import io.gatling.core.Predef._
+        @Test
+        void keepScalaCollectionTransform() {
+            rewriteRun(
+              scala(
+                """
+                  import io.gatling.core.Predef._
 
-              class Collections {
-                val incremented = Map("a" -> 1).transform((key, value) => value + 1)
-              }
-              """
-          )
-        );
-    }
+                  class Collections {
+                    val incremented = Map("a" -> 1).transform((key, value) => value + 1)
+                  }
+                  """
+              )
+            );
+        }
 
-    @Test
-    void keepNamesDeclaredInTheSource() {
-        rewriteRun(
-          scala(
-            """
-              import io.gatling.core.Predef._
+        @Test
+        void keepNamesDeclaredInTheSource() {
+            rewriteRun(
+              scala(
+                """
+                  import io.gatling.core.Predef._
 
-              class Own {
-                def polling(n: Int): Int = n
-                val heavisideUsers = 3
-                val p = polling(heavisideUsers)
-              }
-              """
-          )
-        );
-    }
+                  class Own {
+                    def polling(n: Int): Int = n
+                    val heavisideUsers = 3
+                    val p = polling(heavisideUsers)
+                  }
+                  """
+              )
+            );
+        }
 
-    @Test
-    void ignoreSourcesNotImportingGatling() {
-        rewriteRun(
-          scala(
-            """
-              import scala.concurrent.duration._
+        @Test
+        void ignoreSourcesNotUsingGatling() {
+            rewriteRun(
+              scala(
+                """
+                  import scala.concurrent.duration._
 
-              class Elsewhere {
-                def run(polling: Seq[Int]): Seq[Int] = polling.map(_ * 2)
-              }
-              """
-          )
-        );
+                  class Elsewhere {
+                    def run(polling: Seq[Int]): Seq[Int] = polling.map(_ * 2)
+                  }
+                  """
+              )
+            );
+        }
     }
 }

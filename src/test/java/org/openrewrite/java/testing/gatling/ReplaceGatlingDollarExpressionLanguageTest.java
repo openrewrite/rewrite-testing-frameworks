@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.gatling;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -67,23 +68,6 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
                 val scn = scenario("Computers")
                   .exec(http("computer").get("/computers/#{computerId}").check(jsonPath("$.name").is("#{name}")))
                   .exec(http("search").post("/search").body(StringBody(\"\"\"{"q": "#{query.random()}"}\"\"\")))
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void scalaInterpolatedStringsAreLeftAlone() {
-        rewriteRun(
-          scala(
-            """
-              import io.gatling.core.Predef._
-              import io.gatling.http.Predef._
-
-              class InterpolatingSimulation extends Simulation {
-                val baseUrl = "https://example.com"
-                val scn = scenario("Interpolating").exec(http("home").get(s"${baseUrl}/home"))
               }
               """
           )
@@ -189,52 +173,6 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
     }
 
     @Test
-    void keepStringsOnlyPassedToOtherLibraries() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import io.gatling.javaapi.core.Simulation;
-
-              public class PropertySimulation extends Simulation {
-                  String baseUrl = System.getProperty("baseUrl", "${BASE_URL}");
-              }
-              """
-          ),
-          scala(
-            """
-              import io.gatling.core.Predef._
-
-              class PropertySimulation extends Simulation {
-                val baseUrl = sys.props.getOrElse("baseUrl", "${BASE_URL}")
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void ignoreSourcesNotImportingGatling() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              class Placeholders {
-                  String url = "${base.url}/home";
-              }
-              """
-          ),
-          scala(
-            """
-              class Placeholders {
-                val url = "${base.url}/home"
-              }
-              """
-          )
-        );
-    }
-
-    @Test
     void kotlinSimulation() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(),
@@ -272,5 +210,71 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+        @Test
+        void scalaInterpolatedStringsAreLeftAlone() {
+            rewriteRun(
+              scala(
+                """
+                  import io.gatling.core.Predef._
+                  import io.gatling.http.Predef._
+
+                  class InterpolatingSimulation extends Simulation {
+                    val baseUrl = "https://example.com"
+                    val scn = scenario("Interpolating").exec(http("home").get(s"${baseUrl}/home"))
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void keepStringsOnlyPassedToOtherLibraries() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import io.gatling.javaapi.core.Simulation;
+
+                  public class PropertySimulation extends Simulation {
+                      String baseUrl = System.getProperty("baseUrl", "${BASE_URL}");
+                  }
+                  """
+              ),
+              scala(
+                """
+                  import io.gatling.core.Predef._
+
+                  class PropertySimulation extends Simulation {
+                    val baseUrl = sys.props.getOrElse("baseUrl", "${BASE_URL}")
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void ignoreSourcesNotUsingGatling() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  class Placeholders {
+                      String url = "${base.url}/home";
+                  }
+                  """
+              ),
+              scala(
+                """
+                  class Placeholders {
+                    val url = "${base.url}/home"
+                  }
+                  """
+              )
+            );
+        }
     }
 }

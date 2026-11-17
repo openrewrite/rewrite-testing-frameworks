@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.gatling;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -97,36 +98,39 @@ class ReplaceScalaPostfixDurationsTest implements RewriteTest {
         );
     }
 
-    @Test
-    void keepDotNotationAndOtherInfixCalls() {
-        rewriteRun(
-          scala(
-            """
-              import io.gatling.core.Predef._
-              import scala.concurrent.duration._
+    @Nested
+    class NoChange {
+        @Test
+        void keepDotNotationAndOtherInfixCalls() {
+            rewriteRun(
+              scala(
+                """
+                  import io.gatling.core.Predef._
+                  import scala.concurrent.duration._
 
-              class Untouched {
-                val dotted = 5.seconds
-                val larger = 3 max 4
-                val total = 5.seconds plus 2.seconds
-              }
-              """
-          )
-        );
-    }
+                  class Untouched {
+                    val dotted = 5.seconds
+                    val larger = 3 max 4
+                    val total = 5.seconds plus 2.seconds
+                  }
+                  """
+              )
+            );
+        }
 
-    @Test
-    void ignoreSourcesNotImportingGatling() {
-        rewriteRun(
-          scala(
-            """
-              import scala.concurrent.duration._
+        @Test
+        void ignoreSourcesNotUsingGatling() {
+            rewriteRun(
+              scala(
+                """
+                  import scala.concurrent.duration._
 
-              class Timeouts {
-                val timeout = 5 seconds
-              }
-              """
-          )
-        );
+                  class Timeouts {
+                    val timeout = 5 seconds
+                  }
+                  """
+              )
+            );
+        }
     }
 }
