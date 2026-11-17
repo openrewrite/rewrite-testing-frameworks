@@ -43,6 +43,12 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
             "junit.framework.TestSuite", "junit.framework.JUnit4TestAdapter", "junit.extensions.TestSetup", "junit.textui.TestRunner");
 
     private final JUnit3MigrationPlan plan;
+    private final UsesType<ExecutionContext> usesJUnit = new UsesType<>("junit..*", false);
+    // also through a project's own test base class, which UsesType follows the supertypes to
+    private final UsesType<ExecutionContext> usesAssert = new UsesType<>("junit.framework.Assert", false);
+    private final UsesType<ExecutionContext> usesTestCase = new UsesType<>(JUnit3MigrationPlan.TEST_CASE, false);
+    // a TestResult tells an AssertionFailedError (a failure) from any other error, which JUnit 4 assertions do not throw
+    private final UsesType<ExecutionContext> usesTestResult = new UsesType<>("junit.framework.TestResult", false);
 
     JUnit3TestCaseVisitor(JUnit3MigrationPlan plan) {
         this.plan = plan;
@@ -51,13 +57,13 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         Cursor parent = getCursor().getParentOrThrow();
-        boolean usesJUnit = new UsesType<>("junit..*", false).visit(cu, ctx) != cu;
+        boolean junit = matches(usesJUnit, cu, ctx);
         // callers of a constructor that loses its test name need not use anything from JUnit
-        if (!usesJUnit && !usesClassDroppingNameArgument(cu)) {
+        if (!junit && !usesClassDroppingNameArgument(cu)) {
             return cu;
         }
         J.CompilationUnit c = (J.CompilationUnit) new NameConstructorVisitor(plan).visitNonNull(cu, ctx, parent);
-        if (!usesJUnit) {
+        if (!junit) {
             return c;
         }
         Set<String> declared = declaredClasses(c);
@@ -72,11 +78,9 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
             c = (J.CompilationUnit) new TestRunnerVisitor(plan).visitNonNull(c, ctx, parent);
         }
         J.CompilationUnit beforeAssertions = c;
-        // also through a project's own test base class, which UsesType follows the supertypes to
-        if (new UsesType<>("junit.framework.Assert", false).visit(cu, ctx) != cu || new UsesType<>(JUnit3MigrationPlan.TEST_CASE, false).visit(cu, ctx) != cu) {
-            // a TestResult tells an AssertionFailedError (a failure) from any other error, which JUnit 4 assertions do not throw
-            boolean usesTestResult = new UsesType<>("junit.framework.TestResult", false).visit(cu, ctx) != cu;
-            c = (J.CompilationUnit) new JUnit3AssertionsVisitor(cursor -> !usesTestResult && !inClass(cursor, plan::isUnmigrated), migratesTestCase)
+        if (matches(usesAssert, cu, ctx) || matches(usesTestCase, cu, ctx)) {
+            boolean testResult = matches(usesTestResult, cu, ctx);
+            c = (J.CompilationUnit) new JUnit3AssertionsVisitor(cursor -> !testResult && !inClass(cursor, plan::isUnmigrated), migratesTestCase)
                     .visitNonNull(c, ctx, parent);
         }
         if (migratesTestCase || c != beforeAssertions) {
@@ -107,6 +111,10 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
                 return plan.isUnmigrated(fqn) ? SearchResult.found(cd, "Not migrated from JUnit 3: " + plan.pinReasonByFqn.get(fqn)) : cd;
             }
         }.visitNonNull(c, ctx, parent);
+    }
+
+    private static boolean matches(UsesType<ExecutionContext> usesType, J.CompilationUnit cu, ExecutionContext ctx) {
+        return usesType.visit(cu, ctx) != cu;
     }
 
     private boolean usesClassDroppingNameArgument(J.CompilationUnit cu) {
