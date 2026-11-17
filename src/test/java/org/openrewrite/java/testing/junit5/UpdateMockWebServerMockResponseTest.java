@@ -308,7 +308,6 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                       MockResponse mrJ = mockResponse.setHeader("accept","application/json");
                       MockResponse mrK = mockResponse.setHeaders(new Headers.Builder().add("accept:application/json").build());
                       MockResponse mrL = mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
-                      MockResponse mrM = mockResponse.setHttp2ErrorCode(500);
                       MockResponse mrN = mockResponse.setResponseCode(200);
                       MockResponse mrO = mockResponse.setStatus("OK");
                       MockResponse mrP = mockResponse.setTrailers(new Headers.Builder().add("x-trailer:value").build());
