@@ -273,4 +273,24 @@ class CategoryToTagTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void emptyCategoryIsRemoved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.experimental.categories.Category;
+
+              @Category({})
+              public class B {
+              }
+              """,
+            """
+              public class B {
+              }
+              """
+          )
+        );
+    }
 }

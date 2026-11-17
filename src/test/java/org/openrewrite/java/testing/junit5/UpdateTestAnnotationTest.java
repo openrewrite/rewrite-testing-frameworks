@@ -20,10 +20,15 @@ import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.marker.JavaSourceSet;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.Collections;
+
+import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
@@ -711,6 +716,43 @@ class UpdateTestAnnotationTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void timeoutWithoutThreadModeWhenJupiterPredatesIt() {
+        // Jupiter before 5.9 has `@Timeout` but no `Timeout.ThreadMode`
+        JavaSourceSet jupiter57 = new JavaSourceSet(randomId(), "test", Collections.singletonList(
+          JavaType.ShallowClass.build("org.junit.jupiter.api.Timeout")), Collections.emptyMap());
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+
+              public class MyTest {
+
+                  @Test(timeout = 500)
+                  public void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.Timeout;
+
+              import java.util.concurrent.TimeUnit;
+
+              public class MyTest {
+
+                  @Test
+                  @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
+                  public void test() {
+                  }
+              }
+              """,
+            spec -> spec.markers(jupiter57)
           )
         );
     }

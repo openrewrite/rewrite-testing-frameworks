@@ -31,12 +31,16 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.trait.Annotated;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -166,8 +170,43 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
     // Types also declared as a field this recipe leaves alone, such as a `@ClassRule` or a field only referenced from a
     // `RuleChain`; those fields still have to implement `TestRule`, so the compilation unit wide `ChangeType` that
     // follows the conversion must not run for their type.
+    // The same goes for a rule type passed to a method or constructor declared in another file, which the `ChangeType` cannot update.
     private static Set<String> unconvertibleRuleTypes(J.CompilationUnit cu) {
+        Set<String> declaredHere = new HashSet<>();
+        new JavaIsoVisitor<Set<String>>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, Set<String> names) {
+                if (classDecl.getType() != null) {
+                    names.add(classDecl.getType().getFullyQualifiedName());
+                }
+                return super.visitClassDeclaration(classDecl, names);
+            }
+        }.visit(cu, declaredHere);
         return new JavaIsoVisitor<Set<String>>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<String> types) {
+                collectRuleTypeArguments(method.getMethodType(), method.getArguments(), types);
+                return super.visitMethodInvocation(method, types);
+            }
+
+            @Override
+            public J.NewClass visitNewClass(J.NewClass newClass, Set<String> types) {
+                collectRuleTypeArguments(newClass.getMethodType(), newClass.getArguments(), types);
+                return super.visitNewClass(newClass, types);
+            }
+
+            private void collectRuleTypeArguments(JavaType.@Nullable Method methodType, List<Expression> arguments, Set<String> types) {
+                if (methodType != null && !declaredHere.contains(methodType.getDeclaringType().getFullyQualifiedName())) {
+                    for (Expression argument : arguments) {
+                        for (String ruleType : RULE_TO_PROVIDER.keySet()) {
+                            if (TypeUtils.isOfClassType(argument.getType(), ruleType)) {
+                                types.add(ruleType);
+                            }
+                        }
+                    }
+                }
+            }
+
             @Override
             public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations mv, Set<String> types) {
                 String ruleType = softAssertionsType(mv);

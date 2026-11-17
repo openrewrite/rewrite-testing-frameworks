@@ -398,4 +398,43 @@ class JUnitSoftAssertionsToSoftAssertionsExtensionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noChangeWhenRuleIsPassedToHelperInAnotherFile() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              package helpers;
+
+              import org.assertj.core.api.JUnitSoftAssertions;
+
+              public class Helper {
+                  public static void check(JUnitSoftAssertions softly) {
+                      softly.assertThat(1).isEqualTo(1);
+                  }
+              }
+              """
+          ),
+          // language=java
+          java(
+            """
+              import helpers.Helper;
+              import org.assertj.core.api.JUnitSoftAssertions;
+              import org.junit.Rule;
+              import org.junit.Test;
+
+              public class MyTest {
+                  @Rule
+                  public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
+                  @Test
+                  public void test() {
+                      Helper.check(softly);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

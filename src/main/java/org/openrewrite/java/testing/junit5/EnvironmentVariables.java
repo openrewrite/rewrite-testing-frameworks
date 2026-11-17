@@ -26,8 +26,11 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Annotated;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Comparator.comparing;
 
@@ -55,6 +58,10 @@ public class EnvironmentVariables extends Recipe {
         return Preconditions.check(new UsesType<>(ENVIRONMENT_VARIABLES, false), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                if (clearsWithArray(cu)) {
+                    // `clear(String...)` has no one-to-one `EnvironmentVariablesStub.remove(String)` for an array
+                    return cu;
+                }
                 maybeRemoveImport(RULE);
                 maybeRemoveImport(CLASS_RULE);
                 maybeRemoveImport(ENVIRONMENT_VARIABLES);
@@ -121,6 +128,19 @@ public class EnvironmentVariables extends Recipe {
                 return m;
             }
         });
+    }
+
+    private static boolean clearsWithArray(J.CompilationUnit cu) {
+        return new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                if (ENV_VAR_CLEAR.matches(method) && method.getArguments().size() == 1 &&
+                    method.getArguments().get(0).getType() instanceof JavaType.Array) {
+                    found.set(true);
+                }
+                return super.visitMethodInvocation(method, found);
+            }
+        }.reduce(cu, new AtomicBoolean()).get();
     }
 
     private static JavaTemplate systemStubExtensionTemplate(ExecutionContext ctx) {

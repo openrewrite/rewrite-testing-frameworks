@@ -528,6 +528,67 @@ class MockitoJUnitToMockitoExtensionTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/86")
     @Test
+    void leaveRelocatedMockitoJUnitRunnerAlone() {
+        //language=java
+        rewriteRun(
+
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.runner.RunWith;
+              import org.junit.Test;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnit;
+              import org.mockito.junit.MockitoJUnitRunner;
+              import org.mockito.junit.MockitoTestRule;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.verify;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+
+                  @Rule
+                  MockitoTestRule mockitoTestRule = MockitoJUnit.rule();
+
+                  @Mock
+                  private List<Integer> list;
+
+                  @Test
+                  public void exampleTest() {
+                      verify(list).add(100);
+                  }
+              }
+              """,
+            """
+              import org.junit.runner.RunWith;
+              import org.junit.Test;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.verify;
+
+              @RunWith(MockitoJUnitRunner.class)
+              class MyTest {
+
+                  @Mock
+                  private List<Integer> list;
+
+                  @Test
+                  public void exampleTest() {
+                      verify(list).add(100);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/86")
+    @Test
     void leaveExtendWithAlone() {
         //language=java
         rewriteRun(
