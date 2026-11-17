@@ -25,11 +25,19 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.tree.K;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
 
 public class CleanupKotlinJUnit5AssertionImports extends Recipe {
+
+    // Functions declared in `org.junit.jupiter.api.AssertionsKt`
+    private static final Set<String> KOTLIN_ASSERTIONS = new HashSet<>(Arrays.asList(
+            "assertAll", "assertDoesNotThrow", "assertInstanceOf", "assertNotNull", "assertNull",
+            "assertThrows", "assertTimeout", "assertTimeoutPreemptively", "fail"));
 
     @Getter
     final String displayName = "Remove JUnit 5 static Assertions imports in Kotlin when wildcard import is present";
@@ -37,8 +45,9 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
     @Getter
     final String description = "In Kotlin, when both `import org.junit.jupiter.api.*` and static imports from " +
             "`org.junit.jupiter.api.Assertions` are present, there is overload resolution ambiguity between the Java " +
-            "static methods and the Kotlin extension functions. This recipe removes the static Assertions imports " +
-            "when the wildcard import is present, allowing the Kotlin extension functions to be used instead.";
+            "static methods and the Kotlin extension functions. This recipe removes the explicit imports of those " +
+            "`Assertions` members that have a Kotlin counterpart when the wildcard import is present, allowing the " +
+            "Kotlin functions to be used instead. Other `Assertions` imports are left alone.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -55,24 +64,11 @@ public class CleanupKotlinJUnit5AssertionImports extends Recipe {
                     return cu;
                 }
 
-                // Check if there are any Assertions imports that should be removed
-                boolean hasAssertionsImport = cu.getImports().stream()
-                        .anyMatch(imp -> {
-                            String typeName = imp.getTypeName();
-                            return "org.junit.jupiter.api.Assertions".equals(typeName);
-                        });
-
-                if (!hasAssertionsImport) {
-                    return cu;
-                }
-
-                // Filter out the Assertions imports
+                // Only drop explicit imports of members that have a Kotlin counterpart in `AssertionsKt`;
+                // `Assertions.*` and other members such as `assertEquals` must stay to keep resolving
                 List<J.Import> filteredImports = cu.getImports().stream()
-                        .filter(imp -> {
-                            String typeName = imp.getTypeName();
-                            // Keep imports that are NOT from org.junit.jupiter.api.Assertions
-                            return typeName == null || !"org.junit.jupiter.api.Assertions".equals(typeName);
-                        })
+                        .filter(imp -> !"org.junit.jupiter.api.Assertions".equals(imp.getTypeName()) ||
+                                !KOTLIN_ASSERTIONS.contains(imp.getQualid().getSimpleName()))
                         .collect(toList());
 
                 if (filteredImports.size() == cu.getImports().size()) {

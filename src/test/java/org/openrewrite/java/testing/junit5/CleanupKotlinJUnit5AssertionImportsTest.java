@@ -21,7 +21,6 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -36,13 +35,10 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
           .recipe(new CleanupKotlinJUnit5AssertionImports());
     }
 
-    @DocumentExample
     @Test
-    void removesStaticAssertionsWildcardImportWhenApiWildcardPresent() {
+    void keepsStaticAssertionsWildcardImportWhenApiWildcardPresent() {
         //language=kotlin
         rewriteRun(
-          // The Kotlin parser leaves calls such as `assertNull(null)` without a method type.
-          spec -> spec.typeValidationOptions(TypeValidation.all().methodInvocations(false)),
           kotlin(
             """
               import org.junit.jupiter.api.*
@@ -51,19 +47,7 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
               class ATest {
                   @Test
                   fun testSomething() {
-                      assertNull(null)
-                      assertNotNull("test")
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.*
-
-              class ATest {
-                  @Test
-                  fun testSomething() {
-                      assertNull(null)
-                      assertNotNull("test")
+                      assertEquals(1, 1)
                   }
               }
               """
@@ -71,6 +55,41 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
         );
     }
 
+    @Test
+    void keepsImportsWithoutKotlinCounterpart() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.*
+              import org.junit.jupiter.api.Assertions.assertEquals
+              import org.junit.jupiter.api.Assertions.assertNull
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                      assertEquals(1, 1)
+                      assertNull(null)
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.*
+              import org.junit.jupiter.api.Assertions.assertEquals
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                      assertEquals(1, 1)
+                      assertNull(null)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @DocumentExample
     @Test
     void removesSpecificStaticAssertionsImportWhenApiWildcardPresent() {
         //language=kotlin
