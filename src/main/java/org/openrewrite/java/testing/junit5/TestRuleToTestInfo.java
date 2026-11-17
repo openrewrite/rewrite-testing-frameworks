@@ -21,17 +21,22 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.marker.Markers;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
 
 public class TestRuleToTestInfo extends Recipe {
 
@@ -63,13 +68,12 @@ public class TestRuleToTestInfo extends Recipe {
                 public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                     J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                     if (TEST_NAME_GET_NAME.matches(mi) && mi.getSelect() != null) {
-                        return mi.getSelect().withPrefix(Space.format(" "));
+                        return mi.getSelect().withPrefix(mi.getPrefix());
                     }
                     return mi;
                 }
             });
             doAfterVisit(new ChangeType("org.junit.rules.TestName", "java.lang.String", true).getVisitor());
-            doAfterVisit(new ChangeType("org.junit.Before", "org.junit.jupiter.api.BeforeEach", true).getVisitor());
             return compilationUnit;
         }
 
@@ -157,6 +161,7 @@ public class TestRuleToTestInfo extends Recipe {
 
     @RequiredArgsConstructor
     private static class BeforeMethodToTestInfoVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private static final AnnotationMatcher JUNIT_BEFORE_MATCHER = new AnnotationMatcher("@org.junit.Before");
         private final J.MethodDeclaration beforeMethod;
         private final J.VariableDeclarations varDecls;
         private final String testMethodStatement;
@@ -170,19 +175,38 @@ public class TestRuleToTestInfo extends Recipe {
         public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
             J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
             if (md.getId().equals(beforeMethod.getId())) {
-                md = JavaTemplate.builder("TestInfo testInfo")
-                        .contextSensitive()
-                        .javaParser(javaParser(ctx))
-                        .imports("org.junit.jupiter.api.TestInfo",
-                                "org.junit.jupiter.api.BeforeEach",
-                                "java.util.Optional",
-                                "java.lang.reflect.Method")
-                        .build()
-                        .apply(updateCursor(md), md.getCoordinates().replaceParameters());
+                String testInfoName = "testInfo";
+                J.VariableDeclarations existing = null;
+                List<Statement> params = md.getParameters();
+                for (Statement param : params) {
+                    if (param instanceof J.VariableDeclarations &&
+                        TypeUtils.isOfClassType(((J.VariableDeclarations) param).getType(), "org.junit.jupiter.api.TestInfo")) {
+                        existing = (J.VariableDeclarations) param;
+                    }
+                }
+                if (existing != null) {
+                    testInfoName = existing.getVariables().get(0).getSimpleName();
+                } else {
+                    J.MethodDeclaration withTestInfo = JavaTemplate.builder("TestInfo testInfo")
+                            .contextSensitive()
+                            .javaParser(javaParser(ctx))
+                            .imports("org.junit.jupiter.api.TestInfo")
+                            .build()
+                            .apply(updateCursor(md), md.getCoordinates().replaceParameters());
+                    if (params.isEmpty() || params.get(0) instanceof J.Empty) {
+                        md = withTestInfo;
+                    } else {
+                        Statement testInfoParam = withTestInfo.getParameters().get(0).withPrefix(Space.SINGLE_SPACE);
+                        md = md.withParameters(ListUtils.concat(params, testInfoParam));
+                        updateCursor(md);
+                    }
+                }
+                md = renameBeforeToBeforeEach(md);
 
+                String finalTestInfoName = testInfoName;
                 md = maybeAutoFormat(
                         md,
-                        JavaTemplate.builder(testMethodStatement)
+                        JavaTemplate.builder(testMethodStatement.replace("testInfo.", finalTestInfoName + "."))
                                 .contextSensitive()
                                 .javaParser(javaParser(ctx))
                                 .imports("org.junit.jupiter.api.TestInfo",
@@ -210,6 +234,20 @@ public class TestRuleToTestInfo extends Recipe {
                 maybeAddImport("java.util.Optional");
             }
             return md;
+        }
+
+        private J.MethodDeclaration renameBeforeToBeforeEach(J.MethodDeclaration md) {
+            return md.withLeadingAnnotations(ListUtils.map(md.getLeadingAnnotations(), anno -> {
+                if (!JUNIT_BEFORE_MATCHER.matches(anno)) {
+                    return anno;
+                }
+                maybeAddImport("org.junit.jupiter.api.BeforeEach");
+                maybeRemoveImport("org.junit.Before");
+                JavaType.ShallowClass beforeEach = JavaType.ShallowClass.build("org.junit.jupiter.api.BeforeEach");
+                J.Identifier name = new J.Identifier(Tree.randomId(), anno.getAnnotationType().getPrefix(), Markers.EMPTY,
+                        emptyList(), "BeforeEach", beforeEach, null);
+                return anno.withType(beforeEach).withAnnotationType(name);
+            }));
         }
     }
 }
