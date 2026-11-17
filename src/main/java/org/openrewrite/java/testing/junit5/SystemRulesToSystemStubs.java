@@ -31,6 +31,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
+import java.nio.file.Path;
 import java.util.*;
 
 import static java.util.Collections.emptyList;
@@ -38,7 +39,7 @@ import static java.util.Comparator.comparing;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.testing.junit5.SystemRules.*;
 
-public class SystemRulesToSystemStubs extends Recipe {
+public class SystemRulesToSystemStubs extends ScanningRecipe<Map<String, Set<Path>>> {
     private static final String STUBS = "uk.org.webcompere.systemstubs";
     private static final String SYSTEM_PROPERTIES = STUBS + ".properties.SystemProperties";
     private static final String SYSTEM_OUT = STUBS + ".stream.SystemOut";
@@ -119,7 +120,25 @@ public class SystemRulesToSystemStubs extends Recipe {
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public Map<String, Set<Path>> getInitialValue(ExecutionContext ctx) {
+        return new HashMap<>();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Map<String, Set<Path>> usages) {
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (tree instanceof JavaSourceFile) {
+                    scanFieldUsages((JavaSourceFile) tree, usages);
+                }
+                return tree;
+            }
+        };
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Map<String, Set<Path>> usages) {
         return Preconditions.check(Preconditions.and(new JavaFileChecker<>(), new UsesType<>(PACKAGE + ".*", false)), new JavaVisitor<ExecutionContext>() {
             private final Map<JavaType.Variable, Migration> migrations = new HashMap<>();
             private final Map<JavaType.Variable, String> todos = new HashMap<>();
@@ -136,7 +155,7 @@ public class SystemRulesToSystemStubs extends Recipe {
                         JavaType.Variable variable = field.getVariables().get(0).getVariableType();
                         if (kind != null && variable != null && isRuleField(field) &&
                             getCursor().getParentTreeCursor().getParentTreeCursor().getValue() instanceof J.ClassDeclaration) {
-                            if (mayBeUsedElsewhere(field, getCursor())) {
+                            if (mayBeUsedElsewhere(field, getCursor(), usages)) {
                                 todos.put(variable, MAY_BE_USED_ELSEWHERE_COMMENT);
                                 return field;
                             }

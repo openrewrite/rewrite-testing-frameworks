@@ -24,8 +24,8 @@ import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.trait.Comments;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Path;
+import java.util.*;
 
 final class SystemRules {
     static final String PACKAGE = "org.junit.contrib.java.lang.system";
@@ -43,15 +43,47 @@ final class SystemRules {
                field.getLeadingAnnotations().stream().anyMatch(RULE_ANNOTATION::matches);
     }
 
+    /**
+     * Records, for each field, the source files that refer to it, so that a rule that a subclass in another file
+     * reads can be told apart from one that only its own file uses.
+     */
+    static void scanFieldUsages(JavaSourceFile sourceFile, Map<String, Set<Path>> usages) {
+        new JavaIsoVisitor<Map<String, Set<Path>>>() {
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, Map<String, Set<Path>> acc) {
+                if (identifier.getFieldType() != null) {
+                    acc.computeIfAbsent(fieldKey(identifier.getFieldType()), k -> new HashSet<>()).add(sourceFile.getSourcePath());
+                }
+                return identifier;
+            }
+        }.visit(sourceFile, usages);
+    }
+
+    private static String fieldKey(JavaType.Variable variable) {
+        JavaType.FullyQualified owner = TypeUtils.asFullyQualified(variable.getOwner());
+        return (owner == null ? "" : owner.getFullyQualifiedName()) + "#" + variable.getName();
+    }
+
     static boolean mayBeUsedElsewhere(J.VariableDeclarations field, Cursor cursor) {
+        return mayBeUsedElsewhere(field, cursor, Collections.emptyMap());
+    }
+
+    static boolean mayBeUsedElsewhere(J.VariableDeclarations field, Cursor cursor, Map<String, Set<Path>> usages) {
         if (field.hasModifier(J.Modifier.Type.Private)) {
             return false;
+        }
+        JavaSourceFile sourceFile = cursor.firstEnclosing(JavaSourceFile.class);
+        JavaType.Variable variable = field.getVariables().get(0).getVariableType();
+        if (variable != null && sourceFile != null) {
+            Set<Path> paths = usages.get(fieldKey(variable));
+            if (paths != null && paths.stream().anyMatch(path -> !path.equals(sourceFile.getSourcePath()))) {
+                return true;
+            }
         }
         J.ClassDeclaration owner = cursor.firstEnclosing(J.ClassDeclaration.class);
         if (owner != null && owner.hasModifier(J.Modifier.Type.Abstract)) {
             return true;
         }
-        JavaSourceFile sourceFile = cursor.firstEnclosing(JavaSourceFile.class);
         return sourceFile != null && sourceFile.getMarkers().findFirst(JavaSourceSet.class)
                 .map(sourceSet -> "main".equals(sourceSet.getName()))
                 .orElse(false);
