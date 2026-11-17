@@ -22,11 +22,7 @@ import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class UpdateMockWebServerMockResponse extends Recipe {
     private static final String LIBRARY_PACKAGE = "okhttp3.mockwebserver";

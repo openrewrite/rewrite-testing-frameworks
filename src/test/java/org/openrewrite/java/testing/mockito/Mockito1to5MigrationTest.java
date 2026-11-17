@@ -22,10 +22,14 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.regex.Pattern;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.maven.Assertions.pomXml;
 
 class Mockito1to5MigrationTest implements RewriteTest {
 
@@ -88,5 +92,120 @@ class Mockito1to5MigrationTest implements RewriteTest {
               """
           )
         );
+    }
+
+    @Test
+    void upgradeMockitoAllVersionPropertyInParent() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <properties>
+                  <version.mockito>1.9.5</version.mockito>
+                </properties>
+              </project>
+              """,
+            spec -> spec.after(after -> """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <properties>
+                  <version.mockito>%s</version.mockito>
+                </properties>
+              </project>
+              """.formatted(mockitoVersion(after)))
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-all</artifactId>
+                      <version>${version.mockito}</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>${version.mockito}</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void upgradeMockitoAllVersionPropertyInSamePom() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>example</artifactId>
+                <version>1.0</version>
+                <properties>
+                  <version.mockito>1.9.5</version.mockito>
+                </properties>
+                <dependencies>
+                  <dependency>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-all</artifactId>
+                    <version>${version.mockito}</version>
+                  </dependency>
+                </dependencies>
+              </project>
+              """,
+            spec -> spec.after(after -> """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>example</artifactId>
+                <version>1.0</version>
+                <properties>
+                  <version.mockito>%s</version.mockito>
+                </properties>
+                <dependencies>
+                  <dependency>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-core</artifactId>
+                    <version>${version.mockito}</version>
+                  </dependency>
+                </dependencies>
+              </project>
+              """.formatted(mockitoVersion(after)))
+          )
+        );
+    }
+
+    private static String mockitoVersion(String pom) {
+        return Pattern.compile("<version.mockito>(5\\.[^<]+)</version.mockito>").matcher(pom).results().findFirst().orElseThrow().group(1);
     }
 }

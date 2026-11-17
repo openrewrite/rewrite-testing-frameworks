@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class Mockito1to3MigrationTest implements RewriteTest {
@@ -284,6 +285,74 @@ class Mockito1to3MigrationTest implements RewriteTest {
                 .contains("<artifactId>mockito-core</artifactId>")
                 .doesNotContain("<artifactId>mockito-all</artifactId>")
                 .actual())
+          )
+        );
+    }
+
+    @Test
+    void upgradeMockitoAllVersionPropertyInParent() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <properties>
+                  <version.mockito>1.9.5</version.mockito>
+                </properties>
+              </project>
+              """,
+            """
+              <project>
+                <groupId>org.example</groupId>
+                <artifactId>parent</artifactId>
+                <version>1.0</version>
+                <properties>
+                  <version.mockito>3.12.4</version.mockito>
+                </properties>
+              </project>
+              """
+          ),
+          mavenProject("child",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-all</artifactId>
+                      <version>${version.mockito}</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                  <parent>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>1.0</version>
+                  </parent>
+                  <artifactId>child</artifactId>
+                  <dependencies>
+                    <dependency>
+                      <groupId>org.mockito</groupId>
+                      <artifactId>mockito-core</artifactId>
+                      <version>${version.mockito}</version>
+                    </dependency>
+                  </dependencies>
+                </project>
+                """
+            )
           )
         );
     }

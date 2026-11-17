@@ -72,7 +72,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               "junit-jupiter-api-5",
               "mockito-core-5"
             ))
-          // Known limitation: the recipe's output has an identifier `A` without a type
+          // `A` is declared in another file, which the recipe's template parser cannot see, so the `A` and `mockA1` identifiers
+          // it writes have no type. Fixing it needs the recipe to stub the mocked class.
           .recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false)));
     }
 

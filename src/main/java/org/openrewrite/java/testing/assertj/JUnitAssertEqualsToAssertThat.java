@@ -31,10 +31,7 @@ import org.openrewrite.java.tree.JavaType;
 
 import java.util.List;
 
-import static org.openrewrite.java.testing.assertj.JUnitDelta.floatingPointDeltaType;
-import static org.openrewrite.java.testing.assertj.JUnitDelta.isIntegralType;
-import static org.openrewrite.java.testing.assertj.JUnitDelta.isLiteralZero;
-import static org.openrewrite.java.testing.assertj.JUnitDelta.widenedTo;
+import static org.openrewrite.java.testing.assertj.JUnitDelta.*;
 
 public class JUnitAssertEqualsToAssertThat extends Recipe {
 
@@ -72,6 +69,7 @@ public class JUnitAssertEqualsToAssertThat extends Recipe {
                 if (args.size() == 2) {
                     return JavaTemplate.builder("assertThat(#{any()}).isEqualTo(#{any()});")
                             .staticImports(ASSERTJ + ".assertThat")
+                            .contextSensitive()
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), actual, expected);

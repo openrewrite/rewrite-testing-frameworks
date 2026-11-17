@@ -119,10 +119,13 @@ class SystemPropertyRulesToPioneerTest implements RewriteTest {
 
     @Test
     void useJupiterAnnotationsWhenJUnit61IsOnTheClasspath() {
-        InMemoryExecutionContext ctx = new InMemoryExecutionContext();
+        var ctx = new InMemoryExecutionContext();
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(ctx, "junit-4", "junit-jupiter-api-6", "system-rules-1")),
+            .classpathFromResources(ctx,
+              "junit-4",
+              "junit-jupiter-api-6",
+              "system-rules-1")),
           //language=java
           java(
             """

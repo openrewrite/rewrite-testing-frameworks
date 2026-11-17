@@ -348,7 +348,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                     J.MethodInvocation mi = super.visitMethodInvocation(method, p);
                     if (mi.getMethodType() == null && mi.getSelect() instanceof J.Identifier &&
                         ((J.Identifier) mi.getSelect()).getSimpleName().equals(varName) &&
-                        mi.getSimpleName().equals("closeOnDemand") && fieldType.getType() instanceof JavaType.FullyQualified) {
+                        "closeOnDemand".equals(mi.getSimpleName()) && fieldType.getType() instanceof JavaType.FullyQualified) {
                         JavaType.Method closeOnDemand = findNoArgMethod((JavaType.FullyQualified) fieldType.getType(), "closeOnDemand");
                         if (closeOnDemand != null) {
                             return mi.withMethodType(closeOnDemand).withName(mi.getName().withType(closeOnDemand));

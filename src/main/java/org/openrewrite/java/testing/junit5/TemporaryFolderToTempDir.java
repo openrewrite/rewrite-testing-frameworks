@@ -32,11 +32,7 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.marker.SearchResult;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -227,6 +223,18 @@ class TemporaryFolderToTempDirVisitor extends JavaVisitor<ExecutionContext> {
             }
         }
         return mi;
+    }
+
+    @Override
+    public J visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
+        J j = super.visitFieldAccess(fieldAccess, ctx);
+        if (j instanceof J.FieldAccess) {
+            J.FieldAccess fa = (J.FieldAccess) j;
+            if ("root".equals(fa.getSimpleName()) && TypeUtils.isOfClassType(fa.getTarget().getType(), TEMPORARY_FOLDER)) {
+                return fa.getTarget().withPrefix(fa.getPrefix());
+            }
+        }
+        return j;
     }
 
     private J.Identifier toFileIdentifier(TypeTree typeTree) {

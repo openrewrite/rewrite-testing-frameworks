@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.hamcrest;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -27,9 +28,8 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -39,7 +39,37 @@ class HamcrestClassOverloadTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new HamcrestIsMatcherToAssertJ())
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "hamcrest-core-1.3", "hamcrest-library-1.3", "assertj-core-3"));
+            "hamcrest-core-1.3",
+            "hamcrest-library-1.3",
+            "assertj-core-3"));
+    }
+
+    @DocumentExample
+    @Test
+    void migrateLegacyExplicitObjectEquality() {
+        rewriteRun(
+          java(
+            """
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.hamcrest.CoreMatchers.is;
+
+              class Example {
+                  void check() {
+                      assertThat(String.class, is((Object) String.class));
+                  }
+              }
+              """,
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class Example {
+                  void check() {
+                      assertThat(String.class).isEqualTo((Object) String.class);
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -95,33 +125,6 @@ class HamcrestClassOverloadTest implements RewriteTest {
 
                   void check() {
                       assertThat(this, hasProperty("value", is(String.class)));
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void migrateLegacyExplicitObjectEquality() {
-        rewriteRun(
-          java(
-            """
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.CoreMatchers.is;
-
-              class Example {
-                  void check() {
-                      assertThat(String.class, is((Object) String.class));
-                  }
-              }
-              """,
-            """
-              import static org.assertj.core.api.Assertions.assertThat;
-
-              class Example {
-                  void check() {
-                      assertThat(String.class).isEqualTo((Object) String.class);
                   }
               }
               """
@@ -284,7 +287,7 @@ class HamcrestClassOverloadTest implements RewriteTest {
               }
               """,
             spec -> spec.mapBeforeRecipe(cu -> mutateMatcherMethods(cu, method ->
-              method.withParameterTypes(Collections.singletonList(JavaType.Unknown.getInstance()))))
+              method.withParameterTypes(List.of(JavaType.Unknown.getInstance()))))
           )
         );
     }
@@ -313,7 +316,7 @@ class HamcrestClassOverloadTest implements RewriteTest {
 
     private static J.CompilationUnit withoutMatcherDeclarations(J.CompilationUnit cu) {
         return mutateMatcherMethods(cu, method -> method.withDeclaringType(
-          matcherClass(method).withMethods(Collections.emptyList())));
+          matcherClass(method).withMethods(List.of())));
     }
 
     @Test
@@ -401,23 +404,23 @@ class HamcrestClassOverloadTest implements RewriteTest {
 
     private static J.CompilationUnit withErasedClassParameter(J.CompilationUnit cu) {
         return mutateMatcherMethods(cu, method -> {
-            JavaType parameter = method.getParameterTypes().get(0);
+            JavaType parameter = method.getParameterTypes().getFirst();
             if (!(parameter instanceof JavaType.Parameterized)) {
                 throw new IllegalStateException("The fixture must have a parameterized Class parameter");
             }
-            return method.withParameterTypes(Collections.singletonList(((JavaType.Parameterized) parameter).getType()));
+            return method.withParameterTypes(List.of(((JavaType.Parameterized) parameter).getType()));
         });
     }
 
     private static J.CompilationUnit withoutClassOverloadDeclaration(J.CompilationUnit cu) {
-        MethodMatcher classOverload = new MethodMatcher("org.hamcrest.*Matchers is(java.lang.Class)");
+        var classOverload = new MethodMatcher("org.hamcrest.*Matchers is(java.lang.Class)");
         return mutateMatcherMethods(cu, method -> {
             JavaType.Class declaring = matcherClass(method);
             if (declaring.getMethods().stream().noneMatch(classOverload::matches)) {
                 throw new IllegalStateException("The fixture must have the legacy Class overload");
             }
             return method.withDeclaringType(declaring.withMethods(declaring.getMethods().stream()
-              .filter(declaration -> !classOverload.matches(declaration)).collect(Collectors.toList())));
+              .filter(declaration -> !classOverload.matches(declaration)).toList()));
         });
     }
 
