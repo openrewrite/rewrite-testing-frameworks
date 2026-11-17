@@ -1526,7 +1526,7 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
-    void unrelatedBlockLambdaIsNotChanged() {
+    void unrelatedBlockLambdaIsKept() {
         rewriteRun(
           //language=java
           java(
