@@ -20,7 +20,6 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.marker.OmitParentheses;
@@ -65,18 +64,18 @@ public class ReplaceScalaPostfixDurations extends Recipe {
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
                 boolean durationUnit = m.getMethodType() == null ? DURATION_UNITS.contains(m.getSimpleName()) && m.getArguments().stream().allMatch(J.Empty.class::isInstance) : DURATION_UNIT.matches(m);
-                if (!durationUnit || m.getSelect() == null || m.getMarkers().getMarkers().stream().noneMatch(ReplaceScalaPostfixDurations::isInfixNotation)) {
+                if (!durationUnit || m.getSelect() == null) {
                     return m;
                 }
-                return m.withMarkers(m.getMarkers().withMarkers(ListUtils.filter(m.getMarkers().getMarkers(), marker -> !isInfixNotation(marker))))
+                // Matched by name, as `rewrite-scala` is not a dependency of this module
+                Marker infixNotation = m.getMarkers().getMarkers().stream().filter(marker -> "InfixNotation".equals(marker.getClass().getSimpleName())).findFirst().orElse(null);
+                if (infixNotation == null) {
+                    return m;
+                }
+                return m.withMarkers(m.getMarkers().removeByType(infixNotation.getClass()))
                         .withName(m.getName().withPrefix(Space.EMPTY))
                         .getPadding().withArguments(m.getPadding().getArguments().withMarkers(m.getPadding().getArguments().getMarkers().add(new OmitParentheses(randomId()))));
             }
         });
-    }
-
-    // Matched by name, as `rewrite-scala` is not a dependency of this module
-    private static boolean isInfixNotation(Marker marker) {
-        return "InfixNotation".equals(marker.getClass().getSimpleName());
     }
 }
