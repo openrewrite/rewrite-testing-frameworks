@@ -59,6 +59,10 @@ public class SimplifyHasSizeAssertion extends Recipe {
 
                         Expression expression = mi.getArguments().get(0);
                         if (expression instanceof J.MethodInvocation) {
+                            if (((J.MethodInvocation) expression).getSelect() == null) {
+                                // An unqualified `size()` inside a collection subclass has no select to pass on
+                                return mi;
+                            }
                             JavaType.FullyQualified assertType = mi.getMethodType().getDeclaringType();
                             if (ITERABLE_SIZE_MATCHER.matches(expression) ||
                                     CHAR_SEQUENCE_LENGTH_MATCHER.matches(expression) && TypeUtils.isAssignableTo("org.assertj.core.api.AbstractCharSequenceAssert", assertType) ||

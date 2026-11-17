@@ -199,4 +199,24 @@ class SimplifySequencedCollectionAssertionsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doNotChangeUnqualifiedCallInsideCollectionSubclass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.ArrayList;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyList extends ArrayList<String> {
+                  void check() {
+                      assertThat(getFirst()).isEqualTo("a");
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -81,7 +81,8 @@ public class SimplifySequencedCollectionAssertions extends Recipe {
                         }
                         String dedicatedAssertion = GET_FIRST_MATCHER.matches(arg) ? "first" :
                                 GET_LAST_MATCHER.matches(arg) ? "last" : null;
-                        if (dedicatedAssertion == null || !chainedAssertionsAvailableOnObjectAssert()) {
+                        if (dedicatedAssertion == null || ((J.MethodInvocation) arg).getSelect() == null ||
+                            !chainedAssertionsAvailableOnObjectAssert()) {
                             return mi;
                         }
                         return assertThat(mi, (J.MethodInvocation) arg, dedicatedAssertion, ctx);
