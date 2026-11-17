@@ -68,7 +68,7 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
                             if (messageArgs.size() == 1) {
                                 // Simple message
                                 Expression message = messageArgs.get(0);
-                                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()})")
+                                return JavaTemplate.builder("assertThat(#{any()}).as(#{any(java.lang.String)})")
                                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()
@@ -81,8 +81,8 @@ public class TruthAssertWithMessageToAssertJ extends Recipe {
                                 for (int i = 0; i < messageArgs.size(); i++) {
                                     formatArgs[i + 1] = messageArgs.get(i);
                                 }
-                                String anyAny = String.join(", ", nCopies(messageArgs.size(), "#{any()}"));
-                                return JavaTemplate.builder("assertThat(#{any()}).as(String.format(" + anyAny + "))")
+                                String formatArgPlaceholders = String.join("", nCopies(messageArgs.size() - 1, ", #{any()}"));
+                                return JavaTemplate.builder("assertThat(#{any()}).as(String.format(#{any(java.lang.String)}" + formatArgPlaceholders + "))")
                                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                         .build()

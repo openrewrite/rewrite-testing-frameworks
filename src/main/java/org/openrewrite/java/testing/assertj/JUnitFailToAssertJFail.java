@@ -65,7 +65,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                                 .apply(getCursor(), mi.getCoordinates().replace());
                     } else if (args.get(0) instanceof J.Literal ||
                                TypeUtils.isAssignableTo("java.lang.String", args.get(0).getType())) {
-                        mi = JavaTemplate.builder(ASSERTJ + ".fail(#{any()});")
+                        mi = JavaTemplate.builder(ASSERTJ + ".fail(#{any(java.lang.String)});")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                 .build()
                                 .apply(getCursor(), mi.getCoordinates().replace(), args.get(0));
@@ -77,8 +77,7 @@ public class JUnitFailToAssertJFail extends Recipe {
                     }
                 } else {
                     // fail(String, Throwable)
-                    String anyArgs = String.join(",", nCopies(args.size(), "#{any()}"));
-                    mi = JavaTemplate.builder(ASSERTJ + ".fail(" + anyArgs + ");")
+                    mi = JavaTemplate.builder(ASSERTJ + ".fail(#{any(java.lang.String)}, #{any(java.lang.Throwable)});")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
                             .apply(getCursor(), mi.getCoordinates().replace(), args.toArray());

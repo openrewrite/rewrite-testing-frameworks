@@ -64,7 +64,7 @@ public class JUnitAssertTrueToAssertThat extends Recipe {
                 }
 
                 Expression message = args.get(1);
-                return JavaTemplate.builder("assertThat(#{any()}).as(#{any(String)}).isTrue();")
+                return JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isTrue();")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()

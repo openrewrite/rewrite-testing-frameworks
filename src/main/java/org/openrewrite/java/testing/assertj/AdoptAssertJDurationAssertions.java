@@ -129,7 +129,7 @@ public class AdoptAssertJDurationAssertions extends Recipe {
                         if (LONG_IS_EQUAL_TO_MATCHER.matches(m) && GET_SECONDS_MATCHER.matches(assertThatArg)) {
                             Expression assertThatArgSelect = assertThatArg.getSelect();
                             String methodName = assertThatArg.getSimpleName();
-                            String formatted_template = formatTemplate("assertThat(#{any()}).%s(#{any()});", methodName, asDescription);
+                            String formatted_template = formatTemplate("assertThat(#{any()}).%s(#{any(long)});", methodName, asDescription);
                             templateParameters.set(0, assertThatArgSelect);
                             templateParameters.add(isEqualToArg);
 
