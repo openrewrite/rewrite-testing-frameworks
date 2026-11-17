@@ -17,7 +17,6 @@ package org.openrewrite.java.testing.junit4;
 
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveImport;
@@ -28,7 +27,9 @@ import org.openrewrite.marker.SearchResult;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationVisitor.fqn;
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationVisitor.inClass;
@@ -59,15 +60,25 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
         if (!usesJUnit) {
             return c;
         }
-        boolean migratesTestCase = declaresMigratedClass(c);
-        // a TestResult tells an AssertionFailedError (a failure) from any other error, which JUnit 4 assertions do not throw
-        boolean usesTestResult = new UsesType<>("junit.framework.TestResult", false).visit(c, ctx) != c;
-        for (TreeVisitor<?, ExecutionContext> step : Arrays.asList(new TestCaseClassVisitor(plan), new SuiteVisitor(plan), new TestRunnerVisitor(plan))) {
-            c = (J.CompilationUnit) step.visitNonNull(c, ctx, parent);
+        Set<String> declared = declaredClasses(c);
+        boolean migratesTestCase = declared.stream().anyMatch(plan::isMigrated);
+        if (migratesTestCase) {
+            c = (J.CompilationUnit) new TestCaseClassVisitor(plan).visitNonNull(c, ctx, parent);
+        }
+        if (declared.stream().anyMatch(plan.suiteKindByFqn::containsKey)) {
+            c = (J.CompilationUnit) new SuiteVisitor(plan).visitNonNull(c, ctx, parent);
+        }
+        if (uses(cu, TestRunnerVisitor.TEST_RUNNERS::contains)) {
+            c = (J.CompilationUnit) new TestRunnerVisitor(plan).visitNonNull(c, ctx, parent);
         }
         J.CompilationUnit beforeAssertions = c;
-        c = (J.CompilationUnit) new JUnit3AssertionsVisitor(cursor -> !usesTestResult && !inClass(cursor, plan::isUnmigrated), migratesTestCase)
-                .visitNonNull(c, ctx, parent);
+        // also through a project's own test base class, which UsesType follows the supertypes to
+        if (new UsesType<>("junit.framework.Assert", false).visit(cu, ctx) != cu || new UsesType<>(JUnit3MigrationPlan.TEST_CASE, false).visit(cu, ctx) != cu) {
+            // a TestResult tells an AssertionFailedError (a failure) from any other error, which JUnit 4 assertions do not throw
+            boolean usesTestResult = new UsesType<>("junit.framework.TestResult", false).visit(cu, ctx) != cu;
+            c = (J.CompilationUnit) new JUnit3AssertionsVisitor(cursor -> !usesTestResult && !inClass(cursor, plan::isUnmigrated), migratesTestCase)
+                    .visitNonNull(c, ctx, parent);
+        }
         if (migratesTestCase || c != beforeAssertions) {
             // JUnit 4 assertions throw an AssertionError, which a catch of an AssertionFailedError would not catch
             c = (J.CompilationUnit) new ChangeType("junit.framework.AssertionFailedError", "java.lang.AssertionError", true)
@@ -81,7 +92,12 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
             for (String type : JUNIT3_IMPORTS) {
                 c = (J.CompilationUnit) new RemoveImport<ExecutionContext>(type).visitNonNull(c, ctx, parent);
             }
-            c = (J.CompilationUnit) new LifecycleMethodsVisitor(plan).visitNonNull(c, ctx, parent);
+            if (migratesTestCase) {
+                c = (J.CompilationUnit) new LifecycleMethodsVisitor(plan).visitNonNull(c, ctx, parent);
+            }
+        }
+        if (declared.stream().noneMatch(plan::isUnmigrated)) {
+            return c;
         }
         return (J.CompilationUnit) new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -94,26 +110,28 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
     }
 
     private boolean usesClassDroppingNameArgument(J.CompilationUnit cu) {
-        if (plan.nameArgumentDroppedFqns.isEmpty()) {
-            return false;
-        }
+        return !plan.nameArgumentDroppedFqns.isEmpty() && uses(cu, plan::dropsNameArgument);
+    }
+
+    private static boolean uses(J.CompilationUnit cu, Predicate<String> fqnMatches) {
         for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-            if (type instanceof JavaType.FullyQualified && plan.dropsNameArgument(((JavaType.FullyQualified) type).getFullyQualifiedName())) {
+            if (type instanceof JavaType.FullyQualified && fqnMatches.test(((JavaType.FullyQualified) type).getFullyQualifiedName())) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean declaresMigratedClass(J.CompilationUnit cu) {
-        return new JavaIsoVisitor<AtomicBoolean>() {
+    private static Set<String> declaredClasses(J.CompilationUnit cu) {
+        return new JavaIsoVisitor<Set<String>>() {
             @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, AtomicBoolean found) {
-                if (plan.isMigrated(fqn(cd))) {
-                    found.set(true);
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, Set<String> declared) {
+                String fqn = fqn(cd);
+                if (fqn != null) {
+                    declared.add(fqn);
                 }
-                return super.visitClassDeclaration(cd, found);
+                return super.visitClassDeclaration(cd, declared);
             }
-        }.reduce(cu, new AtomicBoolean()).get();
+        }.reduce(cu, new HashSet<>());
     }
 }
