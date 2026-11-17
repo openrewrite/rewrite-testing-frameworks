@@ -251,6 +251,32 @@ class JUnitFailToAssertJFailTest implements RewriteTest {
         );
     }
 
+    @Test
+    void supplierMessageIsNotConverted() {
+        //language=java
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5", "assertj-core-3")),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.function.Supplier;
+
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              public class MyTest {
+                  @Test
+                  public void test() {
+                      Supplier<String> message = () -> "lazy message";
+                      fail(message);
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/504")
     @Test
     void stringVariableArgument() {
