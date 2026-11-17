@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -47,8 +46,31 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
     private static final Set<String> SUPERTYPES_REMOVED_BY_MIGRATION = new HashSet<>(Arrays.asList(
             "junit.framework.TestCase", "junit.framework.Assert", "junit.framework.Test"));
 
+    private final Set<String> typeNamesInFile = new HashSet<>();
+    private final Set<String> methodsCalledInFile = new HashSet<>();
+
     LifecycleMethodsVisitor(JUnit3MigrationPlan plan) {
         super(plan);
+    }
+
+    @Override
+    public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+        typeNamesInFile.clear();
+        methodsCalledInFile.clear();
+        new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, Integer p) {
+                typeNamesInFile.add(cd.getSimpleName());
+                return super.visitClassDeclaration(cd, p);
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, Integer p) {
+                methodsCalledInFile.add(m.getSimpleName());
+                return super.visitMethodInvocation(m, p);
+            }
+        }.visit(cu, 0);
+        return super.visitCompilationUnit(cu, ctx);
     }
 
     @Override
@@ -59,7 +81,7 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
         }
         updateCursor(md);
         if (isNoArgVoid(md) && md.hasModifier(J.Modifier.Type.Static) && md.hasModifier(J.Modifier.Type.Public) &&
-            md.getSimpleName().startsWith("test") && !calledInFile(md.getSimpleName())) {
+            md.getSimpleName().startsWith("test") && !methodsCalledInFile.contains(md.getSimpleName())) {
             // JUnit 3 ran static test methods, whereas JUnit 4 rejects them
             md = md.withModifiers(ListUtils.map(md.getModifiers(), m -> m.getType() == J.Modifier.Type.Static ? null : m));
         }
@@ -100,46 +122,12 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
                md.getReturnTypeExpression() != null && md.getReturnTypeExpression().getType() == JavaType.Primitive.Void;
     }
 
-    private boolean calledInFile(String name) {
-        J.CompilationUnit cu = getCursor().firstEnclosing(J.CompilationUnit.class);
-        if (cu == null) {
-            return true;
-        }
-        return new JavaIsoVisitor<AtomicBoolean>() {
-            @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, AtomicBoolean called) {
-                if (name.equals(m.getSimpleName())) {
-                    called.set(true);
-                }
-                return super.visitMethodInvocation(m, called);
-            }
-        }.reduce(cu, new AtomicBoolean()).get();
-    }
-
-    /**
-     * Whether some type of the file is named like the annotation, which would then be that type.
-     */
-    private boolean declaresTypeNamed(String simpleName) {
-        J.CompilationUnit cu = getCursor().firstEnclosing(J.CompilationUnit.class);
-        if (cu == null) {
-            return false;
-        }
-        return new JavaIsoVisitor<AtomicBoolean>() {
-            @Override
-            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration cd, AtomicBoolean found) {
-                if (simpleName.equals(cd.getSimpleName())) {
-                    found.set(true);
-                }
-                return super.visitClassDeclaration(cd, found);
-            }
-        }.reduce(cu, new AtomicBoolean()).get();
-    }
-
     /**
      * Built by hand, as a template would resolve {@code @Test} to {@code junit.framework.Test} while that is imported.
      */
     private J.MethodDeclaration addAnnotation(J.MethodDeclaration md, String annotation, String fqn) {
-        boolean qualify = declaresTypeNamed(annotation.substring(1));
+        // a type of the file named like the annotation would be what the annotation refers to
+        boolean qualify = typeNamesInFile.contains(annotation.substring(1));
         if (!qualify) {
             maybeAddImport(fqn);
         }
