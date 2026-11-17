@@ -237,7 +237,11 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
     @Test
     void kotlinSimulation() {
         rewriteRun(
-          spec -> spec.parser(kotlinParser()),
+          spec -> spec.parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(),
+            "gatling-core-3.9",
+            "gatling-core-java-3.9",
+            "gatling-http-3.9",
+            "gatling-http-java-3.9")),
           //language=kotlin
           kotlin(
             """
@@ -268,10 +272,5 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
               """
           )
         );
-    }
-
-    private static KotlinParser.Builder kotlinParser() {
-        return KotlinParser.builder()
-          .classpathFromResources(new InMemoryExecutionContext(), "gatling-core-3.9", "gatling-core-java-3.9", "gatling-http-3.9", "gatling-http-java-3.9");
     }
 }
