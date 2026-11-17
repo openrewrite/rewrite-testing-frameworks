@@ -57,7 +57,8 @@ public class UpdateTestAnnotation extends Recipe {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
             Set<NameTree> nameTreeSet = c.findType("org.junit.Test");
-            if (!nameTreeSet.isEmpty()) {
+            // The annotations may be retyped already, which leaves the import for `ChangeType` to move
+            if (!nameTreeSet.isEmpty() || c.getImports().stream().anyMatch(i -> !i.isStatic() && "org.junit.Test".equals(i.getTypeName()))) {
                 // Update other references like `Test.class`.
                 c = (J.CompilationUnit) new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true)
                         .getVisitor().visitNonNull(c, ctx);

@@ -76,4 +76,29 @@ class ExcludeJUnit4UnlessUsingTestcontainersTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void retainVintageEngineKeptForJUnit3Tests() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>test</artifactId>
+                  <version>1.0</version>
+                  <dependencies>
+                      <dependency>
+                          <groupId>org.junit.vintage</groupId>
+                          <artifactId>junit-vintage-engine</artifactId>
+                          <version>5.14.1</version>
+                          <scope>test</scope>
+                      </dependency>
+                  </dependencies>
+              </project>
+              """
+          )
+        );
+    }
 }

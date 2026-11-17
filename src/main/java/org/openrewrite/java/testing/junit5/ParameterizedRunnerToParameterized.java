@@ -153,6 +153,11 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
         private final String initStatementParamString;
 
+        /**
+         * What the constructor throws, which the init method that replaces it still throws, and so do the tests that call it.
+         */
+        private final List<NameTree> initThrows;
+
         @Nullable
         private final String beforeMethodName;
 
@@ -168,6 +173,15 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             this.initMethodName = initMethodName;
             this.isConstructorInjection = isConstructorInjection;
             this.beforeMethodName = beforeMethodName;
+            this.initThrows = new ArrayList<>();
+            if (isConstructorInjection) {
+                for (Statement st : scope.getBody().getStatements()) {
+                    if (st instanceof J.MethodDeclaration && ((J.MethodDeclaration) st).isConstructor() &&
+                        ((J.MethodDeclaration) st).getThrows() != null) {
+                        initThrows.addAll(((J.MethodDeclaration) st).getThrows());
+                    }
+                }
+            }
 
             this.parameterizedTestMethodParameters = parameterizedTestMethodParameters.stream()
                     .map(mp -> mp.withPrefix(Space.EMPTY).withComments(new ArrayList<>()))
@@ -354,6 +368,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         .build()
                         .apply(updateCursor(m), newStatementCoordinates, initStatementParamString);
                 m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), parameterizedTestMethodParameters.get(parameterizedTestMethodParameters.size() - 1), ctx, getCursor().getParentTreeCursor());
+                if (!initThrows.isEmpty()) {
+                    List<NameTree> thrown = m.getThrows() == null ? new ArrayList<>() : new ArrayList<>(m.getThrows());
+                    for (NameTree t : initThrows) {
+                        String name = t.printTrimmed(getCursor());
+                        if (thrown.stream().noneMatch(x -> name.equals(x.printTrimmed(getCursor())))) {
+                            thrown.add(t.withPrefix(Space.SINGLE_SPACE));
+                        }
+                    }
+                    m = m.withThrows(thrown);
+                }
             }
 
             // Change constructor to test init method

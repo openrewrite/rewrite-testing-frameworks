@@ -421,6 +421,8 @@ class JUnit5MigrationTest implements RewriteTest {
     @Test
     void addJupiterWhenOnlyTestCaseIsUsed() {
         rewriteRun(
+          // the sources are JUnit 4 after the first cycle, which is when `junit:junit` can go
+          spec -> spec.cycles(2).expectedCyclesThatMakeChanges(2),
           mavenProject("project",
             srcTestJava(
               //language=java
@@ -798,6 +800,7 @@ class JUnit5MigrationTest implements RewriteTest {
                 """,
               spec -> spec.after(actual -> assertThat(actual)
                 .containsPattern("testImplementation\\(\"org\\.junit\\.jupiter:junit-jupiter:5\\.\\d+\\.\\d+\"\\)")
+                .containsPattern("testRuntimeOnly\\(\"org\\.junit\\.platform:junit-platform-launcher:1\\.\\d+\\.\\d+\"\\)")
                 .contains("tasks.withType<Test>().configureEach {\n    useJUnitPlatform()\n}")
                 .doesNotContain("junit:junit")
                 .actual())

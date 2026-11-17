@@ -790,4 +790,70 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void testsThrowWhatTheConstructorThrew() {
+        //language=java
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+              import org.junit.runners.Parameterized.Parameters;
+
+              import java.util.Arrays;
+              import java.util.List;
+
+              @RunWith(Parameterized.class)
+              public class AdapterTests {
+
+                  private Object adapter;
+
+                  public AdapterTests(Class<?> type) throws Exception {
+                      this.adapter = type.newInstance();
+                  }
+
+                  @Test
+                  public void testCreated() {
+                      adapter.hashCode();
+                  }
+
+                  @Parameters
+                  public static List<Object[]> parameters() {
+                      return Arrays.asList(new Object[] { String.class });
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              import java.util.Arrays;
+              import java.util.List;
+
+              public class AdapterTests {
+
+                  private Object adapter;
+
+                  public void initAdapterTests(Class<?> type) throws Exception {
+                      this.adapter = type.newInstance();
+                  }
+
+                  @MethodSource("parameters")
+                  @ParameterizedTest
+                  public void testCreated(Class<?> type) throws Exception {
+                      initAdapterTests(type);
+                      adapter.hashCode();
+                  }
+
+                  public static List<Object[]> parameters() {
+                      return Arrays.asList(new Object[] { String.class });
+                  }
+              }
+              """
+          )
+        );
+    }
 }
