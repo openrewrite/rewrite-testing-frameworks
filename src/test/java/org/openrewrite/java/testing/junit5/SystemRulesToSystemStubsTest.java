@@ -614,4 +614,46 @@ class SystemRulesToSystemStubsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void flagRuleReadBySubclassInAnotherFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.contrib.java.lang.system.SystemOutRule;
+
+              public class BaseTest {
+                  @Rule
+                  public final SystemOutRule out = new SystemOutRule().enableLog();
+              }
+              """,
+            """
+              import org.junit.Rule;
+              import org.junit.contrib.java.lang.system.SystemOutRule;
+
+              public class BaseTest {
+                  // TODO Migrate by hand: other classes, such as subclasses, may use this rule, which this migration does not see.
+                  @Rule
+                  public final SystemOutRule out = new SystemOutRule().enableLog();
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+
+              public class SubTest extends BaseTest {
+                  @Test
+                  public void logs() {
+                      System.out.println("hi");
+                      out.getLog();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

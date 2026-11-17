@@ -266,4 +266,35 @@ class SystemPropertyRulesToPioneerTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepRuleReadBySubclassInAnotherFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.contrib.java.lang.system.RestoreSystemProperties;
+
+              public class BaseTest {
+                  @Rule
+                  public final RestoreSystemProperties restore = new RestoreSystemProperties();
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+
+              public class SubTest extends BaseTest {
+                  @Test
+                  public void restores() {
+                      restore.toString();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
