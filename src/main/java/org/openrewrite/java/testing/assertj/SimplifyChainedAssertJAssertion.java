@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.assertj;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
@@ -48,30 +47,22 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
     @Option(displayName = "AssertJ chained assertion",
             description = "The chained AssertJ assertion to move to dedicated assertion.",
-            example = "equals",
-            required = false)
-    @Nullable
+            example = "equals")
     String chainedAssertion;
 
     @Option(displayName = "AssertJ replaced assertion",
             description = "The AssertJ assert that should be replaced.",
-            example = "isTrue",
-            required = false)
-    @Nullable
+            example = "isTrue")
     String assertToReplace;
 
     @Option(displayName = "AssertJ replacement assertion",
             description = "The AssertJ method to migrate to.",
-            example = "isEqualTo",
-            required = false)
-    @Nullable
+            example = "isEqualTo")
     String dedicatedAssertion;
 
     @Option(displayName = "Required type",
             description = "The type of the actual assertion argument.",
-            example = "java.lang.String",
-            required = false)
-    @Nullable
+            example = "java.lang.String")
     String requiredType;
 
     @Getter

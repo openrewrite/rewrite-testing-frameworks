@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.assertj;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
@@ -40,9 +39,7 @@ public class SimplifyAssertJAssertion extends Recipe {
 
     @Option(displayName = "AssertJ assertion",
             description = "The assertion method that should be replaced.",
-            example = "hasSize",
-            required = false)
-    @Nullable
+            example = "hasSize")
     String assertToReplace;
 
     @Option(displayName = "Assertion argument literal",
