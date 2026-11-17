@@ -22,6 +22,7 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
@@ -40,14 +41,14 @@ public class ReplaceGatlingDollarExpressionLanguage extends Recipe {
     @Getter
     final String description = "Gatling 3.7 deprecated the `${}` Expression Language syntax, as it clashes with " +
             "Scala and Kotlin string interpolation, and 3.11 stopped interpreting it altogether. Rewrite `${...}` " +
-            "to `#{...}` in the plain string literals of Java, Kotlin and Scala sources importing Gatling, dropping " +
+            "to `#{...}` in the plain string literals of Java, Kotlin and Scala sources using Gatling, dropping " +
             "the backslash Kotlin needed as in `\"\\${id}\"`. Kotlin string templates and Scala interpolated " +
             "strings such as `s\"${name}\"` are left alone, as are strings only passed to methods of other libraries, " +
             "such as `System.getProperty(\"url\", \"${URL}\")`.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(GatlingSources.importingGatling(true), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesType<>("io.gatling..*", false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.Literal visitLiteral(J.Literal literal, ExecutionContext ctx) {
                 J.Literal l = super.visitLiteral(literal, ctx);

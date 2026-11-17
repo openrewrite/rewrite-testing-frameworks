@@ -18,10 +18,12 @@ package org.openrewrite.java.testing.gatling;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.FindSourceFiles;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -75,12 +77,12 @@ public class MigrateGatlingScalaDsl extends Recipe {
             "`maxConnectionsPerHostLikeXXX` browser presets to `maxConnectionsPerHost(n)`. Also rename feeder " +
             "`convert` to `transform`, and the check `transform` and `transformOption` taking the `Session` to " +
             "`transformWithSession` and `transformOptionWithSession`, as done in 3.4. Methods are matched " +
-            "by name in sources importing Gatling, as their declaring types changed between versions, skipping " +
+            "by name in sources using Gatling, as their declaring types changed between versions, skipping " +
             "those attributed to types outside Gatling, such as the source's own and the Scala library's.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(GatlingSources.importingGatling(false), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(new FindSourceFiles("**/*.{scala,sc}").getVisitor(), new UsesType<>("io.gatling..*", false)), new JavaVisitor<ExecutionContext>() {
 
             @Override
             public J visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {

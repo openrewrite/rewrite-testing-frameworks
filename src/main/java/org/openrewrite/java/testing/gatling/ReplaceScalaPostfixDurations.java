@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.gatling;
 
 import lombok.Getter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.FindSourceFiles;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -24,6 +25,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.marker.OmitParentheses;
+import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.marker.Marker;
@@ -55,11 +57,11 @@ public class ReplaceScalaPostfixDurations extends Recipe {
     final String description = "Gatling 3.5 moved to Scala 2.13, which is phasing out postfix operators, so the " +
             "Gatling upgrade guide recommends writing durations as `5.seconds` rather than `5 seconds`. Postfix " +
             "notation only compiles with `-language:postfixOps`, and Scala 3 drops it altogether. Rewrite the " +
-            "postfix `scala.concurrent.duration` units in Scala sources importing Gatling.";
+            "postfix `scala.concurrent.duration` units in Scala sources using Gatling.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(GatlingSources.importingGatling(false), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(new FindSourceFiles("**/*.{scala,sc}").getVisitor(), new UsesType<>("io.gatling..*", false)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
