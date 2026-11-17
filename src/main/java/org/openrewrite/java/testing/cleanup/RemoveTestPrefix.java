@@ -16,9 +16,10 @@
 package org.openrewrite.java.testing.cleanup;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.NameCaseConvention;
 import org.openrewrite.java.AnnotationMatcher;
@@ -39,7 +40,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class RemoveTestPrefix extends Recipe {
+public class RemoveTestPrefix extends ScanningRecipe<Set<String>> {
 
     private static final List<String> RESERVED_KEYWORDS = Arrays.asList("abstract", "continue", "for", "new", "switch",
             "assert", "default", "if", "package", "synchronized", "boolean", "do", "goto", "private", "this", "break",
@@ -60,19 +61,50 @@ public class RemoveTestPrefix extends Recipe {
     final Duration estimatedEffortPerOccurrence = Duration.ofMinutes(1);
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(
-                Preconditions.or(
-                        new UsesType<>("org.junit.jupiter.api.Test", false),
-                        new UsesType<>("org.junit.jupiter.api.TestTemplate", false),
-                        new UsesType<>("org.junit.jupiter.api.RepeatedTest", false),
-                        new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false),
-                        new UsesType<>("org.junit.jupiter.api.TestFactory", false)
-                ),
-                new RemoveTestPrefixVisitor());
+    public Set<String> getInitialValue(ExecutionContext ctx) {
+        return new HashSet<>();
     }
 
+    private static TreeVisitor<?, ExecutionContext> precondition() {
+        return Preconditions.or(
+                new UsesType<>("org.junit.jupiter.api.Test", false),
+                new UsesType<>("org.junit.jupiter.api.TestTemplate", false),
+                new UsesType<>("org.junit.jupiter.api.RepeatedTest", false),
+                new UsesType<>("org.junit.jupiter.params.ParameterizedTest", false),
+                new UsesType<>("org.junit.jupiter.api.TestFactory", false));
+    }
+
+    /**
+     * Collects the overridden methods, as {@code declaringType#name}. Renaming such a method would leave its
+     * overrides, which can live in other source files, with a name that no longer overrides anything.
+     */
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Set<String> overridden) {
+        return Preconditions.check(precondition(), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                JavaType.Method type = method.getMethodType();
+                if (type != null && type.getName().startsWith("test")) {
+                    TypeUtils.findOverriddenMethod(type).ifPresent(o -> {
+                        if (o.getDeclaringType() != null) {
+                            overridden.add(o.getDeclaringType().getFullyQualifiedName() + '#' + o.getName());
+                        }
+                    });
+                }
+                return method;
+            }
+        });
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Set<String> overridden) {
+        return Preconditions.check(precondition(), new RemoveTestPrefixVisitor(overridden));
+    }
+
+    @RequiredArgsConstructor
     private static class RemoveTestPrefixVisitor extends JavaIsoVisitor<ExecutionContext> {
+
+        private final Set<String> overridden;
 
         private static final AnnotationMatcher ANNOTATION_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.MethodSource");
         private static final String STATIC_IMPORTS = "STATIC_IMPORTS";
@@ -128,6 +160,30 @@ public class RemoveTestPrefix extends Recipe {
                 return m;
             }
 
+            // Overrides in subclasses would no longer override
+            if (type.getDeclaringType() != null &&
+                    overridden.contains(type.getDeclaringType().getFullyQualifiedName() + '#' + simpleName)) {
+                return m;
+            }
+
+            if (getCursor().getNearestMessage(STATIC_IMPORTS, new HashSet<>()).contains(newMethodName)) {
+                return m;
+            }
+
+            // Skip when calling a similarly named method
+            AtomicBoolean skip = new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                    if (method.getName().getSimpleName().equals(newMethodName) && method.getSelect() == null) {
+                        found.set(true);
+                    }
+                    return super.visitMethodInvocation(method, found);
+                }
+            }.reduce(m, new AtomicBoolean(), getCursor().getParentTreeCursor());
+            if (skip.get()) {
+                return m;
+            }
+
             // Handle implied methodSource: rename both test method and source method
             boolean hasImpliedMethodSource = false;
             for (J.Annotation annotation : method.getLeadingAnnotations()) {
@@ -154,24 +210,6 @@ public class RemoveTestPrefix extends Recipe {
                         }
                     }
                 }
-            }
-
-            if (getCursor().getNearestMessage(STATIC_IMPORTS, new HashSet<>()).contains(newMethodName)) {
-                return m;
-            }
-
-            // Skip when calling a similarly named method
-            AtomicBoolean skip = new JavaIsoVisitor<AtomicBoolean>() {
-                @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
-                    if (method.getName().getSimpleName().equals(newMethodName) && method.getSelect() == null) {
-                        found.set(true);
-                    }
-                    return super.visitMethodInvocation(method, found);
-                }
-            }.reduce(m, new AtomicBoolean(), getCursor().getParentTreeCursor());
-            if (skip.get()) {
-                return m;
             }
 
             doAfterVisit(new ChangeMethodName(MethodMatcher.methodPattern(m), newMethodName, false, false).getVisitor());
