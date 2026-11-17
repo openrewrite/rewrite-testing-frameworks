@@ -132,8 +132,8 @@ class AssertJBestPracticesTest implements RewriteTest {
                       assertThat(b).isZero();
                       assertThat(c).isOne();
                       assertThat(d).isNotZero();
-                      assertThat(e).isZero();
-                      assertThat(f).isZero();
+                      assertThat(e).isEqualTo(0.0);
+                      assertThat(f).isEqualTo(0f);
                       assertThat(g).isZero();
                       assertThat(h).isZero();
                   }
