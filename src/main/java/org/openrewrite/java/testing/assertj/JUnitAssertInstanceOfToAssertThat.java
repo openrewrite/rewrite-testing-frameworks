@@ -55,7 +55,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                 Expression expected = mi.getArguments().get(0);
                 Expression actual = mi.getArguments().get(1);
                 if (mi.getArguments().size() == 2) {
-                    return JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any()});")
+                    return JavaTemplate.builder("assertThat(#{any()}).isInstanceOf(#{any(java.lang.Class)});")
                             .staticImports("org.assertj.core.api.Assertions.assertThat")
                             .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                             .build()
@@ -63,7 +63,7 @@ public class JUnitAssertInstanceOfToAssertThat extends Recipe {
                 }
 
                 Expression messageOrSupplier = mi.getArguments().get(2);
-                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isInstanceOf(#{any()});")
+                return JavaTemplate.builder("assertThat(#{any()}).as(#{any()}).isInstanceOf(#{any(java.lang.Class)});")
                         .staticImports("org.assertj.core.api.Assertions.assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                         .build()

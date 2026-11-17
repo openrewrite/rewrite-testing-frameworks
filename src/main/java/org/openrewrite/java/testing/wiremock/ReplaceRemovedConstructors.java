@@ -67,24 +67,24 @@ public class ReplaceRemovedConstructors extends Recipe {
                     "StubMapping.builder().build()"),
             new Replacement(STUB_MAPPING,
                     STUB_MAPPING + " <constructor>(" + REQUEST_PATTERN + ", " + RESPONSE_DEFINITION + ")",
-                    "StubMapping.builder().setRequest(#{any()}).setResponse(#{any()}).build()"),
+                    "StubMapping.builder().setRequest(#{any(com.github.tomakehurst.wiremock.matching.RequestPattern)}).setResponse(#{any(com.github.tomakehurst.wiremock.http.ResponseDefinition)}).build()"),
 
             new Replacement(RESPONSE_DEFINITION,
                     RESPONSE_DEFINITION + " <constructor>()",
                     "new ResponseDefinition.Builder().build()"),
             new Replacement(RESPONSE_DEFINITION,
                     RESPONSE_DEFINITION + " <constructor>(int, java.lang.String)",
-                    "new ResponseDefinition.Builder().setStatus(#{any()}).setBody(#{any()}).build()"),
+                    "new ResponseDefinition.Builder().setStatus(#{any(int)}).setBody(#{any(java.lang.String)}).build()"),
             new Replacement(RESPONSE_DEFINITION,
                     RESPONSE_DEFINITION + " <constructor>(int, byte[])",
-                    "new ResponseDefinition.Builder().setStatus(#{any()}).setBody(#{any()}).build()"),
+                    "new ResponseDefinition.Builder().setStatus(#{any(int)}).setBody(#{anyArray(byte)}).build()"),
 
             new Replacement(REQUEST_PATTERN,
                     REQUEST_PATTERN + " <constructor>(com.github.tomakehurst.wiremock.matching.ValueMatcher)",
-                    "new RequestPattern.Builder().setInlineCustomMatcher(#{any()}).build()"),
+                    "new RequestPattern.Builder().setInlineCustomMatcher(#{any(com.github.tomakehurst.wiremock.matching.ValueMatcher)}).build()"),
             new Replacement(REQUEST_PATTERN,
                     REQUEST_PATTERN + " <constructor>(com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition)",
-                    "new RequestPattern.Builder().setCustomMatcherDefinition(#{any()}).build()"),
+                    "new RequestPattern.Builder().setCustomMatcherDefinition(#{any(com.github.tomakehurst.wiremock.matching.CustomMatcherDefinition)}).build()"),
 
             // A `null` limit leaves the store unbounded, as the no-arg one was; 3.x trimmed it from the journal instead
             new Replacement(IN_MEMORY_REQUEST_JOURNAL_STORE,
@@ -96,23 +96,23 @@ public class ReplaceRemovedConstructors extends Recipe {
                     "WireMock.create().build()"),
             new Replacement(WIRE_MOCK,
                     WIRE_MOCK + " <constructor>(java.lang.String, int)",
-                    "WireMock.create().host(#{any()}).port(#{any()}).build()"),
+                    "WireMock.create().host(#{any(java.lang.String)}).port(#{any(int)}).build()"),
             new Replacement(WIRE_MOCK,
                     WIRE_MOCK + " <constructor>(java.lang.String, int, java.lang.String)",
-                    "WireMock.create().host(#{any()}).port(#{any()}).urlPathPrefix(#{any()}).build()"),
+                    "WireMock.create().host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)}).build()"),
             new Replacement(WIRE_MOCK,
                     WIRE_MOCK + " <constructor>(java.lang.String, java.lang.String, int)",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).build()"),
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).build()"),
             new Replacement(WIRE_MOCK,
                     WIRE_MOCK + " <constructor>(java.lang.String, java.lang.String, int, java.lang.String)",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).urlPathPrefix(#{any()}).build()"),
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)}).build()"),
             new Replacement(WIRE_MOCK,
                     WIRE_MOCK + " <constructor>(java.lang.String, java.lang.String, int, java.lang.String, " +
                             "java.lang.String, java.lang.String, int, " +
                             AUTHENTICATOR + ")",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).urlPathPrefix(#{any()})" +
-                            ".hostHeader(#{any()}).proxyHost(#{any()}).proxyPort(#{any()})" +
-                            ".authenticator(#{any()}).build()"));
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)})" +
+                            ".hostHeader(#{any(java.lang.String)}).proxyHost(#{any(java.lang.String)}).proxyPort(#{any(int)})" +
+                            ".authenticator(#{any(com.github.tomakehurst.wiremock.security.ClientAuthenticator)}).build()"));
 
     private static final MethodMatcher WIRE_MOCK_FROM_ADMIN = new MethodMatcher(WIRE_MOCK + " <constructor>(" + ADMIN + ")");
 
@@ -121,32 +121,32 @@ public class ReplaceRemovedConstructors extends Recipe {
     private static final List<Replacement> ADMIN_CLIENT_FOLDS = asList(
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, int)",
-                    "WireMock.create().host(#{any()}).port(#{any()}).build()"),
+                    "WireMock.create().host(#{any(java.lang.String)}).port(#{any(int)}).build()"),
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, int, java.lang.String)",
-                    "WireMock.create().host(#{any()}).port(#{any()}).urlPathPrefix(#{any()}).build()"),
+                    "WireMock.create().host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)}).build()"),
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, java.lang.String, int)",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).build()"),
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).build()"),
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, java.lang.String, int, java.lang.String)",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).urlPathPrefix(#{any()}).build()"),
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)}).build()"),
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, java.lang.String, int, java.lang.String, " +
                             "java.lang.String)",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).urlPathPrefix(#{any()})" +
-                            ".hostHeader(#{any()}).build()"),
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)})" +
+                            ".hostHeader(#{any(java.lang.String)}).build()"),
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, java.lang.String, int, java.lang.String, " +
                             "java.lang.String, java.lang.String, int)",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).urlPathPrefix(#{any()})" +
-                            ".hostHeader(#{any()}).proxyHost(#{any()}).proxyPort(#{any()}).build()"),
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)})" +
+                            ".hostHeader(#{any(java.lang.String)}).proxyHost(#{any(java.lang.String)}).proxyPort(#{any(int)}).build()"),
             new Replacement(WIRE_MOCK,
                     HTTP_ADMIN_CLIENT + " <constructor>(java.lang.String, java.lang.String, int, java.lang.String, " +
                             "java.lang.String, java.lang.String, int, " + AUTHENTICATOR + ")",
-                    "WireMock.create().scheme(#{any()}).host(#{any()}).port(#{any()}).urlPathPrefix(#{any()})" +
-                            ".hostHeader(#{any()}).proxyHost(#{any()}).proxyPort(#{any()})" +
-                            ".authenticator(#{any()}).build()"));
+                    "WireMock.create().scheme(#{any(java.lang.String)}).host(#{any(java.lang.String)}).port(#{any(int)}).urlPathPrefix(#{any(java.lang.String)})" +
+                            ".hostHeader(#{any(java.lang.String)}).proxyHost(#{any(java.lang.String)}).proxyPort(#{any(int)})" +
+                            ".authenticator(#{any(com.github.tomakehurst.wiremock.security.ClientAuthenticator)}).build()"));
 
     private static final MethodMatcher REQUEST_PATTERN_EVERYTHING = new MethodMatcher(REQUEST_PATTERN + " everything()");
 
@@ -220,7 +220,7 @@ public class ReplaceRemovedConstructors extends Recipe {
                     public J visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
                         if (STORE_BACKED_REQUEST_JOURNAL_WITH_MAX_ENTRIES.matches(newClass) && isNoArgInMemoryRequestJournalStore(newClass.getArguments().get(2))) {
                             // 4.x dropped the journal's limit in favour of the store's own
-                            return JavaTemplate.builder("new StoreBackedRequestJournal(#{any()}, new InMemoryRequestJournalStore(#{any()}))")
+                            return JavaTemplate.builder("new StoreBackedRequestJournal(#{any(java.util.Map)}, new InMemoryRequestJournalStore(#{any(java.lang.Integer)}))")
                                     .imports(STORE_BACKED_REQUEST_JOURNAL, IN_MEMORY_REQUEST_JOURNAL_STORE)
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "wiremock-core-4"))
                                     .build()
