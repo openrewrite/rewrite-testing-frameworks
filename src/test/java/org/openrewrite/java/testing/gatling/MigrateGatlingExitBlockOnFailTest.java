@@ -99,6 +99,33 @@ class MigrateGatlingExitBlockOnFailTest implements RewriteTest {
     }
 
     @Test
+    void fullyQualifiedStaticMethod() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import io.gatling.javaapi.core.ChainBuilder;
+
+              class Chains {
+                  ChainBuilder guarded(ChainBuilder chain) {
+                      return io.gatling.javaapi.core.CoreDsl.exitBlockOnFail(chain);
+                  }
+              }
+              """,
+            """
+              import io.gatling.javaapi.core.ChainBuilder;
+
+              class Chains {
+                  ChainBuilder guarded(ChainBuilder chain) {
+                      return io.gatling.javaapi.core.CoreDsl.exitBlockOnFail().on(chain);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void instanceMethod() {
         rewriteRun(
           //language=java

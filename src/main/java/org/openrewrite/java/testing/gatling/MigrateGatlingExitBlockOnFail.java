@@ -62,11 +62,8 @@ public class MigrateGatlingExitBlockOnFail extends Recipe {
                 }
 
                 if (methodType.hasFlags(Flag.Static)) {
-                    if (m.getSelect() == null) {
-                        return template("exitBlockOnFail().on(" + CHAIN + ")", ctx)
-                                .apply(getCursor(), m.getCoordinates().replace(), m.getArguments().get(0));
-                    }
-                    return template("CoreDsl.exitBlockOnFail().on(" + CHAIN + ")", ctx)
+                    String qualifier = m.getSelect() == null ? "" : m.getSelect().printTrimmed(getCursor()) + ".";
+                    return template(qualifier + "exitBlockOnFail().on(" + CHAIN + ")", ctx)
                             .apply(getCursor(), m.getCoordinates().replace(), m.getArguments().get(0));
                 }
 
