@@ -188,4 +188,174 @@ class TestRuleToTestInfoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void onlyRenameBeforeOnMethodThatGetsTestInfo() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Before;
+              import org.junit.Rule;
+              import org.junit.rules.TestName;
+
+              public class SomeTest {
+                  @Rule
+                  public TestName name = new TestName();
+                  protected String randomName() {
+                      return name.getMethodName();
+                  }
+
+                  static class Other {
+                      int count;
+
+                      @Before
+                      public void setup() {
+                          count++;
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.Before;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.TestInfo;
+
+              import java.lang.reflect.Method;
+              import java.util.Optional;
+
+              public class SomeTest {
+                 \s
+                  public String name;
+                  protected String randomName() {
+                      return name;
+                  }
+
+                  static class Other {
+                      int count;
+
+                      @Before
+                      public void setup() {
+                          count++;
+                      }
+                  }
+
+                  @BeforeEach
+                  public void setup(TestInfo testInfo) {
+                      Optional<Method> testMethod = testInfo.getTestMethod();
+                      if (testMethod.isPresent()) {
+                          this.name = testMethod.get().getName();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepExistingBeforeEachParameters() {
+        //language=java
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5")),
+          //language=java
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.RepetitionInfo;
+              import org.junit.rules.TestName;
+
+              public class SomeTest {
+                  @Rule
+                  public TestName name = new TestName();
+                  protected String randomName() {
+                      return name.getMethodName();
+                  }
+
+                  @BeforeEach
+                  public void setup(RepetitionInfo repetitionInfo) {
+                      System.out.println(repetitionInfo.getCurrentRepetition());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.RepetitionInfo;
+              import org.junit.jupiter.api.TestInfo;
+
+              import java.lang.reflect.Method;
+              import java.util.Optional;
+
+              public class SomeTest {
+                 \s
+                  public String name;
+                  protected String randomName() {
+                      return name;
+                  }
+
+                  @BeforeEach
+                  public void setup(RepetitionInfo repetitionInfo, TestInfo testInfo) {
+                      Optional<Method> testMethod = testInfo.getTestMethod();
+                      if (testMethod.isPresent()) {
+                          this.name = testMethod.get().getName();
+                      }
+                      System.out.println(repetitionInfo.getCurrentRepetition());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepPrefixOfSelect() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TestName;
+
+              public class SomeTest {
+                  @Rule
+                  public TestName name = new TestName();
+                  void log(String s) {
+                  }
+                  void test() {
+                      log(name.getMethodName());
+                      String s =name.getMethodName();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.junit.jupiter.api.TestInfo;
+
+              import java.lang.reflect.Method;
+              import java.util.Optional;
+
+              public class SomeTest {
+                 \s
+                  public String name;
+                  void log(String s) {
+                  }
+                  void test() {
+                      log(name);
+                      String s =name;
+                  }
+
+                  @BeforeEach
+                  public void setup(TestInfo testInfo) {
+                      Optional<Method> testMethod = testInfo.getTestMethod();
+                      if (testMethod.isPresent()) {
+                          this.name = testMethod.get().getName();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }
