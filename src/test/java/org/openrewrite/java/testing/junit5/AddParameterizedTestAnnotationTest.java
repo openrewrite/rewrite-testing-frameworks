@@ -569,4 +569,109 @@ class AddParameterizedTestAnnotationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void argumentsSourcesContainer() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.params.provider.ArgumentsSource;
+              import org.junit.jupiter.params.provider.ArgumentsSources;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.ArgumentsProvider;
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import java.util.stream.Stream;
+
+              class SourcesTest {
+                  static class A implements ArgumentsProvider {
+                      public Stream<? extends Arguments> provideArguments(ExtensionContext c) {
+                          return Stream.of(Arguments.of(1));
+                      }
+                  }
+                  static class B extends A {}
+
+                  @Test
+                  @ArgumentsSources({@ArgumentsSource(A.class), @ArgumentsSource(B.class)})
+                  void test(int number) {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.provider.ArgumentsSource;
+              import org.junit.jupiter.params.provider.ArgumentsSources;
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.ArgumentsProvider;
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import java.util.stream.Stream;
+
+              class SourcesTest {
+                  static class A implements ArgumentsProvider {
+                      public Stream<? extends Arguments> provideArguments(ExtensionContext c) {
+                          return Stream.of(Arguments.of(1));
+                      }
+                  }
+                  static class B extends A {}
+
+                  @ParameterizedTest
+                  @ArgumentsSources({@ArgumentsSource(A.class), @ArgumentsSource(B.class)})
+                  void test(int number) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void customSourceAnnotation() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.params.provider.ArgumentsSource;
+              import org.junit.jupiter.params.provider.Arguments;
+              import org.junit.jupiter.params.provider.ArgumentsProvider;
+              import org.junit.jupiter.api.extension.ExtensionContext;
+              import java.lang.annotation.*;
+              import java.util.stream.Stream;
+
+              @Retention(RetentionPolicy.RUNTIME)
+              @ArgumentsSource(MySource.Provider.class)
+              @interface MySource {
+                  class Provider implements ArgumentsProvider {
+                      public Stream<? extends Arguments> provideArguments(ExtensionContext c) {
+                          return Stream.of(Arguments.of(1));
+                      }
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class CustomTest {
+                  @Test
+                  @MySource
+                  void test(int number) {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+
+              class CustomTest {
+                  @ParameterizedTest
+                  @MySource
+                  void test(int number) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

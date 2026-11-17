@@ -38,13 +38,16 @@ public class AddParameterizedTestAnnotation extends Recipe {
             "ValueSource",
             "CsvSource",
             "MethodSource",
+            "FieldSource",
             "NullSource",
             "EmptySource",
             "NullAndEmptySource",
             "EnumSource",
             "CsvFileSource",
-            "ArgumentsSource"
+            "ArgumentsSources"
     ).map(annotation -> new AnnotationMatcher("@org.junit.jupiter.params.provider." + annotation)).collect(toList());
+    // Matches `@ArgumentsSource` itself, and custom annotations meta-annotated with it
+    private static final AnnotationMatcher ARGUMENTS_SOURCE_MATCHER = new AnnotationMatcher("@org.junit.jupiter.params.provider.ArgumentsSource", true);
 
     @Getter
     final String displayName = "Add missing `@ParameterizedTest` annotation when `@ValueSource` is used or " +
@@ -56,7 +59,9 @@ public class AddParameterizedTestAnnotation extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesType<>("org.junit.jupiter.params.provider.*", false), new AnnotatedMethodVisitor());
+        return Preconditions.check(Preconditions.or(
+                new UsesType<>("org.junit.jupiter.params.provider.*", false),
+                new UsesType<>("org.junit.jupiter.api.Test", false)), new AnnotatedMethodVisitor());
     }
 
     private static class AnnotatedMethodVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -66,7 +71,7 @@ public class AddParameterizedTestAnnotation extends Recipe {
 
             if (m.getLeadingAnnotations().stream().anyMatch(PARAM_TEST_MATCHER::matches) ||
                 m.getLeadingAnnotations().stream().anyMatch(TEST_TEMPLATE_MATCHER::matches) ||
-                m.getLeadingAnnotations().stream().noneMatch(ann -> SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann)))) {
+                m.getLeadingAnnotations().stream().noneMatch(ann -> ARGUMENTS_SOURCE_MATCHER.matches(ann) || SOURCE_ANNOTATIONS.stream().anyMatch(matcher -> matcher.matches(ann)))) {
                 return m;
             }
 
