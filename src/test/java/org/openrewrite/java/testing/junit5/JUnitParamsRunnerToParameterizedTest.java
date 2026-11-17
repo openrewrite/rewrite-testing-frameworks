@@ -361,7 +361,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               @RunWith(JUnitParamsRunner.class)
               class CsvSourceTests {
                   @Test
-                  // JunitParamsRunnerToParameterized conversion not supported
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
                   @Parameters({"01.12.2012"})
                   public void csvSource(@Param(converter = NullableConverter.class) Date date) { }
               }
@@ -401,7 +401,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               @RunWith(JUnitParamsRunner.class)
               class EnumSourceTests {
                   @Test
-                  // JunitParamsRunnerToParameterized conversion not supported
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
                   @Parameters(source = PersonType.class)
                   public void enumsAsParamsInMethod(PersonType person) { }
               }
@@ -454,7 +454,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
                   private final Foo foo = new Foo();
 
                   @Test
-                  // JunitParamsRunnerToParameterized conversion not supported
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
                   @Parameters
                   public void usesFoo(int a) {
                   }
@@ -543,7 +543,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               @RunWith(JUnitParamsRunner.class)
               class PipeTests {
                   @Test
-                  // JunitParamsRunnerToParameterized conversion not supported
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
                   @Parameters({"Lav|20", "Katy|25"})
                   public void pipes(String name, int age) { }
               }
