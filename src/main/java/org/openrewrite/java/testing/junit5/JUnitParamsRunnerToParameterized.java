@@ -29,7 +29,7 @@ import org.openrewrite.marker.Markers;
 
 import java.util.*;
 
-import static java.util.Collections.emptyList;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 
 // Converts `@Parameters` without arguments (with a `parametersFor...` method), `@Parameters(method = "...")` and `@Parameters(named = "...")` with a `@NamedParameter` method.
@@ -51,12 +51,22 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
     private static final String PARAMETERIZED_TESTS = "parameterized-tests";
     private static final String INIT_METHODS_MAP = "named-parameters-map";
     private static final String CONVERSION_NOT_SUPPORTED = "conversion-not-supported";
+    private static final String TEST_INIT_METHODS = "test-init-methods";
+    private static final String UNSUPPORTED_COMMENT = " JunitParamsRunnerToParameterized conversion not supported";
 
     @Getter
     final String displayName = "Pragmatists `@RunWith(JUnitParamsRunner.class)` to JUnit Jupiter `@ParameterizedTest` tests";
 
     @Getter
     final String description = "Convert Pragmatists JUnitParams tests to the JUnit Jupiter `@ParameterizedTest` equivalent.";
+
+    private static J.Annotation withUnsupportedComment(J.Annotation anno, Cursor cursor) {
+        if (anno.getComments().stream().noneMatch(c -> c.printComment(cursor).endsWith(UNSUPPORTED_COMMENT))) {
+            return anno.withComments(ListUtils.concat(anno.getComments(), new TextComment(false, UNSUPPORTED_COMMENT,
+                    "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
+        }
+        return anno;
+    }
 
     private static String junitParamsDefaultInitMethodName(String methodName) {
         return PARAMETERS_FOR_PREFIX + methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
@@ -73,6 +83,7 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Set<String> initMethods = getCursor().computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>());
+            cd = bailOutOnInstanceStateInitMethods(cd);
             Boolean hasCsvParams = getCursor().getMessage(CSV_PARAMS);
             if (!initMethods.isEmpty() || Boolean.TRUE.equals(hasCsvParams)) {
                 doAfterVisit(new ParametersNoArgsImplicitMethodSource(initMethods,
@@ -81,6 +92,121 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                         getCursor().computeMessageIfAbsent(PARAMETERIZED_TESTS, v -> new HashSet<>())));
             }
             return cd;
+        }
+
+        /**
+         * Init methods are made static, which does not compile when they read instance state.
+         * Leave the tests using such init methods unconverted instead.
+         */
+        private J.ClassDeclaration bailOutOnInstanceStateInitMethods(J.ClassDeclaration cd) {
+            Set<String> parameterizedTests = getCursor().getMessage(PARAMETERIZED_TESTS, emptySet());
+            Map<String, Set<String>> testInitMethods = getCursor().getMessage(TEST_INIT_METHODS, emptyMap());
+            Map<String, String> namedMethods = getCursor().getMessage(INIT_METHODS_MAP, emptyMap());
+            if (cd.getType() == null || parameterizedTests.isEmpty()) {
+                return cd;
+            }
+            Set<String> unsupportedTests = new HashSet<>();
+            Set<String> unsafeInitMethods = new HashSet<>();
+            for (String test : parameterizedTests) {
+                Set<String> refs = testInitMethods.get(test);
+                if (refs == null) {
+                    refs = singleton(junitParamsDefaultInitMethodName(test));
+                }
+                for (String ref : refs) {
+                    String initMethod = namedMethods.getOrDefault(ref, ref);
+                    if (usesInstanceState(cd, initMethod, new HashSet<>())) {
+                        unsupportedTests.add(test);
+                        unsafeInitMethods.add(initMethod);
+                    }
+                }
+            }
+            if (unsupportedTests.isEmpty()) {
+                return cd;
+            }
+            Set<String> unsupported = getCursor().computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>());
+            unsupported.addAll(unsupportedTests);
+            unsupported.addAll(unsafeInitMethods);
+            getCursor().computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).removeAll(unsafeInitMethods);
+            return (J.ClassDeclaration) new JavaIsoVisitor<Integer>() {
+                @Override
+                public J.Annotation visitAnnotation(J.Annotation annotation, Integer p) {
+                    J.Annotation a = super.visitAnnotation(annotation, p);
+                    J.MethodDeclaration m = getCursor().firstEnclosing(J.MethodDeclaration.class);
+                    if (m != null && unsupportedTests.contains(m.getSimpleName()) && PARAMETERS_MATCHER.matches(a)) {
+                        return withUnsupportedComment(a, getCursor());
+                    }
+                    return a;
+                }
+            }.visitNonNull(cd, 0, getCursor().getParentOrThrow());
+        }
+
+        private static boolean usesInstanceState(J.ClassDeclaration cd, String methodName, Set<String> visited) {
+            if (!visited.add(methodName)) {
+                return false;
+            }
+            JavaType.FullyQualified classType = cd.getType();
+            for (Statement statement : cd.getBody().getStatements()) {
+                if (!(statement instanceof J.MethodDeclaration) || !((J.MethodDeclaration) statement).getSimpleName().equals(methodName)) {
+                    continue;
+                }
+                J.MethodDeclaration declaration = (J.MethodDeclaration) statement;
+                if (declaration.hasModifier(J.Modifier.Type.Static)) {
+                    continue;
+                }
+                Set<String> called = new HashSet<>();
+                boolean[] instance = {false};
+                new JavaIsoVisitor<Integer>() {
+                    @Override
+                    public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                        if ("this".equals(identifier.getSimpleName()) || "super".equals(identifier.getSimpleName())) {
+                            instance[0] = true;
+                        } else if (identifier.getFieldType() != null &&
+                                !identifier.getFieldType().hasFlags(Flag.Static) &&
+                                TypeUtils.isAssignableTo(TypeUtils.asFullyQualified(identifier.getFieldType().getOwner()), classType) &&
+                                !(getCursor().getParentTreeCursor().getValue() instanceof J.FieldAccess &&
+                                  ((J.FieldAccess) getCursor().getParentTreeCursor().getValue()).getName() == identifier)) {
+                            instance[0] = true;
+                        }
+                        return identifier;
+                    }
+
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                        JavaType.Method type = method.getMethodType();
+                        if (method.getSelect() == null && type != null && !type.hasFlags(Flag.Static)) {
+                            if (TypeUtils.isOfType(type.getDeclaringType(), classType)) {
+                                called.add(method.getSimpleName());
+                            } else {
+                                // inherited instance method
+                                instance[0] = true;
+                            }
+                        }
+                        return super.visitMethodInvocation(method, p);
+                    }
+
+                    @Override
+                    public J.NewClass visitNewClass(J.NewClass newClass, Integer p) {
+                        JavaType.FullyQualified type = TypeUtils.asFullyQualified(newClass.getType());
+                        if (newClass.getBody() == null && newClass.getEnclosing() == null && type != null &&
+                                type.getKind() == JavaType.FullyQualified.Kind.Class &&
+                                type.getOwningClass() != null && !type.hasFlags(Flag.Static) &&
+                                TypeUtils.isAssignableTo(type.getOwningClass(), classType)) {
+                            // inner class which needs an enclosing instance
+                            instance[0] = true;
+                        }
+                        return super.visitNewClass(newClass, p);
+                    }
+                }.visit(declaration.getBody(), 0, new Cursor(null, cd));
+                if (instance[0]) {
+                    return true;
+                }
+                for (String callee : called) {
+                    if (usesInstanceState(cd, callee, visited)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         @Override
@@ -104,19 +230,19 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
                 classDeclCursor.computeMessageIfAbsent(PARAMETERIZED_TESTS, v -> new HashSet<>())
                         .add(getCursor().firstEnclosing(J.MethodDeclaration.class).getSimpleName());
                 if (annotationArgumentValue != null) {
+                    String testName = getCursor().firstEnclosing(J.MethodDeclaration.class).getSimpleName();
                     for (String method : annotationArgumentValue.split(",")) {
+                        method = method.trim();
                         classDeclCursor.computeMessageIfAbsent(INIT_METHOD_REFERENCES, v -> new HashSet<>()).add(method);
+                        classDeclCursor.computeMessageIfAbsent(TEST_INIT_METHODS, v -> new HashMap<String, Set<String>>())
+                                .computeIfAbsent(testName, k -> new HashSet<>()).add(method);
                     }
                 } else if (isSupportedCsvParam(annotated)) {
                     anno = getCsVParamTemplate(ctx).apply(updateCursor(anno), anno.getCoordinates().replace(), anno.getArguments().get(0));
                     classDeclCursor.putMessage(CSV_PARAMS, Boolean.TRUE);
                 } else if (anno.getArguments() != null && !anno.getArguments().isEmpty()) {
                     // This conversion is not supported add a comment to the annotation and the method name to the not supported list
-                    String comment = " JunitParamsRunnerToParameterized conversion not supported";
-                    if (anno.getComments().stream().noneMatch(c -> c.printComment(getCursor()).endsWith(comment))) {
-                        anno = anno.withComments(ListUtils.concat(anno.getComments(), new TextComment(false, comment,
-                                "\n" + anno.getPrefix().getIndent(), Markers.EMPTY)));
-                    }
+                    anno = withUnsupportedComment(anno, getCursor());
                     J.MethodDeclaration m = getCursor().dropParentUntil(J.MethodDeclaration.class::isInstance).getValue();
                     Set<String> unsupportedMethods = classDeclCursor.computeMessageIfAbsent(CONVERSION_NOT_SUPPORTED, v -> new HashSet<>());
                     unsupportedMethods.add(m.getSimpleName());
@@ -161,6 +287,8 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             Optional<Literal> value = annotated.getDefaultAttribute("value");
             return value.isPresent() &&
                     value.get().isArray() &&
+                    // JUnitParams also splits on `|`, which `@CsvSource` does not
+                    value.get().getStrings().stream().noneMatch(v -> v.contains("|")) &&
                     !doTestParamsHaveCustomConverter(getCursor().firstEnclosing(J.MethodDeclaration.class));
         }
 
@@ -316,10 +444,10 @@ public class JUnitParamsRunnerToParameterized extends Recipe {
             if (annotationArgumentValue != null) {
                 String[] methodRefs = annotationArgumentValue.split(",");
                 if (methodRefs.length > 1) {
-                    String methods = Arrays.stream(methodRefs).map(mref -> "\"" + mref + "\"").collect(joining(", "));
+                    String methods = Arrays.stream(methodRefs).map(mref -> "\"" + mref.trim() + "\"").collect(joining(", "));
                     annotationArgumentValue = "{" + methods + "}";
                 } else {
-                    annotationArgumentValue = "\"" + annotationArgumentValue + "\"";
+                    annotationArgumentValue = "\"" + annotationArgumentValue.trim() + "\"";
                 }
             }
             return annotationArgumentValue;
