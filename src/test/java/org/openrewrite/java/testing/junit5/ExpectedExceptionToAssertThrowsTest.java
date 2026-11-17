@@ -84,6 +84,56 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
     }
 
     @Test
+    void doesNotShadowInheritedFieldNamedException() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class BaseTest {
+                  protected RuntimeException exception = new RuntimeException("boom");
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest extends BaseTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void t() {
+                      thrown.expectMessage("boom");
+                      throw exception;
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest extends BaseTest {
+
+                  @Test
+                  public void t() {
+                      Throwable exception1 = assertThrows(Exception.class, () -> {
+                          throw exception;
+                      });
+                      assertThat(exception1.getMessage(), containsString("boom"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void keepsThrowsForImplicitCloseOfTryWithResources() {
         //language=java
         rewriteRun(
