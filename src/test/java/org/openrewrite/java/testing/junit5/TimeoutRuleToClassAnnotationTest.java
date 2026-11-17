@@ -298,4 +298,251 @@ class TimeoutRuleToClassAnnotationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepsTimeoutReferencedFromRuleChain() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.RuleChain;
+              import org.junit.rules.Timeout;
+
+              class MyTest {
+
+                  private final Timeout timeout = Timeout.seconds(5);
+
+                  @Rule
+                  public RuleChain chain = RuleChain.outerRule(timeout);
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsRuleTimeoutReferencedInMethod() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+              import org.junit.runner.Description;
+              import org.junit.runners.model.Statement;
+
+              class MyTest {
+
+                  @Rule
+                  public Timeout timeout = Timeout.seconds(5);
+
+                  Statement wrap(Statement base) {
+                      return this.timeout.apply(base, Description.EMPTY);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsTimeoutFieldWithoutRuleAnnotation() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.rules.Timeout;
+
+              class MyTest {
+
+                  private final Timeout timeout = Timeout.seconds(5);
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsMultipleTimeoutRules() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+
+              class MyTest {
+
+                  @Rule
+                  public Timeout first = Timeout.seconds(5);
+
+                  @Rule
+                  public Timeout second = Timeout.seconds(10);
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsMultiVariableDeclaration() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+
+              class MyTest {
+
+                  @Rule
+                  public Timeout first = Timeout.seconds(5), second = Timeout.seconds(10);
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsClassRuleTimeout() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.ClassRule;
+              import org.junit.rules.Timeout;
+
+              class MyTest {
+
+                  @ClassRule
+                  public static Timeout timeout = Timeout.seconds(5);
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsTimeoutRuleWhenClassAlreadyHasJupiterTimeout() {
+        //language=java
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4", "junit-jupiter-api-5")),
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+
+              @org.junit.jupiter.api.Timeout(10)
+              class MyTest {
+
+                  @Rule
+                  public Timeout timeout = Timeout.seconds(5);
+
+                  void testMethod() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void localVariableWithSameNameIsNotAReference() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.Timeout;
+
+              class MyTest {
+
+                  @Rule
+                  public Timeout timeout = Timeout.seconds(30);
+
+                  void testMethod() {
+                      String timeout = "30s";
+                      System.out.println(timeout);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Timeout;
+
+              import java.util.concurrent.TimeUnit;
+
+              @Timeout(value = 30, unit = TimeUnit.SECONDS)
+              class MyTest {
+
+                  void testMethod() {
+                      String timeout = "30s";
+                      System.out.println(timeout);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void convertsRuleTimeoutNextToUnrelatedRules() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.rules.TemporaryFolder;
+              import org.junit.rules.Timeout;
+
+              class MyTest {
+
+                  @Rule
+                  public TemporaryFolder folder = new TemporaryFolder();
+
+                  @Rule
+                  public final Timeout timeout = new Timeout(2, java.util.concurrent.TimeUnit.MINUTES);
+
+                  void testMethod() {
+                      folder.getRoot();
+                  }
+              }
+              """,
+            """
+              import org.junit.Rule;
+              import org.junit.jupiter.api.Timeout;
+              import org.junit.rules.TemporaryFolder;
+
+              import java.util.concurrent.TimeUnit;
+
+              @Timeout(value = 2, unit = TimeUnit.MINUTES)
+              class MyTest {
+
+                  @Rule
+                  public TemporaryFolder folder = new TemporaryFolder();
+
+                  void testMethod() {
+                      folder.getRoot();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
