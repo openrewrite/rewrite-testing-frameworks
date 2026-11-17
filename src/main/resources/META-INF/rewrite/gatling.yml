@@ -23,7 +23,10 @@ description: >-
   3.0 onward. Changes needing a judgement call are left alone: Gatling 3.10 requires Java 11,
   `gatling-maven-plugin` 4 no longer compiles Scala so Maven projects with Scala simulations need the
   `scala-maven-plugin`, and JMS moved to `jakarta.jms` in 3.14. The `${}` Expression Language in `ElFileBody`
-  template files is not rewritten either.
+  template files is not rewritten either. Also left alone: the `io.gatling.gradle` plugin must be declared after the
+  `java`, `scala` or `kotlin` plugin since 3.11, and the IDE launcher classes `Engine` and `Recorder` that build a
+  `GatlingPropertiesBuilder` or `RecorderPropertiesBuilder` need rewriting to pass command line arguments to
+  `Gatling.main` and `GatlingRecorder.main`, since the builders were removed in 3.10.
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -50,6 +53,10 @@ recipeList:
   - org.openrewrite.java.testing.gatling.ReplaceScalaPostfixDurations
   - org.openrewrite.java.testing.gatling.MigrateGatlingExitBlockOnFail
   - org.openrewrite.java.testing.gatling.MigrateGatlingChoice
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: io.gatling.javaapi.core.FeederBuilder$Batchable
+      newFullyQualifiedTypeName: io.gatling.javaapi.core.FeederBuilder$FileBased
+  - org.openrewrite.java.testing.gatling.RemoveGatlingGradleLogOptions
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: io.gatling.javaapi.core..* stopInjector(..)
       newMethodName: stopLoadGenerator

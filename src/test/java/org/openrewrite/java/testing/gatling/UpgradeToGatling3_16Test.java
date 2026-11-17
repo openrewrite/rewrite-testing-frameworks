@@ -254,4 +254,31 @@ class UpgradeToGatling3_16Test implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void feederBuilderBatchable() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import io.gatling.javaapi.core.FeederBuilder.Batchable;
+
+              import static io.gatling.javaapi.core.CoreDsl.csv;
+
+              class Feeders {
+                  private static final Batchable<String> USERS = csv("users.csv").circular();
+              }
+              """,
+            """
+              import io.gatling.javaapi.core.FeederBuilder;
+
+              import static io.gatling.javaapi.core.CoreDsl.csv;
+
+              class Feeders {
+                  private static final FeederBuilder.FileBased<String> USERS = csv("users.csv").circular();
+              }
+              """
+          )
+        );
+    }
 }
