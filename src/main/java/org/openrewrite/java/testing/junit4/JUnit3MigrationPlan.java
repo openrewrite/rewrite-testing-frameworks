@@ -63,6 +63,10 @@ public class JUnit3MigrationPlan {
      * Classes of arguments passed where a {@code junit.framework} type is asked for.
      */
     final Set<String> passedAsJUnit3TypeFqns = new HashSet<>();
+    /**
+     * Classes whose {@code (String name)} constructor goes, so that callers in any source file stop passing the name.
+     */
+    final Set<String> nameArgumentDroppedFqns = new HashSet<>();
     private boolean resolved;
 
     void pin(@Nullable String fqn, String reason) {
@@ -90,7 +94,7 @@ public class JUnit3MigrationPlan {
      * Whether the {@code (String name)} constructor of the class is removed along with the argument of its callers.
      */
     boolean dropsNameArgument(@Nullable String fqn) {
-        return isMigrated(fqn) && testCasesByFqn.get(fqn).nameConstructor;
+        return nameArgumentDroppedFqns.contains(fqn);
     }
 
     void resolve() {
@@ -151,6 +155,11 @@ public class JUnit3MigrationPlan {
                     pin(superInfo.fqn, "its subclass " + info.fqn + " is not migrated: " + pinReasonByFqn.get(info.fqn));
                     changed = true;
                 }
+            }
+        }
+        for (ClassInfo info : testCasesByFqn.values()) {
+            if (info.nameConstructor && isMigrated(info.fqn)) {
+                nameArgumentDroppedFqns.add(info.fqn);
             }
         }
     }

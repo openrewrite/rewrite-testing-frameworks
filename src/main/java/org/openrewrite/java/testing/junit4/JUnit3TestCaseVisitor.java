@@ -23,6 +23,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveImport;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.Arrays;
@@ -49,9 +50,13 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
     @Override
     public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
         Cursor parent = getCursor().getParentOrThrow();
+        boolean usesJUnit = new UsesType<>("junit..*", false).visit(cu, ctx) != cu;
         // callers of a constructor that loses its test name need not use anything from JUnit
+        if (!usesJUnit && !usesClassDroppingNameArgument(cu)) {
+            return cu;
+        }
         J.CompilationUnit c = (J.CompilationUnit) new NameConstructorVisitor(plan).visitNonNull(cu, ctx, parent);
-        if (new UsesType<>("junit..*", false).visit(c, ctx) == c) {
+        if (!usesJUnit) {
             return c;
         }
         boolean migratesTestCase = declaresMigratedClass(c);
@@ -86,6 +91,18 @@ class JUnit3TestCaseVisitor extends JavaIsoVisitor<ExecutionContext> {
                 return plan.isUnmigrated(fqn) ? SearchResult.found(cd, "Not migrated from JUnit 3: " + plan.pinReasonByFqn.get(fqn)) : cd;
             }
         }.visitNonNull(c, ctx, parent);
+    }
+
+    private boolean usesClassDroppingNameArgument(J.CompilationUnit cu) {
+        if (plan.nameArgumentDroppedFqns.isEmpty()) {
+            return false;
+        }
+        for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
+            if (type instanceof JavaType.FullyQualified && plan.dropsNameArgument(((JavaType.FullyQualified) type).getFullyQualifiedName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean declaresMigratedClass(J.CompilationUnit cu) {
