@@ -26,10 +26,13 @@ import org.openrewrite.java.dependencies.RemoveDependency;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.maven.ExcludeDependency;
 import org.openrewrite.maven.RemoveManagedDependency;
 import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.xml.tree.Xml;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +59,8 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
     public static class Accumulator {
         Set<@Nullable JavaProject> withJavaSources = new HashSet<>();
         Set<@Nullable JavaProject> usingJUnit3 = new HashSet<>();
+        // a managed version stays as long as another build file declares the dependency without a version of its own
+        Set<Path> junitDeclarers = new HashSet<>();
         RemoveDependency removeJUnit;
         RemoveDependency.Accumulator removeJUnitAcc;
         RemoveDependency removeVintage;
@@ -83,17 +88,7 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
         scanners.add(acc.removeJUnit.getScanner(acc.removeJUnitAcc));
         scanners.add(acc.removeVintage.getScanner(acc.removeVintageAcc));
         scanners.add(acc.addVintage.getScanner(acc.addVintageAcc));
-        return new JavaIsoVisitor<ExecutionContext>() {
-            @Override
-            public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (tree instanceof SourceFile) {
-                    for (TreeVisitor<?, ExecutionContext> scanner : scanners) {
-                        scanner.visit(tree, ctx);
-                    }
-                }
-                return super.visit(tree, ctx);
-            }
-
+        JavaIsoVisitor<ExecutionContext> javaScanner = new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 JavaProject project = cu.getMarkers().findFirst(JavaProject.class).orElse(null);
@@ -104,9 +99,60 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
                         break;
                     }
                 }
-                return cu;
+                return super.visitCompilationUnit(cu, ctx);
+            }
+
+            @Override
+            public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                // a base class from a library, such as AbstractMojoTestCase, can inherit TestCase without naming a type of junit.*
+                if (TypeUtils.isAssignableTo("junit.framework.Test", classDecl.getType())) {
+                    J.CompilationUnit cu = getCursor().firstEnclosing(J.CompilationUnit.class);
+                    if (cu != null) {
+                        acc.usingJUnit3.add(cu.getMarkers().findFirst(JavaProject.class).orElse(null));
+                    }
+                }
+                return super.visitClassDeclaration(classDecl, ctx);
             }
         };
+        // a JavaIsoVisitor would turn away the build files
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (tree instanceof SourceFile) {
+                    for (TreeVisitor<?, ExecutionContext> scanner : scanners) {
+                        scanner.visit(tree, ctx);
+                    }
+                }
+                if (tree instanceof Xml.Document && declaresJUnit((Xml.Document) tree)) {
+                    acc.junitDeclarers.add(((Xml.Document) tree).getSourcePath());
+                } else if (tree instanceof J.CompilationUnit) {
+                    javaScanner.visit(tree, ctx);
+                }
+                return tree;
+            }
+        };
+    }
+
+    private static boolean declaresJUnit(Xml.Document pom) {
+        MavenResolutionResult mrr = pom.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+        return mrr != null && mrr.getPom().getRequested().getDependencies().stream()
+                .anyMatch(d -> "junit".equals(d.getGroupId()) && "junit".equals(d.getArtifactId()));
+    }
+
+    private static boolean managesJUnit(Tree tree) {
+        MavenResolutionResult mrr = tree.getMarkers().findFirst(MavenResolutionResult.class).orElse(null);
+        return mrr != null && mrr.getPom().getRequested().getDependencyManagement().stream()
+                .anyMatch(d -> "junit".equals(d.getGroupId()) && "junit".equals(d.getArtifactId()));
+    }
+
+    /**
+     * Removing the last use of {@code junit:junit} also removes the version managed for it, which a module that
+     * still declares the dependency without a version of its own needs. Such a build file waits for the next cycle,
+     * when the declarations that were removed no longer count.
+     */
+    private static boolean managedVersionStillNeeded(Tree tree, Accumulator acc) {
+        return managesJUnit(tree) && acc.junitDeclarers.stream()
+                .anyMatch(path -> !(tree instanceof SourceFile) || !path.equals(((SourceFile) tree).getSourcePath()));
     }
 
     /**
@@ -140,8 +186,11 @@ public class RemoveJUnit4DependenciesUnlessJUnit3Used extends ScanningRecipe<Rem
                 if (tree != null && keepsJUnit(tree, acc)) {
                     return addVintage.visit(tree, ctx);
                 }
-                Tree t = removeJUnit.visit(tree, ctx);
-                t = removeManagedJUnit.visit(t, ctx);
+                Tree t = tree;
+                if (tree == null || !managedVersionStillNeeded(tree, acc)) {
+                    t = removeJUnit.visit(t, ctx);
+                    t = removeManagedJUnit.visit(t, ctx);
+                }
                 t = removeVintage.visit(t, ctx);
                 t = removeManagedVintage.visit(t, ctx);
                 return excludeVintage.visit(t, ctx);

@@ -25,6 +25,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcMainJava;
 import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
@@ -169,6 +170,177 @@ class RemoveJUnit4DependenciesUnlessJUnit3UsedTest implements RewriteTest {
                           <version>0.0.1</version>
                       </parent>
                       <artifactId>b</artifactId>
+                  </project>
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void keptForATestClassWhoseLibraryBaseClassInheritsTestCase() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4")),
+          mavenProject("parent",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>0.0.1</version>
+                    <packaging>pom</packaging>
+                    <modules>
+                        <module>lib</module>
+                        <module>app</module>
+                    </modules>
+                </project>
+                """
+            ),
+            mavenProject("lib",
+              //language=java
+              srcMainJava(java(
+                """
+                  package lib;
+
+                  public abstract class PluginTestCase extends junit.framework.TestCase {
+                  }
+                  """
+              )),
+              pomXml(
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>org.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>0.0.1</version>
+                      </parent>
+                      <artifactId>lib</artifactId>
+                  </project>
+                  """
+              )
+            ),
+            mavenProject("app",
+              //language=java
+              srcTestJava(java(
+                """
+                  import lib.PluginTestCase;
+
+                  class AppTest extends PluginTestCase {
+                      public void testIt() {
+                      }
+                  }
+                  """
+              )),
+              pomXml(
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>org.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>0.0.1</version>
+                      </parent>
+                      <artifactId>app</artifactId>
+                      <dependencies>
+                          <dependency>
+                              <groupId>junit</groupId>
+                              <artifactId>junit</artifactId>
+                              <version>4.13.2</version>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """,
+                spec -> spec.after(pom -> assertThat(pom)
+                  .contains("<artifactId>junit</artifactId>")
+                  .contains("<artifactId>junit-vintage-engine</artifactId>")
+                  .actual())
+              )
+            )
+          )
+        );
+    }
+
+    @Test
+    void managedVersionStaysUntilNoBuildFileDeclaresTheDependency() {
+        rewriteRun(
+          spec -> spec.expectedCyclesThatMakeChanges(2),
+          mavenProject("parent",
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>0.0.1</version>
+                    <packaging>pom</packaging>
+                    <modules>
+                        <module>a</module>
+                    </modules>
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>junit</groupId>
+                                <artifactId>junit</artifactId>
+                                <version>4.13.2</version>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>parent</artifactId>
+                    <version>0.0.1</version>
+                    <packaging>pom</packaging>
+                    <modules>
+                        <module>a</module>
+                    </modules>
+                </project>
+                """
+            ),
+            mavenProject("a",
+              //language=java
+              srcTestJava(java(
+                """
+                  class Plain {
+                  }
+                  """
+              )),
+              pomXml(
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>org.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>0.0.1</version>
+                      </parent>
+                      <artifactId>a</artifactId>
+                      <dependencies>
+                          <dependency>
+                              <groupId>junit</groupId>
+                              <artifactId>junit</artifactId>
+                              <scope>test</scope>
+                          </dependency>
+                      </dependencies>
+                  </project>
+                  """,
+                """
+                  <project>
+                      <modelVersion>4.0.0</modelVersion>
+                      <parent>
+                          <groupId>org.example</groupId>
+                          <artifactId>parent</artifactId>
+                          <version>0.0.1</version>
+                      </parent>
+                      <artifactId>a</artifactId>
                   </project>
                   """
               )
