@@ -29,7 +29,9 @@ class ReplaceScalaPostfixDurationsTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ReplaceScalaPostfixDurations())
-          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(), "gatling-core-3.9", "gatling-http-3.9"));
+          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(),
+            "gatling-core-3.9",
+            "gatling-http-3.9"));
     }
 
     @DocumentExample

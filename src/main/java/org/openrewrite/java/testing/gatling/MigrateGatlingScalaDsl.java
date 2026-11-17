@@ -86,13 +86,16 @@ public class MigrateGatlingScalaDsl extends Recipe {
             public J visitIdentifier(J.Identifier identifier, ExecutionContext ctx) {
                 J.Identifier i = (J.Identifier) super.visitIdentifier(identifier, ctx);
                 String newName = RENAMES.get(i.getSimpleName());
-                if (newName == null || getCursor().getParentTreeCursor().getValue() instanceof J.MethodDeclaration ||
+                Object parent = getCursor().getParentTreeCursor().getValue();
+                if (newName == null || parent instanceof J.MethodDeclaration ||
+                    parent instanceof J.MethodInvocation && ((J.MethodInvocation) parent).getName() == identifier ||
                     !mayBeGatling(i.getFieldType() != null ? i.getFieldType() : i.getType())) {
                     return i;
                 }
-                return i.withSimpleName(newName);
+                return i.withSimpleName(newName).withFieldType(i.getFieldType() == null ? null : i.getFieldType().withName(newName));
             }
 
+            // Without type attribution, a call without parentheses is parsed as a field access
             @Override
             public J visitFieldAccess(J.FieldAccess fieldAccess, ExecutionContext ctx) {
                 J j = super.visitFieldAccess(fieldAccess, ctx);
@@ -123,23 +126,34 @@ public class MigrateGatlingScalaDsl extends Recipe {
                 }
                 J.MethodInvocation m = (J.MethodInvocation) j;
                 String name = m.getSimpleName();
-                if (m.getSelect() == null || !mayBeGatling(m.getMethodType())) {
+                if (!mayBeGatling(m.getMethodType())) {
+                    return m;
+                }
+                if (RENAMES.containsKey(name)) {
+                    return withName(m, RENAMES.get(name));
+                }
+                if (m.getSelect() == null) {
                     return m;
                 }
                 Integer connections = MAX_CONNECTIONS_PER_HOST.get(name);
                 if (connections != null && hasNoArguments(m)) {
-                    return m.withName(m.getName().withSimpleName("maxConnectionsPerHost"))
-                            .getPadding().withArguments(connectionsArgument(connections));
+                    JavaType.Method type = m.getMethodType() == null ? null : m.getMethodType().withParameterNames(singletonList("max")).withParameterTypes(singletonList(JavaType.Primitive.Int));
+                    return withName(m.withMethodType(type), "maxConnectionsPerHost").getPadding().withArguments(connectionsArgument(connections));
                 }
                 if ("convert".equals(name) && isPartialFunction(m)) {
-                    return m.withName(m.getName().withSimpleName("transform"));
+                    return withName(m, "transform");
                 }
                 if (("transform".equals(name) || "transformOption".equals(name)) && takesTheSession(m)) {
-                    return m.withName(m.getName().withSimpleName(name + "WithSession"));
+                    return withName(m, name + "WithSession");
                 }
                 return m;
             }
         });
+    }
+
+    private static J.MethodInvocation withName(J.MethodInvocation method, String name) {
+        JavaType.Method type = method.getMethodType() == null ? null : method.getMethodType().withName(name);
+        return method.withName(method.getName().withSimpleName(name).withType(type)).withMethodType(type);
     }
 
     // Gatling's DSL may lack type attribution, while the source's own declarations and the Scala library have it

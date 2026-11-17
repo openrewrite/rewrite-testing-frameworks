@@ -20,23 +20,25 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.tree.Expression;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.marker.OmitParentheses;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JLeftPadded;
 import org.openrewrite.java.tree.Space;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.Marker;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static org.openrewrite.Tree.randomId;
 
 public class ReplaceScalaPostfixDurations extends Recipe {
 
-    // The postfix conversions `scala.concurrent.duration` adds to numbers
+    private static final MethodMatcher DURATION_UNIT = new MethodMatcher("scala.concurrent.duration.DurationConversions *()");
+
+    // Matched by name too, as calls inside Gatling DSL calls the compiler cannot resolve are untyped
     private static final Set<String> DURATION_UNITS = new HashSet<>(Arrays.asList(
             "nanoseconds", "nanosecond", "nanos", "nano",
             "microseconds", "microsecond", "micros", "micro",
@@ -57,38 +59,23 @@ public class ReplaceScalaPostfixDurations extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(GatlingSources.importingGatling(false), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(GatlingSources.importingGatling(false), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                J j = super.visitMethodInvocation(method, ctx);
-                if (!(j instanceof J.MethodInvocation)) {
-                    return j;
-                }
-                J.MethodInvocation m = (J.MethodInvocation) j;
-                if (m.getSelect() == null || !DURATION_UNITS.contains(m.getSimpleName()) ||
-                    !isPostfix(m)) {
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
+                boolean durationUnit = m.getMethodType() == null ? DURATION_UNITS.contains(m.getSimpleName()) && m.getArguments().stream().allMatch(J.Empty.class::isInstance) : DURATION_UNIT.matches(m);
+                if (!durationUnit || m.getSelect() == null || m.getMarkers().getMarkers().stream().noneMatch(ReplaceScalaPostfixDurations::isInfixNotation)) {
                     return m;
                 }
-                // The Scala parser models `5.seconds` as a field access, so produce exactly that
-                return new J.FieldAccess(
-                        randomId(),
-                        m.getPrefix(),
-                        Markers.EMPTY,
-                        m.getSelect(),
-                        JLeftPadded.build(m.getName().withPrefix(Space.EMPTY)),
-                        m.getType());
-            }
-
-            // Postfix calls are parsed as infix notation without an argument. The marker is matched by name, as
-            // `rewrite-scala` is not a dependency of this module
-            private boolean isPostfix(J.MethodInvocation method) {
-                if (method.getMarkers().getMarkers().stream()
-                        .noneMatch(marker -> "InfixNotation".equals(marker.getClass().getSimpleName()))) {
-                    return false;
-                }
-                List<Expression> arguments = method.getArguments();
-                return arguments.isEmpty() || (arguments.size() == 1 && arguments.get(0) instanceof J.Empty);
+                return m.withMarkers(m.getMarkers().withMarkers(ListUtils.filter(m.getMarkers().getMarkers(), marker -> !isInfixNotation(marker))))
+                        .withName(m.getName().withPrefix(Space.EMPTY))
+                        .getPadding().withArguments(m.getPadding().getArguments().withMarkers(m.getPadding().getArguments().getMarkers().add(new OmitParentheses(randomId()))));
             }
         });
+    }
+
+    // Matched by name, as `rewrite-scala` is not a dependency of this module
+    private static boolean isInfixNotation(Marker marker) {
+        return "InfixNotation".equals(marker.getClass().getSimpleName());
     }
 }

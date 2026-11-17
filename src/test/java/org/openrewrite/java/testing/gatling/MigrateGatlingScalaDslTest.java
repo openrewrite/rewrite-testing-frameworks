@@ -29,7 +29,9 @@ class MigrateGatlingScalaDslTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new MigrateGatlingScalaDsl())
-          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(), "gatling-core-3.9", "gatling-http-3.9"));
+          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(),
+            "gatling-core-3.9",
+            "gatling-http-3.9"));
     }
 
     @DocumentExample
@@ -46,10 +48,9 @@ class MigrateGatlingScalaDslTest implements RewriteTest {
                 val httpProtocol = http
                   .baseUrl("https://computer-database.gatling.io")
                   .inferHtmlResources(WhiteList(), BlackList(".*\\\\.css"))
-                  .ignoreDefaultChecks
-                  .ignoreDefaultHeaders
 
                 val scn = scenario("Basic")
+                  .exec(http("home").get("/").ignoreDefaultChecks.ignoreDefaultHeaders)
                   .exec(polling.every(10.seconds).exec(http("poll").get("/")))
                   .exec(stopInjector("enough"))
                   .exec(stopInjectorIf("too slow", session => true))
@@ -66,10 +67,9 @@ class MigrateGatlingScalaDslTest implements RewriteTest {
                 val httpProtocol = http
                   .baseUrl("https://computer-database.gatling.io")
                   .inferHtmlResources(AllowList(), DenyList(".*\\\\.css"))
-                  .ignoreProtocolChecks
-                  .ignoreProtocolHeaders
 
                 val scn = scenario("Basic")
+                  .exec(http("home").get("/").ignoreProtocolChecks.ignoreProtocolHeaders)
                   .exec(poll.every(10.seconds).exec(http("poll").get("/")))
                   .exec(stopLoadGenerator("enough"))
                   .exec(stopLoadGeneratorIf("too slow", session => true))

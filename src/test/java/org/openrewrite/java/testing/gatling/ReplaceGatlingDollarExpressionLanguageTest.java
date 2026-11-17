@@ -39,7 +39,9 @@ class ReplaceGatlingDollarExpressionLanguageTest implements RewriteTest {
               "gatling-core-java-3.9",
               "gatling-http-3.9",
               "gatling-http-java-3.9"))
-          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(), "gatling-core-3.9", "gatling-http-3.9"));
+          .parser(ScalaParser.builder().classpathFromResource(new InMemoryExecutionContext(),
+            "gatling-core-3.9",
+            "gatling-http-3.9"));
     }
 
     @DocumentExample
