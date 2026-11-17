@@ -20,6 +20,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.RemoveAnnotationVisitor;
+import org.openrewrite.java.service.AnnotationService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
@@ -87,11 +88,11 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
         }
         if (isNoArgVoid(md) && !md.hasModifier(J.Modifier.Type.Static) && !md.hasModifier(J.Modifier.Type.Abstract)) {
             if (md.getSimpleName().startsWith("test") && md.hasModifier(J.Modifier.Type.Public) &&
-                md.getLeadingAnnotations().stream().noneMatch(JUNIT4_TEST::matches)) {
+                !hasAnnotation(JUNIT4_TEST)) {
                 md = addAnnotation(md, "@Test", "org.junit.Test");
-            } else if ("setUp".equals(md.getSimpleName()) && md.getLeadingAnnotations().stream().noneMatch(JUNIT4_BEFORE::matches)) {
+            } else if ("setUp".equals(md.getSimpleName()) && !hasAnnotation(JUNIT4_BEFORE)) {
                 md = makePublic(addAnnotation(md, "@Before", "org.junit.Before"));
-            } else if ("tearDown".equals(md.getSimpleName()) && md.getLeadingAnnotations().stream().noneMatch(JUNIT4_AFTER::matches)) {
+            } else if ("tearDown".equals(md.getSimpleName()) && !hasAnnotation(JUNIT4_AFTER)) {
                 md = makePublic(addAnnotation(md, "@After", "org.junit.After"));
             }
         }
@@ -115,6 +116,14 @@ class LifecycleMethodsVisitor extends JUnit3MigrationVisitor {
             md = makeAccessPublic(md);
         }
         return removeObsoleteOverride(md, ctx);
+    }
+
+    /**
+     * Whether the method at the cursor carries the annotation, wherever it is written: before the modifiers, or after
+     * them as in {@code public @Test void m()}.
+     */
+    private boolean hasAnnotation(AnnotationMatcher matcher) {
+        return service(AnnotationService.class).matches(getCursor(), matcher);
     }
 
     private static boolean isNoArgVoid(J.MethodDeclaration md) {

@@ -101,6 +101,36 @@ class MigrateJUnit3TestCaseTest implements RewriteTest {
     }
 
     @Test
+    void annotationAfterModifierIsNotAddedTwice() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import junit.framework.TestCase;
+              import org.junit.Test;
+
+              public class MathTest extends TestCase {
+                  public @Test void testAdd() {
+                      assertEquals(4, 2 + 2);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.junit.Assert.assertEquals;
+
+              public class MathTest {
+                  public @Test void testAdd() {
+                      assertEquals(4, 2 + 2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void subclassKeepsSuperCallsToMigratedBase() {
         rewriteRun(
           //language=java
