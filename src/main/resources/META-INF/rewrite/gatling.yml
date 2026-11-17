@@ -45,12 +45,9 @@ recipeList:
   - org.openrewrite.gradle.plugins.UpgradePluginVersion:
       pluginIdPattern: io.gatling.gradle
       newVersion: 3.16.x
-  # Deprecated in 3.7 and no longer interpreted as of 3.11
   - org.openrewrite.java.testing.gatling.ReplaceGatlingDollarExpressionLanguage
   - org.openrewrite.java.testing.gatling.MigrateGatlingScalaDsl
-  # Recommended since 3.5 moved to Scala 2.13
   - org.openrewrite.java.testing.gatling.ReplaceScalaPostfixDurations
-  # Java SDK, introduced in 3.7
   - org.openrewrite.java.testing.gatling.MigrateGatlingExitBlockOnFail
   - org.openrewrite.java.testing.gatling.MigrateGatlingChoice
   - org.openrewrite.java.ChangeMethodName:
