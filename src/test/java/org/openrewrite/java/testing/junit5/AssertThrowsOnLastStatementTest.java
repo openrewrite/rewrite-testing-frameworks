@@ -1284,7 +1284,6 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
         );
     }
 
-    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/2861")
     @Test
     void argumentWithAnonymousClassTypeIsLeftInline() {
         // An anonymous (or local) class type renders to an invalid variable declaration (e.g. `MyTest.1 x = ...`);
@@ -1335,6 +1334,237 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
                   }
                   void setup() {}
                   void consume(Object o) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void argumentDeclaringExpectedExceptionStaysInline() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+              import java.io.UnsupportedEncodingException;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      assertThrows(UnsupportedEncodingException.class, () -> {
+                          String probe = "A string";
+                          assertArrayEquals(probe.getBytes(), decode(probe.getBytes(), "junk").getBytes());
+                      });
+                  }
+                  static String decode(byte[] bytes, String encoding) throws IOException {
+                      return new String(bytes, encoding);
+                  }
+              }
+              """,
+            """
+              import java.io.IOException;
+              import java.io.UnsupportedEncodingException;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      String probe = "A string";
+                      byte[] bytes = probe.getBytes();
+                      assertThrows(UnsupportedEncodingException.class, () ->
+                          assertArrayEquals(bytes, decode(probe.getBytes(), "junk").getBytes()));
+                  }
+                  static String decode(byte[] bytes, String encoding) throws IOException {
+                      return new String(bytes, encoding);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void argumentDeclaringUnhandledCheckedExceptionStaysInline() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      assertThrows(IllegalArgumentException.class, () -> {
+                          testThing(read(), getA());
+                      });
+                  }
+                  String read() throws IOException { return ""; }
+                  String getA() { return "A"; }
+                  void testThing(String one, String two) {}
+              }
+              """,
+            """
+              import java.io.IOException;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      String a = getA();
+                      assertThrows(IllegalArgumentException.class, () ->
+                          testThing(read(), a));
+                  }
+                  String read() throws IOException { return ""; }
+                  String getA() { return "A"; }
+                  void testThing(String one, String two) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void argumentDeclaringCheckedExceptionHandledByTestMethodIsExtracted() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() throws Exception {
+                      assertThrows(IllegalArgumentException.class, () -> {
+                          testThing(read());
+                      });
+                  }
+                  String read() throws IOException { return ""; }
+                  void testThing(String one) {}
+              }
+              """,
+            """
+              import java.io.IOException;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() throws Exception {
+                      String read = read();
+                      assertThrows(IllegalArgumentException.class, () ->
+                          testThing(read));
+                  }
+                  String read() throws IOException { return ""; }
+                  void testThing(String one) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leadingStatementDeclaringExpectedExceptionIsNotChanged() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.io.IOException;
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() throws IOException {
+                      assertThrows(IOException.class, () -> {
+                          read();
+                          close();
+                      });
+                  }
+                  void read() throws IOException {}
+                  void close() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void emptyLambdaIsNotChanged() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {});
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unrelatedBlockLambdaIsNotChanged() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      Runnable runnable = () -> {
+                          foo();
+                      };
+                      assertThrows(RuntimeException.class, () -> {
+                          foo();
+                          runnable.run();
+                      });
+                  }
+                  void foo() {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+                  @Test
+                  void test() {
+                      Runnable runnable = () -> {
+                          foo();
+                      };
+                      foo();
+                      assertThrows(RuntimeException.class, () ->
+                          runnable.run());
+                  }
+                  void foo() {}
               }
               """
           )
