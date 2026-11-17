@@ -24,6 +24,8 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class AddHamcrestJUnitDependencyTest implements RewriteTest {
@@ -77,9 +79,25 @@ class AddHamcrestJUnitDependencyTest implements RewriteTest {
 
     }
 
-    @DocumentExample
     @Test
-    void shouldAddWhenUsingAssertThat() {
+    void shouldNotAddWhenUsingMatcherAssert() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              class FooTest {
+                  void bar() {
+                      org.hamcrest.MatcherAssert.assertThat("a", org.hamcrest.Matchers.is("a"));
+                  }
+              }
+              """
+          ),
+          pomXml(POM_BEFORE)
+        );
+    }
+
+    @Test
+    void shouldNotAddWhenUsingJUnit4AssertThatUntilMigrated() {
         rewriteRun(
           //language=java
           java(
@@ -91,42 +109,52 @@ class AddHamcrestJUnitDependencyTest implements RewriteTest {
               }
               """
           ),
-          pomXml(POM_BEFORE, POM_AFTER)
-        );
-    }
-
-    @Test
-    void shouldAddWhenUsingAssumeThat() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              class FooTest {
-                  void bar() {
-                      org.junit.Assume.assumeThat("a", org.hamcrest.Matchers.is("a"));
-                  }
-              }
-              """
-          ),
-          pomXml(POM_BEFORE, POM_AFTER)
-        );
-    }
-
-    @Test
-    void shouldNotAddWhenUsingAssertTrue() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              class FooTest {
-                  void bar() {
-                      org.junit.Assume.assumeTrue(true);
-                      org.junit.Assert.assertTrue(true);
-                  }
-              }
-              """
-          ),
           pomXml(POM_BEFORE)
+        );
+    }
+
+    @DocumentExample
+    @Test
+    void onlyModuleUsingMatcherAssumeGetsDependency() {
+        rewriteRun(
+          mavenProject("using",
+            //language=java
+            srcTestJava(java(
+              """
+                package org.hamcrest.junit;
+                public class MatcherAssume {
+                    public static <T> void assumeThat(T actual, org.hamcrest.Matcher<? super T> matcher) {
+                    }
+                }
+                """
+            )),
+            //language=java
+            srcTestJava(java(
+              """
+                import org.hamcrest.junit.MatcherAssume;
+
+                class FooTest {
+                    void bar() {
+                        MatcherAssume.assumeThat("a", org.hamcrest.Matchers.is("a"));
+                    }
+                }
+                """
+            )),
+            pomXml(POM_BEFORE, POM_AFTER)
+          ),
+          mavenProject("other",
+            //language=java
+            srcTestJava(java(
+              """
+                class BarTest {
+                    void bar() {
+                        org.junit.Assert.assertThat("a", org.hamcrest.Matchers.is("a"));
+                    }
+                }
+                """
+            )),
+            pomXml(POM_BEFORE)
+          )
         );
     }
 }

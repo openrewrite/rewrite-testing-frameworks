@@ -92,9 +92,9 @@ recipeList:
       groupId: org.apache.maven.surefire
       artifactId: surefire-junit*
   - org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
-  - org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
+  - org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.junit.Assert assertEquals(.., Object[], Object[])"
