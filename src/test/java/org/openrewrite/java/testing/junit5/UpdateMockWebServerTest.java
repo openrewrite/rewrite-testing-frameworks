@@ -113,4 +113,40 @@ class UpdateMockWebServerTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void twoRuleFieldsAreBothClosed() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import okhttp3.mockwebserver.MockWebServer;
+              import org.junit.Rule;
+              class MyTest {
+                  @Rule
+                  public MockWebServer first = new MockWebServer();
+                  @Rule
+                  public MockWebServer second = new MockWebServer();
+              }
+              """,
+            """
+              import okhttp3.mockwebserver.MockWebServer;
+              import org.junit.jupiter.api.AfterEach;
+
+              import java.io.IOException;
+
+              class MyTest {
+                  public MockWebServer first = new MockWebServer();
+                  public MockWebServer second = new MockWebServer();
+
+                  @AfterEach
+                  void afterEachTest() throws IOException {
+                      first.close();
+                      second.close();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

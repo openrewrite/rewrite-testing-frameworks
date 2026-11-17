@@ -35,6 +35,7 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;
+import java.util.UUID;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
@@ -92,7 +93,31 @@ public class UpdateMockWebServerDispatcher extends Recipe {
                 // must become a built MockResponse in v5. Expression types may already be partially
                 // retyped to Builder by prior ChangeMethodInvocationReturnType sub-recipes, so we
                 // don't gate on the expression's current type.
+                UUID dispatchId = m.getId();
                 m = (J.MethodDeclaration) new JavaIsoVisitor<ExecutionContext>() {
+                    @Override
+                    public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration nested, ExecutionContext ctx) {
+                        // Only the returns of dispatch() itself, not those of methods declared inside it
+                        return nested.getId().equals(dispatchId) ? super.visitMethodDeclaration(nested, ctx) : nested;
+                    }
+
+                    @Override
+                    public J.Lambda visitLambda(J.Lambda lambda, ExecutionContext ctx) {
+                        // A return inside a lambda returns from the lambda, not from dispatch()
+                        return lambda;
+                    }
+
+                    @Override
+                    public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
+                        return classDecl;
+                    }
+
+                    @Override
+                    public J.NewClass visitNewClass(J.NewClass newClass, ExecutionContext ctx) {
+                        // Anonymous class bodies hold methods of their own
+                        return newClass;
+                    }
+
                     @Override
                     public J.Return visitReturn(J.Return aReturn, ExecutionContext ctx) {
                         J.Return r = super.visitReturn(aReturn, ctx);

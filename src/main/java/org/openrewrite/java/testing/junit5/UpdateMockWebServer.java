@@ -27,11 +27,13 @@ import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Recipe for converting JUnit 4 okhttp3 MockWebServer Rules with their JUnit 5 equivalent.
@@ -70,11 +72,15 @@ public class UpdateMockWebServer extends Recipe {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
-                        final J.Identifier mockWebServerVariable = getCursor().pollMessage(MOCK_WEBSERVER_VARIABLE);
+                        final List<J.Identifier> mockWebServerVariables = getCursor().pollMessage(MOCK_WEBSERVER_VARIABLE);
                         final J.MethodDeclaration afterEachMethod = getCursor().pollMessage(AFTER_EACH_METHOD);
-                        if (mockWebServerVariable != null) {
+                        if (mockWebServerVariables != null) {
+                            String closeStatements = mockWebServerVariables.stream()
+                                    .map(v -> "#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
+                                    .collect(joining("\n"));
+                            Object[] variableArgs = mockWebServerVariables.toArray();
                             if (afterEachMethod == null) {
-                                cd = JavaTemplate.builder("@AfterEach\nvoid afterEachTest() throws IOException {#{any(okhttp3.mockwebserver.MockWebServer)}.close();\n}")
+                                cd = JavaTemplate.builder("@AfterEach\nvoid afterEachTest() throws IOException {\n" + closeStatements + "\n}")
                                         .contextSensitive()
                                         .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                         .javaParser(JavaParser.fromJavaVersion()
@@ -87,14 +93,14 @@ public class UpdateMockWebServer extends Recipe {
                                         .apply(
                                                 updateCursor(cd),
                                                 cd.getBody().getCoordinates().lastStatement(),
-                                                mockWebServerVariable
+                                                variableArgs
                                         );
                                 maybeAddImport(AFTER_EACH_FQN);
                                 maybeAddImport(IO_EXCEPTION_FQN);
                             } else {
                                 for (Statement statement : cd.getBody().getStatements()) {
                                     if (statement == afterEachMethod) {
-                                        cd = JavaTemplate.builder("#{any(okhttp3.mockwebserver.MockWebServer)}.close();")
+                                        cd = JavaTemplate.builder(closeStatements)
                                                 .imports(AFTER_EACH_FQN, MOCK_WEB_SERVER_FQN, IO_EXCEPTION_FQN)
                                                 .javaParser(JavaParser.fromJavaVersion()
                                                         .classpathFromResources(ctx,
@@ -106,7 +112,7 @@ public class UpdateMockWebServer extends Recipe {
                                                 .apply(
                                                         updateCursor(cd),
                                                         requireNonNull(afterEachMethod.getBody()).getCoordinates().lastStatement(),
-                                                        mockWebServerVariable
+                                                        variableArgs
                                                 );
                                     }
                                 }
@@ -159,7 +165,16 @@ public class UpdateMockWebServer extends Recipe {
                             }
                         }
                         if (multiVariable != variableDeclarations) {
-                            getCursor().putMessageOnFirstEnclosing(J.ClassDeclaration.class, MOCK_WEBSERVER_VARIABLE, variableDeclarations.getVariables().get(0).getName());
+                            List<J.Identifier> names = new ArrayList<>(variableDeclarations.getVariables().size());
+                            for (J.VariableDeclarations.NamedVariable variable : variableDeclarations.getVariables()) {
+                                names.add(variable.getName());
+                            }
+                            Cursor classCursor = getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance);
+                            List<J.Identifier> previous = classCursor.getMessage(MOCK_WEBSERVER_VARIABLE);
+                            if (previous != null) {
+                                names.addAll(0, previous);
+                            }
+                            classCursor.putMessage(MOCK_WEBSERVER_VARIABLE, names);
                         }
                         return variableDeclarations;
                     }
