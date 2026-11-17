@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
@@ -27,8 +28,12 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class JUnitTryFailToAssertThatThrownBy extends Recipe {
 
@@ -40,6 +45,81 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
     private static final MethodMatcher ASSERT_EQUALS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertEquals(..)");
     private static final MethodMatcher JUNIT4_ASSERT_EQUALS_MATCHER = new MethodMatcher("org.junit.Assert assertEquals(..)");
     private static final MethodMatcher GET_MESSAGE_MATCHER = new MethodMatcher("java.lang.Throwable getMessage()", true);
+
+    private static boolean isMessageOf(Expression expression, String exceptionName) {
+        if (!GET_MESSAGE_MATCHER.matches(expression)) {
+            return false;
+        }
+        Expression select = ((J.MethodInvocation) expression).getSelect();
+        return select instanceof J.Identifier && exceptionName.equals(((J.Identifier) select).getSimpleName());
+    }
+
+    private static @Nullable String stringLiteralSource(Expression expression) {
+        if (expression instanceof J.Literal) {
+            J.Literal literal = (J.Literal) expression;
+            if (literal.getValue() instanceof String) {
+                // The source keeps quotes and escapes as written
+                return literal.getValueSource();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * A lambda body cannot declare a variable as its only expression, and cannot assign to a local variable
+     * declared outside of it.
+     */
+    private static boolean canBeLambdaBody(List<Statement> statements) {
+        if (statements.size() == 1 && statements.get(0) instanceof J.VariableDeclarations) {
+            return false;
+        }
+        Set<String> declared = new HashSet<>();
+        for (Statement statement : statements) {
+            new JavaIsoVisitor<Set<String>>() {
+                @Override
+                public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> names) {
+                    names.add(variable.getSimpleName());
+                    return super.visitVariable(variable, names);
+                }
+            }.visit(statement, declared);
+        }
+        boolean[] assignsOuterLocal = {false};
+        for (Statement statement : statements) {
+            new JavaIsoVisitor<Integer>() {
+                @Override
+                public J.Assignment visitAssignment(J.Assignment assignment, Integer p) {
+                    check(assignment.getVariable());
+                    return super.visitAssignment(assignment, p);
+                }
+
+                @Override
+                public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, Integer p) {
+                    check(assignOp.getVariable());
+                    return super.visitAssignmentOperation(assignOp, p);
+                }
+
+                @Override
+                public J.Unary visitUnary(J.Unary unary, Integer p) {
+                    if (unary.getOperator().isModifying()) {
+                        check(unary.getExpression());
+                    }
+                    return super.visitUnary(unary, p);
+                }
+
+                private void check(Expression target) {
+                    if (target instanceof J.Identifier) {
+                        J.Identifier id = (J.Identifier) target;
+                        JavaType.Variable fieldType = id.getFieldType();
+                        if (fieldType != null && fieldType.getOwner() instanceof JavaType.Method &&
+                            !declared.contains(id.getSimpleName())) {
+                            assignsOuterLocal[0] = true;
+                        }
+                    }
+                }
+            }.visit(statement, 0);
+        }
+        return !assignsOuterLocal[0];
+    }
 
     @Getter
     final String displayName = "Convert try-catch-fail blocks to AssertJ's assertThatThrownBy";
@@ -77,7 +157,8 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                 String exceptionType = exceptionFqType.getClassName();
 
                 // Extract assertions from catch block
-                List<String> assertions = extractAssertions(catchBlock);
+                String exceptionName = catchBlock.getParameter().getTree().getVariables().get(0).getSimpleName();
+                List<String> assertions = extractAssertions(catchBlock, exceptionName);
 
                 // Only convert if:
                 // - Catch block is empty (just a comment), or
@@ -88,6 +169,9 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
 
                 // Build the lambda body from try block statements (excluding the fail() call)
                 List<Statement> lambdaStatements = new ArrayList<>(tryStatements.subList(0, tryStatements.size() - 1));
+                if (lambdaStatements.isEmpty() || !canBeLambdaBody(lambdaStatements)) {
+                    return try_;
+                }
 
                 // Generate the assertThatThrownBy code
                 String template = buildTemplate(lambdaStatements, exceptionType, assertions);
@@ -128,33 +212,24 @@ public class JUnitTryFailToAssertThatThrownBy extends Recipe {
                 return false;
             }
 
-            private List<String> extractAssertions(J.Try.Catch catchBlock) {
+            private List<String> extractAssertions(J.Try.Catch catchBlock, String exceptionName) {
                 List<String> assertions = new ArrayList<>();
                 for (Statement statement : catchBlock.getBody().getStatements()) {
                     if (statement instanceof J.MethodInvocation) {
                         J.MethodInvocation mi = (J.MethodInvocation) statement;
-                        if (ASSERT_EQUALS_MATCHER.matches(mi) || JUNIT4_ASSERT_EQUALS_MATCHER.matches(mi)) {
-                            // Handle assertEquals for exception message
-                            if (2 <= mi.getArguments().size()) {
-                                Expression arg1 = mi.getArguments().get(0);
-                                Expression arg2 = mi.getArguments().get(1);
-
-                                // Check if one of the arguments is e.getMessage()
-                                if (GET_MESSAGE_MATCHER.matches(arg1)) {
-                                    if (arg2 instanceof J.Literal) {
-                                        J.Literal literal = (J.Literal) arg2;
-                                        if (literal.getValue() instanceof String) {
-                                            assertions.add(".hasMessage(\"" + literal.getValue() + "\")");
-                                        }
-                                    }
-                                } else if (GET_MESSAGE_MATCHER.matches(arg2)) {
-                                    if (arg1 instanceof J.Literal) {
-                                        J.Literal literal = (J.Literal) arg1;
-                                        if (literal.getValue() instanceof String) {
-                                            assertions.add(".hasMessage(\"" + literal.getValue() + "\")");
-                                        }
-                                    }
-                                }
+                        if ((ASSERT_EQUALS_MATCHER.matches(mi) || JUNIT4_ASSERT_EQUALS_MATCHER.matches(mi)) &&
+                            2 <= mi.getArguments().size()) {
+                            // Handle assertEquals for the exception's own message
+                            Expression arg1 = mi.getArguments().get(0);
+                            Expression arg2 = mi.getArguments().get(1);
+                            String expected = null;
+                            if (isMessageOf(arg1, exceptionName)) {
+                                expected = stringLiteralSource(arg2);
+                            } else if (isMessageOf(arg2, exceptionName)) {
+                                expected = stringLiteralSource(arg1);
+                            }
+                            if (expected != null) {
+                                assertions.add(".hasMessage(" + expected + ")");
                             }
                         }
                     }

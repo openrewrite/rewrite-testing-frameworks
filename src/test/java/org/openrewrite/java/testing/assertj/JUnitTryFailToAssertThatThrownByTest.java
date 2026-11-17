@@ -735,4 +735,141 @@ class JUnitTryFailToAssertThatThrownByTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void messageWithQuotesAndBackslashesIsEscaped() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          process();
+                          fail("Should have thrown");
+                      } catch (IllegalStateException e) {
+                          assertEquals("say \\"hi\\" at C:\\\\temp", e.getMessage());
+                      }
+                  }
+
+                  void process() {
+                      throw new IllegalStateException("say \\"hi\\" at C:\\\\temp");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      assertThatThrownBy(() -> process()).isInstanceOf(IllegalStateException.class).hasMessage("say \\"hi\\" at C:\\\\temp");
+                  }
+
+                  void process() {
+                      throw new IllegalStateException("say \\"hi\\" at C:\\\\temp");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfMessageOfAnotherThrowableIsCompared() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      Exception other = new Exception("expected");
+                      try {
+                          process();
+                          fail("Should have thrown");
+                      } catch (IllegalStateException e) {
+                          assertEquals("expected", other.getMessage());
+                      }
+                  }
+
+                  void process() {
+                      throw new IllegalStateException("expected");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfTryBodyIsASingleDeclaration() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      try {
+                          int value = process();
+                          fail("Should have thrown");
+                      } catch (IllegalStateException e) {
+                          // expected
+                      }
+                  }
+
+                  int process() {
+                      throw new IllegalStateException();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotChangeIfTryBodyAssignsToALocalVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import static org.junit.jupiter.api.Assertions.fail;
+
+              class MyTest {
+                  @Test
+                  void testException() {
+                      int value = 0;
+                      try {
+                          value = process();
+                          fail("Should have thrown");
+                      } catch (IllegalStateException e) {
+                          // expected
+                      }
+                      System.out.println(value);
+                  }
+
+                  int process() {
+                      throw new IllegalStateException();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
