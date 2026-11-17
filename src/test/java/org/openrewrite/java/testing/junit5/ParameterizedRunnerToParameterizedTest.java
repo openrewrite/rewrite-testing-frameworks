@@ -856,4 +856,40 @@ class ParameterizedRunnerToParameterizedTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void leavesClassUntouchedWhenParameterIndexIsAConstant() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.junit.runners.Parameterized;
+              import org.junit.runners.Parameterized.Parameter;
+              import org.junit.runners.Parameterized.Parameters;
+
+              import java.util.Arrays;
+              import java.util.List;
+
+              @RunWith(Parameterized.class)
+              public class ConstantIndexTests {
+                  private static final int NAME = 0;
+
+                  @Parameter(NAME)
+                  public String name;
+
+                  @Parameters
+                  public static List<Object[]> parameters() {
+                      return Arrays.asList(new Object[]{"Otis"}, new Object[]{"Garfield"});
+                  }
+
+                  @Test
+                  public void checkName() {
+                  }
+              }
+              """
+          )
+        );
+    }
 }
