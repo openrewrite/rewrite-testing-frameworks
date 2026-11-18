@@ -104,7 +104,131 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
     }
 
     @Test
-    void sameTypeStubbedTwiceInOneMethodIsLeftAlone() {
+    void sameTypeStubbedForDifferentArgumentsDispatchesOnConstructorArguments() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.FileReader;
+
+              import org.junit.Test;
+
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      FileReader first = mock(FileReader.class);
+                      FileReader second = mock(FileReader.class);
+                      String firstPath = "conf/app.json";
+                      whenNew(FileReader.class).withArguments(firstPath).thenReturn(first);
+                      whenNew(FileReader.class).withArguments("conf/random/app.json").thenReturn(second);
+                  }
+              }
+              """,
+            """
+              import java.io.FileReader;
+              import java.util.Objects;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mock;
+
+              public class MyTest {
+                  private MockedConstruction<FileReader> mockedConstructionFileReader;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedConstructionFileReader != null) {
+                          mockedConstructionFileReader.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      FileReader first = mock(FileReader.class);
+                      FileReader second = mock(FileReader.class);
+                      String firstPath = "conf/app.json";
+                      mockedConstructionFileReader = Mockito.mockConstruction(FileReader.class, context ->
+                              context.arguments().size() == 1 && Objects.equals(context.arguments().get(0), "conf/random/app.json") ?
+                                      Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(second)) :
+                                      context.arguments().size() == 1 && Objects.equals(context.arguments().get(0), firstPath) ?
+                                              Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(first)) :
+                                              Mockito.withSettings());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void argumentMatchersBecomeTypeChecksOnConstructorArguments() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+
+              import org.junit.Test;
+
+              import static org.mockito.ArgumentMatchers.anyString;
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      File any = mock(File.class);
+                      File named = mock(File.class);
+                      whenNew(File.class).withAnyArguments().thenReturn(any);
+                      whenNew(File.class).withArguments(anyString(), anyString()).thenReturn(named);
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mock;
+
+              public class MyTest {
+                  private MockedConstruction<File> mockedConstructionFile;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedConstructionFile != null) {
+                          mockedConstructionFile.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      File any = mock(File.class);
+                      File named = mock(File.class);
+                      mockedConstructionFile = Mockito.mockConstruction(File.class, context ->
+                              context.arguments().size() == 2 && String.class.isInstance(context.arguments().get(0)) && String.class.isInstance(context.arguments().get(1)) ?
+                                      Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(named)) :
+                                      Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(any)));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void sameTypeStubbedTwiceWithAReassignedLocalIsLeftAlone() {
         //language=java
         rewriteRun(
           java(
@@ -119,8 +243,10 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
               public class MyTest {
                   @Test
                   public void test() throws Exception {
-                      whenNew(File.class).withArguments("a.txt").thenReturn(mock(File.class));
-                      whenNew(File.class).withArguments("b.txt").thenReturn(mock(File.class));
+                      File file = mock(File.class);
+                      whenNew(File.class).withArguments("a.txt").thenReturn(file);
+                      file = mock(File.class);
+                      whenNew(File.class).withArguments("b.txt").thenReturn(file);
                   }
               }
               """
