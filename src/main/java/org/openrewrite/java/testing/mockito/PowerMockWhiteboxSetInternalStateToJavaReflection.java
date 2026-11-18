@@ -82,12 +82,21 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
             if (fieldName == null) {
                 return null;
             }
+            boolean staticTarget = isStaticTarget(mi);
+            if (staticTarget && lookupOwner(mi, resolvedMethod) == null) {
+                return null;
+            }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
             String prefix = mi.getArguments().size() == 4 ?
                     fieldLookupPrefixWhere(varName) :
                     fieldLookupPrefix(varName, lookupOwner(mi, resolvedMethod));
-            return prefix +
-                    varName + ".set(#{any(java.lang.Object)}, #{any(java.lang.Object)});";
+            // A class literal target means a static field, which `Field.set` takes a null instance for.
+            return prefix + varName + ".set(" + (staticTarget && mi.getArguments().size() == 3 ? "null" : "#{any(java.lang.Object)}") +
+                   ", #{any(java.lang.Object)});";
+        }
+
+        private boolean isStaticTarget(J.MethodInvocation mi) {
+            return classLiteralType(mi.getArguments().get(0)) != null;
         }
 
         /** True for the overloads that name the field by its type rather than by a string. */
@@ -124,13 +133,20 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
             if (isByType(mi)) {
                 return byTypeOwner(mi);
             }
-            return mi.getArguments().size() == 4 ? null :
-                    fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
+            if (mi.getArguments().size() == 4) {
+                return null;
+            }
+            JavaType.FullyQualified literal = classLiteralType(mi.getArguments().get(0));
+            if (literal != null) {
+                JavaType.FullyQualified declaring = fieldDeclaringType(literal, extractStringLiteral(mi.getArguments().get(1)));
+                return declaring != null && isAccessible(declaring) ? declaring : null;
+            }
+            return fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
         }
 
         @Override
         boolean fallsBackToRuntimeClass(J.MethodInvocation mi) {
-            return !isByType(mi) && mi.getArguments().size() == 3 && lookupOwner(mi, null) == null;
+            return !isByType(mi) && mi.getArguments().size() == 3 && !isStaticTarget(mi) && lookupOwner(mi, null) == null;
         }
 
         @Override
@@ -145,6 +161,9 @@ public class PowerMockWhiteboxSetInternalStateToJavaReflection extends Recipe {
             if (args.size() == 4) {
                 // whereClass, fieldName, target, value
                 return new Object[]{args.get(3), args.get(1), args.get(0), args.get(2)};
+            }
+            if (isStaticTarget(mi)) {
+                return new Object[]{lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)), args.get(1), args.get(2)};
             }
             return new Object[]{
                     lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)),

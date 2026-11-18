@@ -140,11 +140,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     JavaType.@Nullable FullyQualified fieldDeclaringType(Expression target, @Nullable String fieldName) {
+        return fieldDeclaringType(TypeUtils.asFullyQualified(target.getType()), fieldName);
+    }
+
+    JavaType.@Nullable FullyQualified fieldDeclaringType(JavaType.@Nullable FullyQualified targetType, @Nullable String fieldName) {
         if (fieldName == null) {
             return null;
         }
-        for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
-             type != null; type = type.getSupertype()) {
+        for (JavaType.FullyQualified type = targetType; type != null; type = type.getSupertype()) {
             for (JavaType.Variable member : type.getMembers()) {
                 if (member.getName().equals(fieldName)) {
                     return type;
@@ -402,6 +405,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         final String varName;
         final String declaration;
         final String expression;
+        /** The expression takes the arguments from this index on, none of them when it equals the argument count. */
+        final int firstExpressionArgument;
+        /** Whether the expression takes the call's target, which a static member does without. */
+        final boolean takesTarget;
+
+        Hoisted(J.MethodInvocation call, String varName, String declaration, String expression) {
+            this(call, varName, declaration, expression, 2, true);
+        }
     }
 
     /**
@@ -451,8 +462,12 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 // Passed as a parameter because the template parser does not attribute a local it has just inserted.
                 List<Expression> expressionArgs = new ArrayList<>();
                 expressionArgs.add(declaredVariable(b, hoisted.varName));
-                expressionArgs.add(args.get(0));
-                expressionArgs.addAll(args.subList(2, args.size()));
+                if (hoisted.takesTarget) {
+                    expressionArgs.add(args.get(0));
+                }
+                if (hoisted.firstExpressionArgument < args.size()) {
+                    expressionArgs.addAll(args.subList(hoisted.firstExpressionArgument, args.size()));
+                }
                 b = (J.Block) new JavaVisitor<ExecutionContext>() {
                     @Override
                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {

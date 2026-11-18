@@ -598,4 +598,125 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
           )
         );
     }
+
+
+    @Test
+    void getsStaticFieldOfClassLiteralTarget() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class ExceptionMapper {
+                  private static ExceptionMapper servletInstance;
+
+                  static ExceptionMapper getServletInstance() {
+                      return servletInstance;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class ExceptionMapperTest {
+                  static void assertSame(String message, Object expected, Object actual) {
+                  }
+
+                  void servletInstanceIsASingleton() {
+                      ExceptionMapper exceptionMapper = ExceptionMapper.getServletInstance();
+                      assertSame("Should be equals because it is a singleton", Whitebox.getInternalState(ExceptionMapper.class, "servletInstance"), exceptionMapper);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class ExceptionMapperTest {
+                  static void assertSame(String message, Object expected, Object actual) {
+                  }
+
+                  void servletInstanceIsASingleton() throws Exception {
+                      ExceptionMapper exceptionMapper = ExceptionMapper.getServletInstance();
+                      Field servletInstanceField = ExceptionMapper.class.getDeclaredField("servletInstance");
+                      servletInstanceField.setAccessible(true);
+                      assertSame("Should be equals because it is a singleton", servletInstanceField.get(null), exceptionMapper);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getsStaticFieldIntoVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Registry {
+                  private static String name = "registry";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class RegistryTest {
+                  void test() {
+                      String name = Whitebox.getInternalState(Registry.class, "name");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class RegistryTest {
+                  void test() throws Exception {
+                      Field nameField = Registry.class.getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      String name = (String) nameField.get(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getsFieldDeclaredByTheGivenClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class CentralizedManifest {
+                  private int size;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class CentralizedManifestTest {
+                  void test(CentralizedManifest manifest) {
+                      int size = Whitebox.getInternalState(manifest, "size", CentralizedManifest.class);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class CentralizedManifestTest {
+                  void test(CentralizedManifest manifest) throws Exception {
+                      Field sizeField = CentralizedManifest.class.getDeclaredField("size");
+                      sizeField.setAccessible(true);
+                      int size = (Integer) sizeField.get(manifest);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
