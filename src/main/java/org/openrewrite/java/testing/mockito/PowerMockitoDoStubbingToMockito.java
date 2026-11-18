@@ -28,6 +28,7 @@ import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.trait.Comments;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
@@ -44,7 +45,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
     final String displayName = "Replace PowerMockito `doX().when(instance, \"method\")` with Mockito-compatible stubbing";
 
     @Getter
-    final String description = "Replaces PowerMockito's `doNothing().when(instance, \"methodName\", args...)` stubbing (and that of the other `doX()` methods) with the standard Mockito pattern `doNothing().when(instance).methodName(args...)`. Mockito can not stub private methods, so stubbing of a private method is left unchanged and gets a comment.";
+    final String description = "Replaces PowerMockito's `doNothing().when(instance, \"methodName\", args...)` stubbing (and that of the other `doX()` methods) with the standard Mockito pattern `doNothing().when(instance).methodName(args...)`. Mockito can not stub private methods, so stubbing of a private method (or of one of several overloads that include a private one) is left unchanged and gets a comment. Stubbing that can not be resolved to a single method is left unchanged.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -80,11 +81,17 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                         List<Expression> extraArgs = args.subList(2, args.size());
 
                         // Private methods cannot be stubbed with standard Mockito; leave unchanged and add a comment
-                        JavaType.Method targetMethod = resolveTargetMethod(
+                        // Any private candidate counts, as overloads with the same arity can not be told apart here
+                        List<JavaType.Method> candidates = findCandidates(
                                 firstArg.getType(), targetMethodName, extraArgs.size());
-                        if (targetMethod != null && targetMethod.getFlags().contains(Private)) {
+                        if (candidates.stream().anyMatch(m -> m.getFlags().contains(Private))) {
                             String comment = " PowerMock private method stubbing is not supported by Mockito. Refactor the private method to package-private or extract to a collaborator.";
                             return Comments.of(updateCursor(mi)).comment(comment, Comments.Placement.BEFORE, "\n" + mi.getPrefix().getIndent());
+                        }
+
+                        // Without a single resolved target we can not tell whether it is private, so leave it alone
+                        if (candidates.size() != 1) {
+                            return mi;
                         }
 
                         // Rewrite: doX().when(instance, "method", args...) → doX().when(instance).method(args...)
@@ -115,8 +122,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                                 emptyList() :
                                 ListUtils.mapFirst(extraArgs, a -> a.withPrefix(Space.EMPTY));
 
-                        JavaType.Method resolvedMethodType = resolveTargetMethod(
-                                firstArg.getType(), targetMethodName, extraArgs.size());
+                        JavaType.Method resolvedMethodType = candidates.get(0);
 
                         J.Identifier newName = mi.getName()
                                 .withSimpleName(targetMethodName)
@@ -130,28 +136,24 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                     }
 
                     /**
-                     * Resolve the target method from the instance type and the method name.
-                     * Returns null if the method cannot be unambiguously resolved.
+                     * Find the methods of the instance type and its supertypes with this name and parameter count.
                      */
-                    private JavaType.@Nullable Method resolveTargetMethod(
+                    private List<JavaType.Method> findCandidates(
                             @Nullable JavaType targetType, String methodName, int expectedParamCount) {
                         if (!(targetType instanceof JavaType.FullyQualified)) {
-                            return null;
+                            return emptyList();
                         }
-                        JavaType.Method match = null;
+                        List<JavaType.Method> candidates = new ArrayList<>();
                         for (JavaType.FullyQualified current = (JavaType.FullyQualified) targetType;
                              current != null; current = current.getSupertype()) {
                             for (JavaType.Method method : current.getMethods()) {
                                 if (method.getName().equals(methodName) &&
                                         method.getParameterTypes().size() == expectedParamCount) {
-                                    if (match != null) {
-                                        return null; // ambiguous overload
-                                    }
-                                    match = method;
+                                    candidates.add(method);
                                 }
                             }
                         }
-                        return match;
+                        return candidates;
                     }
                 }
         );
