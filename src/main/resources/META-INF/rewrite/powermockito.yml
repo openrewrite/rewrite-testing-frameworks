@@ -179,6 +179,7 @@ tags:
   - testing
   - mockito
 recipeList:
+  - org.openrewrite.java.testing.mockito.PowerMockEasyMockToMockito
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
   - org.openrewrite.java.RemoveAnnotation:
@@ -242,3 +243,20 @@ recipeList:
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetMethodToJavaReflection
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxInvokeConstructorToJavaReflection
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetInnerClassTypeToJavaReflection
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.PowerMockEasyMockToMockito
+displayName: Replace the PowerMock EasyMock API with Mockito
+description: >-
+  Replaces mock creation, replay and verification through the PowerMock EasyMock API (`PowerMock.createMock()`,
+  `replay()` and `verify()`) with their `EasyMock` counterparts, which `EasyMockCodeToMockito` then migrates along
+  with the expectations the test records on those mocks.
+preconditions:
+  - org.openrewrite.java.search.FindTypes:
+      fullyQualifiedTypeName: org.powermock.api.easymock.PowerMock
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.PowerMockEasyMockToEasyMock
+  - org.openrewrite.java.testing.easymock.EasyMockCodeToMockito
