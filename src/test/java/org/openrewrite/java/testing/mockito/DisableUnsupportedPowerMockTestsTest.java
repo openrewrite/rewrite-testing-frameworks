@@ -166,7 +166,7 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
     }
 
     @Test
-    void doesNotDisableATestThatIsAlreadyDisabled() {
+    void commentsOutTheBodyOfATestThatIsAlreadyDisabled() {
         //language=java
         rewriteRun(
           java(
@@ -183,6 +183,23 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
                   void verifiesAPrivateMethod() throws Exception {
                       Object target = Mockito.mock(Object.class);
                       PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Disabled;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+
+                  @Disabled("flaky")
+                  @Test
+                  void verifiesAPrivateMethod() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Object target = Mockito.mock(Object.class);
+                      // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
                   }
               }
               """
