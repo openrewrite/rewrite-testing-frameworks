@@ -188,6 +188,63 @@ class PowerMockitoDoStubbingToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void addsCommentWhenPrivateOverloadsAreAmbiguous() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Service {
+                  private void helper(String s) {}
+                  private void helper(Integer i) {}
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+                  void setUp() throws Exception {
+                      Service s = PowerMockito.spy(new Service());
+                      PowerMockito.doNothing().when(s, "helper", "a");
+                  }
+              }
+              """,
+            """
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+                  void setUp() throws Exception {
+                      Service s = PowerMockito.spy(new Service());
+                      // PowerMock private method stubbing is not supported by Mockito. Refactor the private method to package-private or extract to a collaborator.
+                      PowerMockito.doNothing().when(s, "helper", "a");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeWhenTheMethodCanNotBeResolved() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+                  void setUp() throws Exception {
+                      Object o = PowerMockito.spy(new Object());
+                      PowerMockito.doNothing().when(o, "doesNotExist", "a");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doStubbingWithStringMethodNameAndArgs() {
         //language=java
         rewriteRun(
