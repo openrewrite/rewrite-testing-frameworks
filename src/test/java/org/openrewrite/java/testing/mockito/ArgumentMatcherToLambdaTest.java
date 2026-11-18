@@ -284,4 +284,62 @@ class ArgumentMatcherToLambdaTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepsTypeArgumentOfArrayMatcherInCast() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.ArgumentMatcher;
+
+              class MyTest {
+                  ArgumentMatcher<String[]> matcher = new ArgumentMatcher<String[]>() {
+                      @Override
+                      public boolean matches(Object argument) {
+                          return ((String[]) argument).length == 2;
+                      }
+                  };
+              }
+              """,
+            """
+              import org.mockito.ArgumentMatcher;
+
+              class MyTest {
+                  ArgumentMatcher<String[]> matcher = (ArgumentMatcher<String[]>) argument -> argument.length == 2;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsNestedTypeArgumentInCast() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.ArgumentMatcher;
+              import java.util.List;
+
+              class MyTest {
+                  ArgumentMatcher<List<String>> matcher = new ArgumentMatcher<List<String>>() {
+                      @Override
+                      public boolean matches(Object argument) {
+                          return ((List<String>) argument).isEmpty();
+                      }
+                  };
+              }
+              """,
+            """
+              import org.mockito.ArgumentMatcher;
+              import java.util.List;
+
+              class MyTest {
+                  ArgumentMatcher<List<String>> matcher = (ArgumentMatcher<List<String>>) argument -> argument.isEmpty();
+              }
+              """
+          )
+        );
+    }
 }

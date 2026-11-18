@@ -164,4 +164,28 @@ class ThenThrowCheckedExceptionToRuntimeExceptionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepsExceptionForMethodThrowingATypeVariable() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.mockito.Mockito.when;
+
+              class Executor {
+                  <E extends Exception> String run() throws E {
+                      return "";
+                  }
+              }
+
+              class MyTest {
+                  void test(Executor executor) {
+                      when(executor.<java.io.IOException>run()).thenThrow(java.io.IOException.class);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

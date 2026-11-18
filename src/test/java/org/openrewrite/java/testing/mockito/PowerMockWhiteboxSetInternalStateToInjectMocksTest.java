@@ -344,4 +344,48 @@ class PowerMockWhiteboxSetInternalStateToInjectMocksTest implements RewriteTest 
           )
         );
     }
+
+    @Test
+    void constructedObjectWithOtherFieldsMatchingMocksIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Collaborator {
+              }
+
+              class Auditor {
+              }
+
+              class Queue {
+                  private Collaborator collaborator;
+                  private Auditor auditor;
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.Before;
+              import org.mockito.Mock;
+              import org.powermock.reflect.Whitebox;
+
+              public class QueueTest {
+
+                  private Queue queue = new Queue();
+
+                  @Mock
+                  private Collaborator collaborator;
+
+                  @Mock
+                  private Auditor auditor;
+
+                  @Before
+                  public void setUp() {
+                      Whitebox.setInternalState(queue, "collaborator", collaborator);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
