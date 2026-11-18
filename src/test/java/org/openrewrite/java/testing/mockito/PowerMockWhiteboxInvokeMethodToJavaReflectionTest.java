@@ -479,4 +479,179 @@ class PowerMockWhiteboxInvokeMethodToJavaReflectionTest implements RewriteTest {
           )
         );
     }
+
+
+    @Test
+    void invokesStaticMethodOfClassLiteral() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+              import java.util.ArrayList;
+              import java.util.List;
+              import java.util.regex.Pattern;
+
+              class Main {
+                  private static List<File> listFiles(File file, List<Pattern> patterns) {
+                      return new ArrayList<>();
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.io.File;
+              import java.util.ArrayList;
+              import java.util.List;
+              import java.util.regex.Pattern;
+              import org.powermock.reflect.Whitebox;
+
+              class MainTest {
+                  void listsFiles() throws Exception {
+                      List<File> result = Whitebox.invokeMethod(Main.class, "listFiles",
+                              new File("a"), new ArrayList<Pattern>());
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+              import java.lang.reflect.Method;
+              import java.util.ArrayList;
+              import java.util.List;
+              import java.util.regex.Pattern;
+
+              class MainTest {
+                  void listsFiles() throws Exception {
+                      Method listFilesMethod = Main.class.getDeclaredMethod("listFiles", File.class, List.class);
+                      listFilesMethod.setAccessible(true);
+                      List<File> result = (List<File>) listFilesMethod.invoke(null, new File("a"), new ArrayList<Pattern>());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void invokesStaticMethodOfClassConstantWithTypeArgument() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class ByteData {
+                  private static short decodeUnsigned(byte b) {
+                      return (short) (b & 0xFF);
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class ByteDataTest {
+                  private static final Class<ByteData> CLAZZ = ByteData.class;
+
+                  private short decodeUnsigned(byte bite) throws Exception {
+                      return Whitebox.<Short> invokeMethod(CLAZZ, "decodeUnsigned", bite);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+
+              class ByteDataTest {
+                  private static final Class<ByteData> CLAZZ = ByteData.class;
+
+                  private short decodeUnsigned(byte bite) throws Exception {
+                      Method decodeUnsignedMethod = ByteData.class.getDeclaredMethod("decodeUnsigned", byte.class);
+                      decodeUnsignedMethod.setAccessible(true);
+                      return (Short) decodeUnsignedMethod.invoke(null, bite);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void invokesVariableArityMethodWithTheElementsAsArray() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Joiner {
+                  private String join(String... parts) {
+                      return String.join(",", parts);
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class JoinerTest {
+                  void joins() throws Exception {
+                      Joiner joiner = new Joiner();
+                      String joined = Whitebox.invokeMethod(joiner, "join", "a", "b");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+
+              class JoinerTest {
+                  void joins() throws Exception {
+                      Joiner joiner = new Joiner();
+                      Method joinMethod = Joiner.class.getDeclaredMethod("join", String[].class);
+                      joinMethod.setAccessible(true);
+                      String joined = (String) joinMethod.invoke(joiner, (Object) new String[]{"a", "b"});
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void invokesVariableArityMethodWithoutElements() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Joiner {
+                  private String join(String... parts) {
+                      return String.join(",", parts);
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class JoinerTest {
+                  void joins() throws Exception {
+                      Joiner joiner = new Joiner();
+                      String joined = Whitebox.invokeMethod(joiner, "join");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+
+              class JoinerTest {
+                  void joins() throws Exception {
+                      Joiner joiner = new Joiner();
+                      Method joinMethod = Joiner.class.getDeclaredMethod("join", String[].class);
+                      joinMethod.setAccessible(true);
+                      String joined = (String) joinMethod.invoke(joiner, (Object) new String[]{});
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -80,6 +80,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     private final String reflectiveImport;
     private final List<MethodMatcher> matchers;
 
+    private @Nullable Statement hoistingFrom;
     private @Nullable JavaSourceFile stringConstantsSource;
     private List<J.VariableDeclarations.NamedVariable> stringConstants = emptyList();
     private final Set<String> castImports = new LinkedHashSet<>();
@@ -429,7 +430,10 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         if (returnType instanceof JavaType.Parameterized) {
             returnType = ((JavaType.Parameterized) returnType).getType();
         }
-        String castType = returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown ?
+        if (returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown) {
+            returnType = typeTheContextTakes(mi);
+        }
+        String castType = returnType == null || returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown ?
                 null : getCastType(returnType);
         if (!isNonObjectCast(castType)) {
             return "";
@@ -442,6 +446,26 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return "(" + boxedCastType(castType) + ") ";
     }
 
+    /// The type that a generic result has to be cast to, as `Object` is what the reflective call returns: the one
+    /// given as the type argument of the call, or the one the method returns where the call is what it returns.
+    private JavaType.@Nullable FullyQualified typeTheContextTakes(J.MethodInvocation mi) {
+        List<Expression> typeParameters = mi.getTypeParameters();
+        if (typeParameters != null && typeParameters.size() == 1) {
+            return TypeUtils.asFullyQualified(typeParameters.get(0).getType());
+        }
+        if (hoistingFrom instanceof J.Return && mi.getId().equals(unwrapped(((J.Return) hoistingFrom).getExpression()))) {
+            J.MethodDeclaration method = getCursor().firstEnclosing(J.MethodDeclaration.class);
+            if (method != null && method.getReturnTypeExpression() != null) {
+                return TypeUtils.asFullyQualified(method.getReturnTypeExpression().getType());
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable UUID unwrapped(@Nullable Expression expression) {
+        return expression == null ? null : expression.getId();
+    }
+
     private J.Block hoistNestedCalls(J.Block block, ExecutionContext ctx) {
         J.Block b = block;
         for (int i = b.getStatements().size() - 1; i >= 0; i--) {
@@ -449,6 +473,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             while (true) {
                 Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
                 Statement statement = findStatement(b, statementId);
+                hoistingFrom = statement;
                 Hoisted hoisted = firstHoistable(statement, blockCursor);
                 if (hoisted == null) {
                     break;
@@ -578,12 +603,27 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         List<String> imports = new ArrayList<>();
         for (JavaType paramType : resolvedMethod.getParameterTypes()) {
-            String paramImport = topLevelImport(TypeUtils.asFullyQualified(paramType));
+            addParamImports(paramType, imports);
+        }
+        return imports;
+    }
+
+    private void addParamImports(@Nullable JavaType type, List<String> imports) {
+        if (type instanceof JavaType.Array) {
+            addParamImports(((JavaType.Array) type).getElemType(), imports);
+        } else if (type instanceof JavaType.GenericTypeVariable) {
+            List<JavaType> bounds = ((JavaType.GenericTypeVariable) type).getBounds();
+            if (!bounds.isEmpty()) {
+                addParamImports(bounds.get(0), imports);
+            }
+        } else {
+            JavaType.FullyQualified fullyQualified = type instanceof JavaType.Parameterized ?
+                    ((JavaType.Parameterized) type).getType() : TypeUtils.asFullyQualified(type);
+            String paramImport = topLevelImport(fullyQualified);
             if (paramImport != null) {
                 imports.add(paramImport);
             }
         }
-        return imports;
     }
 
     private ResultSink sinkFromStatement(Statement statement) {
