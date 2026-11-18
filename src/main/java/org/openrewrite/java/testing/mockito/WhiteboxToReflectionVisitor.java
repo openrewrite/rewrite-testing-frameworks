@@ -373,6 +373,9 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 continue;
             }
             Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
+            if (!isOutsideLambdaAndAnonymousClass(blockCursor)) {
+                continue;
+            }
             JavaType.Method resolvedMethod = resolve(mi);
             String template = buildTemplate(mi, sinkFromStatement(stmt), blockCursor, resolvedMethod);
             if (template != null) {
@@ -571,9 +574,36 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     private ResultSink sinkFromStatement(Statement statement) {
         if (statement instanceof J.VariableDeclarations) {
             J.VariableDeclarations vd = (J.VariableDeclarations) statement;
-            return new ResultSink(vd.getVariables().get(0).getSimpleName(), getCastType(vd.getType()));
+            return new ResultSink(vd.getVariables().get(0).getSimpleName(), declaredCastType(vd));
         }
         return new ResultSink(null, null);
+    }
+
+    // Prefer the declared type as written, so generics and arrays survive; its names are already imported.
+    private @Nullable String declaredCastType(J.VariableDeclarations vd) {
+        TypeTree typeExpression = vd.getTypeExpression();
+        if (typeExpression != null && !(typeExpression instanceof J.Identifier && "var".equals(((J.Identifier) typeExpression).getSimpleName())) &&
+            vd.getVariables().get(0).getDimensionsAfterName().isEmpty() && vd.getVariables().get(0).getType() != null) {
+            addCastImports(vd.getType());
+            return typeExpression.withPrefix(Space.EMPTY).printTrimmed(getCursor());
+        }
+        return getCastType(vd.getType());
+    }
+
+    private void addCastImports(@Nullable JavaType type) {
+        if (type instanceof JavaType.Array) {
+            addCastImports(((JavaType.Array) type).getElemType());
+        } else if (type instanceof JavaType.Parameterized) {
+            addCastImports(((JavaType.Parameterized) type).getType());
+            ((JavaType.Parameterized) type).getTypeParameters().forEach(this::addCastImports);
+        } else if (type instanceof JavaType.GenericTypeVariable) {
+            ((JavaType.GenericTypeVariable) type).getBounds().forEach(this::addCastImports);
+        } else if (type instanceof JavaType.FullyQualified) {
+            String typeImport = topLevelImport((JavaType.FullyQualified) type);
+            if (typeImport != null) {
+                castImports.add(typeImport);
+            }
+        }
     }
 
     private J.@Nullable MethodInvocation extractWhiteboxInvocation(Statement statement) {
