@@ -1908,7 +1908,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
 
     @Issue("https://github.com/moderneinc/customer-requests/issues/2358")
     @Test
-    void migratableUsageStillMigratesAlongsideUnsupportedUsage() {
+    void unsupportedUsageInClassWithoutTestsIsCommentedOutSoPowerMockCanBeRemoved() {
         //language=java
         rewriteRun(
           java(
@@ -1931,18 +1931,12 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               }
               """,
             """
-              import org.powermock.reflect.Whitebox;
-
-              import java.lang.reflect.Field;
-
               class MyServiceTest {
-                  void test() throws Exception {
-                      MyService service = new MyService();
-                      Field nameField = MyService.class.getDeclaredField("name");
-                      nameField.setAccessible(true);
-                      nameField.set(service, "value");
-                      /* TODO `Whitebox.newInstance` could not be migrated automatically; migrate it manually to replace PowerMock */
-                      MyService other = Whitebox.newInstance(MyService.class);
+                  void test() {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // MyService service = new MyService();
+                      // Whitebox.setInternalState(service, "name", "value");
+                      // MyService other = Whitebox.newInstance(MyService.class);
                   }
               }
               """
