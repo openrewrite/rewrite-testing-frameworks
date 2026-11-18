@@ -203,11 +203,13 @@ public class PowerMockMemberModifierToMockito extends Recipe {
         final Expression classLiteral;
         final JavaType.Method method;
         final List<Expression> parameterLiterals;
+        final boolean overloaded;
         final @Nullable String stubbing;
         final @Nullable Expression value;
 
         private Stubbing(JavaType.FullyQualified type, Expression classLiteral, JavaType.Method method,
-                         List<Expression> parameterLiterals, @Nullable String stubbing, @Nullable Expression value) {
+                         List<Expression> parameterLiterals, boolean overloaded, @Nullable String stubbing, @Nullable Expression value) {
+            this.overloaded = overloaded;
             this.type = type;
             this.classLiteral = classLiteral;
             this.method = method;
@@ -253,29 +255,44 @@ public class PowerMockMemberModifierToMockito extends Recipe {
                 parameterLiterals.add(argument);
             }
             JavaType.Method method = null;
+            int sameName = 0;
             for (JavaType.Method candidate : type.getMethods()) {
                 if (!candidate.getName().equals(name)) {
                     continue;
                 }
-                if (method != null) {
-                    return null; // overloaded
+                sameName++;
+                if (parameterLiterals.isEmpty() ? method == null : parametersMatch(candidate, parameterLiterals)) {
+                    if (method != null) {
+                        return null; // PowerMock refuses to pick one of several methods too
+                    }
+                    method = candidate;
                 }
-                method = candidate;
             }
+            boolean overloaded = sameName > 1;
             if (method == null || !method.hasFlags(Flag.Static) || method.hasFlags(Flag.Private) || method.hasFlags(Flag.Varargs) ||
-                method.getParameterTypes().size() != parameterLiterals.size()) {
+                method.getParameterTypes().size() != parameterLiterals.size() && !parameterLiterals.isEmpty()) {
                 return null;
             }
-            for (int i = 0; i < parameterLiterals.size(); i++) {
-                String expected = erasure(method.getParameterTypes().get(i));
-                if (expected == null || !expected.equals(erasure(((J.FieldAccess) parameterLiterals.get(i)).getTarget().getType()))) {
-                    return null;
-                }
+            if (parameterLiterals.isEmpty() && !method.getParameterTypes().isEmpty()) {
+                return null; // The parameter types to match are not spelled out
             }
             if ("thenThrow".equals(stubbing) && !canThrow(method, value)) {
                 return null;
             }
-            return new Stubbing(type, literal, method, parameterLiterals, stubbing, value);
+            return new Stubbing(type, literal, method, parameterLiterals, overloaded, stubbing, value);
+        }
+
+        private static boolean parametersMatch(JavaType.Method candidate, List<Expression> parameterLiterals) {
+            if (candidate.getParameterTypes().size() != parameterLiterals.size()) {
+                return false;
+            }
+            for (int i = 0; i < parameterLiterals.size(); i++) {
+                String expected = erasure(candidate.getParameterTypes().get(i));
+                if (expected == null || !expected.equals(erasure(((J.FieldAccess) parameterLiterals.get(i)).getTarget().getType()))) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static boolean canThrow(JavaType.Method method, @Nullable Expression thrown) {
@@ -312,6 +329,7 @@ public class PowerMockMemberModifierToMockito extends Recipe {
         /// `PowerMockitoMockStaticToMockito` migrates to `mockedType.when(() -> Type.name(any(..)))`.
         Statement stubStatic(Cursor site, Space prefix, ExecutionContext ctx) {
             Statement statement = (Statement) site.getValue();
+            List<String> imports = new ArrayList<>(Arrays.asList(POWER_MOCKITO, "org.mockito.ArgumentMatchers", "org.mockito.Mockito"));
             StringBuilder template = new StringBuilder("PowerMockito.when(#{any(java.lang.Class)}, \"").append(method.getName()).append('"');
             List<Object> parameters = new ArrayList<>();
             parameters.add(classLiteral);
@@ -322,7 +340,20 @@ public class PowerMockMemberModifierToMockito extends Recipe {
                     template.append("ArgumentMatchers.any").append(primitiveMatcher((JavaType.Primitive) type)).append("()");
                 } else {
                     // `any()` rather than `any(Type.class)`, as the latter does not match null, which PowerMock does
-                    template.append("ArgumentMatchers.any()");
+                    template.append("ArgumentMatchers.");
+                    if (overloaded) {
+                        // Names the parameter type, so that the call does not turn ambiguous between the overloads
+                        JavaType witnessed = ((J.FieldAccess) literal).getTarget().getType();
+                        while (witnessed instanceof JavaType.Array) {
+                            witnessed = ((JavaType.Array) witnessed).getElemType();
+                        }
+                        if (witnessed instanceof JavaType.FullyQualified &&
+                            !((JavaType.FullyQualified) witnessed).getPackageName().equals("java.lang")) {
+                            imports.add(((JavaType.FullyQualified) witnessed).getFullyQualifiedName().replace('$', '.'));
+                        }
+                        template.append('<').append(((J.FieldAccess) literal).getTarget().withPrefix(Space.EMPTY).printTrimmed(site)).append('>');
+                    }
+                    template.append("any()");
                 }
             }
             template.append(')');
@@ -334,7 +365,7 @@ public class PowerMockMemberModifierToMockito extends Recipe {
             }
             return JavaTemplate.builder(template.append(';').toString())
                     .contextSensitive()
-                    .imports(POWER_MOCKITO, "org.mockito.ArgumentMatchers", "org.mockito.Mockito")
+                    .imports(imports.toArray(new String[0]))
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12",
                             "powermock-api-mockito-1", "powermock-api-support-1", "powermock-core-1", "powermock-reflect-1"))
                     .build()

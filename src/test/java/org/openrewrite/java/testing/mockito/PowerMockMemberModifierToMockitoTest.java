@@ -63,6 +63,10 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               return new byte[0];
           }
 
+          public static byte[] toBytes(String text) {
+              return text.getBytes();
+          }
+
           public static int parse(String text, int radix) {
               return Integer.parseInt(text, radix);
           }
@@ -161,7 +165,12 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
                   @Test(expected = IOException.class)
                   public void throwsOnRead() throws IOException {
                       stub(method(Utils.class, "toBytes", InputStream.class)).toThrow(new IOException("boom"));
-                      Utils.toBytes(null);
+                      Utils.toBytes((InputStream) null);
+                  }
+
+                  @Test
+                  public void picksTheOverloadByParameterType() {
+                      stub(method(Utils.class, "toBytes", String.class)).toReturn(new byte[0]);
                   }
 
                   @Test
@@ -197,8 +206,14 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
                   @Test(expected = IOException.class)
                   public void throwsOnRead() throws IOException {
                       mockedUtils = Mockito.mockStatic(Utils.class, Mockito.CALLS_REAL_METHODS);
-                      mockedUtils.when(() -> Utils.toBytes(ArgumentMatchers.any())).thenThrow(new IOException("boom"));
-                      Utils.toBytes(null);
+                      mockedUtils.when(() -> Utils.toBytes(ArgumentMatchers.<InputStream>any())).thenThrow(new IOException("boom"));
+                      Utils.toBytes((InputStream) null);
+                  }
+
+                  @Test
+                  public void picksTheOverloadByParameterType() {
+                      mockedUtils = Mockito.mockStatic(Utils.class, Mockito.CALLS_REAL_METHODS);
+                      mockedUtils.when(() -> Utils.toBytes(ArgumentMatchers.<String>any())).thenReturn(new byte[0]);
                   }
 
                   @Test
