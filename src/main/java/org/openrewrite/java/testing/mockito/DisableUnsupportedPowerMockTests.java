@@ -248,10 +248,19 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                         })));
                 List<J.Annotation> annotations = cd.getLeadingAnnotations();
                 List<J.Annotation> kept = ListUtils.map(annotations, annotation -> reasonsIn(annotation).isEmpty() ? annotation : null);
-                if (kept.size() < annotations.size() && !kept.isEmpty() && kept.get(0) != annotations.get(0)) {
-                    kept = ListUtils.mapFirst(kept, first -> first.withPrefix(annotations.get(0).getPrefix()));
+                if (kept.size() == annotations.size()) {
+                    return cd;
                 }
-                return cd.withLeadingAnnotations(kept);
+                Space prefix = annotations.get(0).getPrefix();
+                if (!kept.isEmpty()) {
+                    return cd.withLeadingAnnotations(ListUtils.mapFirst(kept, first -> first.withPrefix(prefix)));
+                }
+                // A class without a test framework gets no disabling annotation, so it may be left with none at all
+                cd = cd.withLeadingAnnotations(emptyList());
+                if (!cd.getModifiers().isEmpty()) {
+                    return cd.withModifiers(ListUtils.mapFirst(cd.getModifiers(), first -> first.withPrefix(prefix)));
+                }
+                return cd.getPadding().withKind(cd.getPadding().getKind().withPrefix(prefix));
             }
 
             private org.openrewrite.java.tree.@Nullable JavaCoordinates annotationCoordinates(J target) {
