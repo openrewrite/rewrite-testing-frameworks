@@ -466,7 +466,8 @@ class Mockito1to3MigrationTest implements RewriteTest {
               "powermock-core-1",
               "powermock-api-mockito-1",
               "powermock-api-support-1",
-              "powermock-module-junit4")),
+              "powermock-module-junit4",
+              "powermock-module-junit4-common")),
           //language=java
           java(
             """

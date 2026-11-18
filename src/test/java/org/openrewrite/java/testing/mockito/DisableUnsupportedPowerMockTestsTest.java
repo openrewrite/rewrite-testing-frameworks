@@ -45,6 +45,7 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
               "powermock-api-mockito-1",
               "powermock-api-support-1",
               "powermock-module-junit4",
+              "powermock-module-junit4-common",
               "powermock-reflect-1"
             ))
           .recipe(new DisableUnsupportedPowerMockTests());

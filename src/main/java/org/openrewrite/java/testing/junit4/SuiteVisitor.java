@@ -28,6 +28,7 @@ import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 import static org.openrewrite.Tree.randomId;
 
@@ -137,9 +138,54 @@ class SuiteVisitor extends JUnit3MigrationVisitor {
                 args.add(literal);
             }
         }
-        return template("@RunWith(Suite.class)\n@Suite.SuiteClasses({" + String.join(", ", parts) + "})")
+        J.ClassDeclaration annotated = template("@RunWith(Suite.class)\n@Suite.SuiteClasses({" + String.join(", ", parts) + "})")
                 .imports("org.junit.runner.RunWith", "org.junit.runners.Suite").build()
                 .apply(getCursor(), cd.getCoordinates().addAnnotation(AFTER_OVERRIDE), args.toArray());
+        return attributeMemberClasses(annotated, cd, suite);
+    }
+
+    /**
+     * The template cannot see the member classes of the class it annotates, so the {@code Outer.Member} it prints
+     * for them has no type; give those the type of the member class literal they replaced.
+     */
+    private static J.ClassDeclaration attributeMemberClasses(J.ClassDeclaration annotated, J.ClassDeclaration outer, SuiteShape suite) {
+        Map<String, JavaType.FullyQualified> members = new HashMap<>();
+        for (Expression literal : suite.classes) {
+            String qualified = memberClassLiteral(outer, literal);
+            if (qualified != null) {
+                JavaType.FullyQualified member = requireNonNull(TypeUtils.asFullyQualified(((J.FieldAccess) literal).getTarget().getType()));
+                members.put(qualified.substring(0, qualified.length() - ".class".length()), member);
+            }
+        }
+        if (members.isEmpty() || outer.getType() == null) {
+            return annotated;
+        }
+        JavaType.FullyQualified outerType = outer.getType();
+        return (J.ClassDeclaration) new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                if (identifier.getSimpleName().equals(outer.getSimpleName()) && identifier.getType() == null) {
+                    return identifier.withType(outerType);
+                }
+                return identifier;
+            }
+
+            @Override
+            public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
+                J.FieldAccess fa = super.visitFieldAccess(fieldAccess, p);
+                JavaType.FullyQualified member = members.get(fa.getTarget() + "." + fa.getSimpleName());
+                if (member != null && fa.getTarget() instanceof J.Identifier) {
+                    return fa.withName(fa.getName().withType(member)).withType(member);
+                }
+                if ("class".equals(fa.getSimpleName()) && fa.getTarget() instanceof J.FieldAccess &&
+                    members.containsValue(fa.getTarget().getType())) {
+                    JavaType.Parameterized classType = new JavaType.Parameterized(null,
+                            JavaType.ShallowClass.build("java.lang.Class"), singletonList(fa.getTarget().getType()));
+                    return fa.withName(fa.getName().withType(classType)).withType(classType);
+                }
+                return fa;
+            }
+        }.visitNonNull(annotated, 0);
     }
 
     private static @Nullable String memberClassLiteral(J.ClassDeclaration outer, Expression literal) {

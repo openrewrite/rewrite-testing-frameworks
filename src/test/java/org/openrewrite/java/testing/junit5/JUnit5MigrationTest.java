@@ -1052,7 +1052,8 @@ class JUnit5MigrationTest implements RewriteTest {
               .classpathFromResources(new InMemoryExecutionContext(),
                 "junit-4",
                 "mockito-core-3.12",
-                "powermock-module-junit4"))
+                "powermock-module-junit4",
+                "powermock-module-junit4-common"))
             .runner(PRODUCTION_CYCLES),
           mavenProject("example",
             srcTestJava(

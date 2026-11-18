@@ -477,8 +477,11 @@ class CsvSourceToValueSourceTest implements RewriteTest {
           //language=java
           java(
             """
+              import org.junit.jupiter.api.extension.ParameterContext;
               import org.junit.jupiter.params.ParameterizedTest;
               import org.junit.jupiter.params.aggregator.AggregateWith;
+              import org.junit.jupiter.params.aggregator.ArgumentsAccessor;
+              import org.junit.jupiter.params.aggregator.ArgumentsAggregator;
               import org.junit.jupiter.params.provider.CsvSource;
 
               class TestClass {
@@ -489,7 +492,12 @@ class CsvSourceToValueSourceTest implements RewriteTest {
                   }
 
                   static class Person {}
-                  static class PersonAggregator {}
+                  static class PersonAggregator implements ArgumentsAggregator {
+                      @Override
+                      public Object aggregateArguments(ArgumentsAccessor accessor, ParameterContext context) {
+                          return new Person();
+                      }
+                  }
               }
               """
           )
