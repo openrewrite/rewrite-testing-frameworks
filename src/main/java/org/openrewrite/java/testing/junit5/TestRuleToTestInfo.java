@@ -27,6 +27,7 @@ import org.openrewrite.marker.Markers;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -148,6 +149,7 @@ public class TestRuleToTestInfo extends Recipe {
                                     cd.getBody().getCoordinates().lastStatement(),
                                     varDecls.getVariables().get(0).getName().getSimpleName()
                             );
+                    cd = typeThisFieldAccess(cd, varDecls.getVariables().get(0).getSimpleName(), cd.getType());
                     maybeAddImport("java.lang.reflect.Method");
                     maybeAddImport("java.util.Optional");
                     maybeAddImport("org.junit.jupiter.api.BeforeEach");
@@ -157,6 +159,27 @@ public class TestRuleToTestInfo extends Recipe {
             }
             return cd;
         }
+    }
+
+    /**
+     * The template cannot see the field being assigned, so the {@code this.name} it produces has an unknown type.
+     */
+    private static <T extends J> T typeThisFieldAccess(T tree, String fieldName, JavaType.@Nullable FullyQualified owner) {
+        JavaType.Variable fieldType = new JavaType.Variable(null, Flag.Public.getBitMask(), fieldName, owner,
+                JavaType.ShallowClass.build("java.lang.String"), emptyList());
+        //noinspection unchecked
+        return (T) new JavaIsoVisitor<Integer>() {
+            @Override
+            public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, Integer p) {
+                J.FieldAccess fa = super.visitFieldAccess(fieldAccess, p);
+                if ((fa.getType() == null || fa.getType() instanceof JavaType.Unknown) && fieldName.equals(fa.getSimpleName()) &&
+                    fa.getTarget() instanceof J.Identifier && "this".equals(((J.Identifier) fa.getTarget()).getSimpleName())) {
+                    return fa.withName(fa.getName().withType(fieldType.getType()).withFieldType(fieldType))
+                            .withType(fieldType.getType());
+                }
+                return fa;
+            }
+        }.visitNonNull(tree, 0);
     }
 
     @RequiredArgsConstructor
@@ -220,6 +243,10 @@ public class TestRuleToTestInfo extends Recipe {
                         ctx,
                         getCursor().getParent()
                 );
+
+                J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
+                md = typeThisFieldAccess(md, varDecls.getVariables().get(0).getSimpleName(),
+                        enclosingClass == null ? null : enclosingClass.getType());
 
                 // Make sure the testName is initialized first in case any other piece of the method body references it
                 assert md.getBody() != null;
