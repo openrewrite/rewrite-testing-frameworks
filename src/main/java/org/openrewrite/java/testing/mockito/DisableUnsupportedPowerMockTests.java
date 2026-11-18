@@ -55,6 +55,13 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
     private static final String TESTNG_TEST = "org.testng.annotations.Test";
     private static final String TESTNG_IGNORE = "org.testng.annotations.Ignore";
 
+    private static final List<String> JUNIT4_TESTS = Arrays.asList(JUNIT4_TEST, "org.junit.experimental.theories.Theory");
+    private static final List<String> JUNIT5_TESTS = Arrays.asList(JUNIT5_TEST,
+            "org.junit.jupiter.params.ParameterizedTest",
+            "org.junit.jupiter.api.RepeatedTest",
+            "org.junit.jupiter.api.TestFactory",
+            "org.junit.jupiter.api.TestTemplate");
+
     private transient final PowerMockTestsDisabled disabledTests = new PowerMockTestsDisabled(this);
 
     @Getter
@@ -95,13 +102,13 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                     return cd;
                 }
                 String reason = String.join("; ", new LinkedHashMap<>(remaining).values());
-                Framework framework = frameworkOf(cd);
-                if (framework == null) {
-                    return cd;
-                }
                 disabledTests.insertRow(ctx, new PowerMockTestsDisabled.Row(
                         sourcePath, cd.getSimpleName(), cd.getSimpleName(), "CLASS", reason));
-                return commentOutBodiesHoldingUsage(disable(cd, framework, ctx));
+                Framework framework = frameworkOf(cd);
+                // A class that declares no test, such as an abstract base class with a setup method, has no
+                // framework to take a disabling annotation from. Its usage is still commented out, as the
+                // PowerMock dependency is removed from the repository regardless.
+                return commentOutBodiesHoldingUsage(framework == null ? cd : disable(cd, framework, ctx));
             }
 
             @Override
@@ -251,12 +258,20 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
             }
 
             private @Nullable Framework testFrameworkOf(J.MethodDeclaration method) {
-                for (J.Annotation annotation : method.getLeadingAnnotations()) {
-                    if (TypeUtils.isOfClassType(annotation.getType(), JUNIT5_TEST)) {
-                        return Framework.JUNIT5;
+                return testFrameworkOf(method.getLeadingAnnotations());
+            }
+
+            private @Nullable Framework testFrameworkOf(List<J.Annotation> annotations) {
+                for (J.Annotation annotation : annotations) {
+                    for (String type : JUNIT5_TESTS) {
+                        if (TypeUtils.isOfClassType(annotation.getType(), type)) {
+                            return Framework.JUNIT5;
+                        }
                     }
-                    if (TypeUtils.isOfClassType(annotation.getType(), JUNIT4_TEST)) {
-                        return Framework.JUNIT4;
+                    for (String type : JUNIT4_TESTS) {
+                        if (TypeUtils.isOfClassType(annotation.getType(), type)) {
+                            return Framework.JUNIT4;
+                        }
                     }
                     if (TypeUtils.isOfClassType(annotation.getType(), TESTNG_TEST)) {
                         return Framework.TESTNG;
@@ -267,6 +282,11 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
 
             /** The framework the class tests with, taken from whichever test method it declares. */
             private @Nullable Framework frameworkOf(J.ClassDeclaration classDecl) {
+                // TestNG allows `@Test` on the class, which makes every public method a test
+                Framework classLevel = testFrameworkOf(classDecl.getLeadingAnnotations());
+                if (classLevel != null) {
+                    return classLevel;
+                }
                 for (org.openrewrite.java.tree.Statement statement : classDecl.getBody().getStatements()) {
                     if (statement instanceof J.MethodDeclaration) {
                         Framework framework = testFrameworkOf((J.MethodDeclaration) statement);
