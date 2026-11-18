@@ -210,6 +210,7 @@ recipeList:
   - org.openrewrite.java.testing.mockito.RemovePowerMockClassExtensions
   - org.openrewrite.java.testing.mockito.RemovePowerMockAgentInitialization
   - org.openrewrite.java.testing.mockito.RemovePowerMockObjectFactory
+  - org.openrewrite.java.testing.mockito.PowerMockRepositoryRemoveControlToCloseStaticMock
   # Removes what PowerMockitoMockStaticToMockito leaves, such as `@PrepareForTest(fullyQualifiedNames = ...)`
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.PrepareForTest"
