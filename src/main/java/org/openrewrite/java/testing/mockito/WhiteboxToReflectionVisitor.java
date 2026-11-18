@@ -410,9 +410,16 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         final int firstExpressionArgument;
         /** Whether the expression takes the call's target, which a static member does without. */
         final boolean takesTarget;
+        /** Arguments of the declaration after the owner's class literal and the member name. */
+        final List<Expression> furtherDeclarationArguments;
 
         Hoisted(J.MethodInvocation call, String varName, String declaration, String expression) {
-            this(call, varName, declaration, expression, 2, true);
+            this(call, varName, declaration, expression, 2, true, emptyList());
+        }
+
+        Hoisted(J.MethodInvocation call, String varName, String declaration, String expression,
+                int firstExpressionArgument, boolean takesTarget) {
+            this(call, varName, declaration, expression, firstExpressionArgument, takesTarget, emptyList());
         }
     }
 
@@ -423,6 +430,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
      */
     @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
         return null;
+    }
+
+    /**
+     * Whether the member lookup of the call can move out of a lambda that is an expression of the statement
+     * it is hoisted in front of, as its arguments only name classes and members rather than lambda parameters.
+     */
+    boolean hoistsOutOfExpressionLambda(J.MethodInvocation mi) {
+        return false;
     }
 
     String castPrefix(J.MethodInvocation mi) {
@@ -481,9 +496,12 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 J.MethodInvocation nested = hoisted.call;
                 List<Expression> args = nested.getArguments();
                 JavaType.Method resolvedMethod = resolve(nested);
+                List<Object> declarationArgs = new ArrayList<>();
+                declarationArgs.add(classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))));
+                declarationArgs.add(args.get(1));
+                declarationArgs.addAll(hoisted.furtherDeclarationArguments);
                 b = reflectionTemplate(hoisted.declaration, resolvedMethod).apply(blockCursor,
-                        statement.getCoordinates().before(),
-                        classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))), args.get(1));
+                        statement.getCoordinates().before(), declarationArgs.toArray());
                 // Passed as a parameter because the template parser does not attribute a local it has just inserted.
                 List<Expression> expressionArgs = new ArrayList<>();
                 expressionArgs.add(declaredVariable(b, hoisted.varName));
@@ -553,7 +571,8 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                     return method;
                 }
                 J.MethodInvocation mi = super.visitMethodInvocation(method, found);
-                if (found.get() == null && matches(mi) && isOutsideLambdaAndAnonymousClass(getCursor())) {
+                if (found.get() == null && matches(mi) &&
+                    (isOutsideLambdaAndAnonymousClass(getCursor()) || hoistsOutOfExpressionLambda(mi))) {
                     found.set(hoist(mi, blockCursor));
                 }
                 return mi;

@@ -61,6 +61,29 @@ public class PowerMockWhiteboxGetFieldToJavaReflection extends Recipe {
         }
 
         @Override
+        JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+            return classLiteralType(mi.getArguments().get(0));
+        }
+
+        /// The field of a call that is only used as the target of another, such as `getField(Type.class, "name").set(...)`
+        @Override
+        @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
+            if (lookupOwner(mi, null) == null) {
+                return null;
+            }
+            String varName = fieldVarName(mi.getArguments().get(1), scope);
+            return new Hoisted(mi, varName,
+                    "Field " + varName + " = #{any(java.lang.Class)}.getDeclaredField(#{any(java.lang.String)});\n" +
+                    varName + ".setAccessible(true);\n",
+                    "#{any(java.lang.reflect.Field)}", mi.getArguments().size(), false);
+        }
+
+        @Override
+        boolean hoistsOutOfExpressionLambda(J.MethodInvocation mi) {
+            return lookupOwner(mi, null) != null && extractStringLiteral(mi.getArguments().get(1)) != null;
+        }
+
+        @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
             // declaringClass, fieldName

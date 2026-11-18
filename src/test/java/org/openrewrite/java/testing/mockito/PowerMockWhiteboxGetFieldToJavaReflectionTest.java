@@ -99,4 +99,43 @@ class PowerMockWhiteboxGetFieldToJavaReflectionTest implements RewriteTest {
           )
         );
     }
+
+
+    @Test
+    void setsFieldThroughTheFieldOfAClassLiteral() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class KinesisProxy {
+                  private Object kinesisClient;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class KinesisProxyTest {
+                  void test(Object mockClient) throws Exception {
+                      KinesisProxy kinesisProxy = new KinesisProxy();
+                      Whitebox.getField(KinesisProxy.class, "kinesisClient").set(kinesisProxy, mockClient);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class KinesisProxyTest {
+                  void test(Object mockClient) throws Exception {
+                      KinesisProxy kinesisProxy = new KinesisProxy();
+                      Field kinesisClientField = KinesisProxy.class.getDeclaredField("kinesisClient");
+                      kinesisClientField.setAccessible(true);
+                      kinesisClientField.set(kinesisProxy, mockClient);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

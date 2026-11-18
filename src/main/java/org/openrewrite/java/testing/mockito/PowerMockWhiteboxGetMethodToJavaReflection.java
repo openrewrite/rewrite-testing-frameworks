@@ -26,6 +26,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PowerMockWhiteboxGetMethodToJavaReflection extends Recipe {
@@ -69,6 +70,35 @@ public class PowerMockWhiteboxGetMethodToJavaReflection extends Recipe {
             }
             sb.append(");\n").append(varName).append(".setAccessible(true);");
             return sb.toString();
+        }
+
+        @Override
+        JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
+            return classLiteralType(mi.getArguments().get(0));
+        }
+
+        /// The method of a call that is only used as the target of another, or returned from a lambda, such as
+        /// `then(invocation -> getMethod(Type.class, "name"))`
+        @Override
+        @Nullable Hoisted hoist(J.MethodInvocation mi, Cursor scope) {
+            List<Expression> args = mi.getArguments();
+            if (lookupOwner(mi, null) == null || hasArrayArg(args, 2) || !args.stream().skip(2).allMatch(a -> classLiteralType(a) != null)) {
+                return null;
+            }
+            String varName = methodVarName(args.get(1), scope);
+            StringBuilder declaration = new StringBuilder("Method ").append(varName)
+                    .append(" = #{any(java.lang.Class)}.getDeclaredMethod(#{any(java.lang.String)}");
+            for (int i = 2; i < args.size(); i++) {
+                declaration.append(", #{any(java.lang.Class)}");
+            }
+            declaration.append(");\n").append(varName).append(".setAccessible(true);\n");
+            return new Hoisted(mi, varName, declaration.toString(), "#{any(java.lang.reflect.Method)}", args.size(), false,
+                    new ArrayList<>(args.subList(2, args.size())));
+        }
+
+        @Override
+        boolean hoistsOutOfExpressionLambda(J.MethodInvocation mi) {
+            return hoist(mi, getCursor()) != null && extractStringLiteral(mi.getArguments().get(1)) != null;
         }
 
         @Override
