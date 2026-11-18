@@ -270,11 +270,11 @@ public class PowerMockMemberModifierToMockito extends Recipe {
             }
             boolean overloaded = sameName > 1;
             if (method == null || !method.hasFlags(Flag.Static) || method.hasFlags(Flag.Private) || method.hasFlags(Flag.Varargs) ||
-                method.getParameterTypes().size() != parameterLiterals.size() && !parameterLiterals.isEmpty()) {
+                !parameterLiterals.isEmpty() && method.getParameterTypes().size() != parameterLiterals.size()) {
                 return null;
             }
-            if (parameterLiterals.isEmpty() && !method.getParameterTypes().isEmpty()) {
-                return null; // The parameter types to match are not spelled out
+            if (parameterLiterals.isEmpty() && sameName > 1) {
+                return null; // PowerMock would not pick one of the overloads either
             }
             if ("thenThrow".equals(stubbing) && !canThrow(method, value)) {
                 return null;
@@ -333,17 +333,16 @@ public class PowerMockMemberModifierToMockito extends Recipe {
             StringBuilder template = new StringBuilder("PowerMockito.when(#{any(java.lang.Class)}, \"").append(method.getName()).append('"');
             List<Object> parameters = new ArrayList<>();
             parameters.add(classLiteral);
-            for (Expression literal : parameterLiterals) {
-                JavaType type = ((J.FieldAccess) literal).getTarget().getType();
-                template.append(", ");
-                if (type instanceof JavaType.Primitive) {
-                    template.append("ArgumentMatchers.any").append(primitiveMatcher((JavaType.Primitive) type)).append("()");
+            for (int i = 0; i < method.getParameterTypes().size(); i++) {
+                JavaType parameter = method.getParameterTypes().get(i);
+                template.append(", ").append("ArgumentMatchers.");
+                if (parameter instanceof JavaType.Primitive) {
+                    template.append("any").append(primitiveMatcher((JavaType.Primitive) parameter)).append("()");
                 } else {
                     // `any()` rather than `any(Type.class)`, as the latter does not match null, which PowerMock does
-                    template.append("ArgumentMatchers.");
                     if (overloaded) {
                         // Names the parameter type, so that the call does not turn ambiguous between the overloads
-                        JavaType witnessed = ((J.FieldAccess) literal).getTarget().getType();
+                        JavaType witnessed = ((J.FieldAccess) parameterLiterals.get(i)).getTarget().getType();
                         while (witnessed instanceof JavaType.Array) {
                             witnessed = ((JavaType.Array) witnessed).getElemType();
                         }
@@ -351,7 +350,7 @@ public class PowerMockMemberModifierToMockito extends Recipe {
                             !((JavaType.FullyQualified) witnessed).getPackageName().equals("java.lang")) {
                             imports.add(((JavaType.FullyQualified) witnessed).getFullyQualifiedName().replace('$', '.'));
                         }
-                        template.append('<').append(((J.FieldAccess) literal).getTarget().withPrefix(Space.EMPTY).printTrimmed(site)).append('>');
+                        template.append('<').append(((J.FieldAccess) parameterLiterals.get(i)).getTarget().withPrefix(Space.EMPTY).printTrimmed(site)).append('>');
                     }
                     template.append("any()");
                 }
