@@ -518,4 +518,84 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
           )
         );
     }
+
+    @Test
+    void genericAndArrayDeclaredTypes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              class MyService {
+                  private List<String> names;
+                  private String[] tags;
+                  private int[] counts;
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.List;
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = new MyService();
+                      List<String> names = Whitebox.getInternalState(service, "names");
+                      String[] tags = Whitebox.getInternalState(service, "tags");
+                      int[] counts = Whitebox.getInternalState(service, "counts");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+              import java.util.List;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      Field namesField = MyService.class.getDeclaredField("names");
+                      namesField.setAccessible(true);
+                      List<String> names = (List<String>) namesField.get(service);
+                      Field tagsField = MyService.class.getDeclaredField("tags");
+                      tagsField.setAccessible(true);
+                      String[] tags = (String[]) tagsField.get(service);
+                      Field countsField = MyService.class.getDeclaredField("counts");
+                      countsField.setAccessible(true);
+                      int[] counts = (int[]) countsField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leavesStatementInLambdaBlockUntouched() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.function.Consumer;
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      Consumer<MyService> c = s -> {
+                          String name = Whitebox.getInternalState(s, "name");
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
 }
