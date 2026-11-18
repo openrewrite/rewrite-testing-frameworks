@@ -119,6 +119,107 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
+    void shouldMockNestedClassRatherThanItsOuterClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.example;
+              public class Outer {
+                  public static class Inner {
+                      public static Integer value() {
+                          return 1;
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.example.Outer;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(Outer.Inner.value()).thenReturn(2);
+                  }
+              }
+              """,
+            """
+              import org.example.Outer;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<Outer.Inner> mockOuter_Inner1 = mockStatic(Outer.Inner.class)) {
+                          mockOuter_Inner1.when(() -> Outer.Inner.value()).thenReturn(2);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldMockNestedClassInBefore() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.example;
+              public class Outer {
+                  public static class Inner {
+                      public static Integer value() {
+                          return 1;
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.example.Outer;
+              import org.junit.jupiter.api.BeforeEach;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  @BeforeEach
+                  void setUp() {
+                      when(Outer.Inner.value()).thenReturn(2);
+                  }
+              }
+              """,
+            """
+              import org.example.Outer;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  private MockedStatic<Outer.Inner> mockOuter_Inner1;
+
+                  @BeforeEach
+                  void setUp() {
+                      mockOuter_Inner1 = mockStatic(Outer.Inner.class);
+                      mockOuter_Inner1.when(() -> Outer.Inner.value()).thenReturn(2);
+                  }
+
+                  @AfterEach
+                  public void tearDown() {
+                      mockOuter_Inner1.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void shouldOptForUsageOfMockedStatic_WhenAlreadyScopedInside() {
         rewriteRun(
           //language=java

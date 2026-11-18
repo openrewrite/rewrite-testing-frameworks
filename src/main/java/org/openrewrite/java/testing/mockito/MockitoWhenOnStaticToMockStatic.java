@@ -109,7 +109,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         if (invokedType != null) {
                             J.VariableDeclarations.NamedVariable staticMockedVariable = findMockedStaticVariable(getCursor(), invokedType);
                             if (staticMockedVariable == null) {
-                                maybeAddImport(invokedType.getFullyQualifiedName(), false);
+                                maybeAddImport(outermostClassName(invokedType), false);
                                 list.addAll(mockedStatic(m, (J.MethodInvocation) statement, invokedType.getClassName(), whenArg, ctx));
                             } else if (MockitoUtils.throwsCheckedException(whenArg.getMethodType())) {
                                 list.add(statement);
@@ -170,8 +170,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                               J.MethodInvocation statement, JavaType.Class invokedType, J.MethodInvocation whenArg, ExecutionContext ctx,
                                               Map<String, String> pendingResources) {
                 String className = invokedType.getClassName();
-                maybeAddImport(invokedType.getFullyQualifiedName(), false);
-                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                maybeAddImport(outermostClassName(invokedType), false);
+                String variableName = generateVariableName("mock" + className.replace('.', '_') + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
                 J.Try try_ = (J.Try) javaTemplateMockStatic(statement, String.format(
@@ -199,7 +199,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
             private Object nameForReuse(J.Block block, String className, J.VariableDeclarations.NamedVariable variable) {
                 if ("_".equals(variable.getSimpleName())) {
-                    String newName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                    String newName = generateVariableName("mock" + className.replace('.', '_') + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                     doAfterVisit(new RenameVariable<>(variable, newName));
                     return newName;
                 }
@@ -220,7 +220,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 boolean staticSetup = isMethodDeclarationWithAnnotation(containingMethod, BEFORE_CLASS, BEFORE_ALL, BEFORE_PARAM_CLASS_INV);
-                String variableName = generateVariableName("mock" + className + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                String variableName = generateVariableName("mock" + className.replace('.', '_') + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
                 // We know it will have a matching `@Before*` annotation based on callers
                 String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
                 String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");
@@ -377,15 +377,23 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
         return ListUtils.concatAll(leading, stubbingArguments).toArray();
     }
 
+    // A nested class is referenced through its outermost class, which is the import to keep
+    private static String outermostClassName(JavaType.FullyQualified type) {
+        JavaType.FullyQualified outer = type;
+        while (outer.getOwningClass() != null) {
+            outer = outer.getOwningClass();
+        }
+        return outer.getFullyQualifiedName();
+    }
+
     private static JavaType.@Nullable Class getTypeFromInvocation(J.MethodInvocation whenArg) {
         Expression select = whenArg.getSelect();
         if (select == null) {
             // A statically imported method, or one of the enclosing class
             return whenArg.getMethodType() == null ? null : TypeUtils.asClass(whenArg.getMethodType().getDeclaringType());
         }
-        if (select instanceof J.FieldAccess && ((J.FieldAccess) select).getName().getFieldType() == null &&
-                TypeUtils.asClass(((J.FieldAccess) select).getTarget().getType()) == null) {
-            // A fully qualified class name, such as `org.example.A`
+        if (select instanceof J.FieldAccess && ((J.FieldAccess) select).getName().getFieldType() == null) {
+            // A class reference rather than a field: a fully qualified name such as `org.example.A`, or a nested class such as `Outer.Inner`
             return TypeUtils.asClass(select.getType());
         }
         J.Identifier clazz = null;
