@@ -184,6 +184,7 @@ recipeList:
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.SuppressStaticInitializationFor"
   - org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
+  - org.openrewrite.java.testing.mockito.PowerMockMemberModifierToMockito
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)

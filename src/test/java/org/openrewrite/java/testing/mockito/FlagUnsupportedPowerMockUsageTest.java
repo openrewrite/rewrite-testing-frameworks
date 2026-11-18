@@ -54,7 +54,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                       return "real";
                   }
 
-                  static void init() {
+                  void init() {
                   }
               }
               """
