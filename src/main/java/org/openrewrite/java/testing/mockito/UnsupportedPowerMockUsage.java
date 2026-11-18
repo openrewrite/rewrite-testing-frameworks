@@ -118,14 +118,10 @@ final class UnsupportedPowerMockUsage {
     }
 
     private static void findChangedBehavior(JavaSourceFile sourceFile, Map<UUID, String> unsupported) {
-        Set<String> staticallyMocked = staticallyMockedTypes(sourceFile);
         new JavaIsoVisitor<Map<UUID, String>>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Map<UUID, String> p) {
                 String reason = mockStaticRefusedByMockito(method);
-                if (reason == null) {
-                    reason = inheritedStaticMethodOfMockedClass(method, staticallyMocked);
-                }
                 if (reason != null) {
                     p.put(method.getId(), reason);
                 }
@@ -138,7 +134,7 @@ final class UnsupportedPowerMockUsage {
         return new JavaIsoVisitor<Set<String>>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<String> p) {
-                if (MOCK_STATIC.matches(method) || SPY_CLASS.matches(method)) {
+                if (MOCK_STATIC.matches(method) || SPY_CLASS.matches(method) || MOCKITO_MOCK_STATIC.matches(method)) {
                     for (Expression argument : method.getArguments()) {
                         JavaType.FullyQualified type = classLiteral(argument);
                         if (type != null) {
@@ -149,6 +145,10 @@ final class UnsupportedPowerMockUsage {
                 return super.visitMethodInvocation(method, p);
             }
         }.reduce(sourceFile, new HashSet<>());
+    }
+
+    static boolean mockitoRefusesToMockStatic(JavaType.FullyQualified type) {
+        return MOCKITO_REFUSES_TO_MOCK_STATIC.contains(type.getFullyQualifiedName());
     }
 
     private static @Nullable String mockStaticRefusedByMockito(J.MethodInvocation mi) {
@@ -190,6 +190,7 @@ final class UnsupportedPowerMockUsage {
             }
         }.reduce(original, new HashSet<>());
 
+        Set<String> staticallyMocked = staticallyMockedTypes(migrated);
         new JavaIsoVisitor<Map<UUID, String>>() {
             @Override
             public J.Import visitImport(J.Import anImport, Map<UUID, String> p) {
@@ -213,6 +214,10 @@ final class UnsupportedPowerMockUsage {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Map<UUID, String> p) {
+                String inherited = inheritedStaticMethodOfMockedClass(method, staticallyMocked);
+                if (inherited != null) {
+                    reportAs(inherited, p);
+                }
                 JavaType.Method type = method.getMethodType();
                 if (type != null && isPowerMock(type.getDeclaringType())) {
                     if (method.getSelect() instanceof J.MethodInvocation && startsPowerMockChain((J.MethodInvocation) method.getSelect())) {
@@ -260,10 +265,14 @@ final class UnsupportedPowerMockUsage {
             }
 
             private void report(String usage, Map<UUID, String> p) {
+                reportAs(usage + " could not be migrated automatically", p);
+            }
+
+            private void reportAs(String reason, Map<UUID, String> p) {
                 for (Iterator<Object> path = getCursor().getPath(); path.hasNext(); ) {
                     Object node = path.next();
                     if (node instanceof J && originalIds.contains(((J) node).getId())) {
-                        p.putIfAbsent(((J) node).getId(), usage + " could not be migrated automatically");
+                        p.putIfAbsent(((J) node).getId(), reason);
                         return;
                     }
                 }

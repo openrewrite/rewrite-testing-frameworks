@@ -3582,12 +3582,96 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void mockingInheritedStaticMethodIsDisabled() {
+    void mockingInheritedStaticMethodMocksTheDeclaringClass() {
         //language=java
         rewriteRun(
           java(
             """
-              import java.net.Inet4Address;
+              import java.net.Inet6Address;
+              import java.net.InetAddress;
+              import java.net.UnknownHostException;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest({Inet6Address.class})
+              public class MyTest {
+                  @Test(expected = UnknownHostException.class)
+                  public void failsToResolve() throws Exception {
+                      PowerMockito.mockStatic(Inet6Address.class);
+                      PowerMockito.when(Inet6Address.getByAddress(Mockito.any(byte[].class))).thenThrow(new UnknownHostException());
+
+                      Inet6Address.getByAddress(new byte[16]);
+                  }
+              }
+              """,
+            """
+              import java.net.Inet6Address;
+              import java.net.InetAddress;
+              import java.net.UnknownHostException;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<InetAddress> mockedInetAddress;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedInetAddress != null) {
+                          mockedInetAddress.closeOnDemand();
+                      }
+                  }
+
+                  @Test(expected = UnknownHostException.class)
+                  public void failsToResolve() throws Exception {
+                      mockedInetAddress = Mockito.mockStatic(InetAddress.class);
+                      Mockito.when(Inet6Address.getByAddress(Mockito.any(byte[].class))).thenThrow(new UnknownHostException());
+
+                      Inet6Address.getByAddress(new byte[16]);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockingInheritedAndDeclaredStaticMethodsMocksBothClasses() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package a;
+
+              public class Parent {
+                  public static String inherited() {
+                      return "parent";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package a;
+
+              public class Child extends Parent {
+                  public static String declared() {
+                      return "child";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import a.Child;
 
               import org.junit.Test;
               import org.junit.runner.RunWith;
@@ -3596,12 +3680,73 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.powermock.modules.junit4.PowerMockRunner;
 
               @RunWith(PowerMockRunner.class)
-              @PrepareForTest(Inet4Address.class)
+              @PrepareForTest(Child.class)
               public class MyTest {
                   @Test
-                  public void resolvesTheLocalHost() throws Exception {
-                      PowerMockito.mockStatic(Inet4Address.class);
-                      PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                  public void stubsBoth() {
+                      PowerMockito.mockStatic(Child.class);
+                      PowerMockito.when(Child.inherited()).thenReturn("a");
+                      PowerMockito.when(Child.declared()).thenReturn("b");
+                  }
+              }
+              """,
+            """
+              import a.Child;
+              import a.Parent;
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<Child> mockedChild;
+                  private MockedStatic<Parent> mockedParent;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedChild != null) {
+                          mockedChild.closeOnDemand();
+                      }
+                      if (mockedParent != null) {
+                          mockedParent.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void stubsBoth() {
+                      mockedChild = Mockito.mockStatic(Child.class);
+                      mockedParent = Mockito.mockStatic(Parent.class);
+                      mockedParent.when(Child::inherited).thenReturn("a");
+                      mockedChild.when(Child::declared).thenReturn("b");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockingStaticMethodInheritedFromSystemStaysDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(MyThread.class)
+              public class MyTest {
+                  @Test
+                  public void sleeps() throws Exception {
+                      PowerMockito.mockStatic(MyThread.class);
+                      PowerMockito.when(MyThread.activeCount()).thenReturn(3);
+                  }
+
+                  static class MyThread extends Thread {
                   }
               }
               """,
@@ -3612,10 +3757,13 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               public class MyTest {
                   @Test
                   @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
-                  public void resolvesTheLocalHost() throws Exception {
+                  public void sleeps() throws Exception {
                       // The body of this test is kept for reference while it is migrated by hand:
-                      // PowerMockito.mockStatic(Inet4Address.class);
-                      // PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                      // PowerMockito.mockStatic(MyThread.class);
+                      // PowerMockito.when(MyThread.activeCount()).thenReturn(3);
+                  }
+
+                  static class MyThread extends Thread {
                   }
               }
               """
