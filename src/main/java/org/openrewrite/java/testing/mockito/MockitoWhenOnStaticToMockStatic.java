@@ -22,6 +22,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinParser;
@@ -35,8 +36,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
-import static org.openrewrite.java.VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER;
-import static org.openrewrite.java.VariableNameUtils.generateVariableName;
 import static org.openrewrite.java.tree.Flag.Static;
 
 public class MockitoWhenOnStaticToMockStatic extends Recipe {
@@ -53,8 +52,6 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
     private static final TypeMatcher MOCKED_STATIC = new TypeMatcher("org.mockito.MockedStatic");
 
     private static final String DEFAULT_AFTER_METHOD = "tearDown";
-
-    private int varCounter = 0;
 
     @Getter
     final String displayName = "Replace `Mockito.when` on static (non mock) with try-with-resource with MockedStatic";
@@ -171,7 +168,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                               Map<String, String> pendingResources) {
                 String className = invokedType.getClassName();
                 maybeAddImport(outermostClassName(invokedType), false);
-                String variableName = generateVariableName("mock" + className.replace('.', '_') + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                String variableName = mockName(className, updateCursor(block));
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
                 J.Try try_ = (J.Try) javaTemplateMockStatic(statement, String.format(
@@ -197,9 +194,20 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                         .withPrefix(statement.getPrefix());
             }
 
+            /**
+             * A name for a mock of the class that is free at the cursor and not yet handed out in this file.
+             */
+            private String mockName(String className, Cursor cursor) {
+                Set<String> handedOut = cursor.dropParentUntil(SourceFile.class::isInstance)
+                        .computeMessageIfAbsent("mockNames", k -> new HashSet<>());
+                String name = Scope.at(cursor).freeName("mock" + className.replace('.', '_') + "1", handedOut::contains);
+                handedOut.add(name);
+                return name;
+            }
+
             private Object nameForReuse(J.Block block, String className, J.VariableDeclarations.NamedVariable variable) {
                 if ("_".equals(variable.getSimpleName())) {
-                    String newName = generateVariableName("mock" + className.replace('.', '_') + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                    String newName = mockName(className, updateCursor(block));
                     doAfterVisit(new RenameVariable<>(variable, newName));
                     return newName;
                 }
@@ -220,7 +228,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 boolean staticSetup = isMethodDeclarationWithAnnotation(containingMethod, BEFORE_CLASS, BEFORE_ALL, BEFORE_PARAM_CLASS_INV);
-                String variableName = generateVariableName("mock" + className.replace('.', '_') + ++varCounter, updateCursor(block), INCREMENT_NUMBER);
+                String variableName = mockName(className, updateCursor(block));
                 // We know it will have a matching `@Before*` annotation based on callers
                 String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
                 String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");

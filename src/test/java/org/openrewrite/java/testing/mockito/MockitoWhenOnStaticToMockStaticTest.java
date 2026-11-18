@@ -77,6 +77,68 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           .recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false)));
     }
 
+    @Test
+    void namesStartOverInEachFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test1 {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test1 {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test2 {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test2 {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @DocumentExample
     @Test
     void shouldRefactorMockito_When() {
@@ -354,9 +416,9 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               class Test {
                   void test() {
                       try (var mockA1 = Mockito.mockStatic(A.class)) {
-                          try (var mockB2 = Mockito.mockStatic(B.class)) {
+                          try (var mockB1 = Mockito.mockStatic(B.class)) {
                               mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                              mockB2.when(() -> B.getString()).thenReturn("hi there");
+                              mockB1.when(() -> B.getString()).thenReturn("hi there");
                               assertEquals(A.getNumber(), -1);
                               assertEquals(B.getString(), "hi there");
                           }
