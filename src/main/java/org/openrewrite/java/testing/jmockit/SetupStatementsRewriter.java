@@ -17,9 +17,12 @@ package org.openrewrite.java.testing.jmockit;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.RenameVariable;
 import org.openrewrite.java.search.SemanticallyEqual;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 
 import java.util.ArrayList;
@@ -57,21 +60,14 @@ class SetupStatementsRewriter {
                 continue;
             }
 
+            nc = renameSetupLocalsInScopeAtBlock(nc);
+            rewriteBodyStatement(nc, nc.getCoordinates().replace());
             J.Block expectationsBlock = (J.Block) nc.getBody().getStatements().get(0);
-
-            // Account for Expectations which may contain multiple blocks
-            List<Statement> statementList = new ArrayList<>();
-            if (TypeUtils.isAssignableTo("mockit.Expectations", nc.getType()) ||
-                TypeUtils.isAssignableTo("mockit.Verifications", nc.getType())) {
-                statementList.addAll(nc.getBody().getStatements());
-            } else {
-                statementList.add(expectationsBlock);
-            }
 
             // collect setup statements
             List<Statement> setupStatements = new ArrayList<>();
             List<Statement> newExpectationsBlockStatements = new ArrayList<>();
-            for (Statement st : statementList) {
+            for (Statement st : expectationBlocks(nc)) {
                 for (Statement expectationStatement : ((J.Block) st).getStatements()) {
                     if (!isSetupStatement(expectationStatement, spies)) {
                         newExpectationsBlockStatements.add(expectationStatement);
@@ -82,11 +78,7 @@ class SetupStatementsRewriter {
             }
 
             // check if setup statement variable names conflict with method body variable names
-            Set<String> setupVariableNames = getVariableNames(setupStatements);
-            Set<String> methodBodyVariableNames = getVariableNames(methodBody.getStatements());
-            boolean hasConflict = setupVariableNames.stream().anyMatch(methodBodyVariableNames::contains);
-
-            if (hasConflict) {
+            if (clashesInMethodBody(nc)) {
                 // When there's a conflict, don't extract setup statements.
                 // Leave them in the expectations block so JMockitBlockRewriter can handle them
                 // and wrap everything in a block to avoid variable name conflicts.
@@ -110,6 +102,74 @@ class SetupStatementsRewriter {
             rewriteBodyStatement(nc, nc.getCoordinates().replace());
         }
         return methodBody;
+    }
+
+    /**
+     * Expectations and Verifications may contain several blocks.
+     */
+    private static List<Statement> expectationBlocks(J.NewClass jmockitBlock) {
+        assert jmockitBlock.getBody() != null;
+        List<Statement> blocks = jmockitBlock.getBody().getStatements();
+        return TypeUtils.isAssignableTo("mockit.Expectations", jmockitBlock.getType()) ||
+               TypeUtils.isAssignableTo("mockit.Verifications", jmockitBlock.getType()) ?
+                blocks : singletonList(blocks.get(0));
+    }
+
+    /**
+     * Where a parameter or an earlier local of its name is in scope, a setup local does not compile, hoisted or in a
+     * block. Nor does one named like a setup local of an earlier block, as the blocks merge into one. It takes a free
+     * name.
+     */
+    private J.NewClass renameSetupLocalsInScopeAtBlock(J.NewClass jmockitBlock) {
+        Cursor bodyCursor = new Cursor(visitor.getCursor(), methodBody);
+        Scope atBlock = Scope.at(bodyCursor).withPosition(new Cursor(bodyCursor, jmockitBlock));
+        Set<String> handedOut = new HashSet<>();
+        Set<String> declaredInEarlierBlocks = new HashSet<>();
+        J.NewClass renamed = jmockitBlock;
+        for (Statement block : expectationBlocks(jmockitBlock)) {
+            Set<String> declaredInBlock = new HashSet<>();
+            for (Statement statement : ((J.Block) block).getStatements()) {
+                if (!(statement instanceof J.VariableDeclarations)) {
+                    continue;
+                }
+                for (J.VariableDeclarations.NamedVariable variable : ((J.VariableDeclarations) statement).getVariables()) {
+                    declaredInBlock.add(variable.getSimpleName());
+                    if (declaredInEarlierBlocks.contains(variable.getSimpleName()) ||
+                        atBlock.lookup(variable.getSimpleName()).filter(Scope.Binding::isLocal).isPresent()) {
+                        String newName = atBlock.freeName(variable.getSimpleName(), handedOut::contains);
+                        handedOut.add(newName);
+                        renamed = (J.NewClass) new RenameVariable<Integer>(variable, newName).visitNonNull(renamed, 0, bodyCursor);
+                    }
+                }
+            }
+            declaredInEarlierBlocks.addAll(declaredInBlock);
+        }
+        return renamed;
+    }
+
+    /**
+     * A hoisted declaration is in scope for the rest of the method body. It clashes with a name declared at any
+     * depth after it, and it would shadow a field or other outer variable that code after it reads.
+     */
+    private boolean clashesInMethodBody(J.NewClass jmockitBlock) {
+        assert jmockitBlock.getBody() != null;
+        Cursor bodyCursor = new Cursor(visitor.getCursor(), methodBody);
+        List<Cursor> following = new ArrayList<>();
+        boolean after = false;
+        for (Statement bodyStatement : methodBody.getStatements()) {
+            if (bodyStatement.isScope(jmockitBlock)) {
+                after = true;
+            } else if (after) {
+                following.add(new Cursor(bodyCursor, bodyStatement));
+            }
+        }
+        Cursor anonymousBody = new Cursor(new Cursor(bodyCursor, jmockitBlock), jmockitBlock.getBody());
+        for (Statement block : expectationBlocks(jmockitBlock)) {
+            if (Scope.at(new Cursor(anonymousBody, block)).collidesAcross(following)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void rewriteBodyStatement(Statement statement, JavaCoordinates coordinates) {
@@ -201,18 +261,5 @@ class SetupStatementsRewriter {
             }
         }
         return true;
-    }
-
-    private static Set<String> getVariableNames(List<Statement> statements) {
-        Set<String> variableNames = new HashSet<>();
-        for (Statement statement : statements) {
-            if (statement instanceof J.VariableDeclarations) {
-                J.VariableDeclarations varDecls = (J.VariableDeclarations) statement;
-                for (J.VariableDeclarations.NamedVariable namedVar : varDecls.getVariables()) {
-                    variableNames.add(namedVar.getSimpleName());
-                }
-            }
-        }
-        return variableNames;
     }
 }

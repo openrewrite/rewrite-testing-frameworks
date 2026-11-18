@@ -1773,6 +1773,358 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
     }
 
     @Test
+    void setupStatementNamedLikeALaterLoopVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              import java.util.List;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test(List<String> list) {
+                      new Expectations() {{
+                          String s = "setup";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test(List<String> list) {
+                      {
+                          String s = "setup";
+                          when(myObject.toString()).thenReturn(s);
+                      }
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeOneInALaterExpectations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test() {
+                      new Expectations() {{
+                          String s = "first";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      myObject.toString();
+                      new Expectations() {{
+                          String s = "second";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      myObject.toString();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test() {
+                      {
+                          String s = "first";
+                          when(myObject.toString()).thenReturn(s);
+                      }
+                      myObject.toString();
+                      String s = "second";
+                      when(myObject.toString()).thenReturn(s);
+                      myObject.toString();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeAFieldReadLater() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+                  String s = "field";
+
+                  void test() {
+                      new Expectations() {{
+                          String s = "setup";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      System.out.println(s);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+                  String s = "field";
+
+                  void test() {
+                      {
+                          String s = "setup";
+                          when(myObject.toString()).thenReturn(s);
+                      }
+                      System.out.println(s);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeAParameterOrAnEarlierLocal() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test(String a) {
+                      String b = "test";
+                      new Expectations() {{
+                          String a = "setupA";
+                          String b = "setupB";
+                          myObject.toString();
+                          result = a + b;
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test(String a) {
+                      String b = "test";
+                      String a1 = "setupA";
+                      String b1 = "setupB";
+                      when(myObject.toString()).thenReturn(a1 + b1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeOneInASiblingBlock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public String getX() {
+                      return "X";
+                  }
+                  public String getY() {
+                      return "Y";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+
+                  void test() {
+                      new Expectations() {
+                        {
+                          String s = "x";
+                          myObject.getX();
+                          result = s;
+                        }
+                        {
+                          String s = "y";
+                          myObject.getY();
+                          result = s;
+                        }
+                      };
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+
+                  void test() {
+                      String s = "x";
+                      String s1 = "y";
+                      when(myObject.getX()).thenReturn(s);
+                      when(myObject.getY()).thenReturn(s1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeAParameterKeptInItsBlock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              import java.util.List;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test(String a, List<String> list) {
+                      new Expectations() {{
+                          String a = "setupA";
+                          String s = "setupS";
+                          myObject.toString();
+                          result = a + s;
+                      }};
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test(String a, List<String> list) {
+                      {
+                          String a1 = "setupA";
+                          String s = "setupS";
+                          when(myObject.toString()).thenReturn(a1 + s);
+                      }
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void emptyExpectationsBlockDoesNotCrash() {
         // Regression test for issue #687 - empty Expectations block caused IndexOutOfBoundsException
         //language=java
