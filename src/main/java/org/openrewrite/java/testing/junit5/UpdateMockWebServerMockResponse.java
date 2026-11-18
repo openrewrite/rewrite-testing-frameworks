@@ -97,13 +97,10 @@ public class UpdateMockWebServerMockResponse extends Recipe {
         put("setBody(*)", "body");
         put("setBodyDelay(long, java.util.concurrent.TimeUnit)", "bodyDelay");
         put("setChunkedBody(*, int)", "chunkedBody");
-        put("setErrorCode(int)", "code");
         put("setHeaders(okhttp3.Headers)", "headers");
         put("setHeadersDelay(long, java.util.concurrent.TimeUnit)", "headersDelay");
-        put("setHttp2ErrorCode(int)", "code");
         put("setResponseCode(int)", "code");
         put("setStatus(java.lang.String)", "status");
-        put("setThrottleBody(long, long, java.util.concurrent.TimeUnit)", "throttleBody");
         put("setTrailers(okhttp3.Headers)", "trailers");
         put("withPush(okhttp3.mockwebserver.PushPromise)", "addPush");
         put("withSettings(okhttp3.internal.http2.Settings)", "settings");

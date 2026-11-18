@@ -66,7 +66,9 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
         private static final String STRICTNESS_KEY = "strictness";
 
         private static final String EXTEND_WITH_MOCKITO_EXTENSION = "@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)";
-        private static final String RUN_WITH_MOCKITO_JUNIT_RUNNER = "@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)";
+        // `org.mockito.runners.MockitoJUnitRunner` is renamed to `org.mockito.junit.MockitoJUnitRunner` by `Mockito1to4Migration`
+        private static final String RUN_WITH_MOCKITO_JUNIT_RUNNER = "@org.junit.runner.RunWith(org.mockito.junit.MockitoJUnitRunner.class)";
+        private static final String RUN_WITH_LEGACY_MOCKITO_JUNIT_RUNNER = "@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)";
 
         @Override
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -90,7 +92,8 @@ public class MockitoJUnitToMockitoExtension extends Recipe {
 
                 // Replace RunWith with ExtendsWith, optionally adding MockitoSettings if not already configured
                 if (classDecl.getBody().getStatements().size() != cd.getBody().getStatements().size() &&
-                        FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty()) {
+                        FindAnnotations.find(classDecl.withBody(null), RUN_WITH_MOCKITO_JUNIT_RUNNER).isEmpty() &&
+                        FindAnnotations.find(classDecl.withBody(null), RUN_WITH_LEGACY_MOCKITO_JUNIT_RUNNER).isEmpty()) {
                     String strictness = getCursor().pollMessage(STRICTNESS_KEY);
                     if (strictness == null) {
                         // As we are in a Rule, and rules where always warn by default,

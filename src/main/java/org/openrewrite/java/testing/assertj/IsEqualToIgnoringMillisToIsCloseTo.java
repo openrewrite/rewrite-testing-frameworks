@@ -25,7 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RecipeDescriptor(
         name = "Replace `AbstractDateAssert#isEqualToIgnoringMillis(java.util.Date)` with `isCloseTo(Date, long)`",
-        description = "`isEqualToIgnoringMillis()` is deprecated in favor of `isCloseTo()`."
+        description = "`isEqualToIgnoringMillis()` is deprecated in favor of `isCloseTo()`. " +
+                "The replacement is weaker: it accepts dates up to 1000 milliseconds apart even when they fall in different seconds, " +
+                "where `isEqualToIgnoringMillis()` required both dates to be in the same second."
 )
 @SuppressWarnings({"java:S1874", "deprecation"})
 public class IsEqualToIgnoringMillisToIsCloseTo {

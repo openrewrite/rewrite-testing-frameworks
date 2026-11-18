@@ -21,7 +21,8 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -39,13 +40,14 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
+import java.nio.file.Path;
 import java.util.*;
 
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
 import static org.openrewrite.java.testing.junit5.SystemRules.*;
 
-public class SystemPropertyRulesToPioneer extends Recipe {
+public class SystemPropertyRulesToPioneer extends ScanningRecipe<Map<String, Set<Path>>> {
     private static final String PROVIDE_SYSTEM_PROPERTY = PACKAGE + ".ProvideSystemProperty";
     private static final String CLEAR_SYSTEM_PROPERTIES = PACKAGE + ".ClearSystemProperties";
     private static final String RESTORE_SYSTEM_PROPERTIES = PACKAGE + ".RestoreSystemProperties";
@@ -63,7 +65,25 @@ public class SystemPropertyRulesToPioneer extends Recipe {
     final String description = "Replaces System Rules' `ProvideSystemProperty`, `ClearSystemProperties` and `RestoreSystemProperties` rules with JUnit Pioneer's `@SetSystemProperty`, `@ClearSystemProperty` and `@RestoreSystemProperties` class annotations, or with their JUnit Jupiter equivalents when JUnit Jupiter 6.1 or later is on the classpath. Only rules that take string literals and are not used elsewhere in the test are migrated; the others are left for the migration to System Stubs.";
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
+    public Map<String, Set<Path>> getInitialValue(ExecutionContext ctx) {
+        return new HashMap<>();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Map<String, Set<Path>> usages) {
+        return new TreeVisitor<Tree, ExecutionContext>() {
+            @Override
+            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
+                if (tree instanceof JavaSourceFile) {
+                    scanFieldUsages((JavaSourceFile) tree, usages);
+                }
+                return tree;
+            }
+        };
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Map<String, Set<Path>> usages) {
         return Preconditions.check(Preconditions.and(new JavaFileChecker<>(), new UsesType<>(PACKAGE + ".*", false)), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
@@ -78,7 +98,7 @@ public class SystemPropertyRulesToPioneer extends Recipe {
                         J.VariableDeclarations field = (J.VariableDeclarations) statement;
                         List<PioneerAnnotation> fieldAnnotations = pioneerAnnotations(field, pkg);
                         if (fieldAnnotations != null && isOnlyDeclared(field, sourceFile) &&
-                            !mayBeUsedElsewhere(field, getCursor())) {
+                            !mayBeUsedElsewhere(field, getCursor(), usages)) {
                             annotationsByField.put(field, fieldAnnotations);
                             annotations.addAll(fieldAnnotations);
                         }

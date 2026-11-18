@@ -22,13 +22,13 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.SearchResult;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,13 +44,13 @@ public class RemoveJreOther extends Recipe {
             new AnnotationMatcher("@org.junit.jupiter.api.condition.DisabledOnJre"));
 
     @Getter
-    final String displayName = "Remove deprecated `JRE.OTHER` from `@EnabledOnJre`/`@DisabledOnJre` arrays";
+    final String displayName = "Flag deprecated `JRE.OTHER` in `@EnabledOnJre`/`@DisabledOnJre`";
 
     @Getter
     final String description = "JUnit 6.1 deprecated `JRE.OTHER` in favor of `int`/`int[]` annotation attributes. " +
-            "This recipe removes `JRE.OTHER` entries from `@EnabledOnJre` and `@DisabledOnJre` array " +
-            "values when other JRE constants remain. Lone `JRE.OTHER` usages are left untouched " +
-            "because they have no mechanical replacement; review them manually.";
+            "`JRE.OTHER` matches every JRE that has no constant, including future ones, so removing it " +
+            "(or the annotation's last array element) changes which JREs the test runs on, and has no mechanical " +
+            "replacement. This recipe makes no edits; it marks the annotations that use `JRE.OTHER` for manual review.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -61,26 +61,30 @@ public class RemoveJreOther extends Recipe {
                 if (JRE_ANNOTATIONS.stream().noneMatch(m -> m.matches(a)) || a.getArguments() == null) {
                     return a;
                 }
-                return a.withArguments(ListUtils.map(a.getArguments(), arg -> {
+                for (Expression arg : a.getArguments()) {
+                    Expression value = arg;
                     if (arg instanceof J.Assignment) {
                         J.Assignment assignment = (J.Assignment) arg;
-                        if (assignment.getVariable() instanceof J.Identifier &&
-                                "value".equals(((J.Identifier) assignment.getVariable()).getSimpleName())) {
-                            Expression stripped = stripOtherFromArray(assignment.getAssignment());
-                            return stripped == assignment.getAssignment() ? assignment : assignment.withAssignment(stripped);
+                        if (!(assignment.getVariable() instanceof J.Identifier) ||
+                                !"value".equals(((J.Identifier) assignment.getVariable()).getSimpleName())) {
+                            continue;
                         }
-                        return assignment;
+                        value = assignment.getAssignment();
                     }
-                    return stripOtherFromArray(arg);
-                }));
+                    if (containsJreOther(value)) {
+                        return SearchResult.found(a, "JRE.OTHER is deprecated and has no mechanical replacement; " +
+                                "removing it would change which JREs match");
+                    }
+                }
+                return a;
             }
 
-            private Expression stripOtherFromArray(Expression expr) {
-                if (!(expr instanceof J.NewArray)) {
-                    return expr;
+            private boolean containsJreOther(Expression expr) {
+                if (expr instanceof J.NewArray) {
+                    List<Expression> initializer = ((J.NewArray) expr).getInitializer();
+                    return initializer != null && initializer.stream().anyMatch(this::isJreOther);
                 }
-                J.NewArray array = (J.NewArray) expr;
-                return array.withInitializer(ListUtils.filter(array.getInitializer(), el -> !isJreOther(el)));
+                return isJreOther(expr);
             }
 
             private boolean isJreOther(Expression expr) {

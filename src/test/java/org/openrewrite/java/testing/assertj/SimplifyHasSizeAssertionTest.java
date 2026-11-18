@@ -324,4 +324,24 @@ class SimplifyHasSizeAssertionTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void doNotChangeUnqualifiedSizeInsideCollectionSubclass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.ArrayList;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyList extends ArrayList<String> {
+                  void check(java.util.List<String> other) {
+                      assertThat(other).hasSize(size());
+                  }
+              }
+              """
+          )
+        );
+    }
 }

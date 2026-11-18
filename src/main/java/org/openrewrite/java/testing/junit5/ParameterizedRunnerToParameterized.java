@@ -45,6 +45,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
     private static final String FIELD_INJECTION_ARGUMENTS = "field-injection-args";
     private static final String PARAMETERS_METHOD_NAME = "parameters-method-name";
     private static final String BEFORE_METHOD_NAME = "before-method-name";
+    private static final String UNSUPPORTED_PARAMETER_INDEX = "unsupported-parameter-index";
 
     @Getter
     final String displayName = "JUnit 4 `@RunWith(Parameterized.class)` to JUnit Jupiter parameterized tests";
@@ -63,7 +64,7 @@ public class ParameterizedRunnerToParameterized extends Recipe {
         public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
             J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
             Map<String, Object> params = getCursor().pollMessage(classDecl.getId().toString());
-            if (params != null) {
+            if (params != null && !params.containsKey(UNSUPPORTED_PARAMETER_INDEX)) {
                 String parametersMethodName = (String) params.get(PARAMETERS_METHOD_NAME);
                 List<Expression> parametersAnnotationArguments = (List<Expression>) params.get(PARAMETERS_ANNOTATION_ARGUMENTS);
                 List<Statement> constructorParams = (List<Statement>) params.get(CONSTRUCTOR_ARGUMENTS);
@@ -117,10 +118,13 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                     parameterAnnotation = leadingAnnotation;
                     if (parameterAnnotation.getArguments() != null && !(parameterAnnotation.getArguments().get(0) instanceof J.Empty)) {
                         J positionArg = parameterAnnotation.getArguments().get(0);
-                        if (positionArg instanceof J.Assignment) {
-                            position = (Integer) ((J.Literal) ((J.Assignment) positionArg).getAssignment()).getValue();
+                        Expression indexExpression = positionArg instanceof J.Assignment ? ((J.Assignment) positionArg).getAssignment() : (Expression) positionArg;
+                        if (indexExpression instanceof J.Literal && ((J.Literal) indexExpression).getValue() instanceof Integer) {
+                            position = (Integer) ((J.Literal) indexExpression).getValue();
                         } else {
-                            position = (Integer) ((J.Literal) positionArg).getValue();
+                            // The index is a constant or other expression we cannot order by, so leave the class as is
+                            Map<String, TreeMap<Integer, Statement>> classParams = classDeclCursor.computeMessageIfAbsent(((J.ClassDeclaration) classDeclCursor.getValue()).getId().toString(), v -> new HashMap<>());
+                            classParams.put(UNSUPPORTED_PARAMETER_INDEX, new TreeMap<>());
                         }
                     }
                     break;
@@ -153,6 +157,11 @@ public class ParameterizedRunnerToParameterized extends Recipe {
 
         private final String initStatementParamString;
 
+        /**
+         * What the constructor throws, which the init method that replaces it still throws, and so do the tests that call it.
+         */
+        private final List<NameTree> initThrows;
+
         @Nullable
         private final String beforeMethodName;
 
@@ -168,6 +177,15 @@ public class ParameterizedRunnerToParameterized extends Recipe {
             this.initMethodName = initMethodName;
             this.isConstructorInjection = isConstructorInjection;
             this.beforeMethodName = beforeMethodName;
+            this.initThrows = new ArrayList<>();
+            if (isConstructorInjection) {
+                for (Statement st : scope.getBody().getStatements()) {
+                    if (st instanceof J.MethodDeclaration && ((J.MethodDeclaration) st).isConstructor() &&
+                        ((J.MethodDeclaration) st).getThrows() != null) {
+                        initThrows.addAll(((J.MethodDeclaration) st).getThrows());
+                    }
+                }
+            }
 
             this.parameterizedTestMethodParameters = parameterizedTestMethodParameters.stream()
                     .map(mp -> mp.withPrefix(Space.EMPTY).withComments(new ArrayList<>()))
@@ -354,6 +372,16 @@ public class ParameterizedRunnerToParameterized extends Recipe {
                         .build()
                         .apply(updateCursor(m), newStatementCoordinates, initStatementParamString);
                 m = maybeAutoFormat(m, m.withParameters(parameterizedTestMethodParameters), parameterizedTestMethodParameters.get(parameterizedTestMethodParameters.size() - 1), ctx, getCursor().getParentTreeCursor());
+                if (!initThrows.isEmpty()) {
+                    List<NameTree> thrown = m.getThrows() == null ? new ArrayList<>() : new ArrayList<>(m.getThrows());
+                    for (NameTree t : initThrows) {
+                        String name = t.printTrimmed(getCursor());
+                        if (thrown.stream().noneMatch(x -> name.equals(x.printTrimmed(getCursor())))) {
+                            thrown.add(t.withPrefix(Space.SINGLE_SPACE));
+                        }
+                    }
+                    m = m.withThrows(thrown);
+                }
             }
 
             // Change constructor to test init method

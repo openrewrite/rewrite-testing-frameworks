@@ -2540,7 +2540,8 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               "mockito-core-3.12",
               "powermock-api-mockito-1",
               "powermock-core-1",
-              "powermock-module-junit4")
+              "powermock-module-junit4",
+              "powermock-module-junit4-common")
             //language=java
             .dependsOn(
               """

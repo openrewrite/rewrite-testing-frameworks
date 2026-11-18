@@ -16,71 +16,38 @@
 package org.openrewrite.java.testing.junit5;
 
 import lombok.Getter;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.ScanningRecipe;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.Recipe;
 import org.openrewrite.java.dependencies.AddDependency;
-import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.JavaType;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Collections;
+import java.util.List;
 
-public class AddHamcrestJUnitDependency extends ScanningRecipe<AtomicBoolean> {
+public class AddHamcrestJUnitDependency extends Recipe {
 
     @Getter
     final String displayName = "Add Hamcrest JUnit dependency";
 
     @Getter
-    final String description = "Add Hamcrest JUnit dependency only if JUnit 4's `assertThat` or `assumeThat` is used.";
+    final String description = "Add `org.hamcrest:hamcrest-junit` only to the modules that use its `org.hamcrest.junit` types, " +
+            "such as `MatcherAssume`. Run this after `Assume#assumeThat` has been migrated.";
 
     @Override
-    public AtomicBoolean getInitialValue(ExecutionContext ctx) {
-        return new AtomicBoolean(false);
-    }
-
-    @Override
-    public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean acc) {
-        // No need to scan for AddDependency, as we'll unconditionally add the dependency if we find a match below
-        MethodMatcher methodMatcher = new MethodMatcher("org.junit.Ass* *That(..)");
-        return new TreeVisitor<Tree, ExecutionContext>() {
-            @Override
-            public Tree preVisit(Tree tree, ExecutionContext ctx) {
-                stopAfterPreVisit();
-                if (tree instanceof JavaSourceFile && !acc.get()) {
-                    for (JavaType.Method type : ((JavaSourceFile) tree).getTypesInUse().getUsedMethods()) {
-                        if (methodMatcher.matches(type)) {
-                            acc.set(true);
-                        }
-                    }
-                }
-                return tree;
-            }
-        };
-    }
-
-    @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(AtomicBoolean acc) {
-        if (acc.get()) {
-            // We can unconditionally add the dependency here
-            return new AddDependency(
-                    "org.hamcrest",
-                    "hamcrest-junit",
-                    "2.x",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    "test",
-                    null,
-                    null,
-                    null,
-                    true
-            ).getVisitor();
-        }
-        return TreeVisitor.noop();
+    public List<Recipe> getRecipeList() {
+        return Collections.singletonList(new AddDependency(
+                "org.hamcrest",
+                "hamcrest-junit",
+                "2.x",
+                null,
+                "org.hamcrest.junit..*",
+                null,
+                null,
+                null,
+                null,
+                "test",
+                null,
+                null,
+                null,
+                true
+        ));
     }
 }

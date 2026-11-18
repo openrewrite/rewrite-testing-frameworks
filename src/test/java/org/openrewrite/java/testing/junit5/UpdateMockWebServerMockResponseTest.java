@@ -308,7 +308,6 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                       MockResponse mrJ = mockResponse.setHeader("accept","application/json");
                       MockResponse mrK = mockResponse.setHeaders(new Headers.Builder().add("accept:application/json").build());
                       MockResponse mrL = mockResponse.setHeadersDelay(30L, TimeUnit.SECONDS);
-                      MockResponse mrM = mockResponse.setHttp2ErrorCode(500);
                       MockResponse mrN = mockResponse.setResponseCode(200);
                       MockResponse mrO = mockResponse.setStatus("OK");
                       MockResponse mrP = mockResponse.setTrailers(new Headers.Builder().add("x-trailer:value").build());
@@ -350,7 +349,6 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                       MockResponse.Builder mrJ = mockResponse.setHeader("accept","application/json");
                       MockResponse.Builder mrK = mockResponse.headers(new Headers.Builder().add("accept:application/json").build());
                       MockResponse.Builder mrL = mockResponse.headersDelay(30L, TimeUnit.SECONDS);
-                      MockResponse.Builder mrM = mockResponse.code(500);
                       MockResponse.Builder mrN = mockResponse.code(200);
                       MockResponse.Builder mrO = mockResponse.status("OK");
                       MockResponse.Builder mrP = mockResponse.trailers(new Headers.Builder().add("x-trailer:value").build());
@@ -364,6 +362,77 @@ class UpdateMockWebServerMockResponseTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void lambdaReturnInsideDispatchIsNotBuilt() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import okhttp3.mockwebserver.Dispatcher;
+              import okhttp3.mockwebserver.MockResponse;
+              import okhttp3.mockwebserver.RecordedRequest;
+              import java.util.function.Supplier;
+
+              class A extends Dispatcher {
+                  @Override
+                  public MockResponse dispatch(RecordedRequest request) {
+                      Supplier<Integer> code = () -> {
+                          return 404;
+                      };
+                      return new MockResponse().setResponseCode(code.get());
+                  }
+              }
+              """,
+            """
+              import mockwebserver3.MockResponse;
+              import mockwebserver3.Dispatcher;
+              import mockwebserver3.RecordedRequest;
+              import java.util.function.Supplier;
+
+              class A extends Dispatcher {
+                  @Override
+                  public MockResponse dispatch(RecordedRequest request) {
+                      Supplier<Integer> code = () -> {
+                          return 404;
+                      };
+                      return new MockResponse.Builder().code(code.get()).build();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void http2ErrorCodeIsNotTheStatusCode() {
+        rewriteRun(
+          spec -> spec.recipeQualityValidation(RecipeQualityValidation.builder().parserTypedTrees(true).compilableOutput(false).build()),
+          //language=java
+          java(
+            """
+              import okhttp3.mockwebserver.MockResponse;
+
+              class A {
+                  MockResponse response() {
+                      return new MockResponse().setResponseCode(200).setHttp2ErrorCode(8);
+                  }
+              }
+              """,
+            """
+              import mockwebserver3.MockResponse;
+
+              class A {
+                  MockResponse.Builder response() {
+                      return new MockResponse.Builder().code(200).setHttp2ErrorCode(8);
+                  }
+              }
+              """,
+            // The 5.x Builder has no counterpart, so the call is left for a person to migrate and cannot compile
+            spec -> spec.afterRecipe(cu -> { })
           )
         );
     }

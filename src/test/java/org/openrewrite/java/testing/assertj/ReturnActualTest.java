@@ -41,23 +41,50 @@ class ReturnActualTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  List<String> test(List<String> list) {
-                      assertThat(list).isNotNull();
-                      return list;
+                  String test(String s) {
+                      assertThat(s).isNotNull();
+                      return s;
                   }
               }
               """,
             """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class MyTest {
+                  String test(String s) {
+                      return assertThat(s).isNotNull().actual();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void noChangeForCollectionsWhoseActualIsWildcard() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.Collection;
               import java.util.List;
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  List<String> test(List<String> list) {
-                      return assertThat(list).isNotNull().actual();
+                  List<String> list(List<String> list) {
+                      assertThat(list).isNotNull();
+                      return list;
+                  }
+                  Collection<String> collection(Collection<String> collection) {
+                      assertThat(collection).isNotNull();
+                      return collection;
+                  }
+                  Iterable<String> iterable(Iterable<String> iterable) {
+                      assertThat(iterable).isNotNull();
+                      return iterable;
                   }
               }
               """
@@ -75,7 +102,7 @@ class ReturnActualTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  List<String> test(List<String> list) {
+                  String test(String list) {
                       assertThat(list).isNotNull().hasSize(3);
                       return list;
                   }
@@ -86,7 +113,7 @@ class ReturnActualTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class MyTest {
-                  List<String> test(List<String> list) {
+                  String test(String list) {
                       return assertThat(list).isNotNull().hasSize(3).actual();
                   }
               }

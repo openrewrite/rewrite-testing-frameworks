@@ -37,6 +37,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
               "powermock-api-support-2",
               "powermock-core-2",
               "powermock-module-junit4",
+              "powermock-module-junit4-common",
               "powermock-reflect-2"))
           .recipe(new FlagUnsupportedPowerMockUsage());
     }

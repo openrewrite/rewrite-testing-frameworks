@@ -272,7 +272,16 @@ final class ScopedMocks {
         if (typeExpression instanceof J.ParameterizedType) {
             J.ParameterizedType parameterized = (J.ParameterizedType) typeExpression;
             typeExpression = parameterized.withType(fieldType).withTypeParameters(ListUtils.map(parameterized.getTypeParameters(),
-                    typeParameter -> typeParameter instanceof J.Identifier ? ((J.Identifier) typeParameter).withType(mockedType) : typeParameter));
+                    typeParameter -> {
+                        if (typeParameter instanceof J.Identifier) {
+                            return ((J.Identifier) typeParameter).withType(mockedType);
+                        } else if (typeParameter instanceof J.FieldAccess) {
+                            // A qualified name, such as `Outer.Inner`
+                            J.FieldAccess qualified = (J.FieldAccess) typeParameter;
+                            return qualified.withName(qualified.getName().withType(mockedType)).withType(mockedType);
+                        }
+                        return typeParameter;
+                    }));
         }
         return declarations.withTypeExpression(typeExpression).withVariables(ListUtils.map(declarations.getVariables(),
                 variable -> variable

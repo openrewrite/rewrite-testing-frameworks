@@ -68,7 +68,7 @@ public class TruthThrowableAssertions extends Recipe {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
                             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageContaining(#{any()})")
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageContaining(#{any(java.lang.String)})")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                                     .build()
@@ -82,7 +82,7 @@ public class TruthThrowableAssertions extends Recipe {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
                             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageMatching(#{any()})")
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageMatching(#{any(java.lang.String)})")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                                     .build()
@@ -96,7 +96,7 @@ public class TruthThrowableAssertions extends Recipe {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
                             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageNotContaining(#{any()})")
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageNotContaining(#{any(java.lang.String)})")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                                     .build()
@@ -110,7 +110,7 @@ public class TruthThrowableAssertions extends Recipe {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
                             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageStartingWith(#{any()})")
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageStartingWith(#{any(java.lang.String)})")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                                     .build()
@@ -124,7 +124,7 @@ public class TruthThrowableAssertions extends Recipe {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
                             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageEndingWith(#{any()})")
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessageEndingWith(#{any(java.lang.String)})")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                                     .build()
@@ -138,7 +138,7 @@ public class TruthThrowableAssertions extends Recipe {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
                             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                            return JavaTemplate.builder("assertThat(#{any()}).hasMessage(#{any()})")
+                            return JavaTemplate.builder("assertThat(#{any()}).hasMessage(#{any(java.lang.String)})")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                                     .build()
@@ -152,7 +152,7 @@ public class TruthThrowableAssertions extends Recipe {
                             maybeRemoveImport("com.google.common.truth.Truth");
                             maybeRemoveImport("com.google.common.truth.Truth.assertThat");
                             maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
-                            return JavaTemplate.builder("assertThat(#{any()}).hasCauseInstanceOf(#{any()})")
+                            return JavaTemplate.builder("assertThat(#{any()}).hasCauseInstanceOf(#{any(java.lang.Class)})")
                                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
                                     .staticImports("org.assertj.core.api.Assertions.assertThat")
                                     .build()

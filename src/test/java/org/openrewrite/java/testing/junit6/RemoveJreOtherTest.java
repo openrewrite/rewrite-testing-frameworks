@@ -36,7 +36,7 @@ class RemoveJreOtherTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void stripJreOtherFromEnabledOnJreArray() {
+    void flagJreOtherNextToOtherConstants() {
         rewriteRun(
           //language=java
           java(
@@ -59,7 +59,7 @@ class RemoveJreOtherTest implements RewriteTest {
 
               class MyTest {
                   @Test
-                  @EnabledOnJre({JRE.JAVA_21})
+                  /*~~(JRE.OTHER is deprecated and has no mechanical replacement; removing it would change which JREs match)~~>*/@EnabledOnJre({JRE.JAVA_21, JRE.OTHER})
                   void test() {
                   }
               }
@@ -69,7 +69,7 @@ class RemoveJreOtherTest implements RewriteTest {
     }
 
     @Test
-    void stripJreOtherFromDisabledOnJreValueAttribute() {
+    void flagJreOtherInDisabledOnJreValueAttribute() {
         rewriteRun(
           //language=java
           java(
@@ -92,7 +92,7 @@ class RemoveJreOtherTest implements RewriteTest {
 
               class MyTest {
                   @Test
-                  @DisabledOnJre(value = {JRE.JAVA_17})
+                  /*~~(JRE.OTHER is deprecated and has no mechanical replacement; removing it would change which JREs match)~~>*/@DisabledOnJre(value = {JRE.JAVA_17, JRE.OTHER})
                   void test() {
                   }
               }
@@ -102,7 +102,40 @@ class RemoveJreOtherTest implements RewriteTest {
     }
 
     @Test
-    void leaveLoneJreOtherAlone() {
+    void flagLoneBracedJreOther() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  @EnabledOnJre({JRE.OTHER})
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  /*~~(JRE.OTHER is deprecated and has no mechanical replacement; removing it would change which JREs match)~~>*/@EnabledOnJre({JRE.OTHER})
+                  void test() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void flagLoneJreOther() {
         rewriteRun(
           //language=java
           java(
@@ -114,6 +147,18 @@ class RemoveJreOtherTest implements RewriteTest {
               class MyTest {
                   @Test
                   @EnabledOnJre(JRE.OTHER)
+                  void test() {
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.junit.jupiter.api.condition.EnabledOnJre;
+              import org.junit.jupiter.api.condition.JRE;
+
+              class MyTest {
+                  @Test
+                  /*~~(JRE.OTHER is deprecated and has no mechanical replacement; removing it would change which JREs match)~~>*/@EnabledOnJre(JRE.OTHER)
                   void test() {
                   }
               }

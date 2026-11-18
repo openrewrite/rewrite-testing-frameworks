@@ -96,27 +96,6 @@ public class RunnerToExtension extends Recipe {
 
                 return cd;
             }
-
-            @Override
-            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-
-                for (String runner : runners) {
-                    for (J.Annotation runWith : FindAnnotations.find(method.withBody(null), "@org.junit.runner.RunWith(" + runner + ".class)")) {
-                        md = buildExtendsWithTemplate(ctx).apply(
-                                updateCursor(md),
-                                runWith.getCoordinates().replace(),
-                                extensionType.getClassName()
-                        );
-                        maybeRemoveImport("org.junit.runner.RunWith");
-                        maybeRemoveImport(runner);
-                        maybeAddImport("org.junit.jupiter.api.extension.ExtendWith");
-                        maybeAddImport(extension);
-                    }
-                }
-
-                return md;
-            }
         });
     }
 }

@@ -18,7 +18,6 @@ package org.openrewrite.java.testing.assertj;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
@@ -48,30 +47,22 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
 
     @Option(displayName = "AssertJ chained assertion",
             description = "The chained AssertJ assertion to move to dedicated assertion.",
-            example = "equals",
-            required = false)
-    @Nullable
+            example = "equals")
     String chainedAssertion;
 
     @Option(displayName = "AssertJ replaced assertion",
             description = "The AssertJ assert that should be replaced.",
-            example = "isTrue",
-            required = false)
-    @Nullable
+            example = "isTrue")
     String assertToReplace;
 
     @Option(displayName = "AssertJ replacement assertion",
             description = "The AssertJ method to migrate to.",
-            example = "isEqualTo",
-            required = false)
-    @Nullable
+            example = "isEqualTo")
     String dedicatedAssertion;
 
     @Option(displayName = "Required type",
             description = "The type of the actual assertion argument.",
-            example = "java.lang.String",
-            required = false)
-    @Nullable
+            example = "java.lang.String")
     String requiredType;
 
     @Getter
@@ -173,8 +164,8 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                         .contextSensitive()
                         .staticImports(assertions + ".assertThat")
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "junit-jupiter-api-5", "assertj-core-3"));
-                if (template.contains("Path.of(")) {
-                    builder.imports("java.nio.file.Path");
+                if (template.contains("Paths.get(")) {
+                    builder.imports("java.nio.file.Paths");
                 }
                 J.MethodInvocation result = builder.build()
                         .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
@@ -221,11 +212,11 @@ public class SimplifyChainedAssertJAssertion extends Recipe {
                 // If either argument is empty, we choose which one to add to the arguments list, and optionally extract the select
                 arguments.add(assertThatArgumentIsEmpty ? methodToReplaceArgument : assertThatArgument);
 
-                // Special case for Path.of() assertions
+                // Special case for Paths.get() assertions
                 if ("java.nio.file.Path".equals(requiredType) && dedicatedAssertion.contains("Raw") &&
                     TypeUtils.isAssignableTo("java.lang.String", assertThatArgument.getType())) {
-                    maybeAddImport("java.nio.file.Path");
-                    return "assertThat(#{any()}).%s(Path.of(#{any()}))";
+                    maybeAddImport("java.nio.file.Paths");
+                    return "assertThat(#{any()}).%s(Paths.get(#{any()}))";
                 }
 
                 return "assertThat(#{any()}).%s(#{any()})";

@@ -90,7 +90,12 @@ public class CategoryToTag extends Recipe {
                 if (annotationArgument instanceof J.NewArray) {
                     J.NewArray argArray = (J.NewArray) annotationArgument;
                     if (argArray.getInitializer() != null) {
+                        if (!argArray.getInitializer().stream().allMatch(e -> e instanceof J.FieldAccess || e instanceof J.Empty)) {
+                            // Not a class literal we can name a tag after, so leave the annotation as is
+                            return Stream.of(maybeCategory);
+                        }
                         categories = argArray.getInitializer().stream()
+                                .filter(J.FieldAccess.class::isInstance)
                                 .map(J.FieldAccess.class::cast);
                     }
                 }

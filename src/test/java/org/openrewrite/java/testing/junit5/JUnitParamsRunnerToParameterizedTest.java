@@ -361,7 +361,7 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               @RunWith(JUnitParamsRunner.class)
               class CsvSourceTests {
                   @Test
-                  // JunitParamsRunnerToParameterized conversion not supported
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
                   @Parameters({"01.12.2012"})
                   public void csvSource(@Param(converter = NullableConverter.class) Date date) { }
               }
@@ -401,9 +401,151 @@ class JUnitParamsRunnerToParameterizedTest implements RewriteTest {
               @RunWith(JUnitParamsRunner.class)
               class EnumSourceTests {
                   @Test
-                  // JunitParamsRunnerToParameterized conversion not supported
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
                   @Parameters(source = PersonType.class)
                   public void enumsAsParamsInMethod(PersonType person) { }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void initMethodReadingInstanceFieldNotConverted() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+
+              @RunWith(JUnitParamsRunner.class)
+              public class FooTests {
+                  static class Foo {
+                      int a() { return 1; }
+                  }
+
+                  private final Foo foo = new Foo();
+
+                  @Test
+                  @Parameters
+                  public void usesFoo(int a) {
+                  }
+
+                  private Object[] parametersForUsesFoo() {
+                      return new Object[]{ foo.a() };
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+
+              @RunWith(JUnitParamsRunner.class)
+              public class FooTests {
+                  static class Foo {
+                      int a() { return 1; }
+                  }
+
+                  private final Foo foo = new Foo();
+
+                  @Test
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
+                  @Parameters
+                  public void usesFoo(int a) {
+                  }
+
+                  private Object[] parametersForUsesFoo() {
+                      return new Object[]{ foo.a() };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void methodNamesWithSpacesAreTrimmed() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+
+              @RunWith(JUnitParamsRunner.class)
+              public class SpacedTests {
+                  @Test
+                  @Parameters(method = "first, second")
+                  public void spaced(String p1) { }
+
+                  private Object[] first() {
+                      return new Object[]{"a"};
+                  }
+
+                  private Object[] second() {
+                      return new Object[]{"b"};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.MethodSource;
+
+              public class SpacedTests {
+                  @ParameterizedTest
+                  @MethodSource({"first", "second"})
+                  public void spaced(String p1) { }
+
+                  private static Object[] first() {
+                      return new Object[]{"a"};
+                  }
+
+                  private static Object[] second() {
+                      return new Object[]{"b"};
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void pipeSeparatedCsvNotConverted() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+
+              @RunWith(JUnitParamsRunner.class)
+              class PipeTests {
+                  @Test
+                  @Parameters({"Lav|20", "Katy|25"})
+                  public void pipes(String name, int age) { }
+              }
+              """,
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import junitparams.JUnitParamsRunner;
+              import junitparams.Parameters;
+
+              @RunWith(JUnitParamsRunner.class)
+              class PipeTests {
+                  @Test
+                  // TODO JunitParamsRunnerToParameterized conversion not supported
+                  @Parameters({"Lav|20", "Katy|25"})
+                  public void pipes(String name, int age) { }
               }
               """
           )

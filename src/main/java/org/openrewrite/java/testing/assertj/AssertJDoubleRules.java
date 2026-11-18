@@ -110,10 +110,7 @@ public class AssertJDoubleRules {
       return Refaster.anyOf(
           doubleAssert.isEqualTo(0),
           doubleAssert.isEqualTo(0.0),
-          doubleAssert.isEqualTo(0d),
-          doubleAssert.isSameAs(0),
-          doubleAssert.isSameAs(0.0),
-          doubleAssert.isSameAs(0d)
+          doubleAssert.isEqualTo(0d)
       );
     }
 
@@ -156,10 +153,7 @@ public class AssertJDoubleRules {
       return Refaster.anyOf(
           doubleAssert.isEqualTo(1),
           doubleAssert.isEqualTo(1.0),
-          doubleAssert.isEqualTo(1d),
-          doubleAssert.isSameAs(1),
-          doubleAssert.isSameAs(1.0),
-          doubleAssert.isSameAs(1d)
+          doubleAssert.isEqualTo(1d)
       );
     }
 

@@ -23,6 +23,7 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
+import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.search.FindImports;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.*;
@@ -57,7 +58,8 @@ public class UpdateTestAnnotation extends Recipe {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J.CompilationUnit c = super.visitCompilationUnit(cu, ctx);
             Set<NameTree> nameTreeSet = c.findType("org.junit.Test");
-            if (!nameTreeSet.isEmpty()) {
+            // The annotations may be retyped already, which leaves the import for `ChangeType` to move
+            if (!nameTreeSet.isEmpty() || c.getImports().stream().anyMatch(i -> !i.isStatic() && "org.junit.Test".equals(i.getTypeName()))) {
                 // Update other references like `Test.class`.
                 c = (J.CompilationUnit) new ChangeType("org.junit.Test", "org.junit.jupiter.api.Test", true)
                         .getVisitor().visitNonNull(c, ctx);
@@ -154,7 +156,9 @@ public class UpdateTestAnnotation extends Recipe {
                 if (cta.timeout != null) {
                     // JUnit 4 ran `@Test(timeout = N)` bodies in a separate daemon thread, so a hanging test never
                     // blocked the runner; `@Timeout` defaults to the same thread, where a non-interruptible body hangs.
-                    m = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)")
+                    // `threadMode` arrived in Jupiter 5.9, so leave it out when the classpath has an older `@Timeout`
+                    m = JavaTemplate.builder("@Timeout(value = #{any(long)}, unit = TimeUnit.MILLISECONDS" +
+                                             (supportsThreadMode() ? ", threadMode = Timeout.ThreadMode.SEPARATE_THREAD)" : ")"))
                             .javaParser(javaParser)
                             .imports("org.junit.jupiter.api.Timeout", "java.util.concurrent.TimeUnit")
                             .build()
@@ -172,6 +176,26 @@ public class UpdateTestAnnotation extends Recipe {
             }
 
             return super.visitMethodDeclaration(m, ctx);
+        }
+
+        private boolean supportsThreadMode() {
+            JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+            if (sourceFile == null) {
+                return true;
+            }
+            return sourceFile.getMarkers().findFirst(JavaSourceSet.class)
+                    .map(sourceSet -> {
+                        boolean hasTimeout = false;
+                        for (JavaType.FullyQualified type : sourceSet.getClasspath()) {
+                            String name = type.getFullyQualifiedName();
+                            if ("org.junit.jupiter.api.Timeout$ThreadMode".equals(name) || "org.junit.jupiter.api.Timeout.ThreadMode".equals(name)) {
+                                return true;
+                            }
+                            hasTimeout |= "org.junit.jupiter.api.Timeout".equals(name);
+                        }
+                        return !hasTimeout;
+                    })
+                    .orElse(true);
         }
 
         private J.MethodDeclaration removeSpecificThrowsClause(J.MethodDeclaration method, Expression expectedException) {

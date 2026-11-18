@@ -201,4 +201,29 @@ class EnvironmentVariablesTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void leavesClassAloneWhenClearReceivesAnArray() {
+        rewriteRun(
+          // language=java
+          java(
+            """
+              import org.junit.contrib.java.lang.system.EnvironmentVariables;
+              import org.junit.Rule;
+              import org.junit.jupiter.api.Test;
+
+              public class ArrayClearTest {
+                  @Rule
+                  public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
+                  @Test
+                  void test() {
+                      String[] names = {"clear1", "clear2"};
+                      environmentVariables.clear(names);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

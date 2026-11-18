@@ -94,9 +94,33 @@ public class ReturnActual extends Recipe {
                 while (current.getSelect() instanceof J.MethodInvocation) {
                     J.MethodInvocation select = (J.MethodInvocation) current.getSelect();
                     if (ASSERT_THAT.matches(select)) {
-                        return !(select.getArguments().get(0) instanceof MethodCall) && isTypeCompatible(select, mi);
+                        return !(select.getArguments().get(0) instanceof MethodCall) &&
+                               !hasWildcardParameter(select) &&
+                               isTypeCompatible(select, mi);
                     }
                     current = select;
+                }
+                return false;
+            }
+
+            /**
+             * Overloads such as `assertThat(List<? extends E>)` have a wildcard `ACTUAL` type, so `actual()` would
+             * return `List<? extends E>`, which can't be returned as `List<E>`.
+             */
+            private boolean hasWildcardParameter(J.MethodInvocation assertThat) {
+                JavaType.Method methodType = assertThat.getMethodType();
+                if (methodType == null || methodType.getParameterTypes().isEmpty()) {
+                    return true;
+                }
+                JavaType.Parameterized parameterized = TypeUtils.asParameterized(methodType.getParameterTypes().get(0));
+                if (parameterized == null) {
+                    return false;
+                }
+                for (JavaType typeParameter : parameterized.getTypeParameters()) {
+                    if (typeParameter instanceof JavaType.GenericTypeVariable &&
+                        ((JavaType.GenericTypeVariable) typeParameter).getVariance() != JavaType.GenericTypeVariable.Variance.INVARIANT) {
+                        return true;
+                    }
                 }
                 return false;
             }

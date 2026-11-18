@@ -31,7 +31,7 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
 
-import static java.util.Collections.nCopies;
+import static java.util.Collections.emptyList;
 
 public class JUnitFailToAssertJFail extends Recipe {
 
@@ -56,60 +56,34 @@ public class JUnitFailToAssertJFail extends Recipe {
                 }
 
                 List<Expression> args = mi.getArguments();
+                String template;
                 if (args.size() == 1) {
                     // fail(), fail(String), fail(Supplier<String>), fail(Throwable)
-                    if (args.get(0) instanceof J.Empty) {
-                        mi = JavaTemplate.builder(ASSERTJ + ".fail(\"\");")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                .build()
-                                .apply(getCursor(), mi.getCoordinates().replace());
-                    } else if (args.get(0) instanceof J.Literal ||
-                               TypeUtils.isAssignableTo("java.lang.String", args.get(0).getType())) {
-                        mi = JavaTemplate.builder(ASSERTJ + ".fail(#{any()});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                .build()
-                                .apply(getCursor(), mi.getCoordinates().replace(), args.get(0));
+                    Expression arg = args.get(0);
+                    if (arg instanceof J.Empty) {
+                        template = "fail(\"\");";
+                        args = emptyList();
+                    } else if (arg instanceof J.Literal || TypeUtils.isAssignableTo("java.lang.String", arg.getType())) {
+                        template = "fail(#{any(java.lang.String)});";
+                    } else if (TypeUtils.isAssignableTo("java.lang.Throwable", arg.getType())) {
+                        template = "fail(\"\", #{any(java.lang.Throwable)});";
                     } else {
-                        mi = JavaTemplate.builder(ASSERTJ + ".fail(\"\", #{any()});")
-                                .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                                .build()
-                                .apply(getCursor(), mi.getCoordinates().replace(), args.get(0));
+                        // A `Supplier<String>` has no AssertJ equivalent; do not silently drop its message
+                        return mi;
                     }
                 } else {
                     // fail(String, Throwable)
-                    String anyArgs = String.join(",", nCopies(args.size(), "#{any()}"));
-                    mi = JavaTemplate.builder(ASSERTJ + ".fail(" + anyArgs + ");")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                            .build()
-                            .apply(getCursor(), mi.getCoordinates().replace(), args.toArray());
+                    template = "fail(#{any(java.lang.String)}, #{any(java.lang.Throwable)});";
                 }
 
                 maybeRemoveImport(JUNIT);
-                doAfterVisit(new UnqualifiedMethodInvocations());
-                return mi;
-            }
-
-            class UnqualifiedMethodInvocations extends JavaIsoVisitor<ExecutionContext> {
-                private final MethodMatcher INTERNAL_FAIL_MATCHER = new MethodMatcher(ASSERTJ + " fail(..)");
-
-                @Override
-                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                    J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                    if (!INTERNAL_FAIL_MATCHER.matches(mi)) {
-                        return mi;
-                    }
-
-                    maybeRemoveImport(JUNIT + ".fail");
-                    maybeAddImport(ASSERTJ, "fail");
-
-                    List<Expression> arguments = mi.getArguments();
-                    String anyArgs = String.join(",", nCopies(arguments.size(), "#{any()}"));
-                    return JavaTemplate.builder("fail(" + anyArgs + ");")
-                            .staticImports(ASSERTJ + ".fail")
-                            .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
-                            .build()
-                            .apply(getCursor(), mi.getCoordinates().replace(), arguments.toArray());
-                }
+                maybeRemoveImport(JUNIT + ".fail");
+                maybeAddImport(ASSERTJ, "fail");
+                return JavaTemplate.builder(template)
+                        .staticImports(ASSERTJ + ".fail")
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "assertj-core-3"))
+                        .build()
+                        .apply(getCursor(), mi.getCoordinates().replace(), args.toArray());
             }
         });
     }

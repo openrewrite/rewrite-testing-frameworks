@@ -28,6 +28,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
@@ -80,14 +81,16 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                 // executable argument; otherwise leave the call untouched as the types would conflict.
                 Expression executable = args.get(1);
                 JavaType.Variable executableVariable = null;
-                if (executable instanceof J.Identifier) {
-                    JavaType.Variable fieldType = ((J.Identifier) executable).getFieldType();
-                    if (fieldType != null && TypeUtils.isOfClassType(fieldType.getType(), JUNIT_EXECUTABLE)) {
-                        if (!allUsagesAreAssertThrowsExecutable(fieldType)) {
-                            return mi;
-                        }
-                        executableVariable = fieldType;
+                if (!(executable instanceof J.Lambda || executable instanceof J.MemberReference) &&
+                        TypeUtils.isOfClassType(executable.getType(), JUNIT_EXECUTABLE)) {
+                    // Only a plain reference to a local variable or private field can be retyped; anything else
+                    // (a method call, `this.executable`, a parameter, ...) would still be an `Executable`.
+                    JavaType.Variable fieldType = executable instanceof J.Identifier ?
+                            ((J.Identifier) executable).getFieldType() : null;
+                    if (fieldType == null || !allUsagesAreAssertThrowsExecutable(fieldType)) {
+                        return mi;
                     }
+                    executableVariable = fieldType;
                 }
 
                 boolean returnActual = hasReturnType.get();
@@ -172,7 +175,8 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                             Object parent = getCursor().getParentTreeCursor().getValue();
                             boolean ok = false;
                             if (parent instanceof J.VariableDeclarations.NamedVariable) {
-                                ok = ((J.VariableDeclarations.NamedVariable) parent).getName() == identifier;
+                                ok = ((J.VariableDeclarations.NamedVariable) parent).getName() == identifier &&
+                                        isLocalOrPrivateField(variable);
                             } else if (parent instanceof J.Assignment) {
                                 ok = ((J.Assignment) parent).getVariable() == identifier;
                             } else if (parent instanceof J.MethodInvocation) {
@@ -186,6 +190,16 @@ public class JUnitAssertThrowsToAssertExceptionType extends Recipe {
                             }
                         }
                         return super.visitIdentifier(identifier, safe);
+                    }
+
+                    private boolean isLocalOrPrivateField(JavaType.Variable v) {
+                        // Declared directly in a block: a local variable, or a field of the enclosing class.
+                        // Parameters, lambda parameters and loop variables have another parent.
+                        Object declarations = getCursor().getParentTreeCursor().getParentTreeCursor().getParentTreeCursor().getValue();
+                        if (!(declarations instanceof J.Block)) {
+                            return false;
+                        }
+                        return v.getOwner() instanceof JavaType.Method || v.hasFlags(Flag.Private);
                     }
                 }.reduce(cu, new AtomicBoolean(true)).get();
             }
