@@ -581,6 +581,65 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
+    void siblingAssertThrowsHoistDistinctNames() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(Exception.class, () -> {
+                          doA();
+                          testThing(getC());
+                      });
+                      assertThrows(Exception.class, () -> {
+                          doB();
+                          testThing(getC());
+                      });
+                  }
+
+                  void doA();
+                  void doB();
+                  String getC();
+                  void testThing(String c);
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.*;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      doA();
+                      String c = getC();
+                      assertThrows(Exception.class, () ->
+                          testThing(c));
+                      doB();
+                      String c1 = getC();
+                      assertThrows(Exception.class, () ->
+                          testThing(c1));
+                  }
+
+                  void doA();
+                  void doB();
+                  String getC();
+                  void testThing(String c);
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void lastStatementHasArgumentWhichIsChainedMethodCall() {
         rewriteRun(
           //language=java
