@@ -1191,6 +1191,61 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
     }
 
     @Test
+    void capturesEffectivelyFinalLocalNamedLikeAnEarlierLoopCounter() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              import java.util.ArrayList;
+              import java.util.List;
+
+              public class MyTest {
+                  @Rule
+                  public ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void outOfBounds() {
+                      List<Integer> list = new ArrayList<>();
+                      for (int i = 0; i < 3; i++) {
+                          list.add(i);
+                      }
+                      int i = list.size();
+                      thrown.expect(IndexOutOfBoundsException.class);
+                      list.get(i);
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import java.util.ArrayList;
+              import java.util.List;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              public class MyTest {
+
+                  @Test
+                  public void outOfBounds() {
+                      List<Integer> list = new ArrayList<>();
+                      for (int i = 0; i < 3; i++) {
+                          list.add(i);
+                      }
+                      int i = list.size();
+                      assertThrows(IndexOutOfBoundsException.class, () ->
+                          list.get(i));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void inlinedValueRetainsTypeAttribution() {
         //language=java
         rewriteRun(
@@ -1780,6 +1835,58 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       }
 
                       void map(String s) {
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void whenBlankLocalAssignedAfterExpect() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          String result;
+                          thrown.expect(NullPointerException.class);
+                          result = map("invalid");
+                      }
+
+                      String map(String s) {
+                          return s;
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.Rule;
+                  import org.junit.Test;
+                  import org.junit.rules.ExpectedException;
+
+                  public class MyTest {
+                      // TODO Migrate by hand and remove this rule: a test below reads a reassigned local, which the `assertThrows(..)` lambda can not capture.
+                      @Rule
+                      public ExpectedException thrown = ExpectedException.none();
+
+                      @Test
+                      public void testMapping() {
+                          String result;
+                          thrown.expect(NullPointerException.class);
+                          result = map("invalid");
+                      }
+
+                      String map(String s) {
+                          return s;
                       }
                   }
                   """

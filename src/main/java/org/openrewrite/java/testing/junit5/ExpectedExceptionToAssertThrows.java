@@ -27,6 +27,8 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.ParenthesizeVisitor;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.trait.Scope;
+import org.openrewrite.java.trait.VariableAccess;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
@@ -396,42 +398,20 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
 
         /**
          * The statements moving into the assertThrows(...) lambda may only capture effectively final
-         * locals, so a local they read that is assigned anywhere in the method -- before expect*(), or
-         * by the moved statements themselves -- means the migration would not compile. Inlining removes
-         * the read for the shapes it handles; anything left is reported here so the method is left alone
-         * rather than rewritten into a lambda javac rejects.
+         * locals and may not assign any local they capture, so doing otherwise means the migration would
+         * not compile. Inlining removes the read for the shapes it handles. A capture left over is reported
+         * here, and the method is left alone.
          */
         private static boolean capturesNonEffectivelyFinalLocal(List<Statement> moved, Cursor cursor) {
-            J.MethodDeclaration method = cursor.firstEnclosing(J.MethodDeclaration.class);
-            if (method == null) {
-                return false;
-            }
-            List<JavaType.Variable> declaredInMoved = new ArrayList<>();
-            List<JavaType.Variable> capturedLocals = new ArrayList<>();
-            JavaIsoVisitor<Integer> collector = new JavaIsoVisitor<Integer>() {
-                @Override
-                public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Integer p) {
-                    if (variable.getVariableType() != null) {
-                        declaredInMoved.add(variable.getVariableType());
-                    }
-                    return super.visitVariable(variable, p);
-                }
-
-                @Override
-                public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
-                    JavaType.Variable fieldType = identifier.getFieldType();
-                    if (fieldType != null && fieldType.getOwner() instanceof JavaType.Method) {
-                        capturedLocals.add(fieldType);
-                    }
-                    return super.visitIdentifier(identifier, p);
-                }
-            };
             for (Statement statement : moved) {
-                collector.visit(statement, 0);
-            }
-            for (JavaType.Variable local : capturedLocals) {
-                boolean declaredInLambda = declaredInMoved.stream().anyMatch(declared -> TypeUtils.isOfType(declared, local));
-                if (!declaredInLambda && countAssignments(method, local) > 0) {
+                Cursor region = new Cursor(cursor, statement);
+                // A local declared by any moved statement moves into the lambda with them
+                if (Scope.referencedWithin(region)
+                        .filter(binding -> binding.getNamespace() == Scope.Namespace.VARIABLE && binding.isLocal())
+                        .filter(binding -> moved.stream().noneMatch(m -> binding.getCursor().isScopeInPath(m)))
+                        // A blank local assigned once only in the moved statements is effectively final, yet a lambda cannot assign it
+                        .anyMatch(binding -> !binding.isEffectivelyFinal() ||
+                                             binding.references(region).anyMatch(reference -> new VariableAccess(reference).isWriteAccess()))) {
                     return true;
                 }
             }
