@@ -19,9 +19,9 @@ import org.openrewrite.java.search.FindAnnotations;
 import org.openrewrite.java.tree.J;
 
 enum TestFramework {
-    JUNIT4("Before", "After", "org.junit", "junit-4", "", true),
-    JUNIT5("BeforeEach", "AfterEach", "org.junit.jupiter.api", "junit-jupiter-api-5", "", false),
-    TESTNG("BeforeMethod", "AfterMethod", "org.testng.annotations", "testng-7", "(alwaysRun = true)", false);
+    JUNIT4("Before", "After", "org.junit", "junit-4", "", true, "org.junit.Assert"),
+    JUNIT5("BeforeEach", "AfterEach", "org.junit.jupiter.api", "junit-jupiter-api-5", "", false, "org.junit.jupiter.api.Assertions"),
+    TESTNG("BeforeMethod", "AfterMethod", "org.testng.annotations", "testng-7", "(alwaysRun = true)", false, "org.testng.Assert");
 
     final String setUpAnnotation;
     final String tearDownAnnotation;
@@ -32,9 +32,11 @@ enum TestFramework {
     final String tearDownImport;
     final String tearDownAnnotationParameters;
     final boolean publicMethods;
+    final String assertionsClass;
 
     TestFramework(String setUpName, String tearDownName, String annotationPackage,
-                  String classpathResource, String tearDownAnnotationParameters, boolean publicMethods) {
+                  String classpathResource, String tearDownAnnotationParameters, boolean publicMethods, String assertionsClass) {
+        this.assertionsClass = assertionsClass;
         this.setUpAnnotation = "@" + setUpName;
         this.tearDownAnnotation = "@" + tearDownName;
         this.setUpAnnotationSignature = "@" + annotationPackage + "." + setUpName;
@@ -44,6 +46,11 @@ enum TestFramework {
         this.tearDownImport = annotationPackage + "." + tearDownName;
         this.tearDownAnnotationParameters = tearDownAnnotationParameters;
         this.publicMethods = publicMethods;
+    }
+
+    /// The `assertEquals` call comparing a count, which TestNG takes with the actual value first.
+    String assertCount(String actual, String expected) {
+        return this == TESTNG ? actual + ", " + expected : expected + ", " + actual;
     }
 
     static TestFramework detect(J tree) {

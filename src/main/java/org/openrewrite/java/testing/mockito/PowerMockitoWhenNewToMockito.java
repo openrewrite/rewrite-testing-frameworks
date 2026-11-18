@@ -60,6 +60,11 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         put("anyCollection", "java.util.Collection");
         put("anyIterable", "Iterable");
     }};
+    private static final MethodMatcher VERIFY_NEW = new MethodMatcher("org.powermock.api.mockito.PowerMockito verifyNew(java.lang.Class, ..)");
+    private static final MethodMatcher VERIFY_NEW_ARGUMENTS = new MethodMatcher("org.powermock.api.mockito.verification.ConstructorArgumentsVerification with*(..)");
+    private static final MethodMatcher TIMES = new MethodMatcher("org.mockito.Mockito times(int)");
+    private static final MethodMatcher NEVER = new MethodMatcher("org.mockito.Mockito never()");
+    private static final MethodMatcher AT_LEAST_ONCE = new MethodMatcher("org.mockito.Mockito atLeastOnce()");
     private static final MethodMatcher THEN_RETURN = new MethodMatcher("org.mockito.stubbing.OngoingStubbing thenReturn(..)");
 
     @Getter
@@ -96,6 +101,10 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                         maybeAddImport("org.mockito.AdditionalAnswers");
                         maybeAddImport("org.mockito.Mockito");
                         maybeAddImport("java.util.Objects");
+                        maybeAddImport(framework.assertionsClass);
+                        maybeRemoveImport("org.powermock.api.mockito.PowerMockito.verifyNew");
+                        maybeRemoveImport("org.mockito.Mockito.times");
+                        maybeRemoveImport("org.mockito.Mockito.never");
                         for (String owner : new String[]{"org.mockito.ArgumentMatchers.", "org.mockito.Matchers.", "org.mockito.Mockito."}) {
                             for (String matcher : MATCHER_NAMES) {
                                 maybeRemoveImport(owner + matcher);
@@ -108,6 +117,54 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
 
     private static final List<String> MATCHER_NAMES = Stream.concat(Stream.of("any", "anyObject", "eq", "isA"),
             MATCHED_TYPES.keySet().stream()).collect(toList());
+
+    /// `verifyNew(Type.class, mode).withX(..)` as the type, and the assertion on the number of constructions that
+    /// stands for it, with its parameters; null for what a count of constructions cannot say, such as the values the
+    /// constructor was called with.
+    private static final class VerifyNew {
+        final JavaType.FullyQualified mockedType;
+        final String expectedCount;
+        final @Nullable Expression times;
+
+        VerifyNew(JavaType.FullyQualified mockedType, String expectedCount, @Nullable Expression times) {
+            this.mockedType = mockedType;
+            this.expectedCount = expectedCount;
+            this.times = times;
+        }
+    }
+
+    private static @Nullable VerifyNew verifyNew(Statement statement) {
+        if (!(statement instanceof J.MethodInvocation) || !VERIFY_NEW_ARGUMENTS.matches((J.MethodInvocation) statement)) {
+            return null;
+        }
+        J.MethodInvocation with = (J.MethodInvocation) statement;
+        Expression select = with.getSelect();
+        if (!(select instanceof J.MethodInvocation) || !VERIFY_NEW.matches(select)) {
+            return null;
+        }
+        // Only the number of constructions is known, so the arguments can only be matched by their kind
+        for (Expression argument : with.getArguments()) {
+            if (!(argument instanceof J.Empty) && !(argument instanceof J.MethodInvocation &&
+                    (MATCHER.matches(argument) || LEGACY_MATCHER.matches(argument)))) {
+                return null;
+            }
+        }
+        List<Expression> verifyNewArguments = ((J.MethodInvocation) select).getArguments();
+        JavaType.FullyQualified mockedType = classLiteral(verifyNewArguments.get(0));
+        if (mockedType == null) {
+            return null;
+        }
+        if (verifyNewArguments.size() == 1) {
+            return new VerifyNew(mockedType, "1", null);
+        }
+        Expression mode = verifyNewArguments.get(1);
+        if (TIMES.matches(mode)) {
+            return new VerifyNew(mockedType, "#{any(int)}", ((J.MethodInvocation) mode).getArguments().get(0));
+        } else if (NEVER.matches(mode)) {
+            return new VerifyNew(mockedType, "0", null);
+        }
+        return null;
+    }
 
     private static final class WhenNew {
         final JavaType.FullyQualified mockedType;
@@ -355,8 +412,11 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
             List<Statement> rewritten = new ArrayList<>(b.getStatements().size());
             for (Statement statement : b.getStatements()) {
                 List<WhenNew> stubbings = plan.rewrite.get(statement.getId());
+                VerifyNew verifyNew = verifyNew(statement);
                 if (stubbings != null) {
                     rewritten.addAll(mockConstruction(statement, stubbings, ctx));
+                } else if (verifyNew != null && mocks.get(MOCKED_CONSTRUCTION, verifyNew.mockedType) != null) {
+                    rewritten.add(assertConstructed(statement, verifyNew, ctx));
                 } else if (!plan.remove.contains(statement.getId())) {
                     rewritten.add(statement);
                 }
@@ -375,6 +435,32 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
             return close == null ?
                     singletonList(assignment) :
                     Arrays.asList(close.withPrefix(stubbing.getPrefix().withComments(emptyList())), assignment);
+        }
+
+        private Statement assertConstructed(Statement verification, VerifyNew verifyNew, ExecutionContext ctx) {
+            ScopedMocks.ScopedMock mock = requireNonNull(mocks.get(MOCKED_CONSTRUCTION, verifyNew.mockedType));
+            TestFramework framework = TestFramework.detect(getCursor().firstEnclosingOrThrow(JavaSourceFile.class));
+            String assertions = framework.assertionsClass.substring(framework.assertionsClass.lastIndexOf('.') + 1);
+            List<Object> parameters = new ArrayList<>();
+            parameters.add(mock.field());
+            String actual = "#{any(org.mockito.MockedConstruction)}.constructed().size()";
+            String call = assertions + ".assertEquals(" + framework.assertCount(actual, verifyNew.expectedCount) + ");";
+            if (verifyNew.times != null) {
+                // Parameters appear in the order of the template
+                parameters.clear();
+                if (framework == TestFramework.TESTNG) {
+                    parameters.add(mock.field());
+                    parameters.add(verifyNew.times);
+                } else {
+                    parameters.add(verifyNew.times);
+                    parameters.add(mock.field());
+                }
+            }
+            return JavaTemplate.builder(call)
+                    .imports(framework.assertionsClass, "org.mockito.MockedConstruction")
+                    .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12", framework.classpathResource))
+                    .build()
+                    .apply(new Cursor(getCursor(), verification), verification.getCoordinates().replace(), parameters.toArray());
         }
 
         private J.MethodInvocation mockConstructionWithAnswer(Statement stubbing, WhenNew whenNew, ExecutionContext ctx) {

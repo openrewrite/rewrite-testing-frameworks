@@ -430,4 +430,131 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void verifyNewBecomesAssertionOnConstructedMocks() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+
+              import org.junit.Test;
+
+              import static org.mockito.ArgumentMatchers.anyString;
+              import static org.mockito.Mockito.mock;
+              import static org.mockito.Mockito.never;
+              import static org.mockito.Mockito.times;
+              import static org.powermock.api.mockito.PowerMockito.verifyNew;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      File file = mock(File.class);
+                      whenNew(File.class).withArguments(anyString()).thenReturn(file);
+                      new File("a.txt");
+                      new File("b.txt");
+                      verifyNew(File.class, times(2)).withArguments(anyString());
+                      verifyNew(File.class, never()).withNoArguments();
+                      verifyNew(File.class).withArguments(anyString());
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+
+              import org.junit.After;
+              import org.junit.Assert;
+              import org.junit.Test;
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mock;
+
+              public class MyTest {
+                  private MockedConstruction<File> mockedConstructionFile;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedConstructionFile != null) {
+                          mockedConstructionFile.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      File file = mock(File.class);
+                      mockedConstructionFile = Mockito.mockConstructionWithAnswer(File.class, AdditionalAnswers.delegatesTo(file));
+                      new File("a.txt");
+                      new File("b.txt");
+                      Assert.assertEquals(2, mockedConstructionFile.constructed().size());
+                      Assert.assertEquals(0, mockedConstructionFile.constructed().size());
+                      Assert.assertEquals(1, mockedConstructionFile.constructed().size());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void verifyNewWithArgumentValuesIsLeftAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.io.File;
+
+              import org.junit.Test;
+
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.verifyNew;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      File file = mock(File.class);
+                      whenNew(File.class).withAnyArguments().thenReturn(file);
+                      new File("a.txt");
+                      verifyNew(File.class).withArguments("a.txt");
+                  }
+              }
+              """,
+            """
+              import java.io.File;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.verifyNew;
+
+              public class MyTest {
+                  private MockedConstruction<File> mockedConstructionFile;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedConstructionFile != null) {
+                          mockedConstructionFile.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      File file = mock(File.class);
+                      mockedConstructionFile = Mockito.mockConstructionWithAnswer(File.class, AdditionalAnswers.delegatesTo(file));
+                      new File("a.txt");
+                      verifyNew(File.class).withArguments("a.txt");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
