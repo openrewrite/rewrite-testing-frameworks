@@ -28,6 +28,7 @@ import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
@@ -114,8 +115,12 @@ public class PowerMockWhiteboxSetInternalStateToInjectMocks extends Recipe {
                 if (hasAnnotation(target, INJECT_MOCKS)) {
                     return variableName(target);
                 }
+                // Adding @InjectMocks injects every mock matching a field, not only the one the call set
+                if (!constructedWithoutArguments(target) || injectsOtherMocks(target, value, fields)) {
+                    return null;
+                }
                 // A field reassigned elsewhere would have the injected instance overwritten.
-                return constructedWithoutArguments(target) && !isReassigned(variableName(target)) ?
+                return !isReassigned(variableName(target)) ?
                         variableName(target) : null;
             }
 
@@ -253,6 +258,27 @@ public class PowerMockWhiteboxSetInternalStateToInjectMocks extends Recipe {
             }
         }
         return true;
+    }
+
+    /** Whether a mock other than the one being set would also be injected into a field of the target. */
+    private static boolean injectsOtherMocks(J.VariableDeclarations target, J.VariableDeclarations value,
+                                             List<J.VariableDeclarations> fields) {
+        JavaType.FullyQualified targetType = TypeUtils.asFullyQualified(target.getType());
+        if (targetType == null) {
+            return true;
+        }
+        for (J.VariableDeclarations other : fields) {
+            if (other == value || !(hasAnnotation(other, MOCK) || hasAnnotation(other, SPY))) {
+                continue;
+            }
+            for (JavaType.Variable member : targetType.getMembers()) {
+                if (!member.hasFlags(Flag.Static) && (TypeUtils.isAssignableTo(member.getType(), other.getType()) ||
+                        TypeUtils.isAssignableTo(other.getType(), member.getType()))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Whether the field is initialized with a no-argument constructor, which is what `@InjectMocks` replaces. */
