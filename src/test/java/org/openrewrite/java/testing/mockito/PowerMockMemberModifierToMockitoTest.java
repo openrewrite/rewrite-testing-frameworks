@@ -578,4 +578,86 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void stubStaticMethodInTestNgClass() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "mockito-core-3.12",
+              "powermock-core-1",
+              "powermock-api-mockito-1",
+              "powermock-api-support-1",
+              "powermock-module-junit4",
+              "powermock-module-junit4-common",
+              "powermock-reflect-1",
+              "testng-7")),
+          java(
+            """
+              public class ApiUtils {
+                  public static String service() {
+                      return "real";
+                  }
+              }
+              """),
+          java(
+            """
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.testng.Assert;
+              import org.testng.annotations.BeforeClass;
+              import org.testng.annotations.Test;
+
+              @PrepareForTest({ApiUtils.class})
+              public class ApiTest {
+                  private String service;
+
+                  @BeforeClass
+                  public void setup() {
+                      this.service = "mocked";
+                  }
+
+                  @Test(description = "Testing the stubbed service.")
+                  public void testService() throws Exception {
+                      PowerMockito.stub(PowerMockito.method(ApiUtils.class, "service")).toReturn(this.service);
+                      Assert.assertEquals(ApiUtils.service(), "mocked");
+                  }
+              }
+              """,
+            """
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+              import org.testng.Assert;
+              import org.testng.annotations.AfterMethod;
+              import org.testng.annotations.BeforeClass;
+              import org.testng.annotations.Test;
+
+              public class ApiTest {
+                  private MockedStatic<ApiUtils> mockedApiUtils;
+                  private String service;
+
+                  @BeforeClass
+                  public void setup() {
+                      this.service = "mocked";
+                  }
+
+                  @AfterMethod(alwaysRun = true)
+                  void tearDownStaticMocks() {
+                      if (mockedApiUtils != null) {
+                          mockedApiUtils.closeOnDemand();
+                      }
+                  }
+
+                  @Test(description = "Testing the stubbed service.")
+                  public void testService() throws Exception {
+                      mockedApiUtils = Mockito.mockStatic(ApiUtils.class, Mockito.CALLS_REAL_METHODS);
+                      mockedApiUtils.when(() -> ApiUtils.service()).thenReturn(this.service);
+                      Assert.assertEquals(ApiUtils.service(), "mocked");
+                  }
+              }
+              """
+          )
+        );
+    }
 }

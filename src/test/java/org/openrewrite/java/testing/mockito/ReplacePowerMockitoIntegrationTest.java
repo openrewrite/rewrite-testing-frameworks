@@ -4025,4 +4025,69 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void staticImportedPowerMockitoWhenOnAnInjectedMock() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              package org.bahmni.mart.table.model;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.powermock.api.mockito.PowerMockito.when;
+
+              @RunWith(PowerMockRunner.class)
+              public class EAVTest {
+
+                  @Mock
+                  private Attributes attributes;
+
+                  @Test
+                  public void shouldReturnTypeName() {
+                      when(attributes.getTypeName()).thenReturn("person_attribute_type");
+                      assertEquals("person_attribute_type", attributes.getTypeName());
+                  }
+
+                  interface Attributes {
+                      String getTypeName();
+                  }
+              }
+              """,
+            """
+              package org.bahmni.mart.table.model;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.MockitoJUnitRunner;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.when;
+
+              @RunWith(MockitoJUnitRunner.Silent.class)
+              public class EAVTest {
+
+                  @Mock
+                  private Attributes attributes;
+
+                  @Test
+                  public void shouldReturnTypeName() {
+                      when(attributes.getTypeName()).thenReturn("person_attribute_type");
+                      assertEquals("person_attribute_type", attributes.getTypeName());
+                  }
+
+                  interface Attributes {
+                      String getTypeName();
+                  }
+              }
+              """
+          )
+        );
+    }
 }
