@@ -49,8 +49,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
 
     //language=java
     private static final String UTILS = """
-      package com.example;
-
       import java.io.IOException;
       import java.io.InputStream;
 
@@ -91,8 +89,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.powermock.api.mockito.PowerMockito;
@@ -112,8 +108,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.After;
               import org.junit.Test;
               import org.mockito.MockedStatic;
@@ -149,8 +143,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import java.io.IOException;
               import java.io.InputStream;
 
@@ -186,8 +178,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import java.io.IOException;
               import java.io.InputStream;
 
@@ -239,8 +229,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.powermock.api.mockito.PowerMockito;
@@ -258,8 +246,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.After;
               import org.junit.Test;
               import org.mockito.ArgumentMatchers;
@@ -294,8 +280,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Before;
               import org.junit.Test;
               import org.junit.runner.RunWith;
@@ -318,8 +302,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.After;
               import org.junit.Before;
               import org.junit.Test;
@@ -357,8 +339,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.powermock.api.mockito.PowerMockito;
@@ -375,8 +355,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.Ignore;
               import org.junit.Test;
 
@@ -399,8 +377,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.powermock.api.mockito.PowerMockito;
@@ -422,8 +398,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.After;
               import org.junit.Test;
               import org.mockito.MockedStatic;
@@ -461,8 +435,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.powermock.api.mockito.PowerMockito;
@@ -485,8 +457,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.After;
               import org.junit.Ignore;
               import org.junit.Test;
@@ -528,8 +498,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.powermock.api.mockito.PowerMockito;
@@ -546,8 +514,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.After;
               import org.junit.Test;
               import org.mockito.ArgumentMatchers;
@@ -581,8 +547,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
           java(UTILS),
           java(
             """
-              package com.example;
-
               import org.junit.Test;
               import org.junit.runner.RunWith;
               import org.powermock.api.mockito.PowerMockito;
@@ -599,8 +563,6 @@ class PowerMockMemberModifierToMockitoTest implements RewriteTest {
               }
               """,
             """
-              package com.example;
-
               import org.junit.Ignore;
               import org.junit.Test;
 
