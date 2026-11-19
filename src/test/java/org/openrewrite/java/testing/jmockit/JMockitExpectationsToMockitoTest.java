@@ -19,8 +19,10 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
@@ -1765,6 +1767,420 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                           when(myObject.toString()).thenReturn("foo");
                       }
                       String s = "test";
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeALaterLoopVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              import java.util.List;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test(List<String> list) {
+                      new Expectations() {{
+                          String s = "setup";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test(List<String> list) {
+                      {
+                          String s = "setup";
+                          when(myObject.toString()).thenReturn(s);
+                      }
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeOneInALaterExpectations() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test() {
+                      new Expectations() {{
+                          String s = "first";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      myObject.toString();
+                      new Expectations() {{
+                          String s = "second";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      myObject.toString();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test() {
+                      {
+                          String s = "first";
+                          when(myObject.toString()).thenReturn(s);
+                      }
+                      myObject.toString();
+                      String s = "second";
+                      when(myObject.toString()).thenReturn(s);
+                      myObject.toString();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void stubReadingAnArgumentMatcherStaysInItsBlock() {
+        //language=java
+        rewriteRun(
+          // The static stub becomes mockStatic in a second cycle, whose template parser cannot see `Collaborator` in
+          // the other file, so the identifier it writes has no type
+          spec -> spec.expectedCyclesThatMakeChanges(2)
+            .recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
+          java(
+            """
+              class Collaborator {
+                  static String staticMethod(int i) {
+                      return "";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Collaborator collaborator;
+
+                  void test() {
+                      new Expectations() {{
+                          Collaborator.staticMethod(anyInt);
+                          result = "x";
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockedStatic;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.Mockito.anyInt;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Collaborator collaborator;
+
+                  void test() {
+                      try (MockedStatic<Collaborator> mockCollaborator1 = mockStatic(Collaborator.class)) {
+                          mockCollaborator1.when(() -> Collaborator.staticMethod(anyInt())).thenReturn("x");
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeAFieldReadLater() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+                  String s = "field";
+
+                  void test() {
+                      new Expectations() {{
+                          String s = "setup";
+                          myObject.toString();
+                          result = s;
+                      }};
+                      System.out.println(s);
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+                  String s = "field";
+
+                  void test() {
+                      {
+                          String s = "setup";
+                          when(myObject.toString()).thenReturn(s);
+                      }
+                      System.out.println(s);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeAParameterOrAnEarlierLocal() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test(String a) {
+                      String b = "test";
+                      new Expectations() {{
+                          String a = "setupA";
+                          String b = "setupB";
+                          myObject.toString();
+                          result = a + b;
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test(String a) {
+                      String b = "test";
+                      String a1 = "setupA";
+                      String b1 = "setupB";
+                      when(myObject.toString()).thenReturn(a1 + b1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeOneInASiblingBlock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyObject {
+                  public String getX() {
+                      return "X";
+                  }
+                  public String getY() {
+                      return "Y";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  MyObject myObject;
+
+                  void test() {
+                      new Expectations() {
+                        {
+                          String s = "x";
+                          myObject.getX();
+                          result = s;
+                        }
+                        {
+                          String s = "y";
+                          myObject.getY();
+                          result = s;
+                        }
+                      };
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  MyObject myObject;
+
+                  void test() {
+                      String s = "x";
+                      String s1 = "y";
+                      when(myObject.getX()).thenReturn(s);
+                      when(myObject.getY()).thenReturn(s1);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void setupStatementNamedLikeAParameterKeptInItsBlock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              import java.util.List;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Object myObject;
+
+                  void test(String a, List<String> list) {
+                      new Expectations() {{
+                          String a = "setupA";
+                          String s = "setupS";
+                          myObject.toString();
+                          result = a + s;
+                      }};
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import java.util.List;
+
+              import static org.mockito.Mockito.when;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Object myObject;
+
+                  void test(String a, List<String> list) {
+                      {
+                          String a1 = "setupA";
+                          String s = "setupS";
+                          when(myObject.toString()).thenReturn(a1 + s);
+                      }
+                      for (String s : list) {
+                          System.out.println(s);
+                      }
                   }
               }
               """
