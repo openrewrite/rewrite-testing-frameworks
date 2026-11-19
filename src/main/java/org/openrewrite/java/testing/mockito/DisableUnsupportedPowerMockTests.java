@@ -98,8 +98,12 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 // Usages left over after the methods have been visited sit outside any test method -- in a setup
                 // method, a field, or a class-level annotation -- so the class as a whole cannot run.
                 Map<UUID, String> remaining = reasonsIn(cd);
-                if (remaining.isEmpty() || isDisabled(cd.getLeadingAnnotations())) {
+                if (remaining.isEmpty()) {
                     return cd;
+                }
+                if (isDisabled(cd.getLeadingAnnotations())) {
+                    // Already disabled, so nothing to annotate or record, but the PowerMock dependency is removed
+                    return commentOutBodiesHoldingUsage(cd);
                 }
                 String reason = String.join("; ", new LinkedHashMap<>(remaining).values());
                 disabledTests.insertRow(ctx, new PowerMockTestsDisabled.Row(
@@ -123,7 +127,8 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                     unsupported.remove(id);
                 }
                 if (isDisabled(method.getLeadingAnnotations())) {
-                    return method;
+                    // Already disabled, so nothing to annotate or record, but the PowerMock dependency is removed
+                    return commentOutBody(method, getCursor().getParentOrThrow());
                 }
                 String reason = String.join("; ", new LinkedHashMap<>(reasons).values());
                 J.ClassDeclaration enclosing = getCursor().firstEnclosing(J.ClassDeclaration.class);
