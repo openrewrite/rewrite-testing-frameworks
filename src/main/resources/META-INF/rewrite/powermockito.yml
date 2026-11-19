@@ -186,13 +186,14 @@ recipeList:
       annotationPattern: "@org.powermock.core.classloader.annotations.SuppressStaticInitializationFor"
   - org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
   - org.openrewrite.java.testing.mockito.PowerMockMemberModifierToMockito
+  # Before the static mocks, as a stubbed static call is turned into `when(Type.class, "method", ..)` that they migrate
+  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
+  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingTargetToMockito
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
       returnType: org.mockito.MockedStatic
-  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
-  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingTargetToMockito
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
