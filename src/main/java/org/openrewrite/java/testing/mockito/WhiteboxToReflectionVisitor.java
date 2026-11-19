@@ -84,6 +84,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     private @Nullable JavaSourceFile stringConstantsSource;
     private List<J.VariableDeclarations.NamedVariable> stringConstants = emptyList();
     private final Set<String> castImports = new LinkedHashSet<>();
+    private final Set<String> replacedCallImports = new LinkedHashSet<>();
 
     WhiteboxToReflectionVisitor(String reflectiveImport, MethodMatcher... matchers) {
         this.reflectiveImport = reflectiveImport;
@@ -356,6 +357,9 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             // reflection wrapped instead.
             md = canWidenSignature(md) ? addThrowsExceptionIfAbsent(md) : wrapBodyInTryCatch(md, ctx);
             maybeRemoveImport(WHITEBOX_FQN);
+            for (String replacedCallImport : replacedCallImports) {
+                maybeRemoveImport(replacedCallImport);
+            }
             maybeAddImport(reflectiveImport, false);
             return maybeAutoFormat(method, md, ctx);
         }
@@ -440,6 +444,18 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return false;
     }
 
+    /**
+     * The arguments of the declaration {@link #hoist} returns: by default the class literal of the member's owner,
+     * the member's name and the {@link Hoisted#furtherDeclarationArguments}.
+     */
+    Object[] hoistedDeclarationArgs(Hoisted hoisted, JavaType.@Nullable Method resolvedMethod) {
+        List<Object> declarationArgs = new ArrayList<>();
+        declarationArgs.add(classLiteral(requireNonNull(lookupOwner(hoisted.call, resolvedMethod))));
+        declarationArgs.add(hoisted.call.getArguments().get(1));
+        declarationArgs.addAll(hoisted.furtherDeclarationArguments);
+        return declarationArgs.toArray();
+    }
+
     String castPrefix(J.MethodInvocation mi) {
         JavaType returnType = mi.getMethodType() == null ? null : mi.getMethodType().getReturnType();
         if (returnType instanceof JavaType.Parameterized) {
@@ -496,12 +512,8 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 J.MethodInvocation nested = hoisted.call;
                 List<Expression> args = nested.getArguments();
                 JavaType.Method resolvedMethod = resolve(nested);
-                List<Object> declarationArgs = new ArrayList<>();
-                declarationArgs.add(classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))));
-                declarationArgs.add(args.get(1));
-                declarationArgs.addAll(hoisted.furtherDeclarationArguments);
                 b = reflectionTemplate(hoisted.declaration, resolvedMethod).apply(blockCursor,
-                        statement.getCoordinates().before(), declarationArgs.toArray());
+                        statement.getCoordinates().before(), hoistedDeclarationArgs(hoisted, resolvedMethod));
                 // Passed as a parameter because the template parser does not attribute a local it has just inserted.
                 List<Expression> expressionArgs = new ArrayList<>();
                 expressionArgs.add(declaredVariable(b, hoisted.varName));
@@ -594,6 +606,17 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private void recordReplacement(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, WHITEBOX_REPLACED, true);
+        // The call may have been made through a subclass of the declaring type, such as `PowerMockito.field`,
+        // or through a static import of either.
+        if (mi.getMethodType() != null) {
+            String declaringType = mi.getMethodType().getDeclaringType().getFullyQualifiedName();
+            replacedCallImports.add(declaringType);
+            replacedCallImports.add(declaringType + "." + mi.getSimpleName());
+        }
+        JavaType.FullyQualified selectType = mi.getSelect() == null ? null : TypeUtils.asFullyQualified(mi.getSelect().getType());
+        if (selectType != null && mi.getSelect() instanceof TypeTree) {
+            replacedCallImports.add(selectType.getFullyQualifiedName());
+        }
         // onlyIfReferenced=false: the class literals were only just templated in, so the type
         // attribution `maybeAddImport` looks for is not there yet.
         for (String paramImport : resolvedParamImports(resolvedMethod)) {
