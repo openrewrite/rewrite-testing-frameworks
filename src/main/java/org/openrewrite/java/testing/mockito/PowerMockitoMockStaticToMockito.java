@@ -76,41 +76,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 new JavaIsoVisitor<ExecutionContext>() {
                     @Override
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
-                        J.ClassDeclaration visited = super.visitClassDeclaration(classDecl, ctx);
-                        try {
-                            return migrate(visited, ctx);
-                        } catch (RuntimeException e) {
-                            if (!isUnsupportedService(e)) {
-                                throw e;
-                            }
-                            // The `JavaTemplate` engine asks the source file for services it does not provide
-                            // when the LST was built by an older version than the engine, as in a bundle that
-                            // brings its own `rewrite-java`. Leave this class untouched, so that the tests which
-                            // still use PowerMock are disabled one by one, rather than failing the whole repository.
-                            return visited;
-                        }
-                    }
-
-                    /// The deferred retargeting of the remaining `PowerMockito.mockStatic(..)` calls uses templates too,
-                    /// and runs after the class was migrated, so a failure there is caught here and leaves the file as is.
-                    private TreeVisitor<?, ExecutionContext> leaveFileAloneWhenTemplatesAreUnsupported(TreeVisitor<?, ExecutionContext> delegate) {
-                        return new TreeVisitor<Tree, ExecutionContext>() {
-                            @Override
-                            public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                                try {
-                                    return delegate.visit(tree, ctx);
-                                } catch (RuntimeException e) {
-                                    if (!isUnsupportedService(e)) {
-                                        throw e;
-                                    }
-                                    return tree;
-                                }
-                            }
-                        };
-                    }
-
-                    private J.ClassDeclaration migrate(J.ClassDeclaration visited, ExecutionContext ctx) {
-                        J.ClassDeclaration cd = removePrepareForTest(visited);
+                        J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
+                        cd = removePrepareForTest(cd);
                         cd = retargetInheritedStatics(cd);
 
                         TestFramework framework = TestFramework.detect(getCursor().firstEnclosingOrThrow(JavaSourceFile.class));
@@ -128,9 +95,8 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         usages.unusedImports.forEach(this::maybeRemoveImport);
                         maybeRemoveImport(POWER_MOCKITO);
 
-                        doAfterVisit(leaveFileAloneWhenTemplatesAreUnsupported(
-                                new ChangeMethodTargetToStatic(POWER_MOCKITO + " mockStatic(..)",
-                                        "org.mockito.Mockito", MOCKED_STATIC, null, false).getVisitor()));
+                        doAfterVisit(new ChangeMethodTargetToStatic(POWER_MOCKITO + " mockStatic(..)",
+                                "org.mockito.Mockito", MOCKED_STATIC, null, false).getVisitor());
                         return cd;
                     }
 
@@ -243,16 +209,6 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     }
                 }
         );
-    }
-
-    /// Visitors wrap what they throw in a `RecipeRunException`, so look through the causes.
-    private static boolean isUnsupportedService(Throwable e) {
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            if (t instanceof UnsupportedOperationException) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static ScopedMocks collectStaticMocks(J.ClassDeclaration cd, TestFramework framework) {
