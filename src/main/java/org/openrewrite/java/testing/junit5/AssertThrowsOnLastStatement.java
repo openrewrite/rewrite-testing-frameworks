@@ -66,7 +66,9 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 if (m.getBody() == null) {
                     return m;
                 }
-                return m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
+                List<Statement> methodStatements = m.getBody().getStatements();
+                Cursor methodBody = new Cursor(getCursor(), m.getBody());
+                return m.withBody(m.getBody().withStatements(ListUtils.flatMap(methodStatements, (index, methodStatement) -> {
                     J statementToCheck = methodStatement;
                     final J.VariableDeclarations assertThrowsWithVarDec;
                     final J.VariableDeclarations.NamedVariable assertThrowsVar;
@@ -118,6 +120,23 @@ public class AssertThrowsOnLastStatement extends Recipe {
 
                     Predicate<JavaType> mustStayInLambda = mustStayInLambda(arguments.get(0), m);
                     if (lambdaStatements.subList(0, lambdaStatements.size() - 1).stream().anyMatch(s -> mayThrow(s, mustStayInLambda))) {
+                        return methodStatement;
+                    }
+
+                    // A local moved out of the lambda is in scope for the other arguments of the call and the rest of
+                    // the method body, where a later statement may declare its name again or read a field it would shadow
+                    Cursor statementCursor = new Cursor(methodBody, methodStatement);
+                    List<Cursor> following = new ArrayList<>();
+                    for (Expression otherArgument : arguments) {
+                        if (otherArgument != lambda) {
+                            following.add(new Cursor(statementCursor, otherArgument));
+                        }
+                    }
+                    for (Statement later : methodStatements.subList(index + 1, methodStatements.size())) {
+                        following.add(new Cursor(methodBody, later));
+                    }
+                    Cursor lambdaBody = new Cursor(new Cursor(statementCursor, lambda), body);
+                    if (Scope.at(lambdaBody).collidesAcross(following)) {
                         return methodStatement;
                     }
 

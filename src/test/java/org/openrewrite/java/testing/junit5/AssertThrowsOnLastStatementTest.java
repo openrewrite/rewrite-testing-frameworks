@@ -335,6 +335,91 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
+    void leadingStatementsStayInLambdaWhereALaterStatementDeclaresTheirName() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.Properties;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(IllegalStateException.class, () -> {
+                          Properties props = new Properties();
+                          props.put(1, "value");
+                          check(props);
+                      });
+                      assertThrows(IllegalStateException.class, () -> {
+                          Properties props = new Properties();
+                          props.put(true, "value");
+                          check(props);
+                      });
+                  }
+                  void check(Properties props) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import java.util.Properties;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  void test() {
+                      assertThrows(IllegalStateException.class, () -> {
+                          Properties props = new Properties();
+                          props.put(1, "value");
+                          check(props);
+                      });
+                      Properties props = new Properties();
+                      props.put(true, "value");
+                      assertThrows(IllegalStateException.class, () ->
+                          check(props));
+                  }
+                  void check(Properties props) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leadingStatementsStayInLambdaWhereAnotherArgumentReadsAFieldOfTheirName() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  String message = "boom";
+
+                  @Test
+                  void test() {
+                      assertThrows(IllegalStateException.class, () -> {
+                          String message = "x";
+                          check(message);
+                      }, message);
+                  }
+                  void check(String s) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void javaFactoryMethodOfNestedTypeUsesItsSimpleName() {
         rewriteRun(
           //language=java
