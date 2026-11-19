@@ -335,6 +335,61 @@ class AssertThrowsOnLastStatementTest implements RewriteTest {
     }
 
     @Test
+    void javaFactoryMethodOfNestedTypeUsesItsSimpleName() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  static class Inner {
+                      static Inner of() {
+                          return new Inner();
+                      }
+                  }
+
+                  @Test
+                  void test() {
+                      assertThrows(RuntimeException.class, () -> {
+                          doA();
+                          testThing(Inner.of());
+                      });
+                  }
+                  void doA() {}
+                  void testThing(Inner inner) {}
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+                  static class Inner {
+                      static Inner of() {
+                          return new Inner();
+                      }
+                  }
+
+                  @Test
+                  void test() {
+                      doA();
+                      MyTest.Inner inner = Inner.of();
+                      assertThrows(RuntimeException.class, () ->
+                          testThing(inner));
+                  }
+                  void doA() {}
+                  void testThing(Inner inner) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void applyToLastStatementWithDeclaringVariableThreeLinesHasLineBefore() {
         rewriteRun(
           //language=java

@@ -292,7 +292,9 @@ public class AssertThrowsOnLastStatement extends Recipe {
             private String getTypeBasedVariableName(J.MethodInvocation mi) {
                 JavaType type = mi.getType();
                 if (type instanceof JavaType.FullyQualified) {
-                    return ((JavaType.FullyQualified) type).getClassName();
+                    // The class name of a nested type is qualified by its outer types
+                    String className = ((JavaType.FullyQualified) type).getClassName();
+                    return className.substring(className.lastIndexOf('.') + 1);
                 }
                 return "x";
             }
