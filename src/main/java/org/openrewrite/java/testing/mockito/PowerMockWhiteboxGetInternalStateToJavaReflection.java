@@ -35,6 +35,8 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
 
     private static final MethodMatcher GET_INTERNAL_STATE =
             new MethodMatcher("org.powermock.reflect.Whitebox getInternalState(java.lang.Object, java.lang.String)");
+    private static final MethodMatcher GET_INTERNAL_STATE_WHERE =
+            new MethodMatcher("org.powermock.reflect.Whitebox getInternalState(java.lang.Object, java.lang.String, java.lang.Class)");
 
     @Getter
     final String displayName = "Replace PowerMock `Whitebox.getInternalState()` with Java reflection";
@@ -55,7 +57,7 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
     static class GetInternalStateVisitor extends WhiteboxToReflectionVisitor {
 
         GetInternalStateVisitor() {
-            super("java.lang.reflect.Field", GET_INTERNAL_STATE);
+            super("java.lang.reflect.Field", GET_INTERNAL_STATE, GET_INTERNAL_STATE_WHERE);
         }
 
         @Override
@@ -65,20 +67,40 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
             if (fieldName == null) {
                 return null;
             }
+            JavaType.FullyQualified owner = lookupOwner(mi, resolvedMethod);
+            if (isStatic(mi) && owner == null) {
+                return null;
+            }
             String varName = generateVariableName(fieldName + "Field", scope, INCREMENT_NUMBER);
-            String prefix = fieldLookupPrefix(varName, lookupOwner(mi, resolvedMethod));
+            String prefix = fieldLookupPrefix(varName, owner);
+            // A class literal target means a static field, which `Field.get` takes a null instance for.
+            String instance = isStatic(mi) ? "null" : "#{any(java.lang.Object)}";
             if (sink.varName != null) {
                 if (isNonObjectCast(sink.castType)) {
-                    return prefix + sink.castType + " " + sink.varName + " = (" + boxedCastType(sink.castType) + ") " + varName + ".get(#{any(java.lang.Object)});";
+                    return prefix + sink.castType + " " + sink.varName + " = (" + boxedCastType(sink.castType) + ") " + varName + ".get(" + instance + ");";
                 }
-                return prefix + "Object " + sink.varName + " = " + varName + ".get(#{any(java.lang.Object)});";
+                return prefix + "Object " + sink.varName + " = " + varName + ".get(" + instance + ");";
             }
-            return prefix + varName + ".get(#{any(java.lang.Object)});";
+            return prefix + varName + ".get(" + instance + ");";
+        }
+
+        private boolean isStatic(J.MethodInvocation mi) {
+            return classLiteralType(mi.getArguments().get(0)) != null;
         }
 
         @Override
         JavaType.@Nullable FullyQualified lookupOwner(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
-            return fieldOwner(mi.getArguments().get(0), extractStringLiteral(mi.getArguments().get(1)));
+            List<Expression> args = mi.getArguments();
+            if (args.size() == 3) {
+                JavaType.FullyQualified where = classLiteralType(args.get(2));
+                return where != null && isAccessible(where) ? where : null;
+            }
+            JavaType.FullyQualified literal = classLiteralType(args.get(0));
+            if (literal != null) {
+                JavaType.FullyQualified declaring = fieldDeclaringType(literal, extractStringLiteral(args.get(1)));
+                return declaring != null && isAccessible(declaring) ? declaring : null;
+            }
+            return fieldOwner(args.get(0), extractStringLiteral(args.get(1)));
         }
 
         @Override
@@ -88,8 +110,11 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
                 return null;
             }
             String varName = fieldVarName(mi.getArguments().get(1), scope);
-            return new Hoisted(mi, varName, fieldLookupPrefix(varName, owner),
-                    castPrefix(mi) + "#{any(java.lang.reflect.Field)}.get(#{any(java.lang.Object)})");
+            return isStatic(mi) ?
+                    new Hoisted(mi, varName, fieldLookupPrefix(varName, owner),
+                            castPrefix(mi) + "#{any(java.lang.reflect.Field)}.get(null)", mi.getArguments().size(), false) :
+                    new Hoisted(mi, varName, fieldLookupPrefix(varName, owner),
+                            castPrefix(mi) + "#{any(java.lang.reflect.Field)}.get(#{any(java.lang.Object)})", mi.getArguments().size(), true);
         }
 
         @Override
@@ -100,6 +125,9 @@ public class PowerMockWhiteboxGetInternalStateToJavaReflection extends Recipe {
         @Override
         Object[] buildArgs(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
             List<Expression> args = mi.getArguments();
+            if (isStatic(mi)) {
+                return new Object[]{lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)), args.get(1)};
+            }
             return new Object[]{
                     lookupReceiverArg(args.get(0), lookupOwner(mi, resolvedMethod)),
                     args.get(1),

@@ -80,6 +80,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     private final String reflectiveImport;
     private final List<MethodMatcher> matchers;
 
+    private @Nullable Statement hoistingFrom;
     private @Nullable JavaSourceFile stringConstantsSource;
     private List<J.VariableDeclarations.NamedVariable> stringConstants = emptyList();
     private final Set<String> castImports = new LinkedHashSet<>();
@@ -140,11 +141,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     JavaType.@Nullable FullyQualified fieldDeclaringType(Expression target, @Nullable String fieldName) {
+        return fieldDeclaringType(TypeUtils.asFullyQualified(target.getType()), fieldName);
+    }
+
+    JavaType.@Nullable FullyQualified fieldDeclaringType(JavaType.@Nullable FullyQualified targetType, @Nullable String fieldName) {
         if (fieldName == null) {
             return null;
         }
-        for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
-             type != null; type = type.getSupertype()) {
+        for (JavaType.FullyQualified type = targetType; type != null; type = type.getSupertype()) {
             for (JavaType.Variable member : type.getMembers()) {
                 if (member.getName().equals(fieldName)) {
                     return type;
@@ -402,6 +406,21 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         final String varName;
         final String declaration;
         final String expression;
+        /** The expression takes the arguments from this index on, none of them when it equals the argument count. */
+        final int firstExpressionArgument;
+        /** Whether the expression takes the call's target, which a static member does without. */
+        final boolean takesTarget;
+        /** Arguments of the declaration after the owner's class literal and the member name. */
+        final List<Expression> furtherDeclarationArguments;
+
+        Hoisted(J.MethodInvocation call, String varName, String declaration, String expression) {
+            this(call, varName, declaration, expression, 2, true, emptyList());
+        }
+
+        Hoisted(J.MethodInvocation call, String varName, String declaration, String expression,
+                int firstExpressionArgument, boolean takesTarget) {
+            this(call, varName, declaration, expression, firstExpressionArgument, takesTarget, emptyList());
+        }
     }
 
     /**
@@ -413,12 +432,23 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return null;
     }
 
+    /**
+     * Whether the member lookup of the call can move out of a lambda that is an expression of the statement
+     * it is hoisted in front of, as its arguments only name classes and members rather than lambda parameters.
+     */
+    boolean hoistsOutOfExpressionLambda(J.MethodInvocation mi) {
+        return false;
+    }
+
     String castPrefix(J.MethodInvocation mi) {
         JavaType returnType = mi.getMethodType() == null ? null : mi.getMethodType().getReturnType();
         if (returnType instanceof JavaType.Parameterized) {
             returnType = ((JavaType.Parameterized) returnType).getType();
         }
-        String castType = returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown ?
+        if (returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown) {
+            returnType = typeTheContextTakes(mi);
+        }
+        String castType = returnType == null || returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown ?
                 null : getCastType(returnType);
         if (!isNonObjectCast(castType)) {
             return "";
@@ -431,6 +461,26 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return "(" + boxedCastType(castType) + ") ";
     }
 
+    /// The type that a generic result has to be cast to, as `Object` is what the reflective call returns: the one
+    /// given as the type argument of the call, or the one the method returns where the call is what it returns.
+    private JavaType.@Nullable FullyQualified typeTheContextTakes(J.MethodInvocation mi) {
+        List<Expression> typeParameters = mi.getTypeParameters();
+        if (typeParameters != null && typeParameters.size() == 1) {
+            return TypeUtils.asFullyQualified(typeParameters.get(0).getType());
+        }
+        if (hoistingFrom instanceof J.Return && mi.getId().equals(unwrapped(((J.Return) hoistingFrom).getExpression()))) {
+            J.MethodDeclaration method = getCursor().firstEnclosing(J.MethodDeclaration.class);
+            if (method != null && method.getReturnTypeExpression() != null) {
+                return TypeUtils.asFullyQualified(method.getReturnTypeExpression().getType());
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable UUID unwrapped(@Nullable Expression expression) {
+        return expression == null ? null : expression.getId();
+    }
+
     private J.Block hoistNestedCalls(J.Block block, ExecutionContext ctx) {
         J.Block b = block;
         for (int i = b.getStatements().size() - 1; i >= 0; i--) {
@@ -438,6 +488,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             while (true) {
                 Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
                 Statement statement = findStatement(b, statementId);
+                hoistingFrom = statement;
                 Hoisted hoisted = firstHoistable(statement, blockCursor);
                 if (hoisted == null) {
                     break;
@@ -445,14 +496,21 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 J.MethodInvocation nested = hoisted.call;
                 List<Expression> args = nested.getArguments();
                 JavaType.Method resolvedMethod = resolve(nested);
+                List<Object> declarationArgs = new ArrayList<>();
+                declarationArgs.add(classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))));
+                declarationArgs.add(args.get(1));
+                declarationArgs.addAll(hoisted.furtherDeclarationArguments);
                 b = reflectionTemplate(hoisted.declaration, resolvedMethod).apply(blockCursor,
-                        statement.getCoordinates().before(),
-                        classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))), args.get(1));
+                        statement.getCoordinates().before(), declarationArgs.toArray());
                 // Passed as a parameter because the template parser does not attribute a local it has just inserted.
                 List<Expression> expressionArgs = new ArrayList<>();
                 expressionArgs.add(declaredVariable(b, hoisted.varName));
-                expressionArgs.add(args.get(0));
-                expressionArgs.addAll(args.subList(2, args.size()));
+                if (hoisted.takesTarget) {
+                    expressionArgs.add(args.get(0));
+                }
+                if (hoisted.firstExpressionArgument < args.size()) {
+                    expressionArgs.addAll(args.subList(hoisted.firstExpressionArgument, args.size()));
+                }
                 b = (J.Block) new JavaVisitor<ExecutionContext>() {
                     @Override
                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -513,7 +571,8 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                     return method;
                 }
                 J.MethodInvocation mi = super.visitMethodInvocation(method, found);
-                if (found.get() == null && matches(mi) && isOutsideLambdaAndAnonymousClass(getCursor())) {
+                if (found.get() == null && matches(mi) &&
+                    (isOutsideLambdaAndAnonymousClass(getCursor()) || hoistsOutOfExpressionLambda(mi))) {
                     found.set(hoist(mi, blockCursor));
                 }
                 return mi;
@@ -563,12 +622,27 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         List<String> imports = new ArrayList<>();
         for (JavaType paramType : resolvedMethod.getParameterTypes()) {
-            String paramImport = topLevelImport(TypeUtils.asFullyQualified(paramType));
+            addParamImports(paramType, imports);
+        }
+        return imports;
+    }
+
+    private void addParamImports(@Nullable JavaType type, List<String> imports) {
+        if (type instanceof JavaType.Array) {
+            addParamImports(((JavaType.Array) type).getElemType(), imports);
+        } else if (type instanceof JavaType.GenericTypeVariable) {
+            List<JavaType> bounds = ((JavaType.GenericTypeVariable) type).getBounds();
+            if (!bounds.isEmpty()) {
+                addParamImports(bounds.get(0), imports);
+            }
+        } else {
+            JavaType.FullyQualified fullyQualified = type instanceof JavaType.Parameterized ?
+                    ((JavaType.Parameterized) type).getType() : TypeUtils.asFullyQualified(type);
+            String paramImport = topLevelImport(fullyQualified);
             if (paramImport != null) {
                 imports.add(paramImport);
             }
         }
-        return imports;
     }
 
     private ResultSink sinkFromStatement(Statement statement) {
