@@ -216,24 +216,16 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
 
             private Object nameForReuse(J.Block block, String className, J.VariableDeclarations.NamedVariable variable) {
                 if ("_".equals(variable.getSimpleName())) {
-                    String newName = mockName(className, declaringScope(updateCursor(block), variable), emptyList());
+                    // The new name must be free across the scope that declares the variable, not just this block
+                    Cursor cursor = updateCursor(block);
+                    Cursor declaringScope = Scope.bindingOf(cursor, variable)
+                            .map(binding -> binding.getScope().getCursor())
+                            .orElse(cursor);
+                    String newName = mockName(className, declaringScope, emptyList());
                     doAfterVisit(new RenameVariable<>(variable, newName));
                     return newName;
                 }
                 return variable.getName();
-            }
-
-            /**
-             * The scope around the cursor that declares the variable. A new name for the variable must be free across
-             * all of it.
-             */
-            private Cursor declaringScope(Cursor cursor, J.VariableDeclarations.NamedVariable variable) {
-                for (Scope scope = Scope.at(cursor); scope != null; scope = scope.enclosing().orElse(null)) {
-                    if (scope.getBindings().stream().anyMatch(binding -> binding.getTree().getId().equals(variable.getName().getId()))) {
-                        return scope.getCursor();
-                    }
-                }
-                return cursor;
             }
 
             private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, Object variable, J.MethodInvocation whenArg, ExecutionContext ctx) {

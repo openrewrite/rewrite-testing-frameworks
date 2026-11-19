@@ -19,6 +19,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.RenameVariable;
 import org.openrewrite.java.search.SemanticallyEqual;
@@ -78,7 +79,7 @@ class SetupStatementsRewriter {
             }
 
             // check if setup statement variable names conflict with method body variable names
-            if (clashesInMethodBody(nc)) {
+            if (!setupStatementsCanMoveBefore(nc, setupStatements)) {
                 // When there's a conflict, don't extract setup statements.
                 // Leave them in the expectations block so JMockitBlockRewriter can handle them
                 // and wrap everything in a block to avoid variable name conflicts.
@@ -148,28 +149,19 @@ class SetupStatementsRewriter {
     }
 
     /**
-     * A hoisted declaration is in scope for the rest of the method body. It clashes with a name declared at any
-     * depth after it, and it would shadow a field or other outer variable that code after it reads.
+     * Whether each block's setup statements can stand before the JMockit block with every name meaning what it means
+     * now. A hoisted declaration is in scope for the rest of the method body, where code may declare or read its name.
      */
-    private boolean clashesInMethodBody(J.NewClass jmockitBlock) {
-        assert jmockitBlock.getBody() != null;
-        Cursor bodyCursor = new Cursor(visitor.getCursor(), methodBody);
-        List<Cursor> following = new ArrayList<>();
-        boolean after = false;
-        for (Statement bodyStatement : methodBody.getStatements()) {
-            if (bodyStatement.isScope(jmockitBlock)) {
-                after = true;
-            } else if (after) {
-                following.add(new Cursor(bodyCursor, bodyStatement));
-            }
-        }
-        Cursor anonymousBody = new Cursor(new Cursor(bodyCursor, jmockitBlock), jmockitBlock.getBody());
+    private boolean setupStatementsCanMoveBefore(J.NewClass jmockitBlock, List<Statement> setupStatements) {
+        Cursor statement = new Cursor(new Cursor(visitor.getCursor(), methodBody), jmockitBlock);
         for (Statement block : expectationBlocks(jmockitBlock)) {
-            if (Scope.at(new Cursor(anonymousBody, block)).collidesAcross(following)) {
-                return true;
+            List<Statement> setup = ListUtils.filter(((J.Block) block).getStatements(), setupStatements::contains);
+            if (!setup.isEmpty() &&
+                !Scope.at(Scope.cursorTo(statement, ((J.Block) block).withStatements(setup))).canMoveBefore(statement)) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     private void rewriteBodyStatement(Statement statement, JavaCoordinates coordinates) {

@@ -19,8 +19,10 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
+import org.openrewrite.test.RecipeQualityValidation;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.java.testing.jmockit.JMockitTestUtils.setDefaultParserSettings;
@@ -1884,6 +1886,68 @@ class JMockitExpectationsToMockitoTest implements RewriteTest {
                       String s = "second";
                       when(myObject.toString()).thenReturn(s);
                       myObject.toString();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void stubReadingAnArgumentMatcherStaysInItsBlock() {
+        //language=java
+        rewriteRun(
+          // The static stub becomes mockStatic in a second cycle, whose template parser cannot see `Collaborator` in
+          // the other file, so the identifier it writes has no type
+          spec -> spec.expectedCyclesThatMakeChanges(2)
+            .recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false))),
+          java(
+            """
+              class Collaborator {
+                  static String staticMethod(int i) {
+                      return "";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import mockit.Expectations;
+              import mockit.Mocked;
+              import mockit.integration.junit5.JMockitExtension;
+              import org.junit.jupiter.api.extension.ExtendWith;
+
+              @ExtendWith(JMockitExtension.class)
+              class MyTest {
+                  @Mocked
+                  Collaborator collaborator;
+
+                  void test() {
+                      new Expectations() {{
+                          Collaborator.staticMethod(anyInt);
+                          result = "x";
+                      }};
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.extension.ExtendWith;
+              import org.mockito.Mock;
+              import org.mockito.MockedStatic;
+              import org.mockito.junit.jupiter.MockitoExtension;
+
+              import static org.mockito.Mockito.mockStatic;
+              import static org.mockito.Mockito.anyInt;
+
+              @ExtendWith(MockitoExtension.class)
+              class MyTest {
+                  @Mock
+                  Collaborator collaborator;
+
+                  void test() {
+                      try (MockedStatic<Collaborator> mockCollaborator1 = mockStatic(Collaborator.class)) {
+                          mockCollaborator1.when(() -> Collaborator.staticMethod(anyInt())).thenReturn("x");
+                      }
                   }
               }
               """

@@ -28,7 +28,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.ParenthesizeVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.trait.Scope;
-import org.openrewrite.java.trait.VariableAccess;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.staticanalysis.LambdaBlockToExpression;
@@ -403,19 +402,11 @@ public class ExpectedExceptionToAssertThrows extends Recipe {
          * here, and the method is left alone.
          */
         private static boolean capturesNonEffectivelyFinalLocal(List<Statement> moved, Cursor cursor) {
+            List<Cursor> regions = new ArrayList<>();
             for (Statement statement : moved) {
-                Cursor region = new Cursor(cursor, statement);
-                // A local declared by any moved statement moves into the lambda with them
-                if (Scope.referencedWithin(region)
-                        .filter(binding -> binding.getNamespace() == Scope.Namespace.VARIABLE && binding.isLocal())
-                        .filter(binding -> moved.stream().noneMatch(m -> binding.getCursor().isScopeInPath(m)))
-                        // A blank local assigned once only in the moved statements is effectively final, yet a lambda cannot assign it
-                        .anyMatch(binding -> !binding.isEffectivelyFinal() ||
-                                             binding.references(region).anyMatch(reference -> new VariableAccess(reference).isWriteAccess()))) {
-                    return true;
-                }
+                regions.add(new Cursor(cursor, statement));
             }
-            return false;
+            return !Scope.lambdaCanCapture(regions);
         }
 
         /**
