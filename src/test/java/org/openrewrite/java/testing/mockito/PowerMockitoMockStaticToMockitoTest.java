@@ -1727,8 +1727,9 @@ class PowerMockitoMockStaticToMockitoTest implements RewriteTest {
 
     /// From appdynamics/elasticsearch-monitoring-extension `CatMetricsClientTest`: `mockStatic` follows several local
     /// variables in `@Before`. Templates that need those locals as context ask the source file for a `ScopeService`,
-    /// which an LST built by an older `rewrite-java` than the one running the recipe does not provide. That used to fail
-    /// the whole repository; now the class is left alone, for its tests to be disabled.
+    /// which an LST does not provide, or that a recipe bundle with its own `rewrite-java` loads twice (`ClassCastException`
+    /// on `Scope$Binding`). That failed 75 of 190 repositories; now such a class is left alone, for its tests to be
+    /// disabled. The unit test engine has neither problem, so this only pins the migration of the shape.
     @Test
     void mockStaticAfterLocalVariablesInSetup() {
         //language=java
