@@ -129,7 +129,7 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
               """,
             """
               import java.io.FileReader;
-              import java.util.Objects;
+              import java.util.Collections;
 
               import org.junit.After;
               import org.junit.Test;
@@ -154,12 +154,15 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
                       FileReader first = mock(FileReader.class);
                       FileReader second = mock(FileReader.class);
                       String firstPath = "conf/app.json";
-                      mockedConstructionFileReader = Mockito.mockConstruction(FileReader.class, context ->
-                              context.arguments().size() == 1 && Objects.equals(context.arguments().get(0), "conf/random/app.json") ?
-                                      Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(second)) :
-                                      context.arguments().size() == 1 && Objects.equals(context.arguments().get(0), firstPath) ?
-                                              Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(first)) :
-                                              Mockito.withSettings());
+                      mockedConstructionFileReader = Mockito.mockConstruction(FileReader.class, context -> {
+                          if (context.arguments().equals(Collections.singletonList("conf/random/app.json"))) {
+                              return Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(second));
+                          }
+                          if (context.arguments().equals(Collections.singletonList(firstPath))) {
+                              return Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(first));
+                          }
+                          return Mockito.withSettings();
+                      });
                   }
               }
               """
@@ -178,6 +181,7 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
               import org.junit.Test;
 
               import static org.mockito.ArgumentMatchers.anyString;
+              import static org.mockito.ArgumentMatchers.eq;
               import static org.mockito.Mockito.mock;
               import static org.powermock.api.mockito.PowerMockito.whenNew;
 
@@ -187,12 +191,13 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
                       File any = mock(File.class);
                       File named = mock(File.class);
                       whenNew(File.class).withAnyArguments().thenReturn(any);
-                      whenNew(File.class).withArguments(anyString(), anyString()).thenReturn(named);
+                      whenNew(File.class).withArguments(eq("conf"), anyString()).thenReturn(named);
                   }
               }
               """,
             """
               import java.io.File;
+              import java.util.Objects;
 
               import org.junit.After;
               import org.junit.Test;
@@ -216,10 +221,80 @@ class PowerMockitoWhenNewToMockitoTest implements RewriteTest {
                   public void test() throws Exception {
                       File any = mock(File.class);
                       File named = mock(File.class);
-                      mockedConstructionFile = Mockito.mockConstruction(File.class, context ->
-                              context.arguments().size() == 2 && String.class.isInstance(context.arguments().get(0)) && String.class.isInstance(context.arguments().get(1)) ?
-                                      Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(named)) :
-                                      Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(any)));
+                      mockedConstructionFile = Mockito.mockConstruction(File.class, context -> {
+                          if (context.arguments().size() == 2 && Objects.equals(context.arguments().get(0), "conf") && context.arguments().get(1) instanceof String) {
+                              return Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(named));
+                          }
+                          return Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(any));
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void eqMatchersCompareArgumentListsAndCollectionMatchersImportTheirType() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.ArrayList;
+
+              import org.junit.Test;
+
+              import static org.mockito.ArgumentMatchers.anyList;
+              import static org.mockito.ArgumentMatchers.eq;
+              import static org.mockito.Mockito.mock;
+              import static org.powermock.api.mockito.PowerMockito.whenNew;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      ArrayList copy = mock(ArrayList.class);
+                      ArrayList sized = mock(ArrayList.class);
+                      whenNew(ArrayList.class).withArguments(anyList()).thenReturn(copy);
+                      whenNew(ArrayList.class).withArguments(eq(10)).thenReturn(sized);
+                  }
+              }
+              """,
+            """
+              import java.util.ArrayList;
+              import java.util.Collections;
+              import java.util.List;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.AdditionalAnswers;
+              import org.mockito.MockedConstruction;
+              import org.mockito.Mockito;
+
+              import static org.mockito.Mockito.mock;
+
+              public class MyTest {
+                  private MockedConstruction<ArrayList> mockedConstructionArrayList;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedConstructionArrayList != null) {
+                          mockedConstructionArrayList.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void test() throws Exception {
+                      ArrayList copy = mock(ArrayList.class);
+                      ArrayList sized = mock(ArrayList.class);
+                      mockedConstructionArrayList = Mockito.mockConstruction(ArrayList.class, context -> {
+                          if (context.arguments().equals(Collections.singletonList(10))) {
+                              return Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(sized));
+                          }
+                          if (context.arguments().size() == 1 && context.arguments().get(0) instanceof List) {
+                              return Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(copy));
+                          }
+                          return Mockito.withSettings();
+                      });
                   }
               }
               """

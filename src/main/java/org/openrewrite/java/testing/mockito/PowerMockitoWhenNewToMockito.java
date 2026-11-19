@@ -54,10 +54,10 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         put("anyBoolean", "Boolean");
         put("anyDouble", "Double");
         put("anyFloat", "Float");
-        put("anyList", "java.util.List");
-        put("anySet", "java.util.Set");
-        put("anyMap", "java.util.Map");
-        put("anyCollection", "java.util.Collection");
+        put("anyList", "List");
+        put("anySet", "Set");
+        put("anyMap", "Map");
+        put("anyCollection", "Collection");
         put("anyIterable", "Iterable");
     }};
     private static final MethodMatcher VERIFY_NEW = new MethodMatcher("org.powermock.api.mockito.PowerMockito verifyNew(java.lang.Class, ..)");
@@ -100,7 +100,9 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                         maybeRemoveImport("org.powermock.api.mockito.PowerMockito.whenNew");
                         maybeAddImport("org.mockito.AdditionalAnswers");
                         maybeAddImport("org.mockito.Mockito");
-                        maybeAddImport("java.util.Objects");
+                        for (String type : new String[]{"Arrays", "Collection", "Collections", "List", "Map", "Objects", "Set"}) {
+                            maybeAddImport("java.util." + type);
+                        }
                         maybeAddImport(framework.assertionsClass);
                         maybeRemoveImport("org.powermock.api.mockito.PowerMockito.verifyNew");
                         maybeRemoveImport("org.mockito.Mockito.times");
@@ -356,32 +358,44 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         if (!"withArguments".equals(name)) {
             return UNSUPPORTED;
         }
+        if (arguments.stream().allMatch(argument -> exactValue(argument) != null)) {
+            arguments.stream().map(PowerMockitoWhenNewToMockito::exactValue).forEach(parameters::add);
+            String values = String.join(", ", Collections.nCopies(arguments.size(), "#{any()}"));
+            return contextName + ".arguments().equals(" + (arguments.size() == 1 ? "Collections.singletonList(" : "Arrays.asList(") + values + "))";
+        }
         StringBuilder match = new StringBuilder(contextName + ".arguments().size() == " + arguments.size());
         for (int i = 0; i < arguments.size(); i++) {
             String at = contextName + ".arguments().get(" + i + ")";
             Expression argument = arguments.get(i);
-            if (argument instanceof J.MethodInvocation && (MATCHER.matches(argument) || LEGACY_MATCHER.matches(argument))) {
-                J.MethodInvocation matcher = (J.MethodInvocation) argument;
-                String matcherName = matcher.getSimpleName();
-                if ("eq".equals(matcherName) && matcher.getArguments().size() == 1 && !noArguments(matcher)) {
-                    match.append(" && Objects.equals(").append(at).append(", #{any()})");
-                    parameters.add(matcher.getArguments().get(0));
-                } else if (("any".equals(matcherName) || "isA".equals(matcherName)) && matcher.getArguments().size() == 1 && !noArguments(matcher)) {
-                    match.append(" && #{any(java.lang.Class)}.isInstance(").append(at).append(")");
-                    parameters.add(matcher.getArguments().get(0));
-                } else if (("any".equals(matcherName) || "anyObject".equals(matcherName)) && noArguments(matcher)) {
-                    // Matches anything
-                } else if (MATCHED_TYPES.containsKey(matcherName) && noArguments(matcher)) {
-                    match.append(" && ").append(MATCHED_TYPES.get(matcherName)).append(".class.isInstance(").append(at).append(")");
-                } else {
-                    return UNSUPPORTED;
-                }
-            } else {
+            Expression value = exactValue(argument);
+            if (value != null) {
                 match.append(" && Objects.equals(").append(at).append(", #{any()})");
-                parameters.add(argument);
+                parameters.add(value);
+                continue;
+            }
+            J.MethodInvocation matcher = (J.MethodInvocation) argument;
+            String matcherName = matcher.getSimpleName();
+            if (("any".equals(matcherName) || "isA".equals(matcherName)) && matcher.getArguments().size() == 1 && !noArguments(matcher)) {
+                match.append(" && #{any(java.lang.Class)}.isInstance(").append(at).append(")");
+                parameters.add(matcher.getArguments().get(0));
+            } else if (MATCHED_TYPES.containsKey(matcherName) && noArguments(matcher)) {
+                match.append(" && ").append(at).append(" instanceof ").append(MATCHED_TYPES.get(matcherName));
+            } else if (!(("any".equals(matcherName) || "anyObject".equals(matcherName)) && noArguments(matcher))) {
+                return UNSUPPORTED;
             }
         }
         return match.toString();
+    }
+
+    /// The value an argument of `withArguments` must equal, either given as is or wrapped in `eq(..)`; null for other
+    /// argument matchers.
+    private static @Nullable Expression exactValue(Expression argument) {
+        if (!(argument instanceof J.MethodInvocation && (MATCHER.matches(argument) || LEGACY_MATCHER.matches(argument)))) {
+            return argument;
+        }
+        J.MethodInvocation matcher = (J.MethodInvocation) argument;
+        return "eq".equals(matcher.getSimpleName()) && matcher.getArguments().size() == 1 && !noArguments(matcher) ?
+                matcher.getArguments().get(0) : null;
     }
 
     private static boolean noArguments(J.MethodInvocation method) {
@@ -477,29 +491,24 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         private J.MethodInvocation mockConstructionPerArguments(Statement stubbing, List<WhenNew> stubbings, ExecutionContext ctx) {
             List<Object> parameters = new ArrayList<>();
             parameters.add(stubbings.get(0).type);
-            StringBuilder template = new StringBuilder("Mockito.mockConstruction(#{any(java.lang.Class)}, " + contextName + " ->\n");
+            StringBuilder template = new StringBuilder("Mockito.mockConstruction(#{any(java.lang.Class)}, " + contextName + " -> {\n");
+            String settings = "Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(#{any()}))";
             String otherwise = "Mockito.withSettings()";
             for (int i = stubbings.size() - 1; i >= 0; i--) {
                 WhenNew whenNew = stubbings.get(i);
                 List<Expression> matchParameters = new ArrayList<>();
                 String match = constructionMatch(whenNew, contextName, matchParameters);
-                String settings = "Mockito.withSettings().defaultAnswer(AdditionalAnswers.delegatesTo(#{any()}))";
-                if (match == null) {
-                    template.append(settings);
-                    parameters.add(whenNew.instance);
-                    otherwise = null;
-                    break;
-                }
-                template.append(match).append(" ?\n").append(settings).append(" :\n");
                 parameters.addAll(matchParameters);
                 parameters.add(whenNew.instance);
+                if (match == null) {
+                    otherwise = settings;
+                    break;
+                }
+                template.append("if (").append(match).append(") {\nreturn ").append(settings).append(";\n}\n");
             }
-            if (otherwise != null) {
-                template.append(otherwise);
-            }
-            template.append(")");
+            template.append("return ").append(otherwise).append(";\n})");
             return JavaTemplate.builder(template.toString())
-                    .imports("java.util.Objects", "org.mockito.AdditionalAnswers", "org.mockito.Mockito")
+                    .imports("java.util.Arrays", "java.util.Collection", "java.util.Collections", "java.util.List", "java.util.Map", "java.util.Objects", "java.util.Set", "org.mockito.AdditionalAnswers", "org.mockito.Mockito")
                     .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "mockito-core-3.12"))
                     .build()
                     .apply(new Cursor(getCursor(), stubbing), stubbing.getCoordinates().replace(), parameters.toArray());
