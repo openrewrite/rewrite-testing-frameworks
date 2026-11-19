@@ -25,8 +25,10 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -76,6 +78,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, ExecutionContext ctx) {
                         J.ClassDeclaration cd = super.visitClassDeclaration(classDecl, ctx);
                         cd = removePrepareForTest(cd);
+                        cd = retargetInheritedStatics(cd);
 
                         TestFramework framework = TestFramework.detect(getCursor().firstEnclosingOrThrow(JavaSourceFile.class));
                         ScopedMocks mocks = collectStaticMocks(cd, framework);
@@ -95,6 +98,101 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         doAfterVisit(new ChangeMethodTargetToStatic(POWER_MOCKITO + " mockStatic(..)",
                                 "org.mockito.Mockito", MOCKED_STATIC, null, false).getVisitor());
                         return cd;
+                    }
+
+                    /// `Mockito.mockStatic(Type.class)` only intercepts the static methods that `Type` declares itself,
+                    /// whereas PowerMock also intercepted those that it inherits. Where the test only calls inherited
+                    /// ones on the mocked type, such as `Inet6Address.getByName()` declared by `InetAddress`, the class
+                    /// that declares them is mocked instead of, or when `Type` declares some that the test calls too,
+                    /// as well as the type.
+                    private J.ClassDeclaration retargetInheritedStatics(J.ClassDeclaration cd) {
+                        Set<String> mocked = new LinkedHashSet<>();
+                        new JavaIsoVisitor<Integer>() {
+                            @Override
+                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                                if (MOCK_STATIC.matches(method) || MOCKITO_MOCK_STATIC.matches(method)) {
+                                    for (Expression argument : method.getArguments()) {
+                                        JavaType.FullyQualified type = classLiteral(argument);
+                                        if (type != null) {
+                                            mocked.add(type.getFullyQualifiedName());
+                                        }
+                                    }
+                                }
+                                return super.visitMethodInvocation(method, p);
+                            }
+                        }.visit(cd, 0);
+                        if (mocked.isEmpty()) {
+                            return cd;
+                        }
+
+                        Set<String> calledDirectly = new LinkedHashSet<>();
+                        Map<String, Map<String, JavaType.FullyQualified>> inherited = new LinkedHashMap<>();
+                        new JavaIsoVisitor<Integer>() {
+                            @Override
+                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                                JavaType.Method type = method.getMethodType();
+                                if (type != null && type.hasFlags(Flag.Static) && method.getSelect() instanceof TypeTree) {
+                                    JavaType.FullyQualified receiver = TypeUtils.asFullyQualified(method.getSelect().getType());
+                                    if (receiver != null && mocked.contains(receiver.getFullyQualifiedName())) {
+                                        JavaType.FullyQualified declaring = type.getDeclaringType();
+                                        if (TypeUtils.isOfType(receiver, declaring)) {
+                                            calledDirectly.add(receiver.getFullyQualifiedName());
+                                        } else {
+                                            inherited.computeIfAbsent(receiver.getFullyQualifiedName(), k -> new LinkedHashMap<>())
+                                                    .put(declaring.getFullyQualifiedName(), declaring);
+                                        }
+                                    }
+                                }
+                                return super.visitMethodInvocation(method, p);
+                            }
+                        }.visit(cd, 0);
+
+                        return (J.ClassDeclaration) new JavaIsoVisitor<Integer>() {
+                            @Override
+                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer p) {
+                                J.MethodInvocation mi = super.visitMethodInvocation(method, p);
+                                if (!MOCK_STATIC.matches(mi) && !MOCKITO_MOCK_STATIC.matches(mi)) {
+                                    return mi;
+                                }
+                                List<Expression> arguments = mi.getArguments();
+                                boolean retargetable = false;
+                                List<Expression> retargeted = new ArrayList<>();
+                                for (Expression argument : arguments) {
+                                    JavaType.FullyQualified type = classLiteral(argument);
+                                    Map<String, JavaType.FullyQualified> declaring = type == null ? null : inherited.get(type.getFullyQualifiedName());
+                                    if (declaring == null || !declaring.values().stream().allMatch(d -> canBeMocked(d))) {
+                                        retargeted.add(argument);
+                                        continue;
+                                    }
+                                    retargetable = true;
+                                    if (calledDirectly.contains(type.getFullyQualifiedName())) {
+                                        retargeted.add(argument);
+                                    }
+                                    for (JavaType.FullyQualified declaringType : declaring.values()) {
+                                        maybeAddImport(declaringType.getFullyQualifiedName());
+                                        retargeted.add(WhiteboxToReflectionVisitor.classLiteral(declaringType));
+                                    }
+                                }
+                                long retargetedClasses = retargeted.stream().filter(a -> classLiteral(a) != null).count();
+                                if (!retargetable || retargetedClasses > 1 && retargetedClasses != retargeted.size()) {
+                                    // Several classes cannot be combined with the other arguments of `mockStatic`
+                                    return mi;
+                                }
+                                return mi.withArguments(ListUtils.map(retargeted, (i, a) -> i == 0 ? a.withPrefix(arguments.get(0).getPrefix()) :
+                                        a.withPrefix(Space.SINGLE_SPACE)));
+                            }
+                        }.visitNonNull(cd, 0, getCursor().getParentOrThrow());
+                    }
+
+                    private boolean canBeMocked(JavaType.FullyQualified type) {
+                        return !UnsupportedPowerMockUsage.mockitoRefusesToMockStatic(type) &&
+                               (type.getFlags().contains(Flag.Public) || isInSamePackage(type));
+                    }
+
+                    private boolean isInSamePackage(JavaType.FullyQualified type) {
+                        JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+                        J.Package pkg = sourceFile == null ? null : sourceFile.getPackageDeclaration();
+                        return type.getPackageName().equals(pkg == null ? "" : pkg.getPackageName());
                     }
 
                     private J.ClassDeclaration removePrepareForTest(J.ClassDeclaration cd) {

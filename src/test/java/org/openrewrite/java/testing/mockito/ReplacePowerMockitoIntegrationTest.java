@@ -3636,12 +3636,96 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
     }
 
     @Test
-    void mockingInheritedStaticMethodIsDisabled() {
+    void mockingInheritedStaticMethodMocksTheDeclaringClass() {
         //language=java
         rewriteRun(
           java(
             """
-              import java.net.Inet4Address;
+              import java.net.Inet6Address;
+              import java.net.InetAddress;
+              import java.net.UnknownHostException;
+
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest({Inet6Address.class})
+              public class MyTest {
+                  @Test(expected = UnknownHostException.class)
+                  public void failsToResolve() throws Exception {
+                      PowerMockito.mockStatic(Inet6Address.class);
+                      PowerMockito.when(Inet6Address.getByAddress(Mockito.any(byte[].class))).thenThrow(new UnknownHostException());
+
+                      Inet6Address.getByAddress(new byte[16]);
+                  }
+              }
+              """,
+            """
+              import java.net.Inet6Address;
+              import java.net.InetAddress;
+              import java.net.UnknownHostException;
+
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<InetAddress> mockedInetAddress;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedInetAddress != null) {
+                          mockedInetAddress.closeOnDemand();
+                      }
+                  }
+
+                  @Test(expected = UnknownHostException.class)
+                  public void failsToResolve() throws Exception {
+                      mockedInetAddress = Mockito.mockStatic(InetAddress.class);
+                      Mockito.when(Inet6Address.getByAddress(Mockito.any(byte[].class))).thenThrow(new UnknownHostException());
+
+                      Inet6Address.getByAddress(new byte[16]);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockingInheritedAndDeclaredStaticMethodsMocksBothClasses() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package a;
+
+              public class Parent {
+                  public static String inherited() {
+                      return "parent";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              package a;
+
+              public class Child extends Parent {
+                  public static String declared() {
+                      return "child";
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import a.Child;
 
               import org.junit.Test;
               import org.junit.runner.RunWith;
@@ -3650,12 +3734,73 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               import org.powermock.modules.junit4.PowerMockRunner;
 
               @RunWith(PowerMockRunner.class)
-              @PrepareForTest(Inet4Address.class)
+              @PrepareForTest(Child.class)
               public class MyTest {
                   @Test
-                  public void resolvesTheLocalHost() throws Exception {
-                      PowerMockito.mockStatic(Inet4Address.class);
-                      PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                  public void stubsBoth() {
+                      PowerMockito.mockStatic(Child.class);
+                      PowerMockito.when(Child.inherited()).thenReturn("a");
+                      PowerMockito.when(Child.declared()).thenReturn("b");
+                  }
+              }
+              """,
+            """
+              import a.Child;
+              import a.Parent;
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class MyTest {
+                  private MockedStatic<Child> mockedChild;
+                  private MockedStatic<Parent> mockedParent;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedChild != null) {
+                          mockedChild.closeOnDemand();
+                      }
+                      if (mockedParent != null) {
+                          mockedParent.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  public void stubsBoth() {
+                      mockedChild = Mockito.mockStatic(Child.class);
+                      mockedParent = Mockito.mockStatic(Parent.class);
+                      mockedParent.when(Child::inherited).thenReturn("a");
+                      mockedChild.when(Child::declared).thenReturn("b");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void mockingStaticMethodInheritedFromSystemStaysDisabled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest(MyThread.class)
+              public class MyTest {
+                  @Test
+                  public void sleeps() throws Exception {
+                      PowerMockito.mockStatic(MyThread.class);
+                      PowerMockito.when(MyThread.activeCount()).thenReturn(3);
+                  }
+
+                  static class MyThread extends Thread {
                   }
               }
               """,
@@ -3666,11 +3811,215 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
               public class MyTest {
                   @Test
                   @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
-                  public void resolvesTheLocalHost() throws Exception {
+                  public void sleeps() throws Exception {
                       // The body of this test is kept for reference while it is migrated by hand:
-                      // PowerMockito.mockStatic(Inet4Address.class);
-                      // PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                      // PowerMockito.mockStatic(MyThread.class);
+                      // PowerMockito.when(MyThread.activeCount()).thenReturn(3);
                   }
+
+                  static class MyThread extends Thread {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doStubbingOfStaticCallsMigratesToTheStaticMock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class GenerateUtil {
+                  static void generateContract(Object a, String b) {}
+                  static String name() { return null; }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.anyString;
+
+              @PrepareForTest(GenerateUtil.class)
+              class MyTest {
+                  @Test
+                  void throwing() {
+                      PowerMockito.mockStatic(GenerateUtil.class);
+                      PowerMockito.doThrow(new RuntimeException()).when(GenerateUtil.class);
+                      GenerateUtil.generateContract(any(), anyString());
+                  }
+
+                  @Test
+                  void returning() {
+                      PowerMockito.mockStatic(GenerateUtil.class);
+                      PowerMockito.doReturn("x").when(GenerateUtil.class);
+                      GenerateUtil.name();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.anyString;
+
+              class MyTest {
+                  private MockedStatic<GenerateUtil> mockedGenerateUtil;
+
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedGenerateUtil != null) {
+                          mockedGenerateUtil.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  void throwing() {
+                      mockedGenerateUtil = Mockito.mockStatic(GenerateUtil.class);
+                      mockedGenerateUtil.when(() -> GenerateUtil.generateContract(any(), anyString())).thenThrow(new RuntimeException());
+                  }
+
+                  @Test
+                  void returning() {
+                      mockedGenerateUtil = Mockito.mockStatic(GenerateUtil.class);
+                      mockedGenerateUtil.when(() -> GenerateUtil.name()).thenReturn("x");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    // from apache/servicecomb-toolkit InvokeStaticMethodTest
+    @Test
+    void doStubbingOfStaticCallsInAClassWithRunWithAndSeveralPreparedClasses() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.apache.x.plugin;
+
+              public class GenerateUtil {
+                  public static void generateContract(Object project, String a, String b, String c) {}
+                  static void generateCode(Object project, String a, String b, java.util.List<String> d, String e) {}
+              }
+              """
+          ),
+          java(
+            """
+              package org.apache.x.common;
+
+              public class FileUtils {
+                  public static String createTempDirectory(String prefix) throws java.io.IOException { return null; }
+              }
+              """
+          ),
+          java(
+            """
+              package org.apache.x.plugin;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.fail;
+              import static org.mockito.Matchers.anyObject;
+              import static org.mockito.Matchers.anyString;
+
+              import java.io.IOException;
+
+              import org.apache.x.common.FileUtils;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PowerMockIgnore;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest({FileUtils.class, GenerateUtil.class})
+              @PowerMockIgnore({"javax.management.*"})
+              public class InvokeStaticMethodTest {
+
+                @Test
+                public void testA()
+                    throws IllegalAccessException {
+
+                  PowerMockito.mockStatic(GenerateUtil.class);
+                  PowerMockito.doThrow(new RuntimeException()).when(GenerateUtil.class);
+                  // Powermockito limit: use argument matchers to specify method which would be mock
+                  GenerateUtil.generateContract(anyObject(), anyString(), anyString(), anyString());
+
+                  try {
+                    fail("Run failed");
+                  } catch (RuntimeException e) {
+                    assertEquals("Failed", e.getMessage());
+                  }
+                }
+
+                @Test
+                public void testB() throws IllegalAccessException, IOException {
+                  PowerMockito.mockStatic(FileUtils.class);
+                  PowerMockito.doThrow(new IOException()).when(FileUtils.class);
+                  FileUtils.createTempDirectory(anyString());
+                }
+              }
+              """,
+            """
+              package org.apache.x.plugin;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.fail;
+              import static org.mockito.Matchers.anyObject;
+              import static org.mockito.Matchers.anyString;
+
+              import java.io.IOException;
+
+              import org.apache.x.common.FileUtils;
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class InvokeStaticMethodTest {
+                  private MockedStatic<GenerateUtil> mockedGenerateUtil;
+                  private MockedStatic<FileUtils> mockedFileUtils;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedGenerateUtil != null) {
+                          mockedGenerateUtil.closeOnDemand();
+                      }
+                      if (mockedFileUtils != null) {
+                          mockedFileUtils.closeOnDemand();
+                      }
+                  }
+
+                @Test
+                public void testA()
+                    throws IllegalAccessException {
+
+                  mockedGenerateUtil = Mockito.mockStatic(GenerateUtil.class);
+                  mockedGenerateUtil.when(() -> GenerateUtil.generateContract(anyObject(), anyString(), anyString(), anyString())).thenThrow(new RuntimeException());
+
+                  try {
+                    fail("Run failed");
+                  } catch (RuntimeException e) {
+                    assertEquals("Failed", e.getMessage());
+                  }
+                }
+
+                @Test
+                public void testB() throws IllegalAccessException, IOException {
+                  mockedFileUtils = Mockito.mockStatic(FileUtils.class);
+                  mockedFileUtils.when(() -> FileUtils.createTempDirectory(anyString())).thenThrow(new IOException());
+                }
               }
               """
           )

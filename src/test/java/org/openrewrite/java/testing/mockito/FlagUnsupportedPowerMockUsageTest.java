@@ -54,7 +54,7 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
                       return "real";
                   }
 
-                  static void init() {
+                  void init() {
                   }
               }
               """
@@ -195,31 +195,33 @@ class FlagUnsupportedPowerMockUsageTest implements RewriteTest {
         rewriteRun(
           java(
             """
-              import java.net.Inet4Address;
-
               import org.junit.Test;
               import org.powermock.api.mockito.PowerMockito;
 
               public class MyTest {
+                  static class MyThread extends Thread {
+                  }
+
                   @Test
                   public void test() throws Exception {
-                      PowerMockito.mockStatic(Inet4Address.class);
-                      PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                      PowerMockito.mockStatic(MyThread.class);
+                      PowerMockito.when(MyThread.activeCount()).thenReturn(3);
                   }
               }
               """,
             """
-              import java.net.Inet4Address;
-
               import org.junit.Test;
               import org.powermock.api.mockito.PowerMockito;
 
               public class MyTest {
+                  static class MyThread extends Thread {
+                  }
+
                   @Test
                   public void test() throws Exception {
-                      PowerMockito.mockStatic(Inet4Address.class);
-                      /* TODO Static mocking of `Inet4Address.getLocalHost()` cannot be migrated, as `Mockito.mockStatic` does not intercept static methods inherited from `InetAddress`; migrate it manually to replace PowerMock */
-                      PowerMockito.when(Inet4Address.getLocalHost()).thenReturn(null);
+                      PowerMockito.mockStatic(MyThread.class);
+                      /* TODO Static mocking of `MyTest.MyThread.activeCount()` cannot be migrated, as `Mockito.mockStatic` does not intercept static methods inherited from `Thread`; migrate it manually to replace PowerMock */
+                      PowerMockito.when(MyThread.activeCount()).thenReturn(3);
                   }
               }
               """

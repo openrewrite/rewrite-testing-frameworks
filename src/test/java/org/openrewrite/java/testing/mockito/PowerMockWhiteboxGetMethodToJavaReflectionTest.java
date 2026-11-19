@@ -171,4 +171,83 @@ class PowerMockWhiteboxGetMethodToJavaReflectionTest implements RewriteTest {
           )
         );
     }
+
+
+    @Test
+    void getsMethodReturnedFromExpressionLambda() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class TestResource {
+                  private void m() {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.lang.reflect.Method;
+              import java.util.function.Supplier;
+              import org.powermock.reflect.Whitebox;
+
+              class AuthFilterTest {
+                  void test() {
+                      Supplier<Method> resource = () -> Whitebox.getMethod(TestResource.class, "m");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+              import java.util.function.Supplier;
+
+              class AuthFilterTest {
+                  void test() throws Exception {
+                      Method mMethod = TestResource.class.getDeclaredMethod("m");
+                      mMethod.setAccessible(true);
+                      Supplier<Method> resource = () -> mMethod;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getsMethodWithParameterTypesNestedInACall() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class TestResource {
+                  private void m(String s, int i) {
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import java.lang.reflect.Method;
+              import org.powermock.reflect.Whitebox;
+
+              class AuthFilterTest {
+                  void test() {
+                      String name = Whitebox.getMethod(TestResource.class, "m", String.class, int.class).getName();
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Method;
+
+              class AuthFilterTest {
+                  void test() throws Exception {
+                      Method mMethod = TestResource.class.getDeclaredMethod("m", String.class, int.class);
+                      mMethod.setAccessible(true);
+                      String name = mMethod.getName();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

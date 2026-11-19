@@ -179,19 +179,22 @@ tags:
   - testing
   - mockito
 recipeList:
+  - org.openrewrite.java.testing.mockito.PowerMockEasyMockToMockito
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.PowerMockIgnore"
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.SuppressStaticInitializationFor"
   - org.openrewrite.java.testing.mockito.PowerMockRunnerDelegateToRunWith
+  - org.openrewrite.java.testing.mockito.PowerMockMemberModifierToMockito
+  # Before the static mocks, as a stubbed static call is turned into `when(Type.class, "method", ..)` that they migrate
+  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
+  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingTargetToMockito
+  - org.openrewrite.java.testing.mockito.PowerMockitoWhenByNameToMockito
   - org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mockStatic(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
       returnType: org.mockito.MockedStatic
-  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingToMockito
-  - org.openrewrite.java.testing.mockito.PowerMockitoDoStubbingTargetToMockito
-  - org.openrewrite.java.testing.mockito.PowerMockitoWhenByNameToMockito
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.powermock.api.mockito.PowerMockito mock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
@@ -209,6 +212,9 @@ recipeList:
       fullyQualifiedTargetTypeName: org.mockito.Mockito
   - org.openrewrite.java.testing.mockito.RemovePowerMockRule
   - org.openrewrite.java.testing.mockito.RemovePowerMockClassExtensions
+  - org.openrewrite.java.testing.mockito.RemovePowerMockAgentInitialization
+  - org.openrewrite.java.testing.mockito.RemovePowerMockObjectFactory
+  - org.openrewrite.java.testing.mockito.PowerMockRepositoryRemoveControlToCloseStaticMock
   # Removes what PowerMockitoMockStaticToMockito leaves, such as `@PrepareForTest(fullyQualifiedNames = ...)`
   - org.openrewrite.java.RemoveAnnotation:
       annotationPattern: "@org.powermock.core.classloader.annotations.PrepareForTest"
@@ -227,7 +233,7 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.mockito.PowerMockWhiteboxToJavaReflection
 displayName: Replace PowerMock `Whitebox` with Java reflection
 description: >-
-  Replace `org.powermock.reflect.Whitebox` calls (`setInternalState`, `getInternalState`, `invokeMethod`, `getField`, `getMethod`, `invokeConstructor`)
+  Replace `org.powermock.reflect.Whitebox` calls (`setInternalState`, `getInternalState`, `invokeMethod`, `getField`, `getMethod`, `invokeConstructor`, `getInnerClassType`)
   with plain Java reflection using `java.lang.reflect.Field`, `java.lang.reflect.Method`, and `java.lang.reflect.Constructor`.
 tags:
   - testing
@@ -239,3 +245,21 @@ recipeList:
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetFieldToJavaReflection
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetMethodToJavaReflection
   - org.openrewrite.java.testing.mockito.PowerMockWhiteboxInvokeConstructorToJavaReflection
+  - org.openrewrite.java.testing.mockito.PowerMockWhiteboxGetInnerClassTypeToJavaReflection
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.PowerMockEasyMockToMockito
+displayName: Replace the PowerMock EasyMock API with Mockito
+description: >-
+  Replaces mock creation, replay and verification through the PowerMock EasyMock API (`PowerMock.createMock()`,
+  `replay()` and `verify()`) with their `EasyMock` counterparts, which `EasyMockCodeToMockito` then migrates along
+  with the expectations the test records on those mocks.
+preconditions:
+  - org.openrewrite.java.search.FindTypes:
+      fullyQualifiedTypeName: org.powermock.api.easymock.PowerMock
+tags:
+  - testing
+  - mockito
+recipeList:
+  - org.openrewrite.java.testing.mockito.PowerMockEasyMockToEasyMock
+  - org.openrewrite.java.testing.easymock.EasyMockCodeToMockito

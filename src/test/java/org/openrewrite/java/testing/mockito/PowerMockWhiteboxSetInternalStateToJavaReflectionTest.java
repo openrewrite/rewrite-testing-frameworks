@@ -477,4 +477,41 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
           )
         );
     }
+
+
+    @Test
+    void setsStaticFieldOfClassLiteralTarget() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class CmsConfigurationFactory {
+                  private static Object instance;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class CmsConfigurationFactoryTest {
+                  void resetsTheFactory() {
+                      Whitebox.setInternalState(CmsConfigurationFactory.class, "instance", (Object) null);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class CmsConfigurationFactoryTest {
+                  void resetsTheFactory() throws Exception {
+                      Field instanceField = CmsConfigurationFactory.class.getDeclaredField("instance");
+                      instanceField.setAccessible(true);
+                      instanceField.set(null, (Object) null);
+                  }
+              }
+              """
+          )
+        );
+    }
 }
