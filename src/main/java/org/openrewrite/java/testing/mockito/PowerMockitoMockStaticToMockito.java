@@ -30,6 +30,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -51,6 +52,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
     private static final MethodMatcher MOCKITO_VERIFY = new MethodMatcher("org.mockito.Mockito verify(..)");
     private static final MethodMatcher DYNAMIC_WHEN = new MethodMatcher(POWER_MOCKITO + " when(java.lang.Class, String, ..)");
     private static final MethodMatcher MOCKITO_DYNAMIC_WHEN = new MethodMatcher("org.mockito.Mockito when(java.lang.Class, String, ..)");
+    private static final MethodMatcher CAPTOR_FOR_CLASS = new MethodMatcher("org.mockito.ArgumentCaptor forClass(..)");
     private static final MethodMatcher MOCKITO_METHOD = new MethodMatcher("org.mockito..* *(..)");
     private static final AnnotationMatcher PREPARE_FOR_TEST =
             new AnnotationMatcher("@org.powermock.core.classloader.annotations.PrepareForTest");
@@ -90,6 +92,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         cd = mocks.closeAfterEachTest(this, cd, "tearDownStaticMocks", ctx);
                         maybeAddImport("org.mockito.Mockito");
                         usages.namedTypes.forEach(this::maybeAddImport);
+                        usages.unusedImports.forEach(this::maybeRemoveImport);
                         maybeRemoveImport(POWER_MOCKITO);
 
                         doAfterVisit(new ChangeMethodTargetToStatic(POWER_MOCKITO + " mockStatic(..)",
@@ -288,6 +291,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         private final ScopedMocks mocks;
         boolean spiedStatically;
         final Set<String> namedTypes = new LinkedHashSet<>();
+        final Set<String> unusedImports = new LinkedHashSet<>();
 
         StaticMockUsageVisitor(J.ClassDeclaration classDecl, ScopedMocks mocks) {
             this.classDecl = classDecl;
@@ -306,18 +310,34 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
             List<Statement> rewritten = new ArrayList<>(statements.size());
             for (int i = 0; i < statements.size(); i++) {
                 Statement statement = statements.get(i);
-                Statement next = i + 1 < statements.size() ? statements.get(i + 1) : null;
                 if (statement instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) statement;
                     if (MOCK_STATIC.matches(mi) || MOCKITO_MOCK_STATIC.matches(mi) || SPY_CLASS.matches(mi)) {
                         rewritten.addAll(assignStaticMocks(mi, ctx));
                         continue;
                     }
-                    if (VERIFY_STATIC.matches(mi) && next instanceof J.MethodInvocation) {
-                        Statement verification = verifyStatic(mi, (J.MethodInvocation) next, b, ctx);
-                        if (verification != null) {
-                            rewritten.add(verification);
-                            i++;
+                    if (VERIFY_STATIC.matches(mi)) {
+                        int call = indexOfVerifiedCall(statements, i + 1);
+                        if (call >= 0) {
+                            Statement verification = verifyStatic(mi, (J.MethodInvocation) statements.get(call), b, ctx);
+                            if (verification != null) {
+                                List<Statement> declarations = statements.subList(i + 1, call);
+                                for (int d = 0; d < declarations.size(); d++) {
+                                    rewritten.add(d == 0 ? declarations.get(d).withPrefix(mi.getPrefix()) : declarations.get(d));
+                                }
+                                rewritten.add(declarations.isEmpty() ? verification : verification.withPrefix(statements.get(call).getPrefix()));
+                                i = call;
+                                continue;
+                            }
+                        } else if (verifiesNothing(mi, i, statements.size())) {
+                            // Without a call after it, `verifyStatic` leaves nothing to verify
+                            for (Expression argument : mi.getArguments()) {
+                                if (argument instanceof J.MethodInvocation && ((J.MethodInvocation) argument).getMethodType() != null) {
+                                    JavaType.Method mode = ((J.MethodInvocation) argument).getMethodType();
+                                    unusedImports.add(mode.getDeclaringType().getFullyQualifiedName() + "." + mode.getName());
+                                    unusedImports.add(mode.getDeclaringType().getFullyQualifiedName());
+                                }
+                            }
                             continue;
                         }
                     }
@@ -325,6 +345,38 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                 rewritten.add(statement);
             }
             return b.withStatements(rewritten);
+        }
+
+        /// The index of the call that `verifyStatic` verifies: the next statement, or the one after local variable
+        /// declarations, such as that of an `ArgumentCaptor` the verified call captures with.
+        private int indexOfVerifiedCall(List<Statement> statements, int from) {
+            for (int i = from; i < statements.size(); i++) {
+                Statement statement = statements.get(i);
+                if (statement instanceof J.MethodInvocation) {
+                    return i;
+                }
+                if (!(statement instanceof J.VariableDeclarations) || !declaresWithoutCalls((J.VariableDeclarations) statement)) {
+                    return -1;
+                }
+            }
+            return -1;
+        }
+
+        private boolean declaresWithoutCalls(J.VariableDeclarations declarations) {
+            return new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean calls) {
+                    if (!CAPTOR_FOR_CLASS.matches(method)) {
+                        calls.set(true);
+                    }
+                    return super.visitMethodInvocation(method, calls);
+                }
+            }.reduce(declarations, new AtomicBoolean()).get() == false;
+        }
+
+        /// `verifyStatic` as the last statement of a method verifies nothing, whatever its verification mode.
+        private boolean verifiesNothing(J.MethodInvocation verifyStatic, int index, int statementCount) {
+            return index == statementCount - 1 && getCursor().getParentTreeCursor().getValue() instanceof J.MethodDeclaration && !mocks.isEmpty();
         }
 
         private List<Statement> assignStaticMocks(J.MethodInvocation mi, ExecutionContext ctx) {
