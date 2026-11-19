@@ -3622,4 +3622,79 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
+    // from apache/servicecomb-toolkit InvokeStaticMethodTest and jenkinsci/scm-sync-configuration-plugin
+    @Test
+    void doStubbingOfStaticCallsMigratesToTheStaticMock() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class GenerateUtil {
+                  static void generateContract(Object a, String b) {}
+                  static String name() { return null; }
+              }
+              """
+          ),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.anyString;
+
+              @PrepareForTest(GenerateUtil.class)
+              class MyTest {
+                  @Test
+                  void throwing() {
+                      PowerMockito.mockStatic(GenerateUtil.class);
+                      PowerMockito.doThrow(new RuntimeException()).when(GenerateUtil.class);
+                      GenerateUtil.generateContract(any(), anyString());
+                  }
+
+                  @Test
+                  void returning() {
+                      PowerMockito.mockStatic(GenerateUtil.class);
+                      PowerMockito.doReturn("x").when(GenerateUtil.class);
+                      GenerateUtil.name();
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              import static org.mockito.ArgumentMatchers.any;
+              import static org.mockito.ArgumentMatchers.anyString;
+
+              class MyTest {
+                  private MockedStatic<GenerateUtil> mockedGenerateUtil;
+
+                  @AfterEach
+                  void tearDownStaticMocks() {
+                      if (mockedGenerateUtil != null) {
+                          mockedGenerateUtil.closeOnDemand();
+                      }
+                  }
+
+                  @Test
+                  void throwing() {
+                      mockedGenerateUtil = Mockito.mockStatic(GenerateUtil.class);
+                      mockedGenerateUtil.when(() -> GenerateUtil.generateContract(any(), anyString())).thenThrow(new RuntimeException());
+                  }
+
+                  @Test
+                  void returning() {
+                      mockedGenerateUtil = Mockito.mockStatic(GenerateUtil.class);
+                      mockedGenerateUtil.when(() -> GenerateUtil.name()).thenReturn("x");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
