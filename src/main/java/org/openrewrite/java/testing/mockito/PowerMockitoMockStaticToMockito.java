@@ -80,13 +80,13 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                         try {
                             return migrate(visited, ctx);
                         } catch (RuntimeException e) {
-                            if (!isTemplateEngineFailure(e)) {
+                            if (!isUnsupportedService(e)) {
                                 throw e;
                             }
-                            // The `JavaTemplate` engine fails on LSTs that it does not fit, such as when a bundle
-                            // brings its own `rewrite-java`, next to the one the LST was built by. Leave this class
-                            // untouched, so that its tests which still use PowerMock are disabled one by one, rather than
-                            // failing the whole repository.
+                            // The `JavaTemplate` engine asks the source file for services it does not provide
+                            // when the LST was built by an older version than the engine, as in a bundle that
+                            // brings its own `rewrite-java`. Leave this class untouched, so that the tests which
+                            // still use PowerMock are disabled one by one, rather than failing the whole repository.
                             return visited;
                         }
                     }
@@ -100,7 +100,7 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
                                 try {
                                     return delegate.visit(tree, ctx);
                                 } catch (RuntimeException e) {
-                                    if (!isTemplateEngineFailure(e)) {
+                                    if (!isUnsupportedService(e)) {
                                         throw e;
                                     }
                                     return tree;
@@ -245,18 +245,11 @@ public class PowerMockitoMockStaticToMockito extends Recipe {
         );
     }
 
-    /// Whether the template engine failed because of the engine itself, not because of the code it was given: it asks
-    /// the source file for a service that the LST does not provide (`UnsupportedOperationException`), or meets a class
-    /// that the CLI and the recipe bundle each loaded (`ClassCastException`). Visitors wrap what they throw in a
-    /// `RecipeRunException`, so look through the causes.
-    private static boolean isTemplateEngineFailure(Throwable e) {
+    /// Visitors wrap what they throw in a `RecipeRunException`, so look through the causes.
+    private static boolean isUnsupportedService(Throwable e) {
         for (Throwable t = e; t != null; t = t.getCause()) {
-            if (t instanceof UnsupportedOperationException || t instanceof ClassCastException) {
-                for (StackTraceElement frame : t.getStackTrace()) {
-                    if (frame.getClassName().startsWith("org.openrewrite.java.internal.template.")) {
-                        return true;
-                    }
-                }
+            if (t instanceof UnsupportedOperationException) {
+                return true;
             }
         }
         return false;
