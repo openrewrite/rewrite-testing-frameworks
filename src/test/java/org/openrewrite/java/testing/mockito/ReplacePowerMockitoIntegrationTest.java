@@ -3623,7 +3623,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
         );
     }
 
-    // from apache/servicecomb-toolkit InvokeStaticMethodTest and jenkinsci/scm-sync-configuration-plugin
     @Test
     void doStubbingOfStaticCallsMigratesToTheStaticMock() {
         //language=java
@@ -3692,6 +3691,133 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       mockedGenerateUtil = Mockito.mockStatic(GenerateUtil.class);
                       mockedGenerateUtil.when(() -> GenerateUtil.name()).thenReturn("x");
                   }
+              }
+              """
+          )
+        );
+    }
+
+    // from apache/servicecomb-toolkit InvokeStaticMethodTest
+    @Test
+    void doStubbingOfStaticCallsInAClassWithRunWithAndSeveralPreparedClasses() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.apache.x.plugin;
+
+              public class GenerateUtil {
+                  public static void generateContract(Object project, String a, String b, String c) {}
+                  static void generateCode(Object project, String a, String b, java.util.List<String> d, String e) {}
+              }
+              """
+          ),
+          java(
+            """
+              package org.apache.x.common;
+
+              public class FileUtils {
+                  public static String createTempDirectory(String prefix) throws java.io.IOException { return null; }
+              }
+              """
+          ),
+          java(
+            """
+              package org.apache.x.plugin;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.fail;
+              import static org.mockito.Matchers.anyObject;
+              import static org.mockito.Matchers.anyString;
+
+              import java.io.IOException;
+
+              import org.apache.x.common.FileUtils;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.core.classloader.annotations.PowerMockIgnore;
+              import org.powermock.core.classloader.annotations.PrepareForTest;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              @RunWith(PowerMockRunner.class)
+              @PrepareForTest({FileUtils.class, GenerateUtil.class})
+              @PowerMockIgnore({"javax.management.*"})
+              public class InvokeStaticMethodTest {
+
+                @Test
+                public void testA()
+                    throws IllegalAccessException {
+
+                  PowerMockito.mockStatic(GenerateUtil.class);
+                  PowerMockito.doThrow(new RuntimeException()).when(GenerateUtil.class);
+                  // Powermockito limit: use argument matchers to specify method which would be mock
+                  GenerateUtil.generateContract(anyObject(), anyString(), anyString(), anyString());
+
+                  try {
+                    fail("Run failed");
+                  } catch (RuntimeException e) {
+                    assertEquals("Failed", e.getMessage());
+                  }
+                }
+
+                @Test
+                public void testB() throws IllegalAccessException, IOException {
+                  PowerMockito.mockStatic(FileUtils.class);
+                  PowerMockito.doThrow(new IOException()).when(FileUtils.class);
+                  FileUtils.createTempDirectory(anyString());
+                }
+              }
+              """,
+            """
+              package org.apache.x.plugin;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.junit.Assert.fail;
+              import static org.mockito.Matchers.anyObject;
+              import static org.mockito.Matchers.anyString;
+
+              import java.io.IOException;
+
+              import org.apache.x.common.FileUtils;
+              import org.junit.After;
+              import org.junit.Test;
+              import org.mockito.MockedStatic;
+              import org.mockito.Mockito;
+
+              public class InvokeStaticMethodTest {
+                  private MockedStatic<GenerateUtil> mockedGenerateUtil;
+                  private MockedStatic<FileUtils> mockedFileUtils;
+
+                  @After
+                  public void tearDownStaticMocks() {
+                      if (mockedGenerateUtil != null) {
+                          mockedGenerateUtil.closeOnDemand();
+                      }
+                      if (mockedFileUtils != null) {
+                          mockedFileUtils.closeOnDemand();
+                      }
+                  }
+
+                @Test
+                public void testA()
+                    throws IllegalAccessException {
+
+                  mockedGenerateUtil = Mockito.mockStatic(GenerateUtil.class);
+                  mockedGenerateUtil.when(() -> GenerateUtil.generateContract(anyObject(), anyString(), anyString(), anyString())).thenThrow(new RuntimeException());
+
+                  try {
+                    fail("Run failed");
+                  } catch (RuntimeException e) {
+                    assertEquals("Failed", e.getMessage());
+                  }
+                }
+
+                @Test
+                public void testB() throws IllegalAccessException, IOException {
+                  mockedFileUtils = Mockito.mockStatic(FileUtils.class);
+                  mockedFileUtils.when(() -> FileUtils.createTempDirectory(anyString())).thenThrow(new IOException());
+                }
               }
               """
           )

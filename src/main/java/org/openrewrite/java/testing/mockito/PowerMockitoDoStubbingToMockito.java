@@ -326,7 +326,6 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                             }
                         }
                         J.MethodInvocation stubbed = JavaTemplate.builder(template.toString())
-                                .contextSensitive()
                                 .imports("org.powermock.api.mockito.PowerMockito")
                                 .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx,
                                         "mockito-core-3.12", "powermock-core-1", "powermock-api-mockito-1",
