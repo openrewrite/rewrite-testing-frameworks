@@ -16,27 +16,23 @@
 package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
-import org.jspecify.annotations.Nullable;
 import org.openrewrite.Recipe;
-import org.openrewrite.Tree;
-import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.ChangeMethodTargetToStatic;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.marker.Markers;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+
+import static java.util.Collections.emptyList;
+import static org.openrewrite.Tree.randomId;
 
 public class PowerMockitoDoStubbingTargetToMockito extends Recipe {
 
@@ -48,6 +44,7 @@ public class PowerMockitoDoStubbingTargetToMockito extends Recipe {
     private static final MethodMatcher STUBBER_WHEN =
             new MethodMatcher("org.powermock.api.mockito.expectation.PowerMockitoStubber when(..)");
     private static final MethodMatcher POWER_MOCKITO_DO = new MethodMatcher("org.powermock.api.mockito.PowerMockito do*(..)");
+    private static final JavaType.FullyQualified MOCKITO = JavaType.ShallowClass.build("org.mockito.Mockito");
 
     @Getter
     final String displayName = "Replace `PowerMockito.doX()` with `Mockito.doX()`";
@@ -60,57 +57,37 @@ public class PowerMockitoDoStubbingTargetToMockito extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        TreeVisitor<?, ExecutionContext> retarget = new ChangeMethodTargetToStatic(
-                "org.powermock.api.mockito.PowerMockito do*(..)", "org.mockito.Mockito", null, null).getVisitor();
         return Preconditions.check(new UsesMethod<>(POWER_MOCKITO_DO), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
-                return tree instanceof JavaSourceFile ? retargetChains((JavaSourceFile) tree, ctx) : (J) tree;
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
+                if (!POWER_MOCKITO_DO.matches(mi) || mi.getMethodType() == null || chainStubsMemberOrClass()) {
+                    return mi;
+                }
+                maybeRemoveImport(mi.getMethodType().getDeclaringType());
+                if (mi.getSelect() == null) {
+                    maybeAddImport(MOCKITO.getFullyQualifiedName(), mi.getSimpleName());
+                } else {
+                    maybeAddImport(MOCKITO.getFullyQualifiedName());
+                    mi = mi.withSelect(new J.Identifier(randomId(), mi.getSelect().getPrefix(), Markers.EMPTY, emptyList(), MOCKITO.getClassName(), MOCKITO, null));
+                }
+                JavaType.Method type = mi.getMethodType().withDeclaringType(MOCKITO);
+                return mi.withMethodType(type).withName(mi.getName().withType(type));
             }
 
-            private JavaSourceFile retargetChains(JavaSourceFile cu, ExecutionContext ctx) {
-                Set<UUID> staying = new HashSet<>();
-                new JavaIsoVisitor<Set<UUID>>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<UUID> p) {
-                        if (STUBBER_WHEN.matches(method) && stubsMemberOrClass(method)) {
-                            for (Expression select = method.getSelect(); select instanceof J.MethodInvocation;
-                                 select = ((J.MethodInvocation) select).getSelect()) {
-                                p.add(((J.MethodInvocation) select).getId());
-                            }
-                        }
-                        return super.visitMethodInvocation(method, p);
+            private boolean chainStubsMemberOrClass() {
+                Object inner = getCursor().getValue();
+                for (Cursor parent = getCursor().getParentTreeCursor(); parent.getValue() instanceof J.MethodInvocation; parent = parent.getParentTreeCursor()) {
+                    J.MethodInvocation outer = parent.getValue();
+                    if (outer.getSelect() != inner) {
+                        return false;
                     }
-                }.visit(cu, staying);
-                if (staying.isEmpty()) {
-                    return (JavaSourceFile) retarget.visitNonNull(cu, ctx);
+                    if (STUBBER_WHEN.matches(outer) && stubsMemberOrClass(outer)) {
+                        return true;
+                    }
+                    inner = outer;
                 }
-
-                // Those chains are hidden from the retargeting for its duration, by taking their type away
-                Map<UUID, JavaType.Method> hidden = new HashMap<>();
-                JavaSourceFile hiding = (JavaSourceFile) new JavaIsoVisitor<Map<UUID, JavaType.Method>>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Map<UUID, JavaType.Method> p) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(method, p);
-                        if (staying.contains(mi.getId()) && mi.getMethodType() != null) {
-                            p.put(mi.getId(), mi.getMethodType());
-                            return mi.withMethodType(null);
-                        }
-                        return mi;
-                    }
-                }.visitNonNull(cu, hidden);
-                JavaSourceFile retargeted = (JavaSourceFile) retarget.visitNonNull(hiding, ctx);
-                if (retargeted == hiding) {
-                    return cu;
-                }
-                return (JavaSourceFile) new JavaIsoVisitor<Map<UUID, JavaType.Method>>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Map<UUID, JavaType.Method> p) {
-                        J.MethodInvocation mi = super.visitMethodInvocation(method, p);
-                        JavaType.Method type = p.get(mi.getId());
-                        return type == null ? mi : mi.withMethodType(type);
-                    }
-                }.visitNonNull(retargeted, hidden);
+                return false;
             }
 
             /**

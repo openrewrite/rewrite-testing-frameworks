@@ -341,6 +341,41 @@ class PowerMockitoDoStubbingToMockitoTest implements RewriteTest {
         );
     }
 
+    @Test
+    void retargetsOnlyTheChainsThatStubNoMemberByName() {
+        //language=java
+        rewriteRun(
+          spec -> spec.recipe(new PowerMockitoDoStubbingTargetToMockito()),
+          java(
+            """
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class MyTest {
+                  void setUp() throws Exception {
+                      Calendar spy = PowerMockito.spy(Calendar.getInstance());
+                      PowerMockito.doNothing().when(spy, "updateTime");
+                      PowerMockito.doThrow(new IllegalStateException()).doNothing().when(spy).clear();
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import java.util.Calendar;
+
+              class MyTest {
+                  void setUp() throws Exception {
+                      Calendar spy = PowerMockito.spy(Calendar.getInstance());
+                      PowerMockito.doNothing().when(spy, "updateTime");
+                      Mockito.doThrow(new IllegalStateException()).doNothing().when(spy).clear();
+                  }
+              }
+              """
+          )
+        );
+    }
+
     // from apache/servicecomb-toolkit InvokeStaticMethodTest
     @Test
     void doThrowOnStaticVoidCallBecomesDynamicWhen() {
