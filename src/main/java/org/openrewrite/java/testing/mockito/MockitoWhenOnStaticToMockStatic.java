@@ -32,6 +32,7 @@ import org.openrewrite.kotlin.tree.K;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
@@ -168,7 +169,7 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
                                               Map<String, String> pendingResources) {
                 String className = invokedType.getClassName();
                 maybeAddImport(outermostClassName(invokedType), false);
-                String variableName = mockName(className, updateCursor(block));
+                String variableName = mockName(className, updateCursor(block), statements.subList(index + 1, statements.size()));
                 List<Expression> stubbingArguments = stubbingArguments(statement);
 
                 J.Try try_ = (J.Try) javaTemplateMockStatic(statement, String.format(
@@ -195,23 +196,44 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             }
 
             /**
-             * A name for a mock of the class that is free at the cursor and not yet handed out in this file.
+             * A name for a mock of the class that is free at the cursor and not yet handed out in this file. The
+             * statements moving into its scope, which the tree the cursor holds leaves out, must not declare or read it.
              */
-            private String mockName(String className, Cursor cursor) {
+            private String mockName(String className, Cursor cursor, List<Statement> movingIntoScope) {
                 Set<String> handedOut = cursor.dropParentUntil(SourceFile.class::isInstance)
                         .computeMessageIfAbsent("mockNames", k -> new HashSet<>());
-                String name = Scope.at(cursor).freeName("mock" + className.replace('.', '_') + "1", handedOut::contains);
+                Set<String> taken = new HashSet<>(handedOut);
+                for (Statement moving : movingIntoScope) {
+                    Cursor region = new Cursor(cursor, moving);
+                    Stream.concat(Scope.declaredWithin(region), Scope.referencedWithin(region))
+                            .filter(binding -> binding.getNamespace() == Scope.Namespace.VARIABLE)
+                            .forEach(binding -> taken.add(binding.getName()));
+                }
+                String name = Scope.at(cursor).freeName("mock" + className.replace('.', '_') + "1", taken::contains);
                 handedOut.add(name);
                 return name;
             }
 
             private Object nameForReuse(J.Block block, String className, J.VariableDeclarations.NamedVariable variable) {
                 if ("_".equals(variable.getSimpleName())) {
-                    String newName = mockName(className, updateCursor(block));
+                    String newName = mockName(className, declaringScope(updateCursor(block), variable), emptyList());
                     doAfterVisit(new RenameVariable<>(variable, newName));
                     return newName;
                 }
                 return variable.getName();
+            }
+
+            /**
+             * The scope around the cursor that declares the variable. A new name for the variable must be free across
+             * all of it.
+             */
+            private Cursor declaringScope(Cursor cursor, J.VariableDeclarations.NamedVariable variable) {
+                for (Scope scope = Scope.at(cursor); scope != null; scope = scope.enclosing().orElse(null)) {
+                    if (scope.getBindings().stream().anyMatch(binding -> binding.getTree().getId().equals(variable.getName().getId()))) {
+                        return scope.getCursor();
+                    }
+                }
+                return cursor;
             }
 
             private Statement reuseMockedStatic(J.Block block, J.MethodInvocation statement, Object variable, J.MethodInvocation whenArg, ExecutionContext ctx) {
@@ -228,7 +250,8 @@ public class MockitoWhenOnStaticToMockStatic extends Recipe {
             private List<Statement> mockedStatic(J.Block block, J.MethodInvocation statement, String className, J.MethodInvocation whenArg, ExecutionContext ctx) {
                 J.MethodDeclaration containingMethod = getCursor().firstEnclosing(J.MethodDeclaration.class);
                 boolean staticSetup = isMethodDeclarationWithAnnotation(containingMethod, BEFORE_CLASS, BEFORE_ALL, BEFORE_PARAM_CLASS_INV);
-                String variableName = mockName(className, updateCursor(block));
+                // The field is also read by the `@After*` method, so the name is free across the class
+                String variableName = mockName(className, getCursor().dropParentUntil(J.ClassDeclaration.class::isInstance), emptyList());
                 // We know it will have a matching `@Before*` annotation based on callers
                 String matchedAnnotation = requireNonNull(tryGetMatchedAnnotationOnMethodDeclaration(containingMethod, BEFORE));
                 String correspondingAfterFqn = matchedAnnotation.replace(".Before", ".After");
