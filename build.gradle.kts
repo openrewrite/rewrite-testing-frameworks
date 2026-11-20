@@ -69,6 +69,7 @@ recipeDependencies {
     testParserClasspath("net.datafaker:datafaker:2.+")
     testParserClasspath("org.easymock:easymock:5.6.0")
     testParserClasspath("org.hamcrest:hamcrest-core:1.3")
+    testParserClasspath("org.hamcrest:hamcrest-junit:2.0.0.0")
     testParserClasspath("org.hamcrest:hamcrest-library:1.3")
     testParserClasspath("org.jboss.arquillian.junit:arquillian-junit-core:1.10.2.Final")
     testParserClasspath("org.jboss.byteman:byteman-bmunit:4.0.25")

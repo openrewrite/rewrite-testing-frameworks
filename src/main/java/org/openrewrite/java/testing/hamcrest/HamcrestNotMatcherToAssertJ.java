@@ -115,8 +115,8 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
             return template.apply(getCursor(), mi.getCoordinates().replace(), templateArguments.toArray());
         }
 
-        private String typeToIndicator(JavaType type) {
-            String str = type instanceof JavaType.Primitive || type.toString().startsWith("java.") ?
+        private String typeToIndicator(@Nullable JavaType type) {
+            String str = type instanceof JavaType.Primitive || (type != null && type.toString().startsWith("java.")) ?
                     type.toString().replaceAll("<.*>", "") : "java.lang.Object";
             return String.format("#{any(%s)}", str);
         }

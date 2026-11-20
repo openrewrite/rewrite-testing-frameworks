@@ -26,12 +26,7 @@ tags:
   - hamcrest
 recipeList:
   # First change `is(..)` to `Matchers.is(..)` for consistent matching
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.hamcrest.core.* *(..)
-      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
-  - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.hamcrest.collection.* *(..)
-      fullyQualifiedTargetTypeName: org.hamcrest.Matchers
+  - org.openrewrite.java.testing.hamcrest.HamcrestFactoriesToMatchers
 
   # Then remove wrapping `is(Matcher)` calls such that further recipes will match
   - org.openrewrite.java.testing.hamcrest.RemoveIsMatcher
@@ -67,6 +62,8 @@ type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
 displayName: Migrate Hamcrest assertions to AssertJ
 description: Migrate Hamcrest `assertThat(..)` to AssertJ `Assertions`.
+# the Hamcrest dependencies go in the cycle after the last use of Hamcrest is migrated
+causesAnotherCycle: true
 preconditions:
   - org.openrewrite.Singleton
 tags:
@@ -79,9 +76,116 @@ recipeList:
       groupId: org.assertj
       artifactId: assertj-core
       version: 3.x
-      onlyIfUsing: org.hamcrest.*
+      onlyIfUsing: org.hamcrest..*
+      acceptTransitive: true
+  # and for AssertJ that the migration wrote from Hamcrest that recipes ahead of it introduced, such as
+  # `ExpectedExceptionToAssertThrows` in the JUnit 4 to 5 migration
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.assertj
+      artifactId: assertj-core
+      version: 3.x
+      onlyIfUsing: org.assertj..*
       acceptTransitive: true
 
+  # JUnit 4's deprecated `Assert.assertThat` and Hamcrest JUnit's `MatcherAssert` take Hamcrest matchers as
+  # Hamcrest's own `MatcherAssert` does
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.junit.Assert assertThat(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.MatcherAssert
+  - org.openrewrite.java.ChangeMethodTargetToStatic:
+      methodPattern: org.hamcrest.junit.MatcherAssert assertThat(..)
+      fullyQualifiedTargetTypeName: org.hamcrest.MatcherAssert
+  # AssertJ's `assertThat(null)` matches every overload of `assertThat`
+  - org.openrewrite.java.testing.hamcrest.CastNullActualToObject
+  # An `ExpectedException` rule that takes Hamcrest matchers becomes AssertJ's `assertThatExceptionOfType(..)`
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestJUnitExpectedExceptionToAssertJ
+  - org.openrewrite.java.testing.hamcrest.MigrateExpectedExceptionMatchersToAssertJ
+
+  # Each pass migrates the matchers that the pass before it unwrapped from matchers nesting them, so that one
+  # cycle migrates matchers nested several levels deep
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestMatchersToAssertJ
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestMatchersToAssertJ
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestMatchersToAssertJ
+  - org.openrewrite.java.testing.hamcrest.InlineSatisfiesOfOneAssertion
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest
+      unlessUsing: org.hamcrest..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest-core
+      unlessUsing: org.hamcrest..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest-library
+      unlessUsing: org.hamcrest..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest-all
+      unlessUsing: org.hamcrest..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: java-hamcrest
+      unlessUsing: org.hamcrest..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest-junit
+      unlessUsing: org.hamcrest..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.hamcrest
+      artifactId: hamcrest-integration
+      unlessUsing: org.hamcrest..*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestJUnitExpectedExceptionToAssertJ
+displayName: Migrate Hamcrest JUnit's `ExpectedException` to AssertJ
+description: >-
+  Hamcrest JUnit's `ExpectedException` is a copy of JUnit 4's rule that takes Hamcrest matchers. Migrate its uses to
+  AssertJ's `assertThatExceptionOfType(..)`, which also leaves the test independent of the JUnit 4 rule that removing
+  Hamcrest JUnit would take off the classpath.
+preconditions:
+  - org.openrewrite.java.search.HasType:
+      fullyQualifiedTypeName: org.hamcrest.junit.ExpectedException
+tags:
+  - testing
+  - hamcrest
+  - assertj
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.hamcrest.junit.ExpectedException
+      newFullyQualifiedTypeName: org.junit.rules.ExpectedException
+  - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
+  - org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.MigrateExpectedExceptionMatchersToAssertJ
+displayName: Migrate an `ExpectedException` that takes Hamcrest matchers to AssertJ
+description: >-
+  JUnit 4's `ExpectedException` takes Hamcrest matchers for the exception, its message and its cause. Migrate the
+  tests that pass it one to AssertJ's `assertThatExceptionOfType(..)`, so that no Hamcrest is left behind.
+preconditions:
+  - org.openrewrite.java.search.HasMethod:
+      methodPattern: org.junit.rules.ExpectedException expect*(org.hamcrest.Matcher)
+tags:
+  - testing
+  - hamcrest
+  - assertj
+recipeList:
+  - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
+  - org.openrewrite.java.testing.assertj.JUnitAssertThrowsToAssertExceptionType
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.hamcrest.MigrateHamcrestMatchersToAssertJ
+displayName: Migrate Hamcrest matchers to AssertJ
+description: >-
+  Migrate Hamcrest `assertThat(..)` and `assumeThat(..)` to AssertJ, one level of nested matchers at a time. A matcher
+  that nests other matchers becomes an AssertJ assertion whose requirements are Hamcrest assertions of the nested
+  matchers, which the next pass migrates.
+tags:
+  - testing
+  - hamcrest
+  - assertj
+recipeList:
   # Normalize Hamcrest imports to `org.hamcrest.Matchers` and remove wrapping `is(Matcher)` calls
   - org.openrewrite.java.testing.hamcrest.ConsistentHamcrestMatcherImports
 
@@ -387,3 +491,5 @@ recipeList:
       notMatcher: isA
       assertion: isNotInstanceOf
 
+  # Migrate what the recipes above leave behind, nesting the matchers it unwraps in Hamcrest assertions of their own
+  - org.openrewrite.java.testing.hamcrest.HamcrestRemainingMatchersToAssertJ
