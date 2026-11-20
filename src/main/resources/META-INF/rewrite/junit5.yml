@@ -94,7 +94,6 @@ recipeList:
   - org.openrewrite.java.testing.junit5.UpgradeSurefirePlugin
   - org.openrewrite.java.testing.junit5.UseHamcrestAssertThat
   - org.openrewrite.java.testing.junit5.MigrateAssumptions
-  - org.openrewrite.java.testing.junit5.AddHamcrestJUnitDependency
   - org.openrewrite.java.testing.junit5.UseTestMethodOrder
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: "org.junit.Assert assertEquals(.., Object[], Object[])"
@@ -118,7 +117,7 @@ recipeList:
   - org.openrewrite.java.testing.junit5.EnclosedToNested
   - org.openrewrite.java.testing.junit5.UpgradeOkHttpMockWebServer
   - org.openrewrite.java.testing.junit5.UseMockitoExtension
-  - org.openrewrite.java.testing.hamcrest.AddHamcrestIfUsed
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestToAssertJ
   - org.openrewrite.java.testing.junit5.UseXMLUnitLegacy
   - org.openrewrite.java.testing.junit5.RemoveJUnit4DependenciesUnlessJUnit3Used
   - org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers

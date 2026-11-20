@@ -92,15 +92,13 @@ class JUnit5MigrationTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
 
               import static java.util.Arrays.asList;
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.hamcrest.Matchers.containsInAnyOrder;
+              import static org.assertj.core.api.Assertions.assertThat;
 
               public class SampleTest {
                   @SuppressWarnings("ALL")
                   @Test
                   public void filterShouldRemoveUnusedConfig() {
-                      assertThat(asList("1", "2", "3"),
-                              containsInAnyOrder("3", "2", "1"));
+                      assertThat(asList("1", "2", "3")).containsExactlyInAnyOrder("3", "2", "1");
                   }
               }
               """

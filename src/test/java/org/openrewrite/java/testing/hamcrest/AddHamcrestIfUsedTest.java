@@ -63,10 +63,12 @@ class AddHamcrestIfUsedTest implements RewriteTest {
 
     @DocumentExample
     @Test
-    void migrationAddsDependencyForExpectedExceptionMessage() {
+    void migrationMovesExpectedExceptionMessageToAssertJ() {
         rewriteRun(
+          // AssertJ is added in the cycle after the Hamcrest that `ExpectedExceptionToAssertThrows` writes is migrated
           spec -> spec.recipeFromResources("org.openrewrite.java.testing.junit5.JUnit4to5Migration")
-            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3")),
+            .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "junit-4", "hamcrest-3"))
+            .expectedCyclesThatMakeChanges(2),
           mavenProject("example",
             pomXml(
               """
@@ -85,8 +87,8 @@ class AddHamcrestIfUsedTest implements RewriteTest {
                     </dependencies>
                 </project>
                 """,
-              spec -> spec.after(pom -> assertThat(pom).contains("<artifactId>hamcrest</artifactId>", "<artifactId>junit-jupiter</artifactId>")
-                          .doesNotContain("<artifactId>junit</artifactId>").actual())
+              spec -> spec.after(pom -> assertThat(pom).contains("<artifactId>assertj-core</artifactId>", "<artifactId>junit-jupiter</artifactId>")
+                          .doesNotContain("<artifactId>junit</artifactId>", "<artifactId>hamcrest</artifactId>").actual())
             ),
             srcTestJava(java(
               """
@@ -107,10 +109,9 @@ class AddHamcrestIfUsedTest implements RewriteTest {
                 }
                 """,
               spec -> spec.after(source -> assertThat(source).contains("import org.junit.jupiter.api.Test;",
-                          "import static org.hamcrest.CoreMatchers.containsString;",
-                          "import static org.hamcrest.MatcherAssert.assertThat;",
-                          "assertThat(exception.getMessage(), containsString(\"bad\"));")
-                          .doesNotContain("ExpectedException").actual())
+                          "import static org.assertj.core.api.Assertions.assertThat;",
+                          "assertThat(exception.getMessage()).contains(\"bad\");")
+                          .doesNotContain("ExpectedException", "org.hamcrest").actual())
             ))
           )
         );

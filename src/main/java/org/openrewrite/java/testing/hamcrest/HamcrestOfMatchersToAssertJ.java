@@ -25,6 +25,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
@@ -83,10 +84,11 @@ public class HamcrestOfMatchersToAssertJ extends Recipe {
                 parameters.add(arguments.get(0));
             }
 
+            String arg = Scope.at(getCursor()).freeName("arg");
             // .satisfiesAnyOf(...) or .satisfies(...)
             template.append(allOfMatcherMatches ? ".satisfies(\n" : ".satisfiesAnyOf(\n");
             template.append(anyOfArguments.stream()
-                    .map(arg -> "arg -> assertThat(arg, #{any()})")
+                    .map(m -> arg + " -> assertThat(" + arg + ", #{any()})")
                     .collect(joining(",\n")));
             parameters.addAll(anyOfArguments);
             template.append("\n);");
