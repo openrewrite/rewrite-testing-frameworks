@@ -104,9 +104,13 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.easymock.EasyMock anyObject(..)
       newMethodName: any
+  - org.openrewrite.java.testing.easymock.EasyMockCaptureToMockitoArgumentCaptor
   - org.openrewrite.java.ChangeMethodName:
-      methodPattern: org.easymock.EasyMock capture(..)
-      newMethodName: argThat
+      methodPattern: org.easymock.Capture getValues()
+      newMethodName: getAllValues
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.easymock.Capture
+      newFullyQualifiedTypeName: org.mockito.ArgumentCaptor
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: org.easymock.EasyMock reportMatcher(..)
       newMethodName: argThat
