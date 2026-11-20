@@ -89,7 +89,8 @@ public class EnvironmentVariables extends Recipe {
             @Override
             public J visitVariableDeclarations(J.VariableDeclarations variableDecls, ExecutionContext ctx) {
                 // missing type attribution, possibly parsing error.
-                if (variableDecls.getType() == null || !TypeUtils.isAssignableTo(ENVIRONMENT_VARIABLES, variableDecls.getType())) {
+                if (variableDecls.getVariables().stream().noneMatch(variable ->
+                        TypeUtils.isAssignableTo(ENVIRONMENT_VARIABLES, variable.getType()))) {
                     return variableDecls;
                 }
                 J.VariableDeclarations vd = (J.VariableDeclarations) new Annotated.Matcher("@org.junit.*Rule").asVisitor(a ->

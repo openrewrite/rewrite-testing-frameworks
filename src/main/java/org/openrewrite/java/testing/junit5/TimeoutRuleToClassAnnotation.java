@@ -91,7 +91,7 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
                 }
                 J.VariableDeclarations vd = (J.VariableDeclarations) statement;
                 if (vd.getVariables().size() != 1 ||
-                    !TypeUtils.isOfClassType(vd.getType(), "org.junit.rules.Timeout") ||
+                    !TypeUtils.isOfClassType(vd.getVariables().get(0).getType(), "org.junit.rules.Timeout") ||
                     !hasAnnotation(vd.getLeadingAnnotations(), RULE_MATCHER)) {
                     return false;
                 }
