@@ -168,10 +168,10 @@ class AddTestcontainersAnnotationsTest implements RewriteTest {
               import org.junit.ClassRule;
               import org.junit.rules.TestRule;
 
-               class MyTest {
-                   @ClassRule
-                   public static UberRedisContainer redisContainer = new UberRedisContainer();
-               }
+              class MyTest {
+                  @ClassRule
+                  public static UberRedisContainer redisContainer = new UberRedisContainer();
+              }
               """,
             // after
             """
@@ -182,9 +182,9 @@ class AddTestcontainersAnnotationsTest implements RewriteTest {
 
               @Testcontainers
               class MyTest {
-                   @Container
-                   public static UberRedisContainer redisContainer = new UberRedisContainer();
-               }
+                  @Container
+                  public static UberRedisContainer redisContainer = new UberRedisContainer();
+              }
               """
           )
         );
@@ -266,11 +266,11 @@ class AddTestcontainersAnnotationsTest implements RewriteTest {
               import org.junit.Rule;
 
               class MyTest {
-                @Rule
-                public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
+                  @Rule
+                  public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
 
-                class MyInnerClass {
-                }
+                  class MyInnerClass {
+                  }
               }
               """,
             """
@@ -283,8 +283,8 @@ class AddTestcontainersAnnotationsTest implements RewriteTest {
                   @Container
                   public GenericContainer<?> myContainer = new GenericContainer<>("redis:latest");
 
-                class MyInnerClass {
-                }
+                  class MyInnerClass {
+                  }
               }
               """
           )
