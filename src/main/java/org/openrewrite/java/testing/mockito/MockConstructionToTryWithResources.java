@@ -29,6 +29,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.marker.Markers;
@@ -151,7 +152,7 @@ public class MockConstructionToTryWithResources extends Recipe {
 
                 // Add body statements to the try block
                 J.Block tryBody = new J.Block(randomId(), Space.EMPTY, Markers.EMPTY,
-                        new org.openrewrite.java.tree.JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
+                        new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
                         emptyList(), Space.format(" ")).withStatements(bodyStatements);
                 tryWithResources = tryWithResources.withBody(tryBody);
                 tryWithResources = tryWithResources.withPrefix(varDecl.getPrefix());

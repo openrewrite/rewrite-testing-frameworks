@@ -17,6 +17,7 @@ package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -39,7 +40,7 @@ class RemovePowerMockRuleTest implements RewriteTest {
                 }
                 """
             )
-            .classpathFromResources(new org.openrewrite.InMemoryExecutionContext(), "junit-4"))
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-4"))
           .recipe(new RemovePowerMockRule());
     }
 

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.assertj;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -117,7 +118,7 @@ public class MigrateAssertionsForClassTypes extends Recipe {
                         .withMethodType(newType);
             }
 
-            private boolean isCollisionType(@org.jspecify.annotations.Nullable JavaType type) {
+            private boolean isCollisionType(@Nullable JavaType type) {
                 for (String collisionType : COLLISION_TYPES) {
                     if (TypeUtils.isAssignableTo(collisionType, type)) {
                         return true;

@@ -188,18 +188,18 @@ public class TestsShouldNotBePublic extends ScanningRecipe<TestsShouldNotBePubli
                     !acc.extendedClasses.contains(className(c.getType())) &&
                     !acc.referencedFromOtherPackages.contains(className(c.getType()).replace('$', '.'))) {
                 boolean hasTestMethods = c.getBody().getStatements().stream()
-                        .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
+                        .filter(J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
                         .anyMatch(this::hasJUnit5MethodAnnotation);
 
                 boolean hasPublicNonTestMethods = c.getBody().getStatements().stream()
-                        .filter(org.openrewrite.java.tree.J.MethodDeclaration.class::isInstance)
+                        .filter(J.MethodDeclaration.class::isInstance)
                         .map(J.MethodDeclaration.class::cast)
                         .filter(m -> m.hasModifier(J.Modifier.Type.Public))
                         .anyMatch(method -> !hasJUnit5MethodAnnotation(method));
 
                 boolean hasPublicVariableDeclarations = c.getBody().getStatements().stream()
-                        .filter(org.openrewrite.java.tree.J.VariableDeclarations.class::isInstance)
+                        .filter(J.VariableDeclarations.class::isInstance)
                         .map(J.VariableDeclarations.class::cast)
                         .anyMatch(m -> m.hasModifier(J.Modifier.Type.Public));
 
