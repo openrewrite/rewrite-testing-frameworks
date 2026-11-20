@@ -19,6 +19,7 @@ import lombok.Getter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
+import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -28,10 +29,13 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
@@ -74,9 +78,9 @@ public class PowerMockEasyMockToEasyMock extends Recipe {
                         J.MethodInvocation verify = (J.MethodInvocation) statement;
                         for (int i = 0; i < verify.getArguments().size(); i++) {
                             Expression mock = verify.getArguments().get(i);
-                            statements.add(verify.withId(org.openrewrite.Tree.randomId())
-                                    .withPrefix(i == 0 ? verify.getPrefix() : verify.getPrefix().withComments(java.util.Collections.emptyList()))
-                                    .withArguments(singletonList(mock.withPrefix(org.openrewrite.java.tree.Space.EMPTY))));
+                            statements.add(verify.withId(Tree.randomId())
+                                    .withPrefix(i == 0 ? verify.getPrefix() : verify.getPrefix().withComments(Collections.emptyList()))
+                                    .withArguments(singletonList(mock.withPrefix(Space.EMPTY))));
                         }
                         changed = true;
                     } else {
@@ -109,7 +113,7 @@ public class PowerMockEasyMockToEasyMock extends Recipe {
             private boolean takesClass(J.MethodInvocation mi) {
                 // A class, or an array of them, stands for static methods to mock
                 return mi.getArguments().stream().anyMatch(a -> a.getType() != null &&
-                        org.openrewrite.java.tree.TypeUtils.isOfClassType(a.getType(), "java.lang.Class"));
+                        TypeUtils.isOfClassType(a.getType(), "java.lang.Class"));
             }
 
             private J.MethodInvocation retarget(J.MethodInvocation mi, String call, ExecutionContext ctx) {

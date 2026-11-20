@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -195,7 +196,7 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
         // Java files should not be affected by this recipe
         // This test ensures the recipe only operates on Kotlin files
         rewriteRun(
-          spec -> spec.parser(org.openrewrite.java.JavaParser.fromJavaVersion()
+          spec -> spec.parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
           java(
             """
