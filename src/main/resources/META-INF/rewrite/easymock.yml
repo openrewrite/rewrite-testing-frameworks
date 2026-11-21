@@ -92,12 +92,84 @@ recipeList:
       methodPattern: org.easymock.IExpectationSetters andStubAnswer(..)
       newMethodName: thenAnswer
       ignoreDefinition: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.IMocksControl createMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.easymock.IMocksControl mock(String, Class)
+      newParameterNames:
+        - classToMock
+        - name
+      oldParameterNames:
+        - name
+        - classToMock
   - org.openrewrite.java.ChangeMethodTargetToStatic:
       methodPattern: org.easymock.IMocksControl mock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMockSupport createMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMockSupport createNiceMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMockSupport createStrictMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMockSupport niceMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMockSupport strictMock(..)
+      newMethodName: mock
+  - org.openrewrite.java.ReorderMethodArguments:
+      methodPattern: org.easymock.EasyMockSupport mock(String, Class)
+      newParameterNames:
+        - classToMock
+        - name
+      oldParameterNames:
+        - name
+        - classToMock
   - org.openrewrite.java.ChangeMethodTargetToStatic:
-      methodPattern: org.easymock.IMocksControl createMock(..)
+      methodPattern: org.easymock.EasyMockSupport mock(..)
       fullyQualifiedTargetTypeName: org.mockito.Mockito
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.IMocksControl reset()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.IMocksControl resetToNice()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.IMocksControl resetToStrict()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.IMocksControl resetToDefault()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.IMocksControl checkOrder(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.IMocksControl makeThreadSafe(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.IMocksControl checkIsUsedInOneThread(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMockSupport resetAll()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMockSupport resetAllToNice()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMockSupport resetAllToStrict()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMockSupport resetAllToDefault()
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMock checkOrder(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMock makeThreadSafe(..)
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: org.easymock.EasyMock checkIsUsedInOneThread(..)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock resetToNice(..)
+      newMethodName: reset
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock resetToStrict(..)
+      newMethodName: reset
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.easymock.EasyMock resetToDefault(..)
+      newMethodName: reset
+  - org.openrewrite.java.testing.easymock.RemoveUnusedMocksControl
   - org.openrewrite.java.ChangeType:
       oldFullyQualifiedTypeName: org.easymock.IArgumentMatcher
       newFullyQualifiedTypeName: org.mockito.ArgumentMatcher
