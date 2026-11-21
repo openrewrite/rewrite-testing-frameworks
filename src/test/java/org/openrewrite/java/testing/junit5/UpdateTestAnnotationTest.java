@@ -26,7 +26,8 @@ import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.Assertions.java;
@@ -723,8 +724,8 @@ class UpdateTestAnnotationTest implements RewriteTest {
     @Test
     void timeoutWithoutThreadModeWhenJupiterPredatesIt() {
         // Jupiter before 5.9 has `@Timeout` but no `Timeout.ThreadMode`
-        JavaSourceSet jupiter57 = new JavaSourceSet(randomId(), "test", Collections.singletonList(
-          JavaType.ShallowClass.build("org.junit.jupiter.api.Timeout")), Collections.emptyMap());
+        var jupiter57 = new JavaSourceSet(randomId(), "test", List.of(
+          JavaType.ShallowClass.build("org.junit.jupiter.api.Timeout")), Map.of());
         //language=java
         rewriteRun(
           java(

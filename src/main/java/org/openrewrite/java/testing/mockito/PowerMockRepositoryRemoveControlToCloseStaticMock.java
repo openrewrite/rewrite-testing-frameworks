@@ -28,7 +28,10 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.TypeUtils;
 
 import static org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito.classLiteral;
 import static org.openrewrite.java.testing.mockito.ScopedMocks.MOCKED_STATIC;

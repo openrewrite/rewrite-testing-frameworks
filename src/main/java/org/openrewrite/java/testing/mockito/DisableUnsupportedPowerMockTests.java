@@ -252,7 +252,7 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                             return statement;
                         })));
                 List<J.Annotation> annotations = cd.getLeadingAnnotations();
-                List<J.Annotation> kept = ListUtils.map(annotations, annotation -> reasonsIn(annotation).isEmpty() ? annotation : null);
+                List<J.Annotation> kept = ListUtils.filter(annotations, annotation -> reasonsIn(annotation).isEmpty());
                 if (kept.size() == annotations.size()) {
                     return cd;
                 }

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
@@ -54,6 +55,7 @@ class PowerMockitoWhenByNameToMockitoTest implements RewriteTest {
       }
       """;
 
+    @DocumentExample
     @Test
     void returningMethodWithMatchers() {
         //language=java

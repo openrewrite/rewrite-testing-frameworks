@@ -38,6 +38,55 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
           .recipe(new ExpectedExceptionToAssertThrows());
     }
 
+    @DocumentExample
+    @Test
+    void expectedExceptionRule() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.Rule;
+              import org.junit.Test;
+              import org.junit.rules.ExpectedException;
+
+              class MyTest {
+
+                  @Rule
+                  ExpectedException thrown = ExpectedException.none();
+
+                  @Test
+                  public void testEmptyPath() {
+                      this.thrown.expect(IllegalArgumentException.class);
+                      this.thrown.expectMessage("Invalid location: gs://");
+                      foo();
+                  }
+                  void foo() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Test;
+
+              import static org.hamcrest.CoreMatchers.containsString;
+              import static org.hamcrest.MatcherAssert.assertThat;
+              import static org.junit.jupiter.api.Assertions.assertThrows;
+
+              class MyTest {
+
+                  @Test
+                  public void testEmptyPath() {
+                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
+                          foo());
+                      assertThat(exception.getMessage(), containsString("Invalid location: gs://"));
+                  }
+                  void foo() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void doesNotClashWithExistingLocalNamedException() {
         //language=java
@@ -242,55 +291,6 @@ class ExpectedExceptionToAssertThrowsTest implements RewriteTest {
                       foo();
                   }
 
-                  void foo() {
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void expectedExceptionRule() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              import org.junit.Rule;
-              import org.junit.Test;
-              import org.junit.rules.ExpectedException;
-
-              class MyTest {
-
-                  @Rule
-                  ExpectedException thrown = ExpectedException.none();
-
-                  @Test
-                  public void testEmptyPath() {
-                      this.thrown.expect(IllegalArgumentException.class);
-                      this.thrown.expectMessage("Invalid location: gs://");
-                      foo();
-                  }
-                  void foo() {
-                  }
-              }
-              """,
-            """
-              import org.junit.Test;
-
-              import static org.hamcrest.CoreMatchers.containsString;
-              import static org.hamcrest.MatcherAssert.assertThat;
-              import static org.junit.jupiter.api.Assertions.assertThrows;
-
-              class MyTest {
-
-                  @Test
-                  public void testEmptyPath() {
-                      Throwable exception = assertThrows(IllegalArgumentException.class, () ->
-                          foo());
-                      assertThat(exception.getMessage(), containsString("Invalid location: gs://"));
-                  }
                   void foo() {
                   }
               }

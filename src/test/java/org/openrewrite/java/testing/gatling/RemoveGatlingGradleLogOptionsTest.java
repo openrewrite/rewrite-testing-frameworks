@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.gatling;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -29,6 +30,7 @@ class RemoveGatlingGradleLogOptionsTest implements RewriteTest {
         spec.recipe(new RemoveGatlingGradleLogOptions()).beforeRecipe(withToolingApi());
     }
 
+    @DocumentExample
     @Test
     void removeLogOptions() {
         rewriteRun(

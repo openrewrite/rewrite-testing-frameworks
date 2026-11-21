@@ -77,6 +77,47 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
           .recipeQualityValidation(RecipeQualityValidation.all().types(TypeValidation.all().identifiers(false)));
     }
 
+    @DocumentExample
+    @Test
+    void shouldRefactorMockito_When() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      System.out.println("some statement");
+                      when(A.getNumber()).thenReturn(-1);
+                      assertEquals(A.getNumber(), -1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.Assert.assertEquals;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      System.out.println("some statement");
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          assertEquals(A.getNumber(), -1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void namesStartOverInEachFile() {
         rewriteRun(
@@ -131,47 +172,6 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                   void test() {
                       try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
                           mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void shouldRefactorMockito_When() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import org.example.A;
-
-              import static org.junit.Assert.assertEquals;
-              import static org.mockito.Mockito.*;
-
-              class Test {
-                  void test() {
-                      System.out.println("some statement");
-                      when(A.getNumber()).thenReturn(-1);
-                      assertEquals(A.getNumber(), -1);
-                  }
-              }
-              """,
-            """
-              import org.example.A;
-              import org.mockito.MockedStatic;
-
-              import static org.junit.Assert.assertEquals;
-              import static org.mockito.Mockito.*;
-
-              class Test {
-                  void test() {
-                      System.out.println("some statement");
-                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
-                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                          assertEquals(A.getNumber(), -1);
                       }
                   }
               }

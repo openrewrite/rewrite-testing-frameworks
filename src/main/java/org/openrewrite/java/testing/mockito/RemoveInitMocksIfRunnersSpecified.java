@@ -361,7 +361,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                             }
 
                             @Override
-                            public  J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
+                            public J.@Nullable Assignment visitAssignment(J.Assignment assignment, ExecutionContext ctx) {
                                 J.Assignment a = super.visitAssignment(assignment, ctx);
                                 JavaType.Variable variable = referencedVariable(assignment.getVariable());
                                 if (variable != null && closeables.stream().anyMatch(it -> TypeUtils.isOfType(variable, it)) &&
@@ -373,7 +373,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                             }
 
                             @Override
-                            public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+                            public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                                 // Value-producing contexts and assignments are handled separately or conservatively retained.
                                 if ((isMockitoOpenMocksCall(mi, getCursor()) || isMockitoInitMocksCall(mi, getCursor())) &&
@@ -389,7 +389,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                             }
 
                             @Override
-                            public  J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
+                            public J.@Nullable VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext ctx) {
                                 J.VariableDeclarations vd = super.visitVariableDeclarations(multiVariable, ctx);
                                 if (!(getCursor().getParentTreeCursor().getValue() instanceof J.Block)) {
                                     // A handle may be a formal parameter. Keep its declaration and the method's signature intact.
@@ -415,7 +415,7 @@ public class RemoveInitMocksIfRunnersSpecified extends ScanningRecipe<RemoveInit
                             }
 
                             @Override
-                            public  J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                            public J.@Nullable MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                                 if (md != method && md.getBody() != null && md.getBody().getStatements().isEmpty()) {
                                     // Only remove empty Before and After methods

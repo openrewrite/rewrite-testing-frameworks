@@ -106,8 +106,7 @@ public class InlineSatisfiesOfOneAssertion extends Recipe {
             }
 
             private int references(J tree, String name) {
-                AtomicInteger count = new AtomicInteger();
-                new JavaIsoVisitor<AtomicInteger>() {
+                return new JavaIsoVisitor<AtomicInteger>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, AtomicInteger c) {
                         // the method's own name is no reference to the parameter
@@ -131,8 +130,7 @@ public class InlineSatisfiesOfOneAssertion extends Recipe {
                         }
                         return identifier;
                     }
-                }.visit(tree, count);
-                return count.get();
+                }.reduce(tree, new AtomicInteger()).get();
             }
         });
     }

@@ -75,60 +75,6 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           .recipeFromResources("org.openrewrite.java.testing.mockito.ReplacePowerMockito");
     }
 
-    @Test
-    void whenByNameOfPublicMethodsIsStubbedWithMockito() {
-        //language=java
-        rewriteRun(
-          java(
-            """
-              package com.qcloud;
-
-              public interface HttpClient {
-                  <X> X execute(String request, Object handler);
-                  void sign(String request, java.util.Date expires);
-              }
-              """
-          ),
-          java(
-            """
-              import com.qcloud.HttpClient;
-              import org.junit.Test;
-              import org.junit.runner.RunWith;
-              import org.powermock.api.mockito.PowerMockito;
-              import org.powermock.modules.junit4.PowerMockRunner;
-
-              import static org.mockito.ArgumentMatchers.any;
-
-              @RunWith(PowerMockRunner.class)
-              public class MyTest {
-                  @Test
-                  public void test() throws Exception {
-                      HttpClient client = PowerMockito.mock(HttpClient.class);
-                      PowerMockito.when(client, "sign", any(), any()).thenAnswer((m) -> null);
-                      PowerMockito.when(client, "execute", any(), any()).thenReturn("response");
-                  }
-              }
-              """,
-            """
-              import com.qcloud.HttpClient;
-              import org.junit.Test;
-              import org.mockito.Mockito;
-
-              import static org.mockito.ArgumentMatchers.any;
-
-              public class MyTest {
-                  @Test
-                  public void test() throws Exception {
-                      HttpClient client = Mockito.mock(HttpClient.class);
-                      Mockito.doAnswer((m) -> null).when(client).sign(any(), any());
-                      Mockito.when(client.execute(any(), any())).thenReturn("response");
-                  }
-              }
-              """
-          )
-        );
-    }
-
     @DocumentExample
     @Test
     void thatPowerMockitoMockStaticIsReplacedInTestMethod() {
@@ -209,6 +155,60 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
                       mockedCalendar.when(() -> Calendar.getInstance(Locale.ENGLISH)).thenReturn(calendarMock);
                       assertEquals(Calendar.getInstance(Locale.ENGLISH), calendarMock);
                       mockedCurrency.verify(Currency::getAvailableCurrencies, Mockito.never());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenByNameOfPublicMethodsIsStubbedWithMockito() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package com.qcloud;
+
+              public interface HttpClient {
+                  <X> X execute(String request, Object handler);
+                  void sign(String request, java.util.Date expires);
+              }
+              """
+          ),
+          java(
+            """
+              import com.qcloud.HttpClient;
+              import org.junit.Test;
+              import org.junit.runner.RunWith;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.powermock.modules.junit4.PowerMockRunner;
+
+              import static org.mockito.ArgumentMatchers.any;
+
+              @RunWith(PowerMockRunner.class)
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      HttpClient client = PowerMockito.mock(HttpClient.class);
+                      PowerMockito.when(client, "sign", any(), any()).thenAnswer((m) -> null);
+                      PowerMockito.when(client, "execute", any(), any()).thenReturn("response");
+                  }
+              }
+              """,
+            """
+              import com.qcloud.HttpClient;
+              import org.junit.Test;
+              import org.mockito.Mockito;
+
+              import static org.mockito.ArgumentMatchers.any;
+
+              public class MyTest {
+                  @Test
+                  public void test() throws Exception {
+                      HttpClient client = Mockito.mock(HttpClient.class);
+                      Mockito.doAnswer((m) -> null).when(client).sign(any(), any());
+                      Mockito.when(client.execute(any(), any())).thenReturn("response");
                   }
               }
               """
@@ -2230,6 +2230,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void anOlderMockitoDeclarationIsBroughtUpToTheVersionMockitoInlineNeeds() {
         rewriteRun(

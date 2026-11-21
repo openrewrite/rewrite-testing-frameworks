@@ -17,11 +17,12 @@
 package org.openrewrite.java.testing.mockito;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
-import org.openrewrite.test.TypeValidation;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
@@ -29,7 +30,12 @@ class PowerMockEasyMockToMockitoTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "easymock-5", "mockito-core-5", "junit-4", "powermock-core-2", "powermock-api-support-2")
+            .classpathFromResources(new InMemoryExecutionContext(),
+                "easymock-5",
+                "mockito-core-5",
+                "junit-4",
+                "powermock-core-2",
+                "powermock-api-support-2")
             .dependsOn("""
             package org.powermock.api.easymock;
             import java.lang.reflect.Method;
@@ -44,11 +50,15 @@ class PowerMockEasyMockToMockitoTest implements RewriteTest {
           .typeValidationOptions(TypeValidation.builder().methodInvocations(false).build());
     }
 
-    @Test void createReplayAndVerifyMocks() {
-        rewriteRun(java("""
+    @DocumentExample
+    @Test
+    void createReplayAndVerifyMocks() {
+        rewriteRun(java(
+          """
           interface Cache { String get(String key); void put(String k, String v); }
           interface Engine { Cache cache(); }
-          """), java("""
+          """), java(
+          """
           import static org.junit.Assert.*;
           import org.easymock.EasyMock;
           import org.powermock.api.easymock.PowerMock;

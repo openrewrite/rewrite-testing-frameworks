@@ -37,12 +37,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.java.JavaFileChecker;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptySet;
@@ -172,8 +167,7 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
     // follows the conversion must not run for their type.
     // The same goes for a rule type passed to a method or constructor declared in another file, which the `ChangeType` cannot update.
     private static Set<String> unconvertibleRuleTypes(J.CompilationUnit cu) {
-        Set<String> declaredHere = new HashSet<>();
-        new JavaIsoVisitor<Set<String>>() {
+        Set<String> declaredHere = new JavaIsoVisitor<Set<String>>() {
             @Override
             public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, Set<String> names) {
                 if (classDecl.getType() != null) {
@@ -181,7 +175,7 @@ public class JUnitSoftAssertionsToSoftAssertionsExtension extends Recipe {
                 }
                 return super.visitClassDeclaration(classDecl, names);
             }
-        }.visit(cu, declaredHere);
+        }.reduce(cu, new HashSet<>());
         return new JavaIsoVisitor<Set<String>>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<String> types) {

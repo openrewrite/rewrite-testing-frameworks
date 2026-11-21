@@ -100,9 +100,6 @@ public class PowerMockMemberModifierToMockito extends Recipe {
                         if (!changed) {
                             return b;
                         }
-                        maybeAddImport(POWER_MOCKITO);
-                        maybeAddImport("org.mockito.ArgumentMatchers");
-                        maybeAddImport("org.mockito.Mockito");
                         maybeRemoveImport(MEMBER_MODIFIER);
                         maybeRemoveImport(MEMBER_MATCHER);
                         maybeRemoveImport(MEMBER_MODIFIER + ".stub");
@@ -110,6 +107,9 @@ public class PowerMockMemberModifierToMockito extends Recipe {
                         maybeRemoveImport(MEMBER_MODIFIER + ".method");
                         maybeRemoveImport(MEMBER_MATCHER + ".method");
                         maybeRemoveImport(POWER_MOCKITO);
+                        maybeAddImport(POWER_MOCKITO);
+                        maybeAddImport("org.mockito.ArgumentMatchers");
+                        maybeAddImport("org.mockito.Mockito");
                         return b.withStatements(statements);
                     }
 
@@ -347,7 +347,7 @@ public class PowerMockMemberModifierToMockito extends Recipe {
                             witnessed = ((JavaType.Array) witnessed).getElemType();
                         }
                         if (witnessed instanceof JavaType.FullyQualified &&
-                            !((JavaType.FullyQualified) witnessed).getPackageName().equals("java.lang")) {
+                            !"java.lang".equals(((JavaType.FullyQualified) witnessed).getPackageName())) {
                             imports.add(((JavaType.FullyQualified) witnessed).getFullyQualifiedName().replace('$', '.'));
                         }
                         template.append('<').append(((J.FieldAccess) parameterLiterals.get(i)).getTarget().withPrefix(Space.EMPTY).printTrimmed(site)).append('>');

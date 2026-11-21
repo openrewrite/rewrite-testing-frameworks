@@ -129,9 +129,9 @@ public class PowerMockitoWhenByNameToMockito extends Recipe {
                         .build()
                         .apply(getCursor(), method.getCoordinates().replace(), templateArguments.toArray())
                         .withPrefix(Space.EMPTY);
-                maybeAddImport("org.mockito.Mockito");
                 maybeRemoveImport("org.powermock.api.mockito.PowerMockito");
                 maybeRemoveImport("org.powermock.api.mockito.PowerMockito.when");
+                maybeAddImport("org.mockito.Mockito");
                 J.MethodInvocation call = call(when, target);
                 return call.withId(method.getId()).withPrefix(method.getPrefix())
                         .withSelect(doWhen).withTypeParameters(null)
