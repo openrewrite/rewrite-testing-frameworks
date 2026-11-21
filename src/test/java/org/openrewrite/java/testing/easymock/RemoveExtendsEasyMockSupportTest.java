@@ -105,4 +105,39 @@ class RemoveExtendsEasyMockSupportTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepTestBaseClassThatExtendsEasyMockSupport() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+            import org.easymock.EasyMockSupport;
+
+            public abstract class AbstractTest extends EasyMockSupport {
+                protected String uuid() {
+                    return "uuid";
+                }
+            }
+            """,
+            """
+            public abstract class AbstractTest {
+                protected String uuid() {
+                    return "uuid";
+                }
+            }
+            """
+          ),
+          //language=java
+          java(
+            """
+            public class ServiceTest extends AbstractTest {
+                void test() {
+                    uuid();
+                }
+            }
+            """
+          )
+        );
+    }
 }
