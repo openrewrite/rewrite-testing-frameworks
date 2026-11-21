@@ -48,6 +48,7 @@ tags:
   - easymock
 recipeList:
   - org.openrewrite.java.testing.easymock.EasyMockVerifyToMockitoVerify
+  - org.openrewrite.java.testing.easymock.EasyMockExpectLastCallToMockito
   - org.openrewrite.java.RemoveMethodInvocations:
       methodPattern: org.easymock.IExpectationSetters times(..)
   - org.openrewrite.java.RemoveMethodInvocations:
