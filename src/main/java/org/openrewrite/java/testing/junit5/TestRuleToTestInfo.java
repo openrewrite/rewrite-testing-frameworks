@@ -23,7 +23,6 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.marker.Markers;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.*;
 import org.openrewrite.java.search.UsesType;
@@ -33,6 +32,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -268,8 +268,8 @@ public class TestRuleToTestInfo extends Recipe {
                 if (!JUNIT_BEFORE_MATCHER.matches(anno)) {
                     return anno;
                 }
-                maybeAddImport("org.junit.jupiter.api.BeforeEach");
                 maybeRemoveImport("org.junit.Before");
+                maybeAddImport("org.junit.jupiter.api.BeforeEach");
                 JavaType.ShallowClass beforeEach = JavaType.ShallowClass.build("org.junit.jupiter.api.BeforeEach");
                 J.Identifier name = new J.Identifier(Tree.randomId(), anno.getAnnotationType().getPrefix(), Markers.EMPTY,
                         emptyList(), "BeforeEach", beforeEach, null);

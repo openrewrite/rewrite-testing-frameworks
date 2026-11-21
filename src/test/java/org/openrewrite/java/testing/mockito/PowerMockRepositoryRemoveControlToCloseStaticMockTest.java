@@ -29,7 +29,10 @@ class PowerMockRepositoryRemoveControlToCloseStaticMockTest implements RewriteTe
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion()
-            .classpathFromResources(new InMemoryExecutionContext(), "powermock-core-1", "mockito-core-3.12", "junit-4"))
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "powermock-core-1",
+              "mockito-core-3.12",
+              "junit-4"))
           .recipe(new PowerMockRepositoryRemoveControlToCloseStaticMock());
     }
 

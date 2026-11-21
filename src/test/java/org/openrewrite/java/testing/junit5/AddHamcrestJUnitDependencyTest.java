@@ -79,40 +79,6 @@ class AddHamcrestJUnitDependencyTest implements RewriteTest {
 
     }
 
-    @Test
-    void shouldNotAddWhenUsingMatcherAssert() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              class FooTest {
-                  void bar() {
-                      org.hamcrest.MatcherAssert.assertThat("a", org.hamcrest.Matchers.is("a"));
-                  }
-              }
-              """
-          ),
-          pomXml(POM_BEFORE)
-        );
-    }
-
-    @Test
-    void shouldNotAddWhenUsingJUnit4AssertThatUntilMigrated() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              class FooTest {
-                  void bar() {
-                      org.junit.Assert.assertThat("a", org.hamcrest.Matchers.is("a"));
-                  }
-              }
-              """
-          ),
-          pomXml(POM_BEFORE)
-        );
-    }
-
     @DocumentExample
     @Test
     void onlyModuleUsingMatcherAssumeGetsDependency() {
@@ -155,6 +121,40 @@ class AddHamcrestJUnitDependencyTest implements RewriteTest {
             )),
             pomXml(POM_BEFORE)
           )
+        );
+    }
+
+    @Test
+    void shouldNotAddWhenUsingMatcherAssert() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              class FooTest {
+                  void bar() {
+                      org.hamcrest.MatcherAssert.assertThat("a", org.hamcrest.Matchers.is("a"));
+                  }
+              }
+              """
+          ),
+          pomXml(POM_BEFORE)
+        );
+    }
+
+    @Test
+    void shouldNotAddWhenUsingJUnit4AssertThatUntilMigrated() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              class FooTest {
+                  void bar() {
+                      org.junit.Assert.assertThat("a", org.hamcrest.Matchers.is("a"));
+                  }
+              }
+              """
+          ),
+          pomXml(POM_BEFORE)
         );
     }
 }

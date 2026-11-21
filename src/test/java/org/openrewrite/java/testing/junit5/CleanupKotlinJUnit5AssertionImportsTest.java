@@ -36,6 +36,40 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
           .recipe(new CleanupKotlinJUnit5AssertionImports());
     }
 
+    @DocumentExample
+    @Test
+    void removesSpecificStaticAssertionsImportWhenApiWildcardPresent() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.*
+              import org.junit.jupiter.api.Assertions.assertNull
+              import org.junit.jupiter.api.Assertions.assertNotNull
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                      assertNull(null)
+                      assertNotNull("test")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.*
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                      assertNull(null)
+                      assertNotNull("test")
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Test
     void keepsStaticAssertionsWildcardImportWhenApiWildcardPresent() {
         //language=kotlin
@@ -83,40 +117,6 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
                   fun testSomething() {
                       assertEquals(1, 1)
                       assertNull(null)
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void removesSpecificStaticAssertionsImportWhenApiWildcardPresent() {
-        //language=kotlin
-        rewriteRun(
-          kotlin(
-            """
-              import org.junit.jupiter.api.*
-              import org.junit.jupiter.api.Assertions.assertNull
-              import org.junit.jupiter.api.Assertions.assertNotNull
-
-              class ATest {
-                  @Test
-                  fun testSomething() {
-                      assertNull(null)
-                      assertNotNull("test")
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.*
-
-              class ATest {
-                  @Test
-                  fun testSomething() {
-                      assertNull(null)
-                      assertNotNull("test")
                   }
               }
               """

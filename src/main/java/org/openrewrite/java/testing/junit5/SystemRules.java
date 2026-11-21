@@ -27,6 +27,8 @@ import org.openrewrite.trait.Comments;
 import java.nio.file.Path;
 import java.util.*;
 
+import static java.util.Collections.emptyMap;
+
 final class SystemRules {
     static final String PACKAGE = "org.junit.contrib.java.lang.system";
     static final String RULE = "org.junit.Rule";
@@ -72,7 +74,7 @@ final class SystemRules {
     }
 
     static boolean mayBeUsedElsewhere(J.VariableDeclarations field, Cursor cursor) {
-        return mayBeUsedElsewhere(field, cursor, Collections.emptyMap());
+        return mayBeUsedElsewhere(field, cursor, emptyMap());
     }
 
     static boolean mayBeUsedElsewhere(J.VariableDeclarations field, Cursor cursor, Map<String, Set<Path>> usages) {

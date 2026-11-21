@@ -26,10 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.*;
 import static org.openrewrite.maven.Assertions.pomXml;
 
-/**
- * The migration of the matchers that the dedicated Hamcrest recipes leave behind, run as part of
- * {@code MigrateHamcrestToAssertJ}, which no Hamcrest survives.
- */
+/// The migration of the matchers that the dedicated Hamcrest recipes leave behind, run as part of
+/// `MigrateHamcrestToAssertJ`, which no Hamcrest survives.
 class HamcrestRemainingMatchersToAssertJTest implements RewriteTest {
 
     @Override

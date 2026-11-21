@@ -17,7 +17,11 @@ package org.openrewrite.java.testing.hamcrest;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.SourceFile;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -36,8 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static org.openrewrite.java.testing.hamcrest.HamcrestAdapterSource.*;
 
 /**
@@ -130,7 +133,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
             for (String p : packages) {
                 common = common == null ? p : commonPackage(common, p);
             }
-            return common == null || common.isEmpty() ? (packages.isEmpty() ? "" : packages.first()) : common;
+            return StringUtils.isNullOrEmpty(common) ? (packages.isEmpty() ? "" : packages.first()) : common;
         }
 
         String fullyQualifiedName() {
@@ -172,8 +175,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                             cu.getClasses().get(0).getType().getFullyQualifiedName();
                     return cu;
                 }
-                Set<String> adapters = new TreeSet<>();
-                new JavaIsoVisitor<Set<String>>() {
+                Set<String> adapters = new JavaIsoVisitor<Set<String>>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<String> found) {
                         String adapter = adapterFor(method);
@@ -182,7 +184,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                         }
                         return super.visitMethodInvocation(method, found);
                     }
-                }.visit(cu, adapters);
+                }.reduce(cu, new TreeSet<>());
                 if (!adapters.isEmpty()) {
                     SourceSet sourceSet = acc.sourceSets.computeIfAbsent(key, k -> new SourceSet());
                     sourceSet.adapters.addAll(adapters);
@@ -238,7 +240,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                         }
                         if (sourceSet.sourceSetName != null) {
                             markers = markers.setByType(new JavaSourceSet(sourceSet.sourceSetId, sourceSet.sourceSetName,
-                                    emptyList(), Collections.emptyMap()));
+                                    emptyList(), emptyMap()));
                         }
                         generated.add(source.withSourcePath(sourcePath).withMarkers(markers));
                     });
@@ -306,7 +308,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
             }
 
             @Override
-            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (MATCHER_ASSUME_THAT.matches(mi) || JUNIT_ASSUME_THAT.matches(mi)) {
                     return assumption(mi, ctx);
@@ -892,7 +894,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
     }
 
     static class Rewrite {
-        static final Rewrite REMOVE = new Rewrite("", emptyList(), Collections.emptySet(), true);
+        static final Rewrite REMOVE = new Rewrite("", emptyList(), emptySet(), true);
 
         final String suffix;
         final List<? extends Expression> args;
@@ -900,7 +902,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
         final boolean remove;
 
         Rewrite(String suffix, List<? extends Expression> args) {
-            this(suffix, args, Collections.emptySet(), false);
+            this(suffix, args, emptySet(), false);
         }
 
         Rewrite(String suffix, List<? extends Expression> args, Set<String> adapters) {

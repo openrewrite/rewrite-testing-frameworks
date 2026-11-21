@@ -30,8 +30,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.java.testing.mockito.PowerMockitoMockStaticToMockito.classLiteral;
@@ -64,7 +63,6 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
     private static final MethodMatcher VERIFY_NEW_ARGUMENTS = new MethodMatcher("org.powermock.api.mockito.verification.ConstructorArgumentsVerification with*(..)");
     private static final MethodMatcher TIMES = new MethodMatcher("org.mockito.Mockito times(int)");
     private static final MethodMatcher NEVER = new MethodMatcher("org.mockito.Mockito never()");
-    private static final MethodMatcher AT_LEAST_ONCE = new MethodMatcher("org.mockito.Mockito atLeastOnce()");
     private static final MethodMatcher THEN_RETURN = new MethodMatcher("org.mockito.stubbing.OngoingStubbing thenReturn(..)");
 
     @Getter
@@ -103,10 +101,10 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                         for (String type : new String[]{"Arrays", "Collection", "Collections", "List", "Map", "Objects", "Set"}) {
                             maybeAddImport("java.util." + type);
                         }
-                        maybeAddImport(framework.assertionsClass);
                         maybeRemoveImport("org.powermock.api.mockito.PowerMockito.verifyNew");
                         maybeRemoveImport("org.mockito.Mockito.times");
                         maybeRemoveImport("org.mockito.Mockito.never");
+                        maybeAddImport(framework.assertionsClass);
                         for (String owner : new String[]{"org.mockito.ArgumentMatchers.", "org.mockito.Matchers.", "org.mockito.Mockito."}) {
                             for (String matcher : MATCHER_NAMES) {
                                 maybeRemoveImport(owner + matcher);
@@ -291,8 +289,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
 
     /// A local variable a lambda captures must not be assigned again, whereas fields and constants always can be.
     private static boolean captureable(Expression expression, J.@Nullable MethodDeclaration method) {
-        Set<String> locals = new HashSet<>();
-        new JavaIsoVisitor<Set<String>>() {
+        Set<String> locals = new JavaIsoVisitor<Set<String>>() {
             @Override
             public J.Identifier visitIdentifier(J.Identifier identifier, Set<String> p) {
                 JavaType.Variable variable = identifier.getFieldType();
@@ -301,7 +298,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                 }
                 return identifier;
             }
-        }.visit(expression, locals);
+        }.reduce(expression, new HashSet<>());
         if (locals.isEmpty()) {
             return true;
         }
@@ -335,7 +332,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
                 }
             }
         }.reduce(method, new HashSet<>());
-        return Collections.disjoint(locals, reassigned);
+        return disjoint(locals, reassigned);
     }
 
     private static String methodAndType(Cursor cursor, JavaType.FullyQualified mockedType) {
@@ -360,7 +357,7 @@ public class PowerMockitoWhenNewToMockito extends Recipe {
         }
         if (arguments.stream().allMatch(argument -> exactValue(argument) != null)) {
             arguments.stream().map(PowerMockitoWhenNewToMockito::exactValue).forEach(parameters::add);
-            String values = String.join(", ", Collections.nCopies(arguments.size(), "#{any()}"));
+            String values = String.join(", ", nCopies(arguments.size(), "#{any()}"));
             return contextName + ".arguments().equals(" + (arguments.size() == 1 ? "Collections.singletonList(" : "Arrays.asList(") + values + "))";
         }
         StringBuilder match = new StringBuilder(contextName + ".arguments().size() == " + arguments.size());

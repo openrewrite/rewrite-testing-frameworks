@@ -21,7 +21,6 @@ import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
@@ -35,9 +34,9 @@ import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class PowerMockEasyMockToEasyMock extends Recipe {
@@ -79,7 +78,7 @@ public class PowerMockEasyMockToEasyMock extends Recipe {
                         for (int i = 0; i < verify.getArguments().size(); i++) {
                             Expression mock = verify.getArguments().get(i);
                             statements.add(verify.withId(Tree.randomId())
-                                    .withPrefix(i == 0 ? verify.getPrefix() : verify.getPrefix().withComments(Collections.emptyList()))
+                                    .withPrefix(i == 0 ? verify.getPrefix() : verify.getPrefix().withComments(emptyList()))
                                     .withArguments(singletonList(mock.withPrefix(Space.EMPTY))));
                         }
                         changed = true;
@@ -117,8 +116,8 @@ public class PowerMockEasyMockToEasyMock extends Recipe {
             }
 
             private J.MethodInvocation retarget(J.MethodInvocation mi, String call, ExecutionContext ctx) {
-                maybeAddImport("org.easymock.EasyMock");
                 maybeRemoveImport(POWER_MOCK);
+                maybeAddImport("org.easymock.EasyMock");
                 return JavaTemplate.builder("EasyMock." + call)
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "easymock"))
                         .imports("org.easymock.EasyMock")

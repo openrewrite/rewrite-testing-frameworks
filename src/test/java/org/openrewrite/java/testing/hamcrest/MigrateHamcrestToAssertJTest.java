@@ -975,7 +975,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               ),
               // only the adapter the migration uses is generated
               java(
-                null,
+                doesNotExist(),
                 """
                   import java.util.function.Consumer;
                   import org.assertj.core.api.Condition;

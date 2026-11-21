@@ -387,7 +387,7 @@ public class PowerMockitoDoStubbingToMockito extends Recipe {
                             doers.add(0, doer);
                             select = doer.getSelect();
                             String declaring = doer.getMethodType().getDeclaringType().getFullyQualifiedName();
-                            if (declaring.equals("org.powermock.api.mockito.PowerMockito")) {
+                            if ("org.powermock.api.mockito.PowerMockito".equals(declaring)) {
                                 return select == null || select instanceof TypeTree ? doers : null;
                             }
                         }

@@ -405,10 +405,10 @@ class HamcrestClassOverloadTest implements RewriteTest {
     private static J.CompilationUnit withErasedClassParameter(J.CompilationUnit cu) {
         return mutateMatcherMethods(cu, method -> {
             JavaType parameter = method.getParameterTypes().getFirst();
-            if (!(parameter instanceof JavaType.Parameterized)) {
+            if (!(parameter instanceof JavaType.Parameterized parameterized)) {
                 throw new IllegalStateException("The fixture must have a parameterized Class parameter");
             }
-            return method.withParameterTypes(List.of(((JavaType.Parameterized) parameter).getType()));
+            return method.withParameterTypes(List.of(parameterized.getType()));
         });
     }
 
