@@ -132,6 +132,176 @@ class CloseUnclosedStaticMocksTest implements RewriteTest {
     }
 
     @Test
+    void endTryWithResourcesAtExplicitClose() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.mockStatic;
+
+              class TestClass {
+                  @Test
+                  void test() {
+                      MockedStatic<A> mocked = mockStatic(A.class);
+                      assertNull(A.getNumber());
+                      mocked.close();
+                      assertEquals(42, A.getNumber());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.mockStatic;
+
+              class TestClass {
+                  @Test
+                  void test() {
+                      try (MockedStatic<A> mocked = mockStatic(A.class)) {
+                          assertNull(A.getNumber());
+                      }
+                      assertEquals(42, A.getNumber());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void wrapEachMockClosedInSequence() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.mockStatic;
+
+              class TestClass {
+                  @Test
+                  void test() {
+                      MockedStatic<A> mockA = mockStatic(A.class);
+                      assertNull(A.getNumber());
+                      mockA.close();
+                      MockedStatic<B> mockB = mockStatic(B.class);
+                      assertNull(B.getLong());
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.mockStatic;
+
+              class TestClass {
+                  @Test
+                  void test() {
+                      try (MockedStatic<A> mockA = mockStatic(A.class)) {
+                          assertNull(A.getNumber());
+                      }
+                      try (MockedStatic<B> mockB = mockStatic(B.class)) {
+                          assertNull(B.getLong());
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveMockClosedInFinallyAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.mockStatic;
+
+              class TestClass {
+                  @Test
+                  void test() {
+                      MockedStatic<A> mocked = mockStatic(A.class);
+                      try {
+                          assertNull(A.getNumber());
+                      } finally {
+                          mocked.close();
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveMockUsedAfterCloseAlone() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertTrue;
+              import static org.mockito.Mockito.mockStatic;
+
+              class TestClass {
+                  @Test
+                  void test() {
+                      MockedStatic<A> mocked = mockStatic(A.class);
+                      mocked.close();
+                      assertTrue(mocked.isClosed());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leaveMockAloneWhenLocalIsUsedAfterClose() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.mockito.MockedStatic;
+
+              import static org.junit.jupiter.api.Assertions.assertNull;
+              import static org.mockito.Mockito.mockStatic;
+
+              class TestClass {
+                  @Test
+                  void test() {
+                      MockedStatic<A> mocked = mockStatic(A.class);
+                      Integer number = A.getNumber();
+                      mocked.close();
+                      assertNull(number);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void shouldWrapMockStaticInTryWithResourcesMultipleMocks() {
         //language=java
         rewriteRun(

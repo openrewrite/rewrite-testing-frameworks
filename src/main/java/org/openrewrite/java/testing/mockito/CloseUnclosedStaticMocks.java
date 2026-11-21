@@ -61,6 +61,9 @@ public class CloseUnclosedStaticMocks extends Recipe {
 
     private static class CloseUnclosedStaticMocksVisitor extends JavaVisitor<ExecutionContext> {
 
+        private static final int NO_EXPLICIT_CLOSE = -1;
+        private static final int UNSAFE_TO_WRAP = -2;
+
         @Override
         public J visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
             J j = super.visitCompilationUnit(cu, ctx);
@@ -175,21 +178,114 @@ public class CloseUnclosedStaticMocks extends Recipe {
             if (insideLifecycleMethod() || isClassBody()) {
                 return b;
             }
-            AtomicBoolean removeStatement = new AtomicBoolean(false);
-            J.Block b1 = b.withStatements(ListUtils.map(b.getStatements(), statement -> {
-                if (!removeStatement.get() && shouldUseTryWithResources(statement)) {
-                    J.Try tryWithResource = toTryWithResource(b, statement, ctx);
-                    if (tryWithResource != null) {
-                        removeStatement.set(true);
-                        return (J.Try) super.visitTry(tryWithResource, ctx);
+            List<Statement> statements = b.getStatements();
+            List<Statement> newStatements = new ArrayList<>(statements.size());
+            boolean changed = false;
+            for (int i = 0; i < statements.size(); i++) {
+                Statement statement = statements.get(i);
+                if (shouldUseTryWithResources(statement)) {
+                    List<Statement> successors = statements.subList(i + 1, statements.size());
+                    int closeIndex = explicitCloseIndex(statement, successors);
+                    if (closeIndex != UNSAFE_TO_WRAP) {
+                        // Without an explicit close, the mock stays open until the end of the block.
+                        // With one, the try-with-resources ends where the user closed the mock.
+                        List<Statement> body = closeIndex == NO_EXPLICIT_CLOSE ? successors : successors.subList(0, closeIndex);
+                        J.Try tryWithResource = toTryWithResource(statement, body, ctx);
+                        if (tryWithResource != null) {
+                            newStatements.add((J.Try) super.visitTry(tryWithResource, ctx));
+                            changed = true;
+                            if (closeIndex == NO_EXPLICIT_CLOSE) {
+                                break;
+                            }
+                            // Skip the wrapped statements and the now redundant close().
+                            i += closeIndex + 1;
+                            continue;
+                        }
                     }
                 }
-                return removeStatement.get() ? null : statement;
-            }));
-            return maybeAutoFormat(b, b1, ctx);
+                newStatements.add(statement);
+            }
+            return changed ? maybeAutoFormat(b, b.withStatements(newStatements), ctx) : b;
         }
 
-        private J.@Nullable Try toTryWithResource(J.Block block, Statement statement, ExecutionContext ctx) {
+        /**
+         * Find where a mock declared by {@code statement} is explicitly closed.
+         *
+         * @return {@link #NO_EXPLICIT_CLOSE} when the mock is never closed, the index in {@code successors} of a
+         * top-level {@code close()} call on it, or {@link #UNSAFE_TO_WRAP} when it is closed in a nested position
+         * (e.g. a {@code finally} block or a branch), or when the mock or a variable declared before the
+         * {@code close()} is still referenced after it, as moving those into the try block would put them out of scope.
+         */
+        private int explicitCloseIndex(Statement statement, List<Statement> successors) {
+            if (!(statement instanceof J.VariableDeclarations)) {
+                // A bare mockStatic(..) has no variable that could be closed.
+                return NO_EXPLICIT_CLOSE;
+            }
+            String varName = ((J.VariableDeclarations) statement).getVariables().get(0).getSimpleName();
+            for (int i = 0; i < successors.size(); i++) {
+                Statement successor = successors.get(i);
+                if (isCloseOf(successor, varName)) {
+                    Set<String> scopedToTry = new HashSet<>();
+                    scopedToTry.add(varName);
+                    for (Statement wrapped : successors.subList(0, i)) {
+                        if (wrapped instanceof J.VariableDeclarations) {
+                            for (J.VariableDeclarations.NamedVariable v : ((J.VariableDeclarations) wrapped).getVariables()) {
+                                scopedToTry.add(v.getSimpleName());
+                            }
+                        } else if (wrapped instanceof J.ClassDeclaration) {
+                            scopedToTry.add(((J.ClassDeclaration) wrapped).getSimpleName());
+                        }
+                    }
+                    for (Statement after : successors.subList(i + 1, successors.size())) {
+                        if (references(after, scopedToTry)) {
+                            return UNSAFE_TO_WRAP;
+                        }
+                    }
+                    return i;
+                }
+                if (containsCloseOf(successor, varName)) {
+                    return UNSAFE_TO_WRAP;
+                }
+            }
+            return NO_EXPLICIT_CLOSE;
+        }
+
+        private boolean isCloseOf(J tree, String varName) {
+            if (!(tree instanceof J.MethodInvocation)) {
+                return false;
+            }
+            J.MethodInvocation mi = (J.MethodInvocation) tree;
+            return MOCKED_STATIC_CLOSE_MATCHER.matches(mi) &&
+                    mi.getSelect() instanceof J.Identifier &&
+                    ((J.Identifier) mi.getSelect()).getSimpleName().equals(varName);
+        }
+
+        private boolean containsCloseOf(Statement statement, String varName) {
+            return new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                    if (isCloseOf(method, varName)) {
+                        found.set(true);
+                        return method;
+                    }
+                    return super.visitMethodInvocation(method, found);
+                }
+            }.reduce(statement, new AtomicBoolean()).get();
+        }
+
+        private boolean references(Statement statement, Set<String> names) {
+            return new JavaIsoVisitor<AtomicBoolean>() {
+                @Override
+                public J.Identifier visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
+                    if (names.contains(identifier.getSimpleName())) {
+                        found.set(true);
+                    }
+                    return identifier;
+                }
+            }.reduce(statement, new AtomicBoolean()).get();
+        }
+
+        private J.@Nullable Try toTryWithResource(Statement statement, List<Statement> body, ExecutionContext ctx) {
             String code = null;
             if (statement instanceof J.MethodInvocation) {
                 String mockedClassName = getMockedClassName((J.MethodInvocation) statement);
@@ -219,7 +315,7 @@ public class CloseUnclosedStaticMocks extends Recipe {
                                 resource.withVariableDeclarations(withMockedStaticType((J.VariableDeclarations) resource.getVariableDeclarations(), mockedStaticType)) :
                                 resource));
             }
-            return maybeAutoFormat(tryWithResources, tryWithResources.withBody(findSuccessorStatements(statement, block)), ctx);
+            return maybeAutoFormat(tryWithResources, tryWithResources.withBody(newBody(body)), ctx);
         }
 
         private @Nullable String getMockedClassName(J.MethodInvocation methodInvocation) {
@@ -244,18 +340,10 @@ public class CloseUnclosedStaticMocks extends Recipe {
             return false;
         }
 
-        private J.Block findSuccessorStatements(Statement statement, J.Block block) {
-            List<Statement> successors = new ArrayList<>();
-            boolean found = false;
-            for (Statement successor : block.getStatements()) {
-                if (found) {
-                    successors.add(successor);
-                }
-                found = found || successor == statement;
-            }
+        private J.Block newBody(List<Statement> statements) {
             return new J.Block(randomId(), Space.EMPTY, Markers.EMPTY,
                     new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY), emptyList(),
-                    Space.format(" ")).withStatements(successors);
+                    Space.format(" ")).withStatements(new ArrayList<>(statements));
         }
 
         private String generateMockedVarName(String mockedClassName) {
