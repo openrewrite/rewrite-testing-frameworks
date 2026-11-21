@@ -57,6 +57,21 @@ tags:
   - mockito
 recipeList:
   - org.openrewrite.java.testing.mockito.Mockito1to4Migration
+  - org.openrewrite.java.testing.mockito.UpgradeMockitoDependenciesTo5
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.mockito.UpgradeMockitoDependenciesTo5
+displayName: Upgrade Mockito dependencies to 5.x
+description: >-
+  Upgrade the Mockito dependencies to 5.x, replacing `mockito-inline` with `mockito-core`, which inlines mocks by
+  default as of Mockito 5. Mockito 5 requires Java 11, so a repository with sources compiled for an older Java version
+  is left on Mockito 4.
+preconditions:
+  - org.openrewrite.java.testing.mockito.RepositoryDoesNotTargetJavaBelow11
+tags:
+  - testing
+  - mockito
+recipeList:
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.mockito
       oldArtifactId: mockito-inline

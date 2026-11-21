@@ -25,16 +25,36 @@ tags:
   - testing
   - easymock
 recipeList:
+  - org.openrewrite.java.testing.easymock.AddMockito5ReplacingEasyMock
+  # Mockito 4 still runs on Java 8, where Mockito 5 was not added
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.mockito
       artifactId: mockito-core
-      version: 5.x
+      version: 4.x
       onlyIfUsing: org.easymock.*
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.easymock
       artifactId: easymock
   - org.openrewrite.java.testing.easymock.EasyMockCodeToMockito
   - org.openrewrite.java.testing.mockito.MockitoBestPractices
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.easymock.AddMockito5ReplacingEasyMock
+displayName: Add Mockito 5 to replace EasyMock
+description: >-
+  Add `mockito-core` 5.x to modules that use EasyMock, unless the repository compiles any of its sources for a Java
+  version older than 11, which Mockito 5 requires.
+preconditions:
+  - org.openrewrite.java.testing.mockito.RepositoryDoesNotTargetJavaBelow11
+tags:
+  - testing
+  - easymock
+recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.mockito
+      artifactId: mockito-core
+      version: 5.x
+      onlyIfUsing: org.easymock.*
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.easymock.EasyMockCodeToMockito
