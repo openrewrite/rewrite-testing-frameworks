@@ -169,7 +169,7 @@ class JUnit3AssertionsVisitor extends JavaIsoVisitor<ExecutionContext> {
         }
         boolean isFloat = a == JavaType.Primitive.Float && b == JavaType.Primitive.Float;
         J.Literal delta = new J.Literal(randomId(), Space.SINGLE_SPACE, Markers.EMPTY,
-                isFloat ? 0.0f : 0.0d, isFloat ? "0.0f" : "0.0",
+                isFloat ? (Object) 0.0f : (Object) 0.0d, isFloat ? "0.0f" : "0.0",
                 null, isFloat ? JavaType.Primitive.Float : JavaType.Primitive.Double);
         List<Expression> newArgs = new ArrayList<>(args);
         newArgs.add(delta);

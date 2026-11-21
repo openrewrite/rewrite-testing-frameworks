@@ -308,7 +308,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
             }
 
             @Override
-            public  J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+            public J.@Nullable MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
                 if (MATCHER_ASSUME_THAT.matches(mi) || JUNIT_ASSUME_THAT.matches(mi)) {
                     return assumption(mi, ctx);

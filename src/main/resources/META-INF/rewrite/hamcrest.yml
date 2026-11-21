@@ -104,6 +104,8 @@ recipeList:
   # Each pass migrates the matchers that the pass before it unwrapped from matchers nesting them, so that one
   # cycle migrates matchers nested several levels deep
   - org.openrewrite.java.testing.hamcrest.MigrateHamcrestMatchersToAssertJ
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestMatchersToAssertJ
+  - org.openrewrite.java.testing.hamcrest.MigrateHamcrestMatchersToAssertJ
   - org.openrewrite.java.testing.hamcrest.InlineSatisfiesOfOneAssertion
   - org.openrewrite.java.dependencies.RemoveDependency:
       groupId: org.hamcrest

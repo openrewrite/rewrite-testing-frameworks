@@ -2230,6 +2230,7 @@ class ReplacePowerMockitoIntegrationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void anOlderMockitoDeclarationIsBroughtUpToTheVersionMockitoInlineNeeds() {
         rewriteRun(
