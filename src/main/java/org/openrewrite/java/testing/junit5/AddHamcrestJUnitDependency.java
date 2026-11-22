@@ -19,8 +19,9 @@ import lombok.Getter;
 import org.openrewrite.Recipe;
 import org.openrewrite.java.dependencies.AddDependency;
 
-import java.util.Collections;
 import java.util.List;
+
+import static java.util.Collections.singletonList;
 
 public class AddHamcrestJUnitDependency extends Recipe {
 
@@ -33,7 +34,7 @@ public class AddHamcrestJUnitDependency extends Recipe {
 
     @Override
     public List<Recipe> getRecipeList() {
-        return Collections.singletonList(new AddDependency(
+        return singletonList(new AddDependency(
                 "org.hamcrest",
                 "hamcrest-junit",
                 "2.x",

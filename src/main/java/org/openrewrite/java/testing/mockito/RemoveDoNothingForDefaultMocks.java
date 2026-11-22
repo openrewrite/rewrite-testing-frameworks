@@ -48,6 +48,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
 
     private static final MethodMatcher DO_NOTHING_MATCHER = new MethodMatcher("org.mockito.Mockito doNothing()");
     private static final MethodMatcher STUBBER_WHEN_MATCHER = new MethodMatcher("org.mockito.stubbing.Stubber when(..)");
+    private static final MethodMatcher BDD_STUBBER_GIVEN_MATCHER = new MethodMatcher("org.mockito.BDDMockito$BDDStubber given(..)");
     private static final MethodMatcher CAPTURE_MATCHER = new MethodMatcher("org.mockito.ArgumentCaptor capture()");
     private static final MethodMatcher SPY_MATCHER = new MethodMatcher("org.mockito.Mockito spy(..)");
     private static final AnnotationMatcher MOCK_ANNOTATION_MATCHER = new AnnotationMatcher("@org.mockito.Mock");
@@ -77,6 +78,7 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                             mockFields.removeAll(variablesAssignedFromSpy(classDecl));
                         }
                         getCursor().putMessage("mockFields", mockFields);
+                        getCursor().putMessage("otherStubbings", otherStubbings(classDecl));
                         return super.visitClassDeclaration(classDecl, ctx);
                     }
 
@@ -108,6 +110,35 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                             return ((J.Identifier) expression).getSimpleName();
                         }
                         return null;
+                    }
+
+                    /**
+                     * Stubbings of a void method that are not a plain `doNothing()`, such as `doThrow()`, keyed by
+                     * mock and method name. A `doNothing()` on the same method can override them, and removing it
+                     * would let the earlier stubbing take effect again.
+                     */
+                    private Set<String> otherStubbings(J.ClassDeclaration classDecl) {
+                        return new JavaIsoVisitor<Set<String>>() {
+                            @Override
+                            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<String> acc) {
+                                if (method.getSelect() instanceof J.MethodInvocation) {
+                                    J.MethodInvocation whenCall = (J.MethodInvocation) method.getSelect();
+                                    if ((STUBBER_WHEN_MATCHER.matches(whenCall) || BDD_STUBBER_GIVEN_MATCHER.matches(whenCall)) &&
+                                            !DO_NOTHING_MATCHER.matches(whenCall.getSelect()) &&
+                                            !whenCall.getArguments().isEmpty()) {
+                                        JavaType.Variable mock = variableType(whenCall.getArguments().get(0));
+                                        if (mock != null) {
+                                            acc.add(stubKey(mock, method.getSimpleName()));
+                                        }
+                                    }
+                                }
+                                return super.visitMethodInvocation(method, acc);
+                            }
+                        }.reduce(classDecl.getBody(), new HashSet<>());
+                    }
+
+                    private String stubKey(JavaType.Variable mock, String methodName) {
+                        return mock.getOwner() + "#" + mock.getName() + "." + methodName;
                     }
 
                     /**
@@ -185,6 +216,11 @@ public class RemoveDoNothingForDefaultMocks extends Recipe {
                         JavaType.Variable mock = variableType(whenCall.getArguments().get(0));
                         Set<JavaType.Variable> mockFields = getCursor().getNearestMessage("mockFields");
                         if (mock == null || mockFields == null || !mockFields.contains(mock)) {
+                            return false;
+                        }
+                        // An earlier doThrow() or similar on the same method would take effect again once removed
+                        Set<String> otherStubbings = getCursor().getNearestMessage("otherStubbings");
+                        if (otherStubbings != null && otherStubbings.contains(stubKey(mock, mi.getSimpleName()))) {
                             return false;
                         }
                         // Preserve stubbings whose arguments include ArgumentCaptor.capture(),

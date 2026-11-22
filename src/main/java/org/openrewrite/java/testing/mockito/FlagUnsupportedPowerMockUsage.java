@@ -45,8 +45,9 @@ public class FlagUnsupportedPowerMockUsage extends Recipe {
 
     @Getter
     final String description = "Adds a comment to PowerMock usages that cannot be migrated to Mockito, such as " +
-            "`MemberModifier.suppress`, `PowerMockito.verifyNew` or stubbing private methods. Repositories with such " +
-            "usage are left on PowerMock by `ReplacePowerMockito`, so these need to be migrated manually first.";
+            "`MemberModifier.suppress`, `PowerMockito.verifyNew` or stubbing private methods. Usage that " +
+            "`DisableUnsupportedPowerMockTests` has not already commented out is flagged, as the PowerMock " +
+            "dependency is removed regardless, so these need to be migrated manually.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

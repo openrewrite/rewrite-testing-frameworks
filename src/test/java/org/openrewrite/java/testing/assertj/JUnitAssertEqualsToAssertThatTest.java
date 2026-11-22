@@ -365,14 +365,14 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
               import org.junit.jupiter.api.Test;
 
               class ATest {
-                @Test
-                void testEquals() {
-                  Assertions.assertEquals(new OwnClass(), new OwnClass());
-                }
+                  @Test
+                  void testEquals() {
+                      Assertions.assertEquals(new OwnClass(), new OwnClass());
+                  }
 
-                public record OwnClass(String a) {
-                  public OwnClass() {this("1");}
-                }
+                  public record OwnClass(String a) {
+                      public OwnClass() {this("1");}
+                  }
               }
               """,
               """
@@ -381,14 +381,14 @@ class JUnitAssertEqualsToAssertThatTest implements RewriteTest {
               import static org.assertj.core.api.Assertions.assertThat;
 
               class ATest {
-                @Test
-                void testEquals() {
-                    assertThat(new OwnClass()).isEqualTo(new OwnClass());
-                }
+                  @Test
+                  void testEquals() {
+                      assertThat(new OwnClass()).isEqualTo(new OwnClass());
+                  }
 
-                public record OwnClass(String a) {
-                  public OwnClass() {this("1");}
-                }
+                  public record OwnClass(String a) {
+                      public OwnClass() {this("1");}
+                  }
               }
               """
           )

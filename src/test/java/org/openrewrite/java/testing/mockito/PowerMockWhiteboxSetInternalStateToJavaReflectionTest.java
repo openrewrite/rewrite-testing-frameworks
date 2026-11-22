@@ -477,4 +477,143 @@ class PowerMockWhiteboxSetInternalStateToJavaReflectionTest implements RewriteTe
           )
         );
     }
+
+
+    @Test
+    void setsStaticFieldOfClassLiteralTarget() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class CmsConfigurationFactory {
+                  private static Object instance;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class CmsConfigurationFactoryTest {
+                  void resetsTheFactory() {
+                      Whitebox.setInternalState(CmsConfigurationFactory.class, "instance", (Object) null);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class CmsConfigurationFactoryTest {
+                  void resetsTheFactory() throws Exception {
+                      Field instanceField = CmsConfigurationFactory.class.getDeclaredField("instance");
+                      instanceField.setAccessible(true);
+                      instanceField.set(null, (Object) null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void reflectionCaughtByEnclosingTryNeedsNoFurtherHandling() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private int batchSize;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = create();
+                  }
+
+                  private MyService create() {
+                      try {
+                          MyService service = new MyService();
+                          Whitebox.setInternalState(service, "batchSize", 1);
+                          return service;
+                      } catch (Exception e) {
+                          throw new IllegalStateException(e);
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = create();
+                  }
+
+                  private MyService create() {
+                      try {
+                          MyService service = new MyService();
+                          Field batchSizeField = MyService.class.getDeclaredField("batchSize");
+                          batchSizeField.setAccessible(true);
+                          batchSizeField.set(service, 1);
+                          return service;
+                      } catch (Exception e) {
+                          throw new IllegalStateException(e);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void reflectionNotCaughtByNarrowerCatchStillGetsHandled() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private int batchSize;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = new MyService();
+                      try {
+                          Whitebox.setInternalState(service, "batchSize", 1);
+                      } catch (IllegalArgumentException e) {
+                          throw e;
+                      }
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      try {
+                          Field batchSizeField = MyService.class.getDeclaredField("batchSize");
+                          batchSizeField.setAccessible(true);
+                          batchSizeField.set(service, 1);
+                      } catch (IllegalArgumentException e) {
+                          throw e;
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 }

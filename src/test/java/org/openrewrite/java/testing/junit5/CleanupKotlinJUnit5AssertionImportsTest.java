@@ -18,6 +18,7 @@ package org.openrewrite.java.testing.junit5;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -33,6 +34,40 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
           .parser(KotlinParser.builder()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5"))
           .recipe(new CleanupKotlinJUnit5AssertionImports());
+    }
+
+    @DocumentExample
+    @Test
+    void removesSpecificStaticAssertionsImportWhenApiWildcardPresent() {
+        //language=kotlin
+        rewriteRun(
+          kotlin(
+            """
+              import org.junit.jupiter.api.*
+              import org.junit.jupiter.api.Assertions.assertNull
+              import org.junit.jupiter.api.Assertions.assertNotNull
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                      assertNull(null)
+                      assertNotNull("test")
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.*
+
+              class ATest {
+                  @Test
+                  fun testSomething() {
+                      assertNull(null)
+                      assertNotNull("test")
+                  }
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -82,40 +117,6 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
                   fun testSomething() {
                       assertEquals(1, 1)
                       assertNull(null)
-                  }
-              }
-              """
-          )
-        );
-    }
-
-    @DocumentExample
-    @Test
-    void removesSpecificStaticAssertionsImportWhenApiWildcardPresent() {
-        //language=kotlin
-        rewriteRun(
-          kotlin(
-            """
-              import org.junit.jupiter.api.*
-              import org.junit.jupiter.api.Assertions.assertNull
-              import org.junit.jupiter.api.Assertions.assertNotNull
-
-              class ATest {
-                  @Test
-                  fun testSomething() {
-                      assertNull(null)
-                      assertNotNull("test")
-                  }
-              }
-              """,
-            """
-              import org.junit.jupiter.api.*
-
-              class ATest {
-                  @Test
-                  fun testSomething() {
-                      assertNull(null)
-                      assertNotNull("test")
                   }
               }
               """
@@ -195,7 +196,7 @@ class CleanupKotlinJUnit5AssertionImportsTest implements RewriteTest {
         // Java files should not be affected by this recipe
         // This test ensures the recipe only operates on Kotlin files
         rewriteRun(
-          spec -> spec.parser(org.openrewrite.java.JavaParser.fromJavaVersion()
+          spec -> spec.parser(JavaParser.fromJavaVersion()
             .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")),
           java(
             """

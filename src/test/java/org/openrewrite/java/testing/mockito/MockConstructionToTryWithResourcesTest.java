@@ -401,4 +401,54 @@ class MockConstructionToTryWithResourcesTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1211")
+    @Test
+    void shouldNotWrapWhenLocalDeclaredInBodyIsUsedAfterClose() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.MockedConstruction;
+
+              import static org.mockito.Mockito.mockConstruction;
+
+              class TestClass {
+                  void test() {
+                      MockedConstruction<A> mc = mockConstruction(A.class);
+                      A a = new A();
+                      mc.close();
+                      a.method("test");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-testing-frameworks/issues/1211")
+    @Test
+    void shouldNotWrapWhenCloseAlsoOccursInsideBody() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.mockito.MockedConstruction;
+
+              import static org.mockito.Mockito.mockConstruction;
+
+              class TestClass {
+                  void test(boolean early) {
+                      MockedConstruction<A> mc = mockConstruction(A.class);
+                      if (early) {
+                          mc.close();
+                      }
+                      new A().method("test");
+                      mc.close();
+                  }
+              }
+              """
+          )
+        );
+    }
 }

@@ -40,6 +40,8 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
             .classpathFromResources(new InMemoryExecutionContext(),
               "junit-4",
               "junit-jupiter-api-5",
+              "junit-jupiter-params-5",
+              "testng-7",
               "mockito-core-3.12",
               "powermock-core-1",
               "powermock-api-mockito-1",
@@ -164,7 +166,7 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
     }
 
     @Test
-    void doesNotDisableATestThatIsAlreadyDisabled() {
+    void commentsOutTheBodyOfATestThatIsAlreadyDisabled() {
         //language=java
         rewriteRun(
           java(
@@ -181,6 +183,23 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
                   void verifiesAPrivateMethod() throws Exception {
                       Object target = Mockito.mock(Object.class);
                       PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Disabled;
+              import org.junit.jupiter.api.Test;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+
+                  @Disabled("flaky")
+                  @Test
+                  void verifiesAPrivateMethod() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Object target = Mockito.mock(Object.class);
+                      // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
                   }
               }
               """
@@ -286,6 +305,270 @@ class DisableUnsupportedPowerMockTestsTest implements RewriteTest {
                       // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
                       // return target;
                       throw new UnsupportedOperationException("Disabled by the PowerMock migration");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void commentsOutSetupOfAbstractBaseClassWithoutTests() {
+        rewriteRun(
+          spec -> spec.dataTable(PowerMockTestsDisabled.Row.class, rows ->
+            assertThat(rows).extracting(PowerMockTestsDisabled.Row::getScope).containsExactly("CLASS")),
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              abstract class BaseTest {
+
+                  @BeforeEach
+                  void setUp() throws Exception {
+                      Object target = Mockito.mock(Object.class);
+                      PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              abstract class BaseTest {
+
+                  @BeforeEach
+                  void setUp() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Object target = Mockito.mock(Object.class);
+                      // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void disablesTestNgClassWithClassLevelTestAnnotation() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Test;
+
+              @Test
+              public class MyTest {
+
+                  @BeforeMethod
+                  public void setUp() throws Exception {
+                      Object target = Mockito.mock(Object.class);
+                      PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                  }
+
+                  public void aTest() {
+                  }
+              }
+              """,
+            """
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+              import org.testng.annotations.BeforeMethod;
+              import org.testng.annotations.Ignore;
+              import org.testng.annotations.Test;
+
+              @Test
+              @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+              public class MyTest {
+
+                  @BeforeMethod
+                  public void setUp() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // Object target = Mockito.mock(Object.class);
+                      // PowerMockito.verifyPrivate(target, Mockito.times(1)).invoke("hidden");
+                  }
+
+                  public void aTest() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void disablesParameterizedAndRepeatedTests() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.junit.jupiter.api.RepeatedTest;
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+
+                  @ParameterizedTest
+                  @ValueSource(strings = "a")
+                  void parameterized(String s) throws Exception {
+                      PowerMockito.verifyPrivate(Mockito.mock(Object.class), Mockito.times(1)).invoke(s);
+                  }
+
+                  @RepeatedTest(2)
+                  void repeated() throws Exception {
+                      PowerMockito.verifyPrivate(Mockito.mock(Object.class), Mockito.times(1)).invoke("hidden");
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Disabled;
+              import org.junit.jupiter.api.RepeatedTest;
+              import org.junit.jupiter.params.ParameterizedTest;
+              import org.junit.jupiter.params.provider.ValueSource;
+              import org.mockito.Mockito;
+              import org.powermock.api.mockito.PowerMockito;
+
+              class MyTest {
+
+                  @ParameterizedTest
+                  @ValueSource(strings = "a")
+                  @Disabled("PowerMock test disabled by migration: rework it not to rely on private members")
+                  void parameterized(String s) throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // PowerMockito.verifyPrivate(Mockito.mock(Object.class), Mockito.times(1)).invoke(s);
+                  }
+
+                  @RepeatedTest(2)
+                  @Disabled("PowerMock test disabled by migration: rework it not to rely on private members")
+                  void repeated() throws Exception {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // PowerMockito.verifyPrivate(Mockito.mock(Object.class), Mockito.times(1)).invoke("hidden");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void commentsOutInitializerAndRemovesAnnotationsHoldingUsageOfADisabledClass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              public class Service {
+                  static void init() {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.core.spi.support.AbstractPowerMockTestListenerBase;
+
+              public class Listener extends AbstractPowerMockTestListenerBase {
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PowerMockListener;
+
+              import static org.powermock.api.support.membermodification.MemberMatcher.method;
+              import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+              @PowerMockListener(Listener.class)
+              public class ServiceTest {
+                  static {
+                      suppress(method(Service.class, "init"));
+                  }
+
+                  @Test
+                  public void works() {
+                  }
+              }
+              """,
+            """
+              import org.junit.Ignore;
+              import org.junit.Test;
+              import org.powermock.core.classloader.annotations.PowerMockListener;
+
+              import static org.powermock.api.support.membermodification.MemberMatcher.method;
+              import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+              @Ignore("PowerMock test disabled by migration: rework it not to rely on private members")
+              public class ServiceTest {
+                  static {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // suppress(method(Service.class, "init"));
+                  }
+
+                  @Test
+                  public void works() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void commentsOutInitializerAndRemovesAnnotationsHoldingUsageOfAClassWithoutTests() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              public class Service {
+                  static void init() {
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.core.spi.support.AbstractPowerMockTestListenerBase;
+
+              public class Listener extends AbstractPowerMockTestListenerBase {
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.powermock.core.classloader.annotations.PowerMockListener;
+
+              import static org.powermock.api.support.membermodification.MemberMatcher.method;
+              import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+              @PowerMockListener(Listener.class)
+              public abstract class BaseTest {
+                  static {
+                      suppress(method(Service.class, "init"));
+                  }
+              }
+              """,
+            """
+              import org.powermock.core.classloader.annotations.PowerMockListener;
+
+              import static org.powermock.api.support.membermodification.MemberMatcher.method;
+              import static org.powermock.api.support.membermodification.MemberModifier.suppress;
+
+              public abstract class BaseTest {
+                  static {
+                      // The body of this test is kept for reference while it is migrated by hand:
+                      // suppress(method(Service.class, "init"));
                   }
               }
               """

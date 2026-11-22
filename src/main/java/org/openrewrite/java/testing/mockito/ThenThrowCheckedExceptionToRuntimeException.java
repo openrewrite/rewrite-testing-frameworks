@@ -108,6 +108,10 @@ public class ThenThrowCheckedExceptionToRuntimeException extends Recipe {
             return false;
         }
         for (JavaType thrown : mockedMethodType.getThrownExceptions()) {
+            if (!(thrown instanceof JavaType.FullyQualified)) {
+                // `throws E` can be any exception, so there is no telling the exception is undeclared
+                return false;
+            }
             if (thrown instanceof JavaType.FullyQualified &&
                     TypeUtils.isAssignableTo(((JavaType.FullyQualified) thrown).getFullyQualifiedName(), exceptionType)) {
                 return false;

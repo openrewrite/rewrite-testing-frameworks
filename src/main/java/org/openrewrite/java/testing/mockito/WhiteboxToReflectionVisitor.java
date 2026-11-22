@@ -58,6 +58,11 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private static final String WHITEBOX_REPLACED = "whiteboxReplaced";
 
+    private static final String REFLECTIVE_EXCEPTIONS_UNCAUGHT = "whiteboxReflectiveExceptionsUncaught";
+
+    private static final List<String> CATCHES_REFLECTIVE_EXCEPTIONS = Arrays.asList(
+            "java.lang.ReflectiveOperationException", "java.lang.Exception", "java.lang.Throwable");
+
     private static final String HIERARCHY_LOOKUP_NEEDED = "whiteboxHierarchyLookupNeeded";
 
     static final String FIELD_LOOKUP_HELPER = "declaredFieldInHierarchy";
@@ -80,6 +85,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     private final String reflectiveImport;
     private final List<MethodMatcher> matchers;
 
+    private @Nullable Statement hoistingFrom;
     private @Nullable JavaSourceFile stringConstantsSource;
     private List<J.VariableDeclarations.NamedVariable> stringConstants = emptyList();
     private final Set<String> castImports = new LinkedHashSet<>();
@@ -140,11 +146,14 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
     }
 
     JavaType.@Nullable FullyQualified fieldDeclaringType(Expression target, @Nullable String fieldName) {
+        return fieldDeclaringType(TypeUtils.asFullyQualified(target.getType()), fieldName);
+    }
+
+    JavaType.@Nullable FullyQualified fieldDeclaringType(JavaType.@Nullable FullyQualified targetType, @Nullable String fieldName) {
         if (fieldName == null) {
             return null;
         }
-        for (JavaType.FullyQualified type = TypeUtils.asFullyQualified(target.getType());
-             type != null; type = type.getSupertype()) {
+        for (JavaType.FullyQualified type = targetType; type != null; type = type.getSupertype()) {
             for (JavaType.Variable member : type.getMembers()) {
                 if (member.getName().equals(fieldName)) {
                     return type;
@@ -349,8 +358,11 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             // Declaring `throws` is the readable option and is what a test method would do anyway, but it is
             // only safe where nothing depends on the signature: a caller elsewhere in the file would stop
             // compiling, and an override such as `Runnable.run()` could not legally widen at all. Those get the
-            // reflection wrapped instead.
-            md = canWidenSignature(md) ? addThrowsExceptionIfAbsent(md) : wrapBodyInTryCatch(md, ctx);
+            // reflection wrapped instead. Neither is needed where the method already catches what it throws,
+            // and a catch of `ReflectiveOperationException` would then not even compile, being unreachable.
+            if (getCursor().getMessage(REFLECTIVE_EXCEPTIONS_UNCAUGHT, false)) {
+                md = canWidenSignature(md) ? addThrowsExceptionIfAbsent(md) : wrapBodyInTryCatch(md, ctx);
+            }
             maybeRemoveImport(WHITEBOX_FQN);
             maybeAddImport(reflectiveImport, false);
             return maybeAutoFormat(method, md, ctx);
@@ -373,6 +385,9 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 continue;
             }
             Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
+            if (!isOutsideLambdaAndAnonymousClass(blockCursor)) {
+                continue;
+            }
             JavaType.Method resolvedMethod = resolve(mi);
             String template = buildTemplate(mi, sinkFromStatement(stmt), blockCursor, resolvedMethod);
             if (template != null) {
@@ -399,6 +414,21 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         final String varName;
         final String declaration;
         final String expression;
+        /** The expression takes the arguments from this index on, none of them when it equals the argument count. */
+        final int firstExpressionArgument;
+        /** Whether the expression takes the call's target, which a static member does without. */
+        final boolean takesTarget;
+        /** Arguments of the declaration after the owner's class literal and the member name. */
+        final List<Expression> furtherDeclarationArguments;
+
+        Hoisted(J.MethodInvocation call, String varName, String declaration, String expression) {
+            this(call, varName, declaration, expression, 2, true, emptyList());
+        }
+
+        Hoisted(J.MethodInvocation call, String varName, String declaration, String expression,
+                int firstExpressionArgument, boolean takesTarget) {
+            this(call, varName, declaration, expression, firstExpressionArgument, takesTarget, emptyList());
+        }
     }
 
     /**
@@ -410,12 +440,23 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return null;
     }
 
+    /**
+     * Whether the member lookup of the call can move out of a lambda that is an expression of the statement
+     * it is hoisted in front of, as its arguments only name classes and members rather than lambda parameters.
+     */
+    boolean hoistsOutOfExpressionLambda(J.MethodInvocation mi) {
+        return false;
+    }
+
     String castPrefix(J.MethodInvocation mi) {
         JavaType returnType = mi.getMethodType() == null ? null : mi.getMethodType().getReturnType();
         if (returnType instanceof JavaType.Parameterized) {
             returnType = ((JavaType.Parameterized) returnType).getType();
         }
-        String castType = returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown ?
+        if (returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown) {
+            returnType = typeTheContextTakes(mi);
+        }
+        String castType = returnType == null || returnType instanceof JavaType.GenericTypeVariable || returnType instanceof JavaType.Unknown ?
                 null : getCastType(returnType);
         if (!isNonObjectCast(castType)) {
             return "";
@@ -428,6 +469,26 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         return "(" + boxedCastType(castType) + ") ";
     }
 
+    /// The type that a generic result has to be cast to, as `Object` is what the reflective call returns: the one
+    /// given as the type argument of the call, or the one the method returns where the call is what it returns.
+    private JavaType.@Nullable FullyQualified typeTheContextTakes(J.MethodInvocation mi) {
+        List<Expression> typeParameters = mi.getTypeParameters();
+        if (typeParameters != null && typeParameters.size() == 1) {
+            return TypeUtils.asFullyQualified(typeParameters.get(0).getType());
+        }
+        if (hoistingFrom instanceof J.Return && mi.getId().equals(unwrapped(((J.Return) hoistingFrom).getExpression()))) {
+            J.MethodDeclaration method = getCursor().firstEnclosing(J.MethodDeclaration.class);
+            if (method != null && method.getReturnTypeExpression() != null) {
+                return TypeUtils.asFullyQualified(method.getReturnTypeExpression().getType());
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable UUID unwrapped(@Nullable Expression expression) {
+        return expression == null ? null : expression.getId();
+    }
+
     private J.Block hoistNestedCalls(J.Block block, ExecutionContext ctx) {
         J.Block b = block;
         for (int i = b.getStatements().size() - 1; i >= 0; i--) {
@@ -435,6 +496,7 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
             while (true) {
                 Cursor blockCursor = new Cursor(getCursor().getParentOrThrow(), b);
                 Statement statement = findStatement(b, statementId);
+                hoistingFrom = statement;
                 Hoisted hoisted = firstHoistable(statement, blockCursor);
                 if (hoisted == null) {
                     break;
@@ -442,14 +504,21 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                 J.MethodInvocation nested = hoisted.call;
                 List<Expression> args = nested.getArguments();
                 JavaType.Method resolvedMethod = resolve(nested);
+                List<Object> declarationArgs = new ArrayList<>();
+                declarationArgs.add(classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))));
+                declarationArgs.add(args.get(1));
+                declarationArgs.addAll(hoisted.furtherDeclarationArguments);
                 b = reflectionTemplate(hoisted.declaration, resolvedMethod).apply(blockCursor,
-                        statement.getCoordinates().before(),
-                        classLiteral(requireNonNull(lookupOwner(nested, resolvedMethod))), args.get(1));
+                        statement.getCoordinates().before(), declarationArgs.toArray());
                 // Passed as a parameter because the template parser does not attribute a local it has just inserted.
                 List<Expression> expressionArgs = new ArrayList<>();
                 expressionArgs.add(declaredVariable(b, hoisted.varName));
-                expressionArgs.add(args.get(0));
-                expressionArgs.addAll(args.subList(2, args.size()));
+                if (hoisted.takesTarget) {
+                    expressionArgs.add(args.get(0));
+                }
+                if (hoisted.firstExpressionArgument < args.size()) {
+                    expressionArgs.addAll(args.subList(hoisted.firstExpressionArgument, args.size()));
+                }
                 b = (J.Block) new JavaVisitor<ExecutionContext>() {
                     @Override
                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -510,7 +579,8 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
                     return method;
                 }
                 J.MethodInvocation mi = super.visitMethodInvocation(method, found);
-                if (found.get() == null && matches(mi) && isOutsideLambdaAndAnonymousClass(getCursor())) {
+                if (found.get() == null && matches(mi) &&
+                    (isOutsideLambdaAndAnonymousClass(getCursor()) || hoistsOutOfExpressionLambda(mi))) {
                     found.set(hoist(mi, blockCursor));
                 }
                 return mi;
@@ -532,6 +602,9 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
 
     private void recordReplacement(J.MethodInvocation mi, JavaType.@Nullable Method resolvedMethod) {
         getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, WHITEBOX_REPLACED, true);
+        if (!isCaughtByEnclosingTry(getCursor())) {
+            getCursor().putMessageOnFirstEnclosing(J.MethodDeclaration.class, REFLECTIVE_EXCEPTIONS_UNCAUGHT, true);
+        }
         // onlyIfReferenced=false: the class literals were only just templated in, so the type
         // attribution `maybeAddImport` looks for is not there yet.
         for (String paramImport : resolvedParamImports(resolvedMethod)) {
@@ -541,6 +614,47 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         if (ownerImport != null) {
             maybeAddImport(ownerImport, false);
         }
+    }
+
+    /**
+     * Whether the block the reflection was inserted into is the body of a {@code try}, in the same method, that
+     * catches every {@link ReflectiveOperationException}.
+     */
+    private static boolean isCaughtByEnclosingTry(Cursor blockCursor) {
+        Object child = blockCursor.getValue();
+        for (Cursor c = blockCursor.getParentTreeCursor(); ; c = c.getParentTreeCursor()) {
+            Object value = c.getValue();
+            if (value instanceof J.MethodDeclaration || value instanceof J.Lambda || value instanceof J.NewClass ||
+                value instanceof J.ClassDeclaration || value instanceof JavaSourceFile) {
+                return false;
+            }
+            if (value instanceof J.Try && child instanceof J.Block &&
+                ((J.Try) value).getBody().getId().equals(((J.Block) child).getId())) {
+                for (J.Try.Catch aCatch : ((J.Try) value).getCatches()) {
+                    if (catchesReflectiveExceptions(aCatch.getParameter().getTree().getType())) {
+                        return true;
+                    }
+                }
+            }
+            child = value;
+        }
+    }
+
+    private static boolean catchesReflectiveExceptions(@Nullable JavaType caught) {
+        if (caught instanceof JavaType.MultiCatch) {
+            for (JavaType alternative : ((JavaType.MultiCatch) caught).getThrowableTypes()) {
+                if (catchesReflectiveExceptions(alternative)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        for (String type : CATCHES_REFLECTIVE_EXCEPTIONS) {
+            if (TypeUtils.isOfClassType(caught, type)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<String> templateImports(JavaType.@Nullable Method resolvedMethod) {
@@ -560,20 +674,62 @@ abstract class WhiteboxToReflectionVisitor extends JavaIsoVisitor<ExecutionConte
         }
         List<String> imports = new ArrayList<>();
         for (JavaType paramType : resolvedMethod.getParameterTypes()) {
-            String paramImport = topLevelImport(TypeUtils.asFullyQualified(paramType));
+            addParamImports(paramType, imports);
+        }
+        return imports;
+    }
+
+    private void addParamImports(@Nullable JavaType type, List<String> imports) {
+        if (type instanceof JavaType.Array) {
+            addParamImports(((JavaType.Array) type).getElemType(), imports);
+        } else if (type instanceof JavaType.GenericTypeVariable) {
+            List<JavaType> bounds = ((JavaType.GenericTypeVariable) type).getBounds();
+            if (!bounds.isEmpty()) {
+                addParamImports(bounds.get(0), imports);
+            }
+        } else {
+            JavaType.FullyQualified fullyQualified = type instanceof JavaType.Parameterized ?
+                    ((JavaType.Parameterized) type).getType() : TypeUtils.asFullyQualified(type);
+            String paramImport = topLevelImport(fullyQualified);
             if (paramImport != null) {
                 imports.add(paramImport);
             }
         }
-        return imports;
     }
 
     private ResultSink sinkFromStatement(Statement statement) {
         if (statement instanceof J.VariableDeclarations) {
             J.VariableDeclarations vd = (J.VariableDeclarations) statement;
-            return new ResultSink(vd.getVariables().get(0).getSimpleName(), getCastType(vd.getType()));
+            return new ResultSink(vd.getVariables().get(0).getSimpleName(), declaredCastType(vd));
         }
         return new ResultSink(null, null);
+    }
+
+    // Prefer the declared type as written, so generics and arrays survive; its names are already imported.
+    private @Nullable String declaredCastType(J.VariableDeclarations vd) {
+        TypeTree typeExpression = vd.getTypeExpression();
+        if (typeExpression != null && !(typeExpression instanceof J.Identifier && "var".equals(((J.Identifier) typeExpression).getSimpleName())) &&
+            vd.getVariables().get(0).getDimensionsAfterName().isEmpty() && vd.getVariables().get(0).getType() != null) {
+            addCastImports(vd.getType());
+            return typeExpression.withPrefix(Space.EMPTY).printTrimmed(getCursor());
+        }
+        return getCastType(vd.getType());
+    }
+
+    private void addCastImports(@Nullable JavaType type) {
+        if (type instanceof JavaType.Array) {
+            addCastImports(((JavaType.Array) type).getElemType());
+        } else if (type instanceof JavaType.Parameterized) {
+            addCastImports(((JavaType.Parameterized) type).getType());
+            ((JavaType.Parameterized) type).getTypeParameters().forEach(this::addCastImports);
+        } else if (type instanceof JavaType.GenericTypeVariable) {
+            ((JavaType.GenericTypeVariable) type).getBounds().forEach(this::addCastImports);
+        } else if (type instanceof JavaType.FullyQualified) {
+            String typeImport = topLevelImport((JavaType.FullyQualified) type);
+            if (typeImport != null) {
+                castImports.add(typeImport);
+            }
+        }
     }
 
     private J.@Nullable MethodInvocation extractWhiteboxInvocation(Statement statement) {

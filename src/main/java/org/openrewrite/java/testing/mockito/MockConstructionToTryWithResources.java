@@ -22,17 +22,20 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.marker.Markers;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -55,7 +58,7 @@ public class MockConstructionToTryWithResources extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(new UsesMethod<>(MOCKED_CONSTRUCTION_CLOSE_MATCHER), new JavaVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.and(new UsesMethod<>(MOCK_CONSTRUCTION_MATCHER), new UsesMethod<>(MOCKED_CONSTRUCTION_CLOSE_MATCHER)), new JavaVisitor<ExecutionContext>() {
 
             @Override
             public J visitTry(J.Try tryStatement, ExecutionContext ctx) {
@@ -110,7 +113,7 @@ public class MockConstructionToTryWithResources extends Recipe {
                             if (MOCK_CONSTRUCTION_MATCHER.matches(namedVar.getInitializer())) {
                                 String name = namedVar.getSimpleName();
                                 int foundCloseIndex = findCloseCallIndex(statements, name, i + 1);
-                                if (foundCloseIndex != -1) {
+                                if (foundCloseIndex != -1 && canWrap(statements, name, i, foundCloseIndex)) {
                                     varDeclIndex = i;
                                     closeIndex = foundCloseIndex;
                                     varDecl = vd;
@@ -149,7 +152,7 @@ public class MockConstructionToTryWithResources extends Recipe {
 
                 // Add body statements to the try block
                 J.Block tryBody = new J.Block(randomId(), Space.EMPTY, Markers.EMPTY,
-                        new org.openrewrite.java.tree.JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
+                        new JRightPadded<>(false, Space.EMPTY, Markers.EMPTY),
                         emptyList(), Space.format(" ")).withStatements(bodyStatements);
                 tryWithResources = tryWithResources.withBody(tryBody);
                 tryWithResources = tryWithResources.withPrefix(varDecl.getPrefix());
@@ -167,6 +170,54 @@ public class MockConstructionToTryWithResources extends Recipe {
                 newBlock = (J.Block) super.visitBlock(newBlock, ctx);
 
                 return maybeAutoFormat(block, newBlock, ctx);
+            }
+
+            /**
+             * Wrapping is only safe when nothing declared in the try body is used after the close,
+             * the mock construction itself is not used after the close, and no other close of it
+             * sits inside the body (it would be removed, ending the mocking at a different place).
+             */
+            private boolean canWrap(List<Statement> statements, String varName, int declIndex, int closeIndex) {
+                Set<String> declaredInBody = new HashSet<>();
+                for (int j = declIndex + 1; j < closeIndex; j++) {
+                    Statement st = statements.get(j);
+                    if (st instanceof J.VariableDeclarations) {
+                        for (J.VariableDeclarations.NamedVariable nv : ((J.VariableDeclarations) st).getVariables()) {
+                            declaredInBody.add(nv.getSimpleName());
+                        }
+                    } else if (st instanceof J.ClassDeclaration) {
+                        declaredInBody.add(((J.ClassDeclaration) st).getSimpleName());
+                    }
+                }
+                declaredInBody.add(varName);
+                boolean[] unsafe = {false};
+                JavaIsoVisitor<Integer> usage = new JavaIsoVisitor<Integer>() {
+                    @Override
+                    public J.Identifier visitIdentifier(J.Identifier identifier, Integer p) {
+                        if (declaredInBody.contains(identifier.getSimpleName())) {
+                            unsafe[0] = true;
+                        }
+                        return identifier;
+                    }
+                };
+                for (int j = closeIndex + 1; j < statements.size(); j++) {
+                    usage.visit(statements.get(j), 0);
+                }
+                JavaIsoVisitor<Integer> nestedClose = new JavaIsoVisitor<Integer>() {
+                    @Override
+                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, Integer p) {
+                        if (MOCKED_CONSTRUCTION_CLOSE_MATCHER.matches(m) &&
+                            m.getSelect() instanceof J.Identifier &&
+                            ((J.Identifier) m.getSelect()).getSimpleName().equals(varName)) {
+                            unsafe[0] = true;
+                        }
+                        return super.visitMethodInvocation(m, p);
+                    }
+                };
+                for (int j = declIndex + 1; j < closeIndex; j++) {
+                    nestedClose.visit(statements.get(j), 0);
+                }
+                return !unsafe[0];
             }
 
             private int findCloseCallIndex(List<Statement> statements, String varName, int startIndex) {

@@ -16,6 +16,7 @@
 package org.openrewrite.java.testing.mockito;
 
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -64,6 +65,9 @@ public class ArgumentMatcherToLambda extends Recipe {
                         }
 
                         JavaType typeArg = matcherType.getTypeParameters().get(0);
+                        if (buildTypeTree(matcherType) == null) {
+                            return nc;
+                        }
 
                         // Body must have exactly one method declaration (the matches method)
                         List<Statement> statements = nc.getBody().getStatements();
@@ -91,6 +95,9 @@ public class ArgumentMatcherToLambda extends Recipe {
                         JavaType.FullyQualified fqType = TypeUtils.asFullyQualified(typeArg);
                         if (paramIsObject && fqType != null && !TypeUtils.isOfClassType(typeArg, "java.lang.Object")) {
                             body = (J.Block) new RemoveParameterCasts(paramName, fqType.getFullyQualifiedName())
+                                    .visitNonNull(body, ctx, getCursor());
+                        } else if (paramIsObject && typeArg instanceof JavaType.Array) {
+                            body = (J.Block) new RemoveParameterCasts(paramName, typeArg)
                                     .visitNonNull(body, ctx, getCursor());
                         }
 
@@ -142,6 +149,9 @@ public class ArgumentMatcherToLambda extends Recipe {
 
                         // Build type cast: (ArgumentMatcher<T>) lambda
                         TypeTree castTypeTree = buildTypeTree(matcherType);
+                        if (castTypeTree == null) {
+                            return nc;
+                        }
                         J.ControlParentheses<TypeTree> castClazz = new J.ControlParentheses<>(
                                 randomId(), Space.EMPTY, Markers.EMPTY,
                                 JRightPadded.build(castTypeTree)
@@ -159,7 +169,15 @@ public class ArgumentMatcherToLambda extends Recipe {
         );
     }
 
-    private static TypeTree buildTypeTree(JavaType type) {
+    private static @Nullable TypeTree buildTypeTree(JavaType type) {
+        if (type instanceof JavaType.Array) {
+            TypeTree elem = buildTypeTree(((JavaType.Array) type).getElemType());
+            if (elem == null) {
+                return null;
+            }
+            return new J.ArrayType(randomId(), Space.EMPTY, Markers.EMPTY, elem,
+                    null, new JLeftPadded<>(Space.EMPTY, Space.EMPTY, Markers.EMPTY), type);
+        }
         JavaType.Parameterized parameterized = TypeUtils.asParameterized(type);
         if (parameterized != null) {
             J.Identifier rawType = new J.Identifier(
@@ -168,7 +186,11 @@ public class ArgumentMatcherToLambda extends Recipe {
             );
             List<JRightPadded<Expression>> typeParams = new ArrayList<>(parameterized.getTypeParameters().size());
             for (JavaType tp : parameterized.getTypeParameters()) {
-                typeParams.add(JRightPadded.build((Expression) buildTypeTree(tp)));
+                TypeTree param = buildTypeTree(tp);
+                if (param == null) {
+                    return null;
+                }
+                typeParams.add(JRightPadded.build((Expression) param));
             }
             return new J.ParameterizedType(
                     randomId(), Space.EMPTY, Markers.EMPTY,
@@ -178,19 +200,31 @@ public class ArgumentMatcherToLambda extends Recipe {
             );
         }
         JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
+        if (fq == null) {
+            // Wildcards, type variables and primitives cannot be written as a plain type name here
+            return null;
+        }
         return new J.Identifier(
                 randomId(), Space.EMPTY, Markers.EMPTY,
-                emptyList(), fq != null ? fq.getClassName() : "Object", type, null
+                emptyList(), fq.getClassName(), type, null
         );
     }
 
     private static class RemoveParameterCasts extends JavaVisitor<ExecutionContext> {
         private final String paramName;
-        private final String targetFqn;
+        private final @Nullable String targetFqn;
+        private final @Nullable JavaType targetType;
 
         RemoveParameterCasts(String paramName, String targetFqn) {
             this.paramName = paramName;
             this.targetFqn = targetFqn;
+            this.targetType = null;
+        }
+
+        RemoveParameterCasts(String paramName, JavaType targetType) {
+            this.paramName = paramName;
+            this.targetFqn = null;
+            this.targetType = targetType;
         }
 
         @Override
@@ -199,7 +233,9 @@ public class ArgumentMatcherToLambda extends Recipe {
             if (tc.getExpression() instanceof J.Identifier) {
                 J.Identifier ident = (J.Identifier) tc.getExpression();
                 if (paramName.equals(ident.getSimpleName()) &&
-                    TypeUtils.isOfClassType(tc.getClazz().getType(), targetFqn)) {
+                    (targetFqn != null ?
+                            TypeUtils.isOfClassType(tc.getClazz().getType(), targetFqn) :
+                            TypeUtils.isOfType(tc.getClazz().getType(), targetType))) {
                     return ident.withPrefix(tc.getPrefix());
                 }
             }

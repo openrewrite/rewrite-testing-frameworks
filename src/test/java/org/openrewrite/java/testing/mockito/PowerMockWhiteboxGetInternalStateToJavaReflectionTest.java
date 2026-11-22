@@ -518,4 +518,205 @@ class PowerMockWhiteboxGetInternalStateToJavaReflectionTest implements RewriteTe
           )
         );
     }
+
+    @Test
+    void genericAndArrayDeclaredTypes() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import java.util.List;
+
+              class MyService {
+                  private List<String> names;
+                  private String[] tags;
+                  private int[] counts;
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.List;
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      MyService service = new MyService();
+                      List<String> names = Whitebox.getInternalState(service, "names");
+                      String[] tags = Whitebox.getInternalState(service, "tags");
+                      int[] counts = Whitebox.getInternalState(service, "counts");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+              import java.util.List;
+
+              class MyServiceTest {
+                  void test() throws Exception {
+                      MyService service = new MyService();
+                      Field namesField = MyService.class.getDeclaredField("names");
+                      namesField.setAccessible(true);
+                      List<String> names = (List<String>) namesField.get(service);
+                      Field tagsField = MyService.class.getDeclaredField("tags");
+                      tagsField.setAccessible(true);
+                      String[] tags = (String[]) tagsField.get(service);
+                      Field countsField = MyService.class.getDeclaredField("counts");
+                      countsField.setAccessible(true);
+                      int[] counts = (int[]) countsField.get(service);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void leavesStatementInLambdaBlockUntouched() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class MyService {
+                  private String name = "hello";
+              }
+              """
+          ),
+          java(
+            """
+              import java.util.function.Consumer;
+              import org.powermock.reflect.Whitebox;
+
+              class MyServiceTest {
+                  void test() {
+                      Consumer<MyService> c = s -> {
+                          String name = Whitebox.getInternalState(s, "name");
+                      };
+                  }
+              }
+              """
+          )
+        );
+    }
+
+
+    @Test
+    void getsStaticFieldOfClassLiteralTarget() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class ExceptionMapper {
+                  private static ExceptionMapper servletInstance;
+
+                  static ExceptionMapper getServletInstance() {
+                      return servletInstance;
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class ExceptionMapperTest {
+                  static void assertSame(String message, Object expected, Object actual) {
+                  }
+
+                  void servletInstanceIsASingleton() {
+                      ExceptionMapper exceptionMapper = ExceptionMapper.getServletInstance();
+                      assertSame("Should be equals because it is a singleton", Whitebox.getInternalState(ExceptionMapper.class, "servletInstance"), exceptionMapper);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class ExceptionMapperTest {
+                  static void assertSame(String message, Object expected, Object actual) {
+                  }
+
+                  void servletInstanceIsASingleton() throws Exception {
+                      ExceptionMapper exceptionMapper = ExceptionMapper.getServletInstance();
+                      Field servletInstanceField = ExceptionMapper.class.getDeclaredField("servletInstance");
+                      servletInstanceField.setAccessible(true);
+                      assertSame("Should be equals because it is a singleton", servletInstanceField.get(null), exceptionMapper);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getsStaticFieldIntoVariable() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class Registry {
+                  private static String name = "registry";
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class RegistryTest {
+                  void test() {
+                      String name = Whitebox.getInternalState(Registry.class, "name");
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class RegistryTest {
+                  void test() throws Exception {
+                      Field nameField = Registry.class.getDeclaredField("name");
+                      nameField.setAccessible(true);
+                      String name = (String) nameField.get(null);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getsFieldDeclaredByTheGivenClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              class CentralizedManifest {
+                  private int size;
+              }
+              """
+          ),
+          java(
+            """
+              import org.powermock.reflect.Whitebox;
+
+              class CentralizedManifestTest {
+                  void test(CentralizedManifest manifest) {
+                      int size = Whitebox.getInternalState(manifest, "size", CentralizedManifest.class);
+                  }
+              }
+              """,
+            """
+              import java.lang.reflect.Field;
+
+              class CentralizedManifestTest {
+                  void test(CentralizedManifest manifest) throws Exception {
+                      Field sizeField = CentralizedManifest.class.getDeclaredField("size");
+                      sizeField.setAccessible(true);
+                      int size = (Integer) sizeField.get(manifest);
+                  }
+              }
+              """
+          )
+        );
+    }
 }

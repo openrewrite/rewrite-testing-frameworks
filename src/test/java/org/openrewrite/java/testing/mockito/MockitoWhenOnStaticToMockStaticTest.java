@@ -119,6 +119,169 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
     }
 
     @Test
+    void namesStartOverInEachFile() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test1 {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test1 {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import org.example.A;
+
+              import static org.mockito.Mockito.*;
+
+              class Test2 {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test2 {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldMockNestedClassRatherThanItsOuterClass() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.example;
+              public class Outer {
+                  public static class Inner {
+                      public static Integer value() {
+                          return 1;
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.example.Outer;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(Outer.Inner.value()).thenReturn(2);
+                  }
+              }
+              """,
+            """
+              import org.example.Outer;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<Outer.Inner> mockOuter_Inner1 = mockStatic(Outer.Inner.class)) {
+                          mockOuter_Inner1.when(() -> Outer.Inner.value()).thenReturn(2);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void shouldMockNestedClassInBefore() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              package org.example;
+              public class Outer {
+                  public static class Inner {
+                      public static Integer value() {
+                          return 1;
+                      }
+                  }
+              }
+              """
+          ),
+          java(
+            """
+              import org.example.Outer;
+              import org.junit.jupiter.api.BeforeEach;
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  @BeforeEach
+                  void setUp() {
+                      when(Outer.Inner.value()).thenReturn(2);
+                  }
+              }
+              """,
+            """
+              import org.example.Outer;
+              import org.junit.jupiter.api.AfterEach;
+              import org.junit.jupiter.api.BeforeEach;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  private MockedStatic<Outer.Inner> mockOuter_Inner1;
+
+                  @BeforeEach
+                  void setUp() {
+                      mockOuter_Inner1 = mockStatic(Outer.Inner.class);
+                      mockOuter_Inner1.when(() -> Outer.Inner.value()).thenReturn(2);
+                  }
+
+                  @AfterEach
+                  public void tearDown() {
+                      mockOuter_Inner1.close();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void shouldOptForUsageOfMockedStatic_WhenAlreadyScopedInside() {
         rewriteRun(
           //language=java
@@ -215,6 +378,52 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
     @EnabledForJreRange(min = JAVA_25)
     @Test
+    void renamedUnnamedVariableAvoidsANameDeclaredOutsideTheStubbingBlock() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+              import org.mockito.Mockito;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test(boolean flag) {
+                      try (var _ = Mockito.mockStatic(A.class)) {
+                          if (flag) {
+                              when(A.getNumber()).thenReturn(-1);
+                          }
+                          String mockA1 = "local";
+                      }
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.mockito.Mockito;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.when;
+
+              class Test {
+                  void test(boolean flag) {
+                      try (var mockA2 = Mockito.mockStatic(A.class)) {
+                          if (flag) {
+                              mockA2.when(() -> A.getNumber()).thenReturn(-1);
+                          }
+                          String mockA1 = "local";
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @EnabledForJreRange(min = JAVA_25)
+    @Test
     void shouldRenameMultipleUnnamedVariablesIndividually() {
         rewriteRun(
           //language=java
@@ -253,9 +462,9 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
               class Test {
                   void test() {
                       try (var mockA1 = Mockito.mockStatic(A.class)) {
-                          try (var mockB2 = Mockito.mockStatic(B.class)) {
+                          try (var mockB1 = Mockito.mockStatic(B.class)) {
                               mockA1.when(() -> A.getNumber()).thenReturn(-1);
-                              mockB2.when(() -> B.getString()).thenReturn("hi there");
+                              mockB1.when(() -> B.getString()).thenReturn("hi there");
                               assertEquals(A.getNumber(), -1);
                               assertEquals(B.getString(), "hi there");
                           }
@@ -361,6 +570,48 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
                           }
 
                           assertEquals(A.getNumber(), -2);
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void nestedMockAvoidsANameDeclaredLaterInItsBlock() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.example.A;
+              import org.example.B;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      when(A.getNumber()).thenReturn(-1);
+                      when(B.getString()).thenReturn("hi");
+                      String mockB1 = B.getString();
+                  }
+              }
+              """,
+            """
+              import org.example.A;
+              import org.example.B;
+              import org.mockito.MockedStatic;
+
+              import static org.mockito.Mockito.*;
+
+              class Test {
+                  void test() {
+                      try (MockedStatic<A> mockA1 = mockStatic(A.class)) {
+                          mockA1.when(() -> A.getNumber()).thenReturn(-1);
+                          try (MockedStatic<B> mockB2 = mockStatic(B.class)) {
+                              mockB2.when(() -> B.getString()).thenReturn("hi");
+                              String mockB1 = B.getString();
+                          }
                       }
                   }
               }
@@ -826,6 +1077,60 @@ class MockitoWhenOnStaticToMockStaticTest implements RewriteTest {
 
                       void test() {
                           assertEquals(A.getNumber(), -1);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void fieldAvoidsANameTheAfterMethodDeclares() {
+            //language=java
+            rewriteRun(
+              java(
+                """
+                  import org.example.A;
+                  import org.junit.Before;
+                  import org.junit.After;
+
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      @Before
+                      public void setUp() {
+                          when(A.getNumber()).thenReturn(-1);
+                      }
+
+                      @After
+                      public void tearDown() {
+                          String mockA1 = "local";
+                          System.out.println(mockA1);
+                      }
+                  }
+                  """,
+                """
+                  import org.example.A;
+                  import org.junit.Before;
+                  import org.mockito.MockedStatic;
+                  import org.junit.After;
+
+                  import static org.mockito.Mockito.*;
+
+                  class Test {
+                      private MockedStatic<A> mockA2;
+
+                      @Before
+                      public void setUp() {
+                          mockA2 = mockStatic(A.class);
+                          mockA2.when(() -> A.getNumber()).thenReturn(-1);
+                      }
+
+                      @After
+                      public void tearDown() {
+                          String mockA1 = "local";
+                          System.out.println(mockA1);
+                          mockA2.close();
                       }
                   }
                   """

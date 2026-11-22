@@ -23,8 +23,8 @@ import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
-import org.openrewrite.java.VariableNameUtils;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.tree.K;
@@ -35,15 +35,11 @@ import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static java.util.Collections.*;
 
 
 public class AssertThrowsOnLastStatement extends Recipe {
-
-    private static final Pattern NUMBER_SUFFIX_PATTERN = Pattern.compile("^(.+?)(\\d+)$");
 
     @Getter
     final String displayName = "Applies JUnit 5 `assertThrows` on last statement in lambda block only";
@@ -70,6 +66,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 if (m.getBody() == null) {
                     return m;
                 }
+                Cursor methodBody = new Cursor(getCursor(), m.getBody());
                 return m.withBody(m.getBody().withStatements(ListUtils.flatMap(m.getBody().getStatements(), methodStatement -> {
                     J statementToCheck = methodStatement;
                     final J.VariableDeclarations assertThrowsWithVarDec;
@@ -125,6 +122,14 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         return methodStatement;
                     }
 
+                    // A local moved out of the lambda is in scope for the rest of the call and of the method body,
+                    // where a later statement may declare its name again or read a field it would shadow
+                    Cursor statementCursor = new Cursor(methodBody, methodStatement);
+                    J.Block moving = body.withStatements(lambdaStatements.subList(0, lambdaStatements.size() - 1));
+                    if (!Scope.at(Scope.cursorTo(statementCursor, moving)).canMoveBefore(statementCursor)) {
+                        return methodStatement;
+                    }
+
                     // TODO Check to see if last line in lambda does not use a non-final variable
 
                     // move all the statements from the body into before the method invocation, except last one
@@ -166,7 +171,8 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 if (lambdaStatement instanceof J.MethodInvocation) {
                     boolean kotlin = getCursor().firstEnclosing(K.CompilationUnit.class) != null;
                     J.MethodInvocation mi = (J.MethodInvocation) lambdaStatement;
-                    Map<String, Integer> generatedVariableSuffixes = new HashMap<>();
+                    // The names hoisted so far in this method, which the tree the cursor holds does not show yet
+                    Set<String> hoisted = getCursor().computeMessageIfAbsent("hoistedNames", k -> new HashSet<>());
                     return mi.withArguments(ListUtils.map(mi.getArguments(), e -> {
                         if (e instanceof J.Identifier || e instanceof J.Literal || e instanceof J.Empty || e instanceof J.Lambda || e instanceof J.TypeCast || e instanceof J.FieldAccess) {
                             return e;
@@ -186,7 +192,7 @@ public class AssertThrowsOnLastStatement extends Recipe {
                             return e;
                         }
 
-                        String variableName = getVariableName(e, generatedVariableSuffixes);
+                        String variableName = getVariableName(e, hoisted);
 
                         // Kotlin infers the type; add `val name = expr` as a statement on the method body, since replacing
                         // the expression in place would wrap the template as `var o = <template>` and fail to parse
@@ -266,11 +272,11 @@ public class AssertThrowsOnLastStatement extends Recipe {
                 }
             }
 
-            private String getVariableName(Expression e, Map<String, Integer> generatedVariableSuffixes) {
-                String variableName;
+            private String getVariableName(Expression e, Set<String> hoisted) {
+                String name = "x";
                 if (e instanceof J.MethodInvocation) {
                     J.MethodInvocation mi = (J.MethodInvocation) e;
-                    String name = mi.getSimpleName();
+                    name = mi.getSimpleName();
                     if (isShortFactoryMethodName(name)) {
                         name = getTypeBasedVariableName(mi);
                     } else {
@@ -278,11 +284,13 @@ public class AssertThrowsOnLastStatement extends Recipe {
                         name = name.replaceAll("^is", "");
                     }
                     name = StringUtils.uncapitalize(name);
-                    variableName = VariableNameUtils.generateVariableName(!name.isEmpty() ? name : "x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
-                } else {
-                    variableName = VariableNameUtils.generateVariableName("x", getCursor(), VariableNameUtils.GenerationStrategy.INCREMENT_NUMBER);
+                    if (name.isEmpty()) {
+                        name = "x";
+                    }
                 }
-                return ensureUniqueVariableName(variableName, generatedVariableSuffixes);
+                String variableName = Scope.at(getCursor()).freeName(name, hoisted::contains);
+                hoisted.add(variableName);
+                return variableName;
             }
 
             private boolean isShortFactoryMethodName(String name) {
@@ -293,7 +301,9 @@ public class AssertThrowsOnLastStatement extends Recipe {
             private String getTypeBasedVariableName(J.MethodInvocation mi) {
                 JavaType type = mi.getType();
                 if (type instanceof JavaType.FullyQualified) {
-                    return ((JavaType.FullyQualified) type).getClassName();
+                    // The class name of a nested type is qualified by its outer types
+                    String className = ((JavaType.FullyQualified) type).getClassName();
+                    return className.substring(className.lastIndexOf('.') + 1);
                 }
                 return "x";
             }
@@ -326,28 +336,6 @@ public class AssertThrowsOnLastStatement extends Recipe {
                     return elemTypeName == null ? null : elemTypeName + "[]";
                 }
                 return null;
-            }
-
-            private String ensureUniqueVariableName(String variableName, Map<String, Integer> generatedVariableSuffixes) {
-                Set<String> existingVariablesInScope = VariableNameUtils.findNamesInScope(getCursor());
-                Matcher matcher = NUMBER_SUFFIX_PATTERN.matcher(variableName);
-                if (matcher.matches()) {
-                    String prefix = matcher.group(1);
-                    int suffix = Integer.parseInt(matcher.group(2));
-                    generatedVariableSuffixes.putIfAbsent(prefix, suffix);
-                    variableName = prefix;
-                }
-                if (generatedVariableSuffixes.containsKey(variableName)) {
-                    int suffix = generatedVariableSuffixes.get(variableName);
-                    while (existingVariablesInScope.contains(variableName + suffix)) {
-                        suffix++;
-                    }
-                    generatedVariableSuffixes.put(variableName, suffix + 1);
-                    variableName += suffix;
-                } else {
-                    generatedVariableSuffixes.put(variableName, 1);
-                }
-                return variableName;
             }
         });
     }

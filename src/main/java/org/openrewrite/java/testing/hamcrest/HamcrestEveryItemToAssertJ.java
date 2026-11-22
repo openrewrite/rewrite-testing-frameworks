@@ -26,6 +26,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
+import org.openrewrite.java.trait.Scope;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
@@ -96,9 +97,10 @@ public class HamcrestEveryItemToAssertJ extends Recipe {
 
             private J.MethodInvocation handleGeneralMatcher(J.MethodInvocation mi, Expression actual, @Nullable Expression reason,
                                                             Expression innerMatcher, ExecutionContext ctx) {
+                String arg = Scope.at(getCursor()).freeName("arg");
                 String reasonTemplate = reason != null ? ".as(#{any(String)})" : "";
                 JavaTemplate template = JavaTemplate.builder(
-                                "assertThat(#{any()})" + reasonTemplate + ".allSatisfy(arg -> assertThat(arg, #{any()}))")
+                                "assertThat(#{any()})" + reasonTemplate + ".allSatisfy(" + arg + " -> assertThat(" + arg + ", #{any()}))")
                         .contextSensitive()
                         .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx,
                                 "assertj-core-3",

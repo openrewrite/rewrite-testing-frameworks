@@ -55,6 +55,13 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
     private static final String TESTNG_TEST = "org.testng.annotations.Test";
     private static final String TESTNG_IGNORE = "org.testng.annotations.Ignore";
 
+    private static final List<String> JUNIT4_TESTS = Arrays.asList(JUNIT4_TEST, "org.junit.experimental.theories.Theory");
+    private static final List<String> JUNIT5_TESTS = Arrays.asList(JUNIT5_TEST,
+            "org.junit.jupiter.params.ParameterizedTest",
+            "org.junit.jupiter.api.RepeatedTest",
+            "org.junit.jupiter.api.TestFactory",
+            "org.junit.jupiter.api.TestTemplate");
+
     private transient final PowerMockTestsDisabled disabledTests = new PowerMockTestsDisabled(this);
 
     @Getter
@@ -65,7 +72,8 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
             "deliberately does not support, so that the rest of the repository can migrate. The test is annotated " +
             "`@Disabled`, `@Ignore` or TestNG's `@Ignore` and recorded in a data table as an action item: rework the " +
             "test not to depend on private members, then re-enable it. A usage outside a test method, such as in a " +
-            "setup method or a class-level annotation, disables the whole class.";
+            "setup method or a class-level annotation, disables the whole class, and an initializer holding it is " +
+            "commented out and an annotation holding it removed, so that the class compiles without PowerMock.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -91,17 +99,21 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 // Usages left over after the methods have been visited sit outside any test method -- in a setup
                 // method, a field, or a class-level annotation -- so the class as a whole cannot run.
                 Map<UUID, String> remaining = reasonsIn(cd);
-                if (remaining.isEmpty() || isDisabled(cd.getLeadingAnnotations())) {
+                if (remaining.isEmpty()) {
                     return cd;
+                }
+                if (isDisabled(cd.getLeadingAnnotations())) {
+                    // Already disabled, so nothing to annotate or record, but the PowerMock dependency is removed
+                    return commentOutBodiesHoldingUsage(cd);
                 }
                 String reason = String.join("; ", new LinkedHashMap<>(remaining).values());
-                Framework framework = frameworkOf(cd);
-                if (framework == null) {
-                    return cd;
-                }
                 disabledTests.insertRow(ctx, new PowerMockTestsDisabled.Row(
                         sourcePath, cd.getSimpleName(), cd.getSimpleName(), "CLASS", reason));
-                return commentOutBodiesHoldingUsage(disable(cd, framework, ctx));
+                Framework framework = frameworkOf(cd);
+                // A class that declares no test, such as an abstract base class with a setup method, has no
+                // framework to take a disabling annotation from. Its usage is still commented out, as the
+                // PowerMock dependency is removed from the repository regardless.
+                return commentOutBodiesHoldingUsage(framework == null ? cd : disable(cd, framework, ctx));
             }
 
             @Override
@@ -116,7 +128,8 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                     unsupported.remove(id);
                 }
                 if (isDisabled(method.getLeadingAnnotations())) {
-                    return method;
+                    // Already disabled, so nothing to annotate or record, but the PowerMock dependency is removed
+                    return commentOutBody(method, getCursor().getParentOrThrow());
                 }
                 String reason = String.join("; ", new LinkedHashMap<>(reasons).values());
                 J.ClassDeclaration enclosing = getCursor().firstEnclosing(J.ClassDeclaration.class);
@@ -146,22 +159,12 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 }
                 String closingIndent = lastLineOf(body.getEnd().getWhitespace());
                 String indent = closingIndent + "    ";
-                List<Comment> comments = new ArrayList<>(body.getEnd().getComments());
-                comments.add(new TextComment(false, " The body of this test is kept for reference while it is migrated by hand:",
-                        "\n" + indent, Markers.EMPTY));
-                // Printing the block rather than its statements keeps the original punctuation and layout.
-                for (String line : dedent(innerSourceOf(body))) {
-                    comments.add(new TextComment(false, " " + line, "\n" + indent, Markers.EMPTY));
-                }
+                List<Comment> comments = commentedOutStatements(body, indent);
                 TextComment last = (TextComment) comments.get(comments.size() - 1);
                 J.MethodDeclaration emptied = method.withBody(body.withStatements(emptyList()));
                 TypeTree returnType = method.getReturnTypeExpression();
                 if (returnType == null || returnType.getType() == JavaType.Primitive.Void) {
-                    // A comment's suffix precedes whatever follows it, so the last one carries the closing brace
-                    // back out to the method's own indentation.
-                    comments.set(comments.size() - 1, last.withSuffix("\n" + closingIndent));
-                    return emptied.withBody(emptied.getBody().withEnd(
-                            body.getEnd().withWhitespace("\n" + indent).withComments(comments)));
+                    return emptied.withBody(commentOut(body));
                 }
                 // A method that returns a value no longer compiles without a body, so it throws instead
                 comments.set(comments.size() - 1, last.withSuffix("\n" + indent));
@@ -173,6 +176,30 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                         .withStatements(ListUtils.mapFirst(throwingBody.getStatements(),
                                 statement -> statement.withPrefix(Space.build("\n" + indent, comments))))
                         .withEnd(Space.format("\n" + closingIndent)));
+            }
+
+            /** Empties the block, keeping what it did as line comments in its place. */
+            private J.Block commentOut(J.Block block) {
+                String closingIndent = lastLineOf(block.getEnd().getWhitespace());
+                String indent = closingIndent + "    ";
+                List<Comment> comments = commentedOutStatements(block, indent);
+                // A comment's suffix precedes whatever follows it, so the last one carries the closing brace
+                // back out to the block's own indentation.
+                TextComment last = (TextComment) comments.get(comments.size() - 1);
+                comments.set(comments.size() - 1, last.withSuffix("\n" + closingIndent));
+                return block.withStatements(emptyList())
+                        .withEnd(block.getEnd().withWhitespace("\n" + indent).withComments(comments));
+            }
+
+            private List<Comment> commentedOutStatements(J.Block block, String indent) {
+                List<Comment> comments = new ArrayList<>(block.getEnd().getComments());
+                comments.add(new TextComment(false, " The body of this test is kept for reference while it is migrated by hand:",
+                        "\n" + indent, Markers.EMPTY));
+                // Printing the block rather than its statements keeps the original punctuation and layout.
+                for (String line : dedent(innerSourceOf(block))) {
+                    comments.add(new TextComment(false, " " + line, "\n" + indent, Markers.EMPTY));
+                }
+                return comments;
             }
 
             private String innerSourceOf(J.Block body) {
@@ -204,12 +231,41 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
                 return lineStart < 0 ? "" : whitespace.substring(lineStart + 1);
             }
 
+            /**
+             * Also comments out an initializer holding usage, and removes an annotation of the class holding usage,
+             * such as a PowerMock runner that is left in place: the class does not run anyway, and either would keep
+             * it from compiling once the PowerMock dependency is removed.
+             */
             private J.ClassDeclaration commentOutBodiesHoldingUsage(J.ClassDeclaration classDecl) {
                 Cursor bodyCursor = new Cursor(getCursor(), classDecl.getBody());
-                return classDecl.withBody(classDecl.getBody().withStatements(
-                        ListUtils.map(classDecl.getBody().getStatements(), statement ->
-                                statement instanceof J.MethodDeclaration && !reasonsIn(statement).isEmpty() ?
-                                        commentOutBody((J.MethodDeclaration) statement, bodyCursor) : statement)));
+                J.ClassDeclaration cd = classDecl.withBody(classDecl.getBody().withStatements(
+                        ListUtils.map(classDecl.getBody().getStatements(), statement -> {
+                            if (reasonsIn(statement).isEmpty()) {
+                                return statement;
+                            }
+                            if (statement instanceof J.MethodDeclaration) {
+                                return commentOutBody((J.MethodDeclaration) statement, bodyCursor);
+                            }
+                            if (statement instanceof J.Block && !((J.Block) statement).getStatements().isEmpty()) {
+                                return commentOut((J.Block) statement);
+                            }
+                            return statement;
+                        })));
+                List<J.Annotation> annotations = cd.getLeadingAnnotations();
+                List<J.Annotation> kept = ListUtils.filter(annotations, annotation -> reasonsIn(annotation).isEmpty());
+                if (kept.size() == annotations.size()) {
+                    return cd;
+                }
+                Space prefix = annotations.get(0).getPrefix();
+                if (!kept.isEmpty()) {
+                    return cd.withLeadingAnnotations(ListUtils.mapFirst(kept, first -> first.withPrefix(prefix)));
+                }
+                // A class without a test framework gets no disabling annotation, so it may be left with none at all
+                cd = cd.withLeadingAnnotations(emptyList());
+                if (!cd.getModifiers().isEmpty()) {
+                    return cd.withModifiers(ListUtils.mapFirst(cd.getModifiers(), first -> first.withPrefix(prefix)));
+                }
+                return cd.getPadding().withKind(cd.getPadding().getKind().withPrefix(prefix));
             }
 
             private org.openrewrite.java.tree.@Nullable JavaCoordinates annotationCoordinates(J target) {
@@ -251,12 +307,20 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
             }
 
             private @Nullable Framework testFrameworkOf(J.MethodDeclaration method) {
-                for (J.Annotation annotation : method.getLeadingAnnotations()) {
-                    if (TypeUtils.isOfClassType(annotation.getType(), JUNIT5_TEST)) {
-                        return Framework.JUNIT5;
+                return testFrameworkOf(method.getLeadingAnnotations());
+            }
+
+            private @Nullable Framework testFrameworkOf(List<J.Annotation> annotations) {
+                for (J.Annotation annotation : annotations) {
+                    for (String type : JUNIT5_TESTS) {
+                        if (TypeUtils.isOfClassType(annotation.getType(), type)) {
+                            return Framework.JUNIT5;
+                        }
                     }
-                    if (TypeUtils.isOfClassType(annotation.getType(), JUNIT4_TEST)) {
-                        return Framework.JUNIT4;
+                    for (String type : JUNIT4_TESTS) {
+                        if (TypeUtils.isOfClassType(annotation.getType(), type)) {
+                            return Framework.JUNIT4;
+                        }
                     }
                     if (TypeUtils.isOfClassType(annotation.getType(), TESTNG_TEST)) {
                         return Framework.TESTNG;
@@ -267,6 +331,11 @@ public class DisableUnsupportedPowerMockTests extends Recipe {
 
             /** The framework the class tests with, taken from whichever test method it declares. */
             private @Nullable Framework frameworkOf(J.ClassDeclaration classDecl) {
+                // TestNG allows `@Test` on the class, which makes every public method a test
+                Framework classLevel = testFrameworkOf(classDecl.getLeadingAnnotations());
+                if (classLevel != null) {
+                    return classLevel;
+                }
                 for (org.openrewrite.java.tree.Statement statement : classDecl.getBody().getStatements()) {
                     if (statement instanceof J.MethodDeclaration) {
                         Framework framework = testFrameworkOf((J.MethodDeclaration) statement);

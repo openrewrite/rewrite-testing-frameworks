@@ -25,8 +25,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.openrewrite.java.testing.junit4.JUnit3MigrationVisitor.fqn;

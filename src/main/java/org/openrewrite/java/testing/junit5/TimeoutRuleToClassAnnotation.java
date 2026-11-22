@@ -78,8 +78,8 @@ public class TimeoutRuleToClassAnnotation extends Recipe {
 
                 J.VariableDeclarations removed = timeoutRule;
                 Expression initializer = requireNonNull(removed.getVariables().get(0).getInitializer());
-                cd = cd.withBody(cd.getBody().withStatements(ListUtils.map(cd.getBody().getStatements(),
-                        statement -> statement == removed ? null : statement)));
+                cd = cd.withBody(cd.getBody().withStatements(ListUtils.filter(cd.getBody().getStatements(),
+                        statement -> statement != removed)));
                 maybeRemoveImport("org.junit.Rule");
                 maybeRemoveImport("org.junit.rules.Timeout");
                 return insertTimeoutAnnotation(initializer, cd, ctx);
