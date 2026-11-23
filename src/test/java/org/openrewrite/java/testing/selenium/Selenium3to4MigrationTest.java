@@ -19,8 +19,16 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.tree.MavenResolutionResult;
+import org.openrewrite.maven.tree.ResolvedDependency;
+import org.openrewrite.maven.tree.Scope;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.xml.tree.Xml;
+
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
@@ -62,6 +70,33 @@ class Selenium3to4MigrationTest implements RewriteTest {
           %s    </dependencies>
           </project>
           """.formatted(deps);
+    }
+
+
+    private static final String USES_SELENIUM = """
+      import org.openqa.selenium.WebDriver;
+
+      class LoginTest {
+          WebDriver driver;
+      }
+      """;
+
+    /**
+     * Every Selenium artifact the pom resolves in test scope, as {@code artifactId:version}.
+     */
+    private static List<String> resolvedSelenium(Xml.Document pom) {
+        return pom.getMarkers().findFirst(MavenResolutionResult.class).orElseThrow()
+          .getDependencies().get(Scope.Test).stream()
+          .filter(d -> "org.seleniumhq.selenium".equals(d.getGroupId()))
+          .map(d -> d.getArtifactId() + ":" + d.getVersion())
+          .distinct()
+          .collect(toList());
+    }
+
+    private static void allSeleniumResolvedAt(Xml.Document pom, String versionPrefix) {
+        List<String> resolved = resolvedSelenium(pom);
+        assertThat(resolved).isNotEmpty();
+        assertThat(resolved).allSatisfy(gav -> assertThat(gav).contains(":" + versionPrefix));
     }
 
     @DocumentExample
@@ -344,6 +379,209 @@ class Selenium3to4MigrationTest implements RewriteTest {
             //language=xml
             pomXml(
               pom("com.vaadin:vaadin-testbench-core:6.2.0")
+            )
+          )
+        );
+    }
+
+    @Test
+    void transitiveArtifactsPinnedBySpringBootParent() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(USES_SELENIUM, spec -> spec.markers(javaVersion(8)))
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>1.5.9.RELEASE</version>
+                    </parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                            <version>3.12.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>1.5.9.RELEASE</version>
+                    </parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <properties>
+                        <selenium.version>4.13.0</selenium.version>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> allSeleniumResolvedAt(pom, "4.13."))
+            )
+          )
+        );
+    }
+
+    @Test
+    void seleniumOnlyThroughAnotherLibrary() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(USES_SELENIUM, spec -> spec.markers(javaVersion(8)))
+            ),
+            //language=xml
+            pomXml(
+              pom("org.vaadin:addon-test-helpers:2.0.alpha5"),
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.seleniumhq.selenium</groupId>
+                                <artifactId>htmlunit-driver</artifactId>
+                                <version>4.13.0</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.seleniumhq.selenium</groupId>
+                                <artifactId>selenium-java</artifactId>
+                                <version>4.13.0</version>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.vaadin</groupId>
+                            <artifactId>addon-test-helpers</artifactId>
+                            <version>2.0.alpha5</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> allSeleniumResolvedAt(pom, "4.13."))
+            )
+          )
+        );
+    }
+
+    @Test
+    void seleniumServerUsedForTheClientApi() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(USES_SELENIUM, spec -> spec.markers(javaVersion(8)))
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-server:3.8.1"),
+              pom("org.seleniumhq.selenium:selenium-java:4.13.0")
+            )
+          )
+        );
+    }
+
+    @Test
+    void seleniumServerBesideSeleniumJava() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(USES_SELENIUM, spec -> spec.markers(javaVersion(8)))
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.141.59", "org.seleniumhq.selenium:selenium-server:3.141.59"),
+              pom("org.seleniumhq.selenium:selenium-java:4.13.0")
+            )
+          )
+        );
+    }
+
+    @Test
+    void moduleUsingTheSeleniumGridIsLeftAlone() {
+        rewriteRun(
+          mavenProject("grid",
+            srcMainJava(
+              //language=java
+              java(
+                """
+                  package org.openqa.grid.selenium;
+
+                  public class GridLauncherV3 {
+                      public static void main(String[] args) {
+                      }
+                  }
+                  """
+              ),
+              //language=java
+              java(
+                """
+                  import org.openqa.grid.selenium.GridLauncherV3;
+                  import org.openqa.selenium.WebDriver;
+
+                  import java.util.concurrent.TimeUnit;
+
+                  class Hub {
+                      void start(WebDriver driver) {
+                          GridLauncherV3.main(new String[0]);
+                          driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(8))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-server-standalone:3.141.59")
+            )
+          )
+        );
+    }
+
+    @Test
+    void phantomJsDriverKeepsTheSeleniumItBroughtAlong() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(USES_SELENIUM, spec -> spec.markers(javaVersion(8)))
+            ),
+            //language=xml
+            pomXml(
+              pom("com.codeborne:phantomjsdriver:1.2.1"),
+              spec -> spec.after(pom -> assertThat(pom)
+                .containsPattern("<artifactId>phantomjsdriver</artifactId>\\s*<version>1\\.5\\.0</version>")
+                .containsPattern("<artifactId>selenium-remote-driver</artifactId>\\s*<version>4\\.13\\.0</version>")
+                .actual())
+                .afterRecipe(pom -> allSeleniumResolvedAt(pom, "4.13."))
             )
           )
         );

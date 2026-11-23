@@ -28,7 +28,7 @@ description: >-
   their W3C names, and those that have none, which a W3C driver already ignored under Selenium 3, are no longer set.
   Modules on Appium `java-client` before 8, Selenide before 6, Arquillian Drone or Graphene before 3, or Vaadin
   TestBench before 8 are left alone, as those versions only run on Selenium 3 and have to be upgraded together with
-  it.
+  it. So are modules whose code uses the Selenium Grid or server classes of Selenium 3, which Selenium 4 replaced.
 tags:
   - testing
   - selenium
@@ -57,6 +57,8 @@ preconditions:
       groupIdPattern: com.vaadin
       artifactIdPattern: vaadin-testbench*
       version: "[1,8)"
+      invertMarking: true
+  - org.openrewrite.java.testing.selenium.ModuleUsesSeleniumServer:
       invertMarking: true
 recipeList:
   - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependencies
@@ -109,11 +111,19 @@ preconditions:
       version: 11
 recipeList:
   - org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
+  # A version that a parent such as Spring Boot's manages is upgraded where the parent sets it, so that the
+  # Selenium artifacts the parent manages move along with the ones the module declares
+  - org.openrewrite.maven.RemoveRedundantDependencyVersions:
+      groupPattern: org.seleniumhq.selenium
+      artifactPattern: selenium-*
+      onlyIfManagedVersionIs: ANY
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.seleniumhq.selenium
       artifactId: selenium-*
       newVersion: 4.x
       overrideManagedVersion: true
+  - org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava11
+  - org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava11
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -130,18 +140,27 @@ preconditions:
       version: "[1,11)"
 recipeList:
   - org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
+  # A version that a parent such as Spring Boot's manages is upgraded where the parent sets it, so that the
+  # Selenium artifacts the parent manages move along with the ones the module declares
+  - org.openrewrite.maven.RemoveRedundantDependencyVersions:
+      groupPattern: org.seleniumhq.selenium
+      artifactPattern: selenium-*
+      onlyIfManagedVersionIs: ANY
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.seleniumhq.selenium
       artifactId: selenium-*
       newVersion: 4.13.x
       overrideManagedVersion: true
+  - org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava8
+  - org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava8
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
 displayName: Replace Selenium artifacts that Selenium 4 no longer publishes
 description: >-
-  Move the HtmlUnit driver to `htmlunit-driver` 4.13.0, which keeps HtmlUnit 2.x and so the `com.gargoylesoftware`
+  Depend on `selenium-java` instead of `selenium-server` or `selenium-server-standalone`, which Selenium 4 does not
+  publish for clients. Move the HtmlUnit driver to `htmlunit-driver` 4.13.0, which keeps HtmlUnit 2.x and so the `com.gargoylesoftware`
   packages and runs on both Java 8 and the latest Selenium 4. Move the PhantomJS driver to
   `com.codeborne:phantomjsdriver` 1.5.0, the only release built for Selenium 4, and remove the drivers for
   Opera, iPhone and Android, which Selenium 4 no longer publishes, where nothing uses them.
@@ -149,6 +168,7 @@ tags:
   - testing
   - selenium
 recipeList:
+  - org.openrewrite.java.testing.selenium.ReplaceSeleniumServerWithSeleniumJava
   - org.openrewrite.java.dependencies.ChangeDependency:
       oldGroupId: org.seleniumhq.selenium
       oldArtifactId: selenium-htmlunit-driver
@@ -186,6 +206,164 @@ recipeList:
       groupId: org.seleniumhq.selenium
       artifactId: selenium-android-driver
       unlessUsing: org.openqa.selenium.android..*
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.ReplaceSeleniumServerWithSeleniumJava
+displayName: Depend on `selenium-java` instead of `selenium-server`
+description: >-
+  Selenium 4 publishes no `selenium-server` or `selenium-server-standalone` release for clients, which used either of
+  them to get every driver at once. Depend on `selenium-java` instead, or drop the server where the module already
+  depends on `selenium-java`. Use it together with `ModuleUsesSeleniumServer` to leave modules alone whose code uses
+  the Selenium Grid or server classes.
+tags:
+  - testing
+  - selenium
+recipeList:
+  - org.openrewrite.java.testing.selenium.RemoveSeleniumServerBesideSeleniumJava
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.seleniumhq.selenium
+      oldArtifactId: selenium-server
+      newArtifactId: selenium-java
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.seleniumhq.selenium
+      oldArtifactId: selenium-server-standalone
+      newArtifactId: selenium-java
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.RemoveSeleniumServerBesideSeleniumJava
+displayName: Remove `selenium-server` where `selenium-java` is a dependency
+description: Remove `selenium-server` and `selenium-server-standalone` from a module that already depends on `selenium-java`.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.seleniumhq.selenium
+      artifactIdPattern: selenium-java
+      onlyDirect: true
+recipeList:
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-server
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-server-standalone
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava11
+displayName: Add the Selenium that PhantomJS driver 1.5.0 needs, at the latest Selenium 4.x
+description: >-
+  `com.codeborne:phantomjsdriver` 1.5.0 declares no dependency on Selenium, where earlier releases brought it along.
+  Add `selenium-remote-driver` at the latest Selenium 4.x to a module that depends on the PhantomJS driver, whose code
+  uses Selenium and that does not get it otherwise.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: com.*
+      artifactIdPattern: phantomjsdriver
+      onlyDirect: true
+recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-remote-driver
+      version: 4.x
+      onlyIfUsing: org.openqa.selenium..*
+      acceptTransitive: true
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava11
+displayName: Manage the Selenium that another library brings at the latest Selenium 4.x
+description: >-
+  Where a module's code uses Selenium, but the module only gets it through another library it depends on, such as a
+  test helper, manage the Selenium artifacts at the latest Selenium 4.x, so that the code migrated to Selenium 4 compiles against it.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.search.ModuleUsesType:
+      fullyQualifiedTypeName: org.openqa.selenium..*
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.seleniumhq.selenium
+      artifactIdPattern: "*"
+      onlyDirect: true
+      invertMarking: true
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: com.*
+      artifactIdPattern: phantomjsdriver
+      onlyDirect: true
+      invertMarking: true
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-*
+      version: 4.x
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: org.seleniumhq.selenium
+      artifactId: htmlunit-driver
+      version: 4.13.0
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava8
+displayName: Add the Selenium that PhantomJS driver 1.5.0 needs, at Selenium 4.13.0
+description: >-
+  `com.codeborne:phantomjsdriver` 1.5.0 declares no dependency on Selenium, where earlier releases brought it along.
+  Add `selenium-remote-driver` at Selenium 4.13.0 to a module that depends on the PhantomJS driver, whose code uses
+  Selenium and that does not get it otherwise.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: com.*
+      artifactIdPattern: phantomjsdriver
+      onlyDirect: true
+recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-remote-driver
+      version: 4.13.x
+      onlyIfUsing: org.openqa.selenium..*
+      acceptTransitive: true
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava8
+displayName: Manage the Selenium that another library brings at Selenium 4.13.0
+description: >-
+  Where a module's code uses Selenium, but the module only gets it through another library it depends on, such as a
+  test helper, manage the Selenium artifacts at Selenium 4.13.0, so that the code migrated to Selenium 4 compiles against it.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.search.ModuleUsesType:
+      fullyQualifiedTypeName: org.openqa.selenium..*
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.seleniumhq.selenium
+      artifactIdPattern: "*"
+      onlyDirect: true
+      invertMarking: true
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: com.*
+      artifactIdPattern: phantomjsdriver
+      onlyDirect: true
+      invertMarking: true
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-*
+      version: 4.13.x
+  - org.openrewrite.java.dependencies.UpgradeTransitiveDependencyVersion:
+      groupId: org.seleniumhq.selenium
+      artifactId: htmlunit-driver
+      version: 4.13.0
 
 ---
 type: specs.openrewrite.org/v1beta/recipe

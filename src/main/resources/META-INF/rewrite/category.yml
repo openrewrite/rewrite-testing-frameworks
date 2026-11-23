@@ -175,3 +175,11 @@ tags:
   - testing
   - gatling
 ---
+type: specs.openrewrite.org/v1beta/category
+name: Selenium
+packageName: org.openrewrite.java.testing.selenium
+description: Recipes for [Selenium](https://www.selenium.dev/) browser automation.
+tags:
+  - testing
+  - selenium
+---
