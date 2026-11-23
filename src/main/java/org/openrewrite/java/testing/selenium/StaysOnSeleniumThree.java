@@ -19,20 +19,22 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
-import org.openrewrite.java.dependencies.DependencyInsight;
+import org.openrewrite.java.dependencies.search.ModuleHasDependency;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.marker.SearchResult;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class StaysOnSeleniumThree extends ScanningRecipe<AtomicBoolean> {
+public class StaysOnSeleniumThree extends ScanningRecipe<StaysOnSeleniumThree.Accumulator> {
 
     /**
      * Libraries whose releases before these only run on Selenium 3, as group id, artifact id and versions.
@@ -67,36 +69,38 @@ public class StaysOnSeleniumThree extends ScanningRecipe<AtomicBoolean> {
             "version through parent POMs and BOMs, so that moving the others to Selenium 4 would move these too.";
 
     @Override
-    public AtomicBoolean getInitialValue(ExecutionContext ctx) {
-        return new AtomicBoolean();
+    public Accumulator getInitialValue(ExecutionContext ctx) {
+        Accumulator acc = new Accumulator();
+        for (int i = 0; i < SELENIUM_THREE_LIBRARIES.size(); i++) {
+            acc.modulesOnLibrary.add(new HashSet<>());
+        }
+        return acc;
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getScanner(AtomicBoolean staysOnSeleniumThree) {
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
         List<TreeVisitor<?, ExecutionContext>> libraries = new ArrayList<>();
-        for (String[] library : SELENIUM_THREE_LIBRARIES) {
-            libraries.add(new DependencyInsight(library[0], library[1], library[2], null).getVisitor());
+        for (int i = 0; i < SELENIUM_THREE_LIBRARIES.size(); i++) {
+            String[] library = SELENIUM_THREE_LIBRARIES.get(i);
+            libraries.add(new ModuleHasDependency(library[0], library[1], null, library[2], null, null)
+                    .getScanner(acc.modulesOnLibrary.get(i)));
         }
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (!(tree instanceof SourceFile) || staysOnSeleniumThree.get()) {
+                if (!(tree instanceof SourceFile)) {
                     return tree;
                 }
-                if (tree instanceof JavaSourceFile) {
+                if (!acc.usesServer && tree instanceof JavaSourceFile) {
                     for (String serverPackage : SERVER_PACKAGES) {
                         if (new UsesType<>(serverPackage, false).visit(tree, ctx) != tree) {
-                            staysOnSeleniumThree.set(true);
-                            return tree;
+                            acc.usesServer = true;
+                            break;
                         }
                     }
                 }
-                // Build files, among which a Gradle build script is a `JavaSourceFile` as well
                 for (TreeVisitor<?, ExecutionContext> library : libraries) {
-                    if (library.isAcceptable((SourceFile) tree, ctx) && library.visit(tree, ctx) != tree) {
-                        staysOnSeleniumThree.set(true);
-                        return tree;
-                    }
+                    library.visit(tree, ctx);
                 }
                 return tree;
             }
@@ -104,13 +108,27 @@ public class StaysOnSeleniumThree extends ScanningRecipe<AtomicBoolean> {
     }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor(AtomicBoolean staysOnSeleniumThree) {
-        boolean mark = staysOnSeleniumThree.get() != Boolean.TRUE.equals(invertMarking);
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        boolean staysOnSeleniumThree = acc.usesServer;
+        for (Set<JavaProject> modules : acc.modulesOnLibrary) {
+            staysOnSeleniumThree |= !modules.isEmpty();
+        }
+        boolean mark = staysOnSeleniumThree != Boolean.TRUE.equals(invertMarking);
         return new TreeVisitor<Tree, ExecutionContext>() {
             @Override
             public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
                 return mark && tree instanceof SourceFile ? SearchResult.found(tree) : tree;
             }
         };
+    }
+
+    public static class Accumulator {
+        boolean usesServer;
+
+        /**
+         * For each library of {@link #SELENIUM_THREE_LIBRARIES}, the modules that depend on a release of it that only
+         * runs on Selenium 3.
+         */
+        final List<Set<JavaProject>> modulesOnLibrary = new ArrayList<>();
     }
 }
