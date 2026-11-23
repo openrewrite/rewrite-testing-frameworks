@@ -51,8 +51,8 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
 
     @Getter
     final String description = "Selenium 3 removed the `FluentWait.until(Predicate)` overload of Selenium 2, which " +
-            "took a Guava `Predicate`. An anonymous `Predicate` becomes a lambda, a lambda cast to `Predicate` loses " +
-            "the cast, and any other `Predicate` is passed as a reference to its `apply` method.";
+            "took a Guava `Predicate`. An anonymous `Predicate` becomes a lambda, a lambda or method reference loses " +
+            "any cast to `Predicate`, and any other `Predicate` is passed as a reference to its `apply` method.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -80,8 +80,16 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
     }
 
     private static Expression asFunction(Expression predicate, Cursor cursor) {
-        if (predicate instanceof J.TypeCast && ((J.TypeCast) predicate).getExpression() instanceof J.Lambda) {
-            return ((J.TypeCast) predicate).getExpression().withPrefix(predicate.getPrefix());
+        Expression unwrapped = predicate;
+        while (unwrapped instanceof J.TypeCast ||
+               unwrapped instanceof J.Parentheses && ((J.Parentheses<?>) unwrapped).getTree() instanceof Expression) {
+            unwrapped = unwrapped instanceof J.TypeCast ? ((J.TypeCast) unwrapped).getExpression() :
+                    (Expression) ((J.Parentheses<?>) unwrapped).getTree();
+        }
+        // A lambda or a method reference, which Selenium 2 code passes with explicit parameter types or as an exact
+        // reference to a method returning `boolean`, takes `Function` as its target type as well
+        if (unwrapped instanceof J.Lambda || unwrapped instanceof J.MemberReference) {
+            return unwrapped.withPrefix(predicate.getPrefix());
         }
         if (predicate instanceof J.NewClass) {
             J.Lambda lambda = asLambda((J.NewClass) predicate, cursor);
@@ -207,6 +215,10 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
         return named;
     }
 
+    /**
+     * Whether the body refers to the predicate itself, as `this` or `super`, or by calling a method of the predicate
+     * without saying on what, such as `toString()`, which in a lambda would be the method of the class around it.
+     */
     private static boolean refersToThis(J body) {
         AtomicBoolean found = new AtomicBoolean();
         new JavaIsoVisitor<AtomicBoolean>() {
@@ -216,6 +228,18 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
                     f.set(true);
                 }
                 return identifier;
+            }
+
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean f) {
+                JavaType.Method type = method.getMethodType();
+                if (method.getSelect() == null && type != null &&
+                    (TypeUtils.isOfClassType(type.getDeclaringType(), "java.lang.Object") ||
+                     TypeUtils.isOfClassType(type.getDeclaringType(), PREDICATE) ||
+                     TypeUtils.isOfClassType(type.getDeclaringType(), "java.util.function.Predicate"))) {
+                    f.set(true);
+                }
+                return super.visitMethodInvocation(method, f);
             }
         }.visit(body, found);
         return found.get();

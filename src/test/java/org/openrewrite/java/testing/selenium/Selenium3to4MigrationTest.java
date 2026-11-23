@@ -906,6 +906,7 @@ class Selenium3to4MigrationTest implements RewriteTest {
               import org.openqa.selenium.ElementNotVisibleException;
               import org.openqa.selenium.WebElement;
               import org.openqa.selenium.internal.WrapsElement;
+              import org.openqa.selenium.logging.LoggingPreferences;
               import org.openqa.selenium.remote.BrowserType;
               import org.openqa.selenium.remote.CapabilityType;
               import org.openqa.selenium.remote.DesiredCapabilities;
@@ -926,6 +927,10 @@ class Selenium3to4MigrationTest implements RewriteTest {
                       return capabilities;
                   }
 
+                  void logging(DesiredCapabilities capabilities, LoggingPreferences preferences) {
+                      capabilities.setCapability(CapabilityType.LOGGING_PREFS, preferences);
+                  }
+
                   String version(Capabilities capabilities) {
                       return capabilities.getVersion();
                   }
@@ -944,6 +949,7 @@ class Selenium3to4MigrationTest implements RewriteTest {
               import org.openqa.selenium.ElementNotInteractableException;
               import org.openqa.selenium.WebElement;
               import org.openqa.selenium.WrapsElement;
+              import org.openqa.selenium.logging.LoggingPreferences;
               import org.openqa.selenium.remote.CapabilityType;
               import org.openqa.selenium.remote.DesiredCapabilities;
 
@@ -960,6 +966,10 @@ class Selenium3to4MigrationTest implements RewriteTest {
                       capabilities.setCapability(CapabilityType.PLATFORM_NAME, "LINUX");
                       capabilities.setCapability(CapabilityType.ACCEPT_INSECURE_CERTS, true);
                       return capabilities;
+                  }
+
+                  void logging(DesiredCapabilities capabilities, LoggingPreferences preferences) {
+                      capabilities.setCapability("goog:loggingPrefs", preferences);
                   }
 
                   String version(Capabilities capabilities) {

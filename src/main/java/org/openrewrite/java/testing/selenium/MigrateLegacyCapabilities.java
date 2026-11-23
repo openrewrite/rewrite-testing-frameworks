@@ -20,6 +20,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
@@ -37,7 +38,11 @@ import java.util.Set;
 public class MigrateLegacyCapabilities extends Recipe {
 
     private static final MethodMatcher SET_CAPABILITY = new MethodMatcher("org.openqa.selenium.MutableCapabilities setCapability(String, ..)", true);
+    // Before Selenium 3.5, which introduced `MutableCapabilities`
+    private static final MethodMatcher SET_DESIRED_CAPABILITY = new MethodMatcher("org.openqa.selenium.remote.DesiredCapabilities setCapability(String, ..)", true);
     private static final MethodMatcher SET_JAVASCRIPT_ENABLED = new MethodMatcher("org.openqa.selenium.remote.DesiredCapabilities setJavascriptEnabled(boolean)", true);
+
+    private static final String JAVASCRIPT_ENABLED = "javascriptEnabled";
 
     /**
      * Legacy names of capabilities that W3C defines under another name.
@@ -58,7 +63,7 @@ public class MigrateLegacyCapabilities extends Recipe {
      * driver, while Selenium 4 refuses to start a session with them at all.
      */
     private static final Set<String> WITHOUT_W3C_EQUIVALENT = new HashSet<>(Arrays.asList(
-            "javascriptEnabled",
+            JAVASCRIPT_ENABLED,
             "takesScreenshot",
             "handlesAlerts",
             "databaseEnabled",
@@ -81,12 +86,15 @@ public class MigrateLegacyCapabilities extends Recipe {
     final String description = "Selenium 4 refuses to start a session with a capability whose name is neither a " +
             "W3C name nor carries a vendor prefix such as `goog:`. Rename legacy capabilities that W3C defines " +
             "under another name, such as `platform` to `platformName` and `version` to `browserVersion`, and stop " +
-            "setting those it has no equivalent for, such as `takesScreenshot` and `javascriptEnabled`, which " +
-            "Selenium 3 already left out of what it sent a W3C driver.";
+            "setting those it has no equivalent for, such as `takesScreenshot`, which Selenium 3 already left out of " +
+            "what it sent a W3C driver. `javascriptEnabled` is only dropped where it is `true`, as the HtmlUnit driver " +
+            "still reads it and runs JavaScript where it is not set; `setJavascriptEnabled`, which Selenium 4 removed, " +
+            "sets it with `setCapability` instead.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(new UsesMethod<>(SET_CAPABILITY), new UsesMethod<>(SET_JAVASCRIPT_ENABLED)),
+        return Preconditions.check(Preconditions.or(new UsesMethod<>(SET_CAPABILITY),
+                        new UsesMethod<>(SET_DESIRED_CAPABILITY), new UsesMethod<>(SET_JAVASCRIPT_ENABLED)),
                 new JavaVisitor<ExecutionContext>() {
                     @Override
                     public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -97,10 +105,25 @@ public class MigrateLegacyCapabilities extends Recipe {
                         J.MethodInvocation m = (J.MethodInvocation) j;
                         boolean statement = getCursor().getParentTreeCursor().getValue() instanceof J.Block;
                         if (SET_JAVASCRIPT_ENABLED.matches(m)) {
-                            //noinspection DataFlowIssue
-                            return statement ? null : m;
+                            Expression enabled = m.getArguments().get(0);
+                            if (J.Literal.isLiteralValue(enabled, true)) {
+                                //noinspection DataFlowIssue
+                                return statement ? null : m;
+                            }
+                            // The HtmlUnit driver runs JavaScript unless this capability says otherwise
+                            return m.getSelect() == null ?
+                                    JavaTemplate.builder("setCapability(\"" + JAVASCRIPT_ENABLED + "\", #{any(boolean)})")
+                                            .contextSensitive()
+                                            .javaParser(SeleniumDurations.parser(ctx))
+                                            .build()
+                                            .apply(getCursor(), m.getCoordinates().replace(), enabled) :
+                                    JavaTemplate.builder("#{any(org.openqa.selenium.remote.DesiredCapabilities)}.setCapability(\"" +
+                                                         JAVASCRIPT_ENABLED + "\", #{any(boolean)})")
+                                            .javaParser(SeleniumDurations.parser(ctx))
+                                            .build()
+                                            .apply(getCursor(), m.getCoordinates().replace(), m.getSelect(), enabled);
                         }
-                        if (!SET_CAPABILITY.matches(m)) {
+                        if (!SET_CAPABILITY.matches(m) && !SET_DESIRED_CAPABILITY.matches(m) || m.getArguments().size() < 2) {
                             return m;
                         }
                         Expression name = m.getArguments().get(0);
@@ -109,6 +132,9 @@ public class MigrateLegacyCapabilities extends Recipe {
                         }
                         J.Literal literal = (J.Literal) name;
                         String legacyName = (String) literal.getValue();
+                        if (JAVASCRIPT_ENABLED.equals(legacyName) && !J.Literal.isLiteralValue(m.getArguments().get(1), true)) {
+                            return m;
+                        }
                         if (WITHOUT_W3C_EQUIVALENT.contains(legacyName)) {
                             //noinspection DataFlowIssue
                             return statement ? null : m;

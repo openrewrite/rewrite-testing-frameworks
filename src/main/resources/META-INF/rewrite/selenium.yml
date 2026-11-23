@@ -506,8 +506,8 @@ displayName: Use the W3C names of renamed `CapabilityType` constants
 description: >-
   Selenium 4 removed the `CapabilityType` constants for capability names that are not W3C names, and refuses to start
   a session with such a name. Where W3C defines the same capability under another name, use that one. Logging
-  preferences, which Chrome only reads as `goog:loggingPrefs`, move to `ChromeOptions.LOGGING_PREFS`. The constants
-  without a W3C equivalent are replaced by the names they held.
+  preferences, which Chrome only reads as `goog:loggingPrefs`, are set under that name. The constants without a W3C
+  equivalent are replaced by the names they held.
 tags:
   - testing
   - selenium
@@ -527,9 +527,11 @@ recipeList:
   - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
       existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.PAGE_LOADING_STRATEGY
       fullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.PAGE_LOAD_STRATEGY
-  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
-      existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.LOGGING_PREFS
-      fullyQualifiedConstantName: org.openqa.selenium.chrome.ChromeOptions.LOGGING_PREFS
+  # The name `ChromeOptions.LOGGING_PREFS` holds, without depending on the Chrome driver as that constant would
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: LOGGING_PREFS
+      literalValue: '"goog:loggingPrefs"'
   # Removed without a W3C equivalent: inlined, so that `MigrateLegacyCapabilities` can stop setting them
   - org.openrewrite.java.ReplaceConstant:
       owningType: org.openqa.selenium.remote.CapabilityType

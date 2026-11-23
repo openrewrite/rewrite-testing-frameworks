@@ -107,6 +107,34 @@ class ReplaceSetHeadlessTest implements RewriteTest {
     }
 
     @Test
+    void notHeadlessOutsideABlockIsLeftAlone() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.chrome.ChromeOptions;
+
+              import java.util.function.Consumer;
+
+              class Browsers {
+                  Consumer<ChromeOptions> options(String mode, boolean debug, ChromeOptions options) {
+                      switch (mode) {
+                          case "local":
+                              options.setHeadless(false);
+                              break;
+                          default:
+                              options.addArguments("--incognito");
+                      }
+                      if (debug) options.setHeadless(false);
+                      return o -> o.setHeadless(false);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void flagOnlyKnownAtRuntimeIsLeftAlone() {
         rewriteRun(
           //language=java

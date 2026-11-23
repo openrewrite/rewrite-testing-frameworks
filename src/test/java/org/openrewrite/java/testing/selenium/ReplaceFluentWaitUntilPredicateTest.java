@@ -311,6 +311,105 @@ class ReplaceFluentWaitUntilPredicateTest implements RewriteTest {
     }
 
     @Test
+    void predicateUsingItselfInApplyBecomesAMethodReference() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void waitForTitle(WebDriverWait wait) {
+                      wait.until(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              System.out.println("Polling " + this);
+                              return driver.getTitle().startsWith("Home");
+                          }
+                      });
+                      wait.until(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              System.out.println("Polling " + hashCode());
+                              return driver.getTitle().startsWith("Home");
+                          }
+                      });
+                  }
+              }
+              """,
+            """
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void waitForTitle(WebDriverWait wait) {
+                      wait.until(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              System.out.println("Polling " + this);
+                              return driver.getTitle().startsWith("Home");
+                          }
+                      }::apply);
+                      wait.until(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              System.out.println("Polling " + hashCode());
+                              return driver.getTitle().startsWith("Home");
+                          }
+                      }::apply);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void methodReferenceAndExplicitlyTypedLambda() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void await(WebDriverWait wait) {
+                      wait.until(this::loaded);
+                      wait.until(((WebDriver driver) -> driver.getTitle().isEmpty()));
+                      wait.until((Predicate<WebDriver>) this::loaded);
+                  }
+
+                  boolean loaded(WebDriver driver) {
+                      return driver.getTitle().startsWith("Home");
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void await(WebDriverWait wait) {
+                      wait.until(this::loaded);
+                      wait.until((WebDriver driver) -> driver.getTitle().isEmpty());
+                      wait.until(this::loaded);
+                  }
+
+                  boolean loaded(WebDriver driver) {
+                      return driver.getTitle().startsWith("Home");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void functionIsUnchanged() {
         rewriteRun(
           //language=java

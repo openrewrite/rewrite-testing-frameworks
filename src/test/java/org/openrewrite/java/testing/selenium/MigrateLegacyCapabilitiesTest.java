@@ -75,6 +75,104 @@ class MigrateLegacyCapabilitiesTest implements RewriteTest {
     }
 
     @Test
+    void javascriptTurnedOffForHtmlUnitIsKept() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.remote.DesiredCapabilities;
+
+              class Headless {
+                  DesiredCapabilities capabilities(boolean enabled) {
+                      DesiredCapabilities capabilities = new DesiredCapabilities();
+                      capabilities.setJavascriptEnabled(false);
+                      capabilities.setJavascriptEnabled(enabled);
+                      capabilities.setCapability("javascriptEnabled", false);
+                      capabilities.setCapability("javascriptEnabled", true);
+                      return capabilities;
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.remote.DesiredCapabilities;
+
+              class Headless {
+                  DesiredCapabilities capabilities(boolean enabled) {
+                      DesiredCapabilities capabilities = new DesiredCapabilities();
+                      capabilities.setCapability("javascriptEnabled", false);
+                      capabilities.setCapability("javascriptEnabled", enabled);
+                      capabilities.setCapability("javascriptEnabled", false);
+                      return capabilities;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void javascriptTurnedOffInASubclass() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.remote.DesiredCapabilities;
+
+              class HeadlessCapabilities extends DesiredCapabilities {
+                  HeadlessCapabilities() {
+                      setJavascriptEnabled(false);
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.remote.DesiredCapabilities;
+
+              class HeadlessCapabilities extends DesiredCapabilities {
+                  HeadlessCapabilities() {
+                      setCapability("javascriptEnabled", false);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void seleniumTwoDesiredCapabilities() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "selenium-api-2", "selenium-remote-driver-2")),
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.remote.DesiredCapabilities;
+
+              class Grid {
+                  DesiredCapabilities capabilities() {
+                      DesiredCapabilities capabilities = DesiredCapabilities.firefox();
+                      capabilities.setCapability("platform", "LINUX");
+                      capabilities.setCapability("takesScreenshot", true);
+                      capabilities.setJavascriptEnabled(true);
+                      return capabilities;
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.remote.DesiredCapabilities;
+
+              class Grid {
+                  DesiredCapabilities capabilities() {
+                      DesiredCapabilities capabilities = DesiredCapabilities.firefox();
+                      capabilities.setCapability("platformName", "LINUX");
+                      return capabilities;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void chromeLoggingPreferences() {
         rewriteRun(
           //language=java

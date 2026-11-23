@@ -26,6 +26,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.Loop;
 
 public class ReplaceSetHeadless extends Recipe {
 
@@ -39,7 +40,8 @@ public class ReplaceSetHeadless extends Recipe {
     final String description = "Selenium 4 removed `ChromeOptions.setHeadless(boolean)` and " +
             "`FirefoxOptions.setHeadless(boolean)`. Add the arguments that `setHeadless(true)` added under Selenium 3, " +
             "`--headless` and `--disable-gpu` for Chrome and `-headless` for Firefox, and drop `setHeadless(false)`, " +
-            "which added none. A call with a flag that is not a literal is left for a person to look at.";
+            "which added none. A call with a flag that is not a literal, or `setHeadless(false)` as a statement outside a " +
+            "block, is left for a person to look at.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -61,9 +63,15 @@ public class ReplaceSetHeadless extends Recipe {
                             return m;
                         }
                         if (Boolean.FALSE.equals(((J.Literal) flag).getValue())) {
-                            if (getCursor().getParentTreeCursor().getValue() instanceof J.Block) {
+                            Object parent = getCursor().getParentTreeCursor().getValue();
+                            if (parent instanceof J.Block) {
                                 //noinspection DataFlowIssue
                                 return null;
+                            }
+                            if (parent instanceof J.Case || parent instanceof J.If || parent instanceof J.If.Else ||
+                                parent instanceof Loop || parent instanceof J.Label || parent instanceof J.Lambda) {
+                                // A statement outside a block, which the options alone could not stand in for
+                                return m;
                             }
                             return m.getSelect().withPrefix(m.getPrefix());
                         }
