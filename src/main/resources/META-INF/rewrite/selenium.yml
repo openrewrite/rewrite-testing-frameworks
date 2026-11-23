@@ -1,0 +1,408 @@
+#
+# Copyright 2026 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.Selenium3to4Migration
+displayName: Migrate to Selenium 4
+description: >-
+  Migrate Selenium 2.x and 3.x code to Selenium 4. A repository whose oldest Java version is 11 or later moves to
+  the latest Selenium 4.x, and one on an older Java to 4.13.0, the last release that runs on Java 8. The APIs that
+  Selenium 4 removed are replaced: timeouts given as a `long` and a `TimeUnit` take a `java.time.Duration`,
+  `findElementBy*` methods become `findElement(By)`, the browser factories of `DesiredCapabilities` and the driver
+  constructors taking `Capabilities` move to the browser's options, and relocated types move to their new packages.
+  Selenium 4 refuses to start a session with a capability that is not a W3C name, so legacy capability names move to
+  their W3C names, and those that have none, which a W3C driver already ignored under Selenium 3, are no longer set.
+  Modules on Appium `java-client` before 8 or Selenide before 6 are left alone, as those versions only run on
+  Selenium 3 and have to be upgraded together with it.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: io.appium
+      artifactIdPattern: java-client
+      version: "[1,8)"
+      invertMarking: true
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: com.codeborne
+      artifactIdPattern: selenide*
+      version: "[1,6)"
+      invertMarking: true
+recipeList:
+  - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependencies
+  - org.openrewrite.java.testing.selenium.Selenium4RelocatedTypes
+  - org.openrewrite.java.testing.selenium.MigrateCapabilityTypeConstants
+  - org.openrewrite.java.testing.selenium.ReplaceBrowserTypeConstants
+  - org.openrewrite.java.testing.selenium.MigrateLegacyCapabilities
+  - org.openrewrite.java.testing.selenium.MigrateTimeoutsToDuration
+  - org.openrewrite.java.testing.selenium.MigrateWebDriverWaitConstructors
+  - org.openrewrite.java.testing.selenium.ReplaceFindElementByMethods
+  - org.openrewrite.java.testing.selenium.ReplaceDesiredCapabilitiesFactories
+  - org.openrewrite.java.testing.selenium.ReplaceDriverCapabilitiesConstructors
+  - org.openrewrite.java.testing.selenium.ReplaceSetHeadless
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.openqa.selenium.Capabilities getVersion()
+      newMethodName: getBrowserVersion
+      matchOverrides: true
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.openqa.selenium.Capabilities getPlatform()
+      newMethodName: getPlatformName
+      matchOverrides: true
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependencies
+displayName: Upgrade Selenium dependencies to 4.x
+description: >-
+  Upgrade the Selenium dependencies to the latest Selenium 4.x where the oldest Java version in the repository is 11
+  or later, and to 4.13.0, the last release that runs on Java 8, where it is older. Artifacts that Selenium 4 no
+  longer publishes are replaced by their successors, or removed where nothing uses them.
+tags:
+  - testing
+  - selenium
+recipeList:
+  - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava11
+  - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava8
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava11
+displayName: Upgrade Selenium dependencies to the latest 4.x
+description: >-
+  Upgrade the Selenium dependencies to the latest Selenium 4.x, which requires Java 11, in a repository whose oldest
+  Java version is 11 or later.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.search.HasMinimumJavaVersion:
+      version: 11
+recipeList:
+  - org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-*
+      newVersion: 4.x
+      overrideManagedVersion: true
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava8
+displayName: Upgrade Selenium dependencies to 4.13.0
+description: >-
+  Upgrade the Selenium dependencies to 4.13.0, the last Selenium 4 release that runs on Java 8, in a repository
+  whose oldest Java version is older than 11.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.search.HasMinimumJavaVersion:
+      version: "[1,11)"
+recipeList:
+  - org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-*
+      newVersion: 4.13.x
+      overrideManagedVersion: true
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
+displayName: Replace Selenium artifacts that Selenium 4 no longer publishes
+description: >-
+  Move the HtmlUnit driver to `htmlunit-driver` 4.13.0, which keeps HtmlUnit 2.x and so the `com.gargoylesoftware`
+  packages and runs on both Java 8 and the latest Selenium 4. Move the PhantomJS driver to
+  `com.codeborne:phantomjsdriver` 1.5.0, the only release built for Selenium 4, and remove the drivers for
+  Opera, iPhone and Android, which Selenium 4 no longer publishes, where nothing uses them.
+tags:
+  - testing
+  - selenium
+recipeList:
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: org.seleniumhq.selenium
+      oldArtifactId: selenium-htmlunit-driver
+      newArtifactId: htmlunit-driver
+      newVersion: 4.13.0
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.seleniumhq.selenium
+      artifactId: htmlunit-driver
+      newVersion: 4.13.0
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.detro
+      oldArtifactId: phantomjsdriver
+      newGroupId: com.codeborne
+      newVersion: 1.5.0
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: com.github.detro.ghostdriver
+      oldArtifactId: phantomjsdriver
+      newGroupId: com.codeborne
+      newVersion: 1.5.0
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: com.codeborne
+      artifactId: phantomjsdriver
+      newVersion: 1.5.0
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-opera-driver
+      unlessUsing: org.openqa.selenium.opera..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-iphone-driver
+      unlessUsing: org.openqa.selenium.iphone..*
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.seleniumhq.selenium
+      artifactId: selenium-android-driver
+      unlessUsing: org.openqa.selenium.android..*
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.Selenium4RelocatedTypes
+displayName: Move types that Selenium 4 relocated or folded into their supertype
+description: >-
+  Selenium 4 moved the types it had kept in `internal` packages, and removed exceptions that were only ever thrown as
+  their supertype by W3C drivers.
+tags:
+  - testing
+  - selenium
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.internal.WrapsElement
+      newFullyQualifiedTypeName: org.openqa.selenium.WrapsElement
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.internal.WrapsDriver
+      newFullyQualifiedTypeName: org.openqa.selenium.WrapsDriver
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.internal.Locatable
+      newFullyQualifiedTypeName: org.openqa.selenium.interactions.Locatable
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.interactions.internal.Locatable
+      newFullyQualifiedTypeName: org.openqa.selenium.interactions.Locatable
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.interactions.internal.Coordinates
+      newFullyQualifiedTypeName: org.openqa.selenium.interactions.Coordinates
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.internal.BuildInfo
+      newFullyQualifiedTypeName: org.openqa.selenium.BuildInfo
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.ElementNotVisibleException
+      newFullyQualifiedTypeName: org.openqa.selenium.ElementNotInteractableException
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.ElementNotSelectableException
+      newFullyQualifiedTypeName: org.openqa.selenium.InvalidElementStateException
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.openqa.selenium.remote.SessionNotFoundException
+      newFullyQualifiedTypeName: org.openqa.selenium.NoSuchSessionException
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.MigrateCapabilityTypeConstants
+displayName: Use the W3C names of renamed `CapabilityType` constants
+description: >-
+  Selenium 4 removed the `CapabilityType` constants for capability names that are not W3C names, and refuses to start
+  a session with such a name. Where W3C defines the same capability under another name, use that one. Logging
+  preferences, which Chrome only reads as `goog:loggingPrefs`, move to `ChromeOptions.LOGGING_PREFS`. The constants
+  without a W3C equivalent are replaced by the names they held.
+tags:
+  - testing
+  - selenium
+recipeList:
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.PLATFORM
+      fullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.PLATFORM_NAME
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.VERSION
+      fullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.BROWSER_VERSION
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.ACCEPT_SSL_CERTS
+      fullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.ACCEPT_INSECURE_CERTS
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.UNEXPECTED_ALERT_BEHAVIOUR
+      fullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.UNHANDLED_PROMPT_BEHAVIOUR
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.PAGE_LOADING_STRATEGY
+      fullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.PAGE_LOAD_STRATEGY
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.openqa.selenium.remote.CapabilityType.LOGGING_PREFS
+      fullyQualifiedConstantName: org.openqa.selenium.chrome.ChromeOptions.LOGGING_PREFS
+  # Removed without a W3C equivalent: inlined, so that `MigrateLegacyCapabilities` can stop setting them
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_JAVASCRIPT
+      literalValue: '"javascriptEnabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: TAKES_SCREENSHOT
+      literalValue: '"takesScreenshot"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_ALERTS
+      literalValue: '"handlesAlerts"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_SQL_DATABASE
+      literalValue: '"databaseEnabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_LOCATION_CONTEXT
+      literalValue: '"locationContextEnabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_APPLICATION_CACHE
+      literalValue: '"applicationCacheEnabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_NETWORK_CONNECTION
+      literalValue: '"networkConnectionEnabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_FINDING_BY_CSS
+      literalValue: '"cssSelectorsEnabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: SUPPORTS_WEB_STORAGE
+      literalValue: '"webStorageEnabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: ROTATABLE
+      literalValue: '"rotatable"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: APPLICATION_NAME
+      literalValue: '"applicationName"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: HAS_NATIVE_EVENTS
+      literalValue: '"nativeEvents"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: ELEMENT_SCROLL_BEHAVIOR
+      literalValue: '"elementScrollBehavior"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: HAS_TOUCHSCREEN
+      literalValue: '"hasTouchScreen"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: OVERLAPPING_CHECK_DISABLED
+      literalValue: '"overlappingCheckDisabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: ENABLE_PROFILING_CAPABILITY
+      literalValue: '"webdriver.logging.profiler.enabled"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.CapabilityType
+      constantName: ENABLE_PERSISTENT_HOVERING
+      literalValue: '"enablePersistentHover"'
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.ReplaceBrowserTypeConstants
+displayName: Replace `BrowserType` constants with the browser names they held
+description: >-
+  Selenium 4 removed `BrowserType`. Its constants are replaced by the strings they held, which unlike the `Browser`
+  enum that replaced it also work as `case` labels.
+tags:
+  - testing
+  - selenium
+recipeList:
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: FIREFOX
+      literalValue: '"firefox"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: FIREFOX_PROXY
+      literalValue: '"firefoxproxy"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: FIREFOX_CHROME
+      literalValue: '"firefoxchrome"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: GOOGLECHROME
+      literalValue: '"googlechrome"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: SAFARI
+      literalValue: '"safari"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: OPERA
+      literalValue: '"opera"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: OPERA_BLINK
+      literalValue: '"operablink"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: EDGE
+      literalValue: '"MicrosoftEdge"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: IEXPLORE
+      literalValue: '"iexplore"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: IEXPLORE_PROXY
+      literalValue: '"iexploreproxy"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: SAFARI_PROXY
+      literalValue: '"safariproxy"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: CHROME
+      literalValue: '"chrome"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: KONQUEROR
+      literalValue: '"konqueror"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: MOCK
+      literalValue: '"mock"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: IE_HTA
+      literalValue: '"iehta"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: ANDROID
+      literalValue: '"android"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: HTMLUNIT
+      literalValue: '"htmlunit"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: IE
+      literalValue: '"internet explorer"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: IPHONE
+      literalValue: '"iPhone"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: IPAD
+      literalValue: '"iPad"'
+  - org.openrewrite.java.ReplaceConstant:
+      owningType: org.openqa.selenium.remote.BrowserType
+      constantName: PHANTOMJS
+      literalValue: '"phantomjs"'
