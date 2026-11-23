@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.*;
@@ -148,11 +149,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                   void test() {
                       String str1 = "Hello world!";
                       String str2 = "Hello world!";
-                      assertThat(str1)
-                              .satisfies(
-                                      arg -> assertThat(arg).isEqualTo(str2),
-                                      arg -> assertThat(arg).hasSize(12)
-                              );
+                      assertThat(str1).isEqualTo(str2).hasSize(12);
                   }
               }
               """
@@ -668,6 +665,41 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
               )
             );
         }
+        @Test
+        void junit4GetsBackTheHamcrestItsGroupWasExcludedFrom() {
+            rewriteRun(
+              spec -> spec.beforeRecipe(withToolingApi()).expectedCyclesThatMakeChanges(2),
+              mavenProject("project",
+                srcTestJava(java(JAVA_BEFORE, JAVA_AFTER)),
+                //language=groovy
+                buildGradle(
+                  """
+                    plugins {
+                        id "java-library"
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                    dependencies {
+                        testImplementation("junit:junit:4.13.2") {
+                            exclude group: "org.hamcrest"
+                        }
+                        testImplementation "org.hamcrest:hamcrest:2.2"
+                    }
+                    """,
+                  sourceSpecs -> sourceSpecs.after(after -> {
+                      assertThat(after)
+                        .contains("assertj-core")
+                        .contains("testImplementation(\"junit:junit:4.13.2\")")
+                        .doesNotContain("org.hamcrest");
+                      return after;
+                  })
+                )
+              )
+            );
+        }
     }
 
     @Nested
@@ -869,11 +901,7 @@ class MigrateHamcrestToAssertJTest implements RewriteTest {
                       @Test
                       void test() {
                           String str = "str";
-                          assertThat(str)
-                                  .satisfies(
-                                          arg -> assertThat(arg).isNotNull(),
-                                          arg -> assertThat(arg).isEqualTo("SQL")
-                                  );
+                          assertThat(str).isNotNull().isEqualTo("SQL");
                       }
                   }
                   """

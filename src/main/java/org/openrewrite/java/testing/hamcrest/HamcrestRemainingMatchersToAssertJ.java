@@ -39,6 +39,7 @@ import org.openrewrite.marker.Markers;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static java.util.Collections.*;
 import static org.openrewrite.java.testing.hamcrest.HamcrestAdapterSource.*;
@@ -75,7 +76,9 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
      */
     private static final String MIGRATED_FILES = HamcrestRemainingMatchersToAssertJ.class.getName() + ".migratedFiles";
 
-    private static final String HAMCREST_ASSERT_THAT = "org.hamcrest.MatcherAssert.assertThat(";
+    // qualified by its type, which an import brings in, since AssertJ's `assertThat` is imported statically too, and
+    // not by its package, which a variable named `org` would hide
+    private static final String HAMCREST_ASSERT_THAT = "MatcherAssert.assertThat(";
 
     private static final Set<String> SIZE_MATCHERS = new HashSet<>(Arrays.asList(
             "hasSize", "iterableWithSize", "arrayWithSize", "aMapWithSize", "hasLength"));
@@ -166,7 +169,8 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 String key = sourceSetKey(cu);
-                if (key == null) {
+                // the migration leaves sources compiled for Java 7 or earlier alone, so they call no adapter
+                if (key == null || !CompiledForJava8OrLater.isCompiledForJava8OrLater(cu)) {
                     return cu;
                 }
                 if (isGeneratedAdapters(cu)) {
@@ -178,6 +182,9 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                 Set<String> adapters = new JavaIsoVisitor<Set<String>>() {
                     @Override
                     public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Set<String> found) {
+                        if (HamcrestFloatingPointEqualityToAssertJ.migrates(method)) {
+                            return method;
+                        }
                         String adapter = adapterFor(method);
                         if (adapter != null) {
                             found.add(adapter);
@@ -260,7 +267,8 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                 Set<Path> migrated = ctx.computeMessageIfAbsent(MIGRATED_FILES, k -> new HashSet<>());
                 for (J.Import anImport : cu.getImports()) {
                     String name = anImport.getTypeName();
-                    if (name.startsWith("org.hamcrest.")) {
+                    // without types, as in sources that the build doesn't compile, every import looks unused
+                    if (name.startsWith("org.hamcrest.") && isAttributed(anImport)) {
                         migrated.add(cu.getSourcePath());
                         String member = anImport.getQualid().getSimpleName();
                         maybeRemoveImport(anImport.isStatic() && !"*".equals(member) ? name + "." + member : name);
@@ -324,6 +332,9 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                 Expression reason = args.size() == 3 ? args.get(0) : null;
                 Expression actual = args.get(args.size() - 2);
                 J.MethodInvocation matcher = (J.MethodInvocation) args.get(args.size() - 1);
+                if (!HamcrestMatcherUtils.isTyped(mi)) {
+                    return mi;
+                }
                 Rewrite rewrite = rewrite(actual, reason, matcher);
                 if (rewrite == null) {
                     return mi;
@@ -332,6 +343,12 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                     //noinspection DataFlowIssue
                     return null;
                 }
+                return applyWithAdapters(mi, "assertThat", "org.assertj.core.api.Assertions", actual, reason, rewrite, matcher, ctx);
+            }
+
+            private J.MethodInvocation applyWithAdapters(J.MethodInvocation mi, String root, String rootType, Expression actual,
+                                                         @Nullable Expression reason, Rewrite rewrite, J.MethodInvocation matcher,
+                                                         ExecutionContext ctx) {
                 String adapters = null;
                 if (!rewrite.adapters.isEmpty()) {
                     SourceSet sourceSet = acc.sourceSets.get(sourceSetKey(getCursor().firstEnclosingOrThrow(J.CompilationUnit.class)));
@@ -340,7 +357,7 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                     }
                     adapters = sourceSet.fullyQualifiedName();
                 }
-                return apply(mi, "assertThat", "org.assertj.core.api.Assertions", actual, reason, rewrite, adapters, matcher, ctx);
+                return apply(mi, root, rootType, actual, reason, rewrite, adapters, matcher, ctx);
             }
 
             private J.MethodInvocation assumption(J.MethodInvocation mi, ExecutionContext ctx) {
@@ -351,13 +368,29 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                 Expression reason = args.size() == 3 ? args.get(0) : null;
                 Expression actual = args.get(args.size() - 2);
                 Expression matcher = args.get(args.size() - 1);
+                // a matcher this recipe migrates is migrated here, where the value assumed on still has its type,
+                // which the parameter of a lambda the next pass migrates may not, such as a type of the project
+                // that the template parser doesn't know
+                if (matcher instanceof J.MethodInvocation && isHamcrestMatcher(matcher) &&
+                    HamcrestMatcherUtils.isTyped(mi)) {
+                    Rewrite direct = rewrite(actual, reason, (J.MethodInvocation) matcher);
+                    if (direct != null && !direct.remove) {
+                        removeAssumeImports();
+                        return applyWithAdapters(mi, "assumeThat", "org.assertj.core.api.Assumptions", actual, reason,
+                                direct, (J.MethodInvocation) matcher, ctx);
+                    }
+                }
                 String arg = Scope.at(getCursor()).freeName("arg");
                 Rewrite rewrite = new Rewrite(".satisfies(" + arg + " -> " + HAMCREST_ASSERT_THAT + arg + ", #{any()}))", singletonList(matcher));
+                removeAssumeImports();
+                return apply(mi, "assumeThat", "org.assertj.core.api.Assumptions", actual, reason, rewrite, null, null, ctx);
+            }
+
+            private void removeAssumeImports() {
                 maybeRemoveImport("org.hamcrest.junit.MatcherAssume");
                 maybeRemoveImport("org.hamcrest.junit.MatcherAssume.assumeThat");
                 maybeRemoveImport("org.junit.Assume.assumeThat");
                 maybeRemoveImport("org.junit.Assume");
-                return apply(mi, "assumeThat", "org.assertj.core.api.Assumptions", actual, reason, rewrite, null, null, ctx);
             }
 
             private J.MethodInvocation apply(J.MethodInvocation mi, String root, String rootType, Expression actual,
@@ -369,15 +402,38 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
                     int dot = adapters.lastIndexOf('.');
                     parser = parser.dependsOn(HamcrestAdapterSource.source(dot < 0 ? "" : adapters.substring(0, dot), emptyList()));
                 }
-                String code = root + "(#{any()})" + (reason == null ? "" : ".as(#{any(java.lang.String)})") +
+                // AssertJ's assertion of an `Iterable` or `Iterator` has a wildcard type, such as `Collection<? extends E>`
+                // for a `Set<E>`, so a lambda that `satisfies(..)` takes would take a value that the matchers don't
+                // for the matchers of a lambda that passes them its parameter itself
+                String witness = passesTheLambdaParameterOn(rewrite.suffix) &&
+                                 (TypeUtils.isAssignableTo("java.lang.Iterable", actual.getType()) ||
+                                  TypeUtils.isAssignableTo("java.util.Iterator", actual.getType())) ?
+                        typeName(actual.getType()) : null;
+                String rootCall = witness == null ? root :
+                        rootType.substring(rootType.lastIndexOf('.') + 1) + ".<" + witness + ">" + root;
+                String code = rootCall + "(#{any()})" + (reason == null ? "" : ".as(#{any(java.lang.String)})") +
                               rewrite.suffix.replace("HamcrestAdapters.", adapters == null ? "HamcrestAdapters." : CLASS_NAME + ".");
+                Set<String> shortened = new TreeSet<>();
+                code = shortenImportedTypeNames(code, getCursor().firstEnclosingOrThrow(J.CompilationUnit.class), shortened);
                 JavaTemplate.Builder template = JavaTemplate.builder(code)
                         .contextSensitive()
                         .javaParser(parser)
                         .staticImports(rootType + "." + root);
+                if (witness != null) {
+                    template = template.imports(rootType);
+                    maybeAddImport(rootType);
+                }
+                if (!shortened.isEmpty()) {
+                    // imported by the compilation unit already
+                    template = template.imports(shortened.toArray(new String[0]));
+                }
                 if (adapters != null && adapters.contains(".")) {
                     template = template.imports(adapters);
                     maybeAddImport(adapters);
+                }
+                if (code.contains(HAMCREST_ASSERT_THAT)) {
+                    template = template.imports("org.hamcrest.MatcherAssert");
+                    maybeAddImport("org.hamcrest.MatcherAssert");
                 }
                 List<Object> templateArgs = new ArrayList<>();
                 templateArgs.add(actual);
@@ -829,10 +885,53 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
     }
 
     /**
+     * Shortens the fully qualified names of the types the compilation unit imports in the code of a template, which only has the names this recipe writes, such as the type argument of an adapter.
+     * A type that the template parser doesn't know, such as one of the project, isn't shortened after the template
+     * is applied.
+     */
+    static String shortenImportedTypeNames(String code, J.CompilationUnit cu, Set<String> shortened) {
+        Map<String, String> simpleNames = new HashMap<>();
+        for (J.Import anImport : cu.getImports()) {
+            if (!anImport.isStatic() && !"*".equals(anImport.getQualid().getSimpleName())) {
+                simpleNames.put(anImport.getTypeName().replace('$', '.'), anImport.getQualid().getSimpleName());
+            }
+        }
+        String result = code;
+        for (Map.Entry<String, String> name : simpleNames.entrySet()) {
+            String replaced = result.replaceAll("(?<![\\w.])" + Pattern.quote(name.getKey()) + "(?![\\w])", name.getValue());
+            if (!replaced.equals(result)) {
+                shortened.add(name.getKey());
+                result = replaced;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Whether the code is a {@code .satisfies(arg -> MatcherAssert.assertThat(arg, ..))} that passes the value asserted
+     * on to a Hamcrest assertion, rather than a feature of it such as {@code arg.size()}.
+     */
+    private static boolean passesTheLambdaParameterOn(String suffix) {
+        String prefix = ".satisfies(";
+        int arrow = suffix.indexOf(" -> ");
+        if (!suffix.startsWith(prefix) || arrow < 0) {
+            return false;
+        }
+        String parameter = suffix.substring(prefix.length(), arrow);
+        return suffix.contains(HAMCREST_ASSERT_THAT + parameter + ",");
+    }
+
+    private static boolean isAttributed(J.Import anImport) {
+        J.FieldAccess qualid = anImport.getQualid();
+        JavaType type = anImport.isStatic() ? qualid.getTarget().getType() : qualid.getType();
+        return type != null && !(type instanceof JavaType.Unknown);
+    }
+
+    /**
      * The type as source code can name it, boxing a primitive, or null when it has no such name, such as a capture
      * or a type variable.
      */
-    private static @Nullable String typeName(@Nullable JavaType type) {
+    static @Nullable String typeName(@Nullable JavaType type) {
         if (type instanceof JavaType.Primitive) {
             JavaType.Primitive primitive = (JavaType.Primitive) type;
             return primitive == JavaType.Primitive.String ? "String" :
@@ -847,15 +946,35 @@ public class HamcrestRemainingMatchersToAssertJ extends ScanningRecipe<HamcrestR
             JavaType.Parameterized parameterized = (JavaType.Parameterized) type;
             StringJoiner parameters = new StringJoiner(", ", "<", ">");
             for (JavaType parameter : parameterized.getTypeParameters()) {
-                String name = typeName(parameter);
+                String name = typeArgumentName(parameter);
                 if (name == null) {
                     return null;
                 }
                 parameters.add(name);
             }
-            return parameterized.getFullyQualifiedName().replace('$', '.') + parameters;
+            String raw = nameable(parameterized.getType());
+            return raw == null ? null : raw + parameters;
         }
         return nameable(type);
+    }
+
+    /**
+     * A type argument, which can be a wildcard such as {@code ?} or {@code ? extends Number} too.
+     */
+    private static @Nullable String typeArgumentName(JavaType type) {
+        if (type instanceof JavaType.GenericTypeVariable && "?".equals(((JavaType.GenericTypeVariable) type).getName())) {
+            JavaType.GenericTypeVariable wildcard = (JavaType.GenericTypeVariable) type;
+            if (wildcard.getVariance() == JavaType.GenericTypeVariable.Variance.INVARIANT || wildcard.getBounds().isEmpty()) {
+                return "?";
+            }
+            if (wildcard.getBounds().size() != 1) {
+                return null;
+            }
+            String bound = typeName(wildcard.getBounds().get(0));
+            return bound == null ? null :
+                    (wildcard.getVariance() == JavaType.GenericTypeVariable.Variance.COVARIANT ? "? extends " : "? super ") + bound;
+        }
+        return typeName(type);
     }
 
     private static String boxed(JavaType.Primitive primitive) {

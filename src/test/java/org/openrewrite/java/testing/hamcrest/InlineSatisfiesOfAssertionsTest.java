@@ -21,16 +21,17 @@ import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-class InlineSatisfiesOfOneAssertionTest implements RewriteTest {
+class InlineSatisfiesOfAssertionsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "assertj-core-3"))
-          .recipe(new InlineSatisfiesOfOneAssertion());
+          .recipe(new InlineSatisfiesOfAssertions());
     }
 
     @DocumentExample
@@ -79,7 +80,65 @@ class InlineSatisfiesOfOneAssertionTest implements RewriteTest {
                   void test(String s) {
                       assertThat(s).satisfies(arg -> assertThat(arg).startsWith(arg.substring(0, 1)));
                       assertThat(s).satisfies(arg -> assertThat(arg.length()).isPositive());
-                      assertThat(s).satisfies(arg -> assertThat(arg).startsWith("a"), arg -> assertThat(arg).endsWith("b"));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void chainAssertionsReturningTheirAssertion() {
+        //language=java
+        rewriteRun(
+          // the lambdas' parameter is a `List<? extends String>`, whose assertion takes no `String`
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          java(
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class A {
+                  void test(List<String> list) {
+                      assertThat(list)
+                        .satisfies(
+                          arg -> assertThat(arg).contains("a"),
+                          arg -> assertThat(arg).contains("b").hasSize(2)
+                        );
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class A {
+                  void test(List<String> list) {
+                      assertThat(list).contains("a").contains("b").hasSize(2);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepWhenAnAssertionButTheLastReturnsAnotherAssertion() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import static org.assertj.core.api.Assertions.assertThat;
+
+              class A {
+                  void test(Object o) {
+                      assertThat(o)
+                        .satisfies(
+                          arg -> assertThat(arg).asString().isEqualTo("a"),
+                          arg -> assertThat(arg).isNotNull()
+                        );
                   }
               }
               """
