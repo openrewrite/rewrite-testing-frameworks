@@ -73,7 +73,11 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
                     FIREFOX_OPTIONS, merge(2), setBinary(0), setProfile(1)),
             new Replacement(FIREFOX_DRIVER, "(" + FIREFOX_BINARY + ", " + FIREFOX_PROFILE + ", " + CAPABILITIES + ", " +
                                             CAPABILITIES + ")",
-                    FIREFOX_OPTIONS, merge(2), merge(3), setBinary(0), setProfile(1)));
+                    FIREFOX_OPTIONS, merge(2), merge(3), setBinary(0), setProfile(1)),
+            // Selenium 3.0 to 3.4
+            new Replacement(FIREFOX_DRIVER, "(org.openqa.selenium.firefox.GeckoDriverService, " + CAPABILITIES + ", " +
+                                            CAPABILITIES + ")",
+                    FIREFOX_OPTIONS, merge(1), merge(2)));
 
     @Getter
     final String displayName = "Pass browser options to driver constructors that took `Capabilities`";
@@ -82,9 +86,9 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
     final String description = "Selenium 4 removed the constructors of `ChromeDriver`, `FirefoxDriver`, " +
             "`InternetExplorerDriver`, `EdgeDriver` and `SafariDriver` that took `Capabilities`. Merge the " +
             "capabilities into the browser's options and pass those instead, also from the `super` call of a subclass. " +
-            "The Selenium 2 `FirefoxDriver` constructors that took a `FirefoxBinary`, a `FirefoxProfile` or required " +
-            "capabilities likewise become the one taking `FirefoxOptions`, set to the same binary, profile and " +
-            "capabilities.";
+            "The `FirefoxDriver` constructors of Selenium 2 and early Selenium 3 that took a `FirefoxBinary`, a " +
+            "`FirefoxProfile` or required capabilities likewise become the one taking `FirefoxOptions`, set to the " +
+            "same binary, profile and capabilities.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

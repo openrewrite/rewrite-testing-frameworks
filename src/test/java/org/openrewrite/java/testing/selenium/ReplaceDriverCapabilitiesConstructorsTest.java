@@ -254,6 +254,63 @@ class ReplaceDriverCapabilitiesConstructorsTest implements RewriteTest {
     }
 
     @Test
+    void seleniumThreeGeckoDriverServiceWithRequiredCapabilities() {
+        rewriteRun(
+          // Selenium 3.0 to 3.4, whose `FirefoxDriver` took required capabilities next to a `GeckoDriverService`
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "selenium-api-3", "selenium-remote-driver-3")
+            //language=java
+            .dependsOn(
+              """
+                package org.openqa.selenium.firefox;
+
+                public class GeckoDriverService {
+                }
+                """,
+              """
+                package org.openqa.selenium.firefox;
+
+                import org.openqa.selenium.Capabilities;
+                import org.openqa.selenium.remote.RemoteWebDriver;
+
+                public class FirefoxDriver extends RemoteWebDriver {
+                    public FirefoxDriver(GeckoDriverService service, Capabilities desired, Capabilities required) {
+                    }
+                }
+                """
+            )),
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.Capabilities;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.firefox.FirefoxDriver;
+              import org.openqa.selenium.firefox.GeckoDriverService;
+
+              class Drivers {
+                  WebDriver firefox(GeckoDriverService service, Capabilities desired) {
+                      return new FirefoxDriver(service, desired, null);
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.Capabilities;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.firefox.FirefoxDriver;
+              import org.openqa.selenium.firefox.FirefoxOptions;
+              import org.openqa.selenium.firefox.GeckoDriverService;
+
+              class Drivers {
+                  WebDriver firefox(GeckoDriverService service, Capabilities desired) {
+                      return new FirefoxDriver(service, new FirefoxOptions().merge(desired));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void optionsAreUnchanged() {
         rewriteRun(
           //language=java
