@@ -876,6 +876,71 @@ class Selenium3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void commonsLoggingThatSeleniumJavaThreeBroughtAlong() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.apache.commons.logging.Log;
+                  import org.apache.commons.logging.LogFactory;
+                  import org.openqa.selenium.WebDriver;
+
+                  class LoginTest {
+                      private static final Log LOG = LogFactory.getLog(LoginTest.class);
+                      WebDriver driver;
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.14.0"),
+              spec -> spec.after(pom -> assertThat(pom)
+                .containsPattern("<artifactId>commons-logging</artifactId>\\s*<version>1\\.\\d+(\\.\\d+)?</version>\\s*<scope>test</scope>")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void commonsLoggingApiThatSpringProvides() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.apache.commons.logging.Log;
+                  import org.apache.commons.logging.LogFactory;
+                  import org.openqa.selenium.WebDriver;
+
+                  class LoginTest {
+                      private static final Log LOG = LogFactory.getLog(LoginTest.class);
+                      WebDriver driver;
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.14.0", "org.springframework:spring-core:5.3.39"),
+              spec -> spec.after(pom -> assertThat(pom)
+                .containsPattern("<artifactId>selenium-java</artifactId>\\s*<version>4\\.\\d+\\.\\d+</version>")
+                .doesNotContain("commons-logging")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
     void htmlUnitDriverThatSeleniumJavaThreeBroughtAlong() {
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.none()),

@@ -135,12 +135,7 @@ recipeList:
       version: 1.x
       onlyIfUsing: org.apache.commons.codec..*
       acceptTransitive: true
-  - org.openrewrite.java.dependencies.AddDependency:
-      groupId: commons-logging
-      artifactId: commons-logging
-      version: 1.x
-      onlyIfUsing: org.apache.commons.logging..*
-      acceptTransitive: true
+  - org.openrewrite.java.testing.selenium.AddCommonsLoggingSeleniumThreeBroughtAlong
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: com.google.code.gson
       artifactId: gson
@@ -152,6 +147,34 @@ recipeList:
       artifactId: commons-exec
       version: 1.x
       onlyIfUsing: org.apache.commons.exec..*
+      acceptTransitive: true
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.selenium.AddCommonsLoggingSeleniumThreeBroughtAlong
+displayName: Add the Commons Logging that Selenium 3 brought along
+description: >-
+  Selenium 3 brought Commons Logging along with Apache HttpClient. Declare it for a module whose own code uses its
+  API, where nothing else brings it and neither Spring's `spring-jcl` nor SLF4J's `jcl-over-slf4j`, which provide the
+  same API, is there.
+tags:
+  - testing
+  - selenium
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.springframework
+      artifactIdPattern: spring-jcl
+      invertMarking: true
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.slf4j
+      artifactIdPattern: jcl-over-slf4j
+      invertMarking: true
+recipeList:
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: commons-logging
+      artifactId: commons-logging
+      version: 1.x
+      onlyIfUsing: org.apache.commons.logging..*
       acceptTransitive: true
 
 ---
