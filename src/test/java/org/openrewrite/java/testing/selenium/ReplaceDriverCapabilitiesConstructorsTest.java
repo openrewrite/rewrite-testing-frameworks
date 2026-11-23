@@ -144,6 +144,45 @@ class ReplaceDriverCapabilitiesConstructorsTest implements RewriteTest {
     }
 
     @Test
+    void seleniumTwoFirefoxProfile() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "selenium-api-2", "selenium-remote-driver-2", "selenium-firefox-driver-2")),
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.firefox.FirefoxDriver;
+              import org.openqa.selenium.firefox.FirefoxProfile;
+
+              class Drivers {
+                  WebDriver firefox() {
+                      FirefoxProfile profile = new FirefoxProfile();
+                      profile.setPreference("browser.download.folderList", 2);
+                      return new FirefoxDriver(profile);
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.firefox.FirefoxDriver;
+              import org.openqa.selenium.firefox.FirefoxOptions;
+              import org.openqa.selenium.firefox.FirefoxProfile;
+
+              class Drivers {
+                  WebDriver firefox() {
+                      FirefoxProfile profile = new FirefoxProfile();
+                      profile.setPreference("browser.download.folderList", 2);
+                      return new FirefoxDriver(new FirefoxOptions().setProfile(profile));
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void optionsAreUnchanged() {
         rewriteRun(
           //language=java

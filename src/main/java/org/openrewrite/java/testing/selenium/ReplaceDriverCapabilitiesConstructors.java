@@ -59,7 +59,10 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
             new Replacement("org.openqa.selenium.edge.EdgeDriver", "(org.openqa.selenium.edge.EdgeDriverService, " + CAPABILITIES + ")",
                     1, "org.openqa.selenium.edge.EdgeOptions"),
             new Replacement("org.openqa.selenium.safari.SafariDriver", "(" + CAPABILITIES + ")",
-                    0, "org.openqa.selenium.safari.SafariOptions"));
+                    0, "org.openqa.selenium.safari.SafariOptions"),
+            // Selenium 2
+            new Replacement("org.openqa.selenium.firefox.FirefoxDriver", "(org.openqa.selenium.firefox.FirefoxProfile)",
+                    0, "org.openqa.selenium.firefox.FirefoxOptions", "setProfile", "org.openqa.selenium.firefox.FirefoxProfile"));
 
     @Getter
     final String displayName = "Pass browser options to driver constructors that took `Capabilities`";
@@ -67,7 +70,9 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
     @Getter
     final String description = "Selenium 4 removed the constructors of `ChromeDriver`, `FirefoxDriver`, " +
             "`InternetExplorerDriver`, `EdgeDriver` and `SafariDriver` that took `Capabilities`. Merge the " +
-            "capabilities into the browser's options and pass those instead, also from the `super` call of a subclass.";
+            "capabilities into the browser's options and pass those instead, also from the `super` call of a subclass. " +
+            "The Selenium 2 `FirefoxDriver(FirefoxProfile)` constructor likewise becomes one taking `FirefoxOptions` " +
+            "with that profile.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -117,7 +122,7 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
                         Expression capabilities = args.get(replacement.getCapabilitiesIndex());
                         String options = replacement.getOptions();
                         Expression merged = JavaTemplate.builder("new " + options.substring(options.lastIndexOf('.') + 1) +
-                                                                 "().merge(#{any(" + CAPABILITIES + ")})")
+                                                                 "()." + replacement.getMethod() + "(#{any(" + replacement.getArgumentType() + ")})")
                                 .imports(options)
                                 .javaParser(SeleniumDurations.parser(ctx))
                                 .build()
@@ -144,12 +149,20 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
         MethodMatcher matcher;
         int capabilitiesIndex;
         String options;
+        String method;
+        String argumentType;
 
         Replacement(String driver, String parameters, int capabilitiesIndex, String options) {
+            this(driver, parameters, capabilitiesIndex, options, "merge", CAPABILITIES);
+        }
+
+        Replacement(String driver, String parameters, int capabilitiesIndex, String options, String method, String argumentType) {
             this.driver = driver;
             this.matcher = new MethodMatcher(driver + " <constructor>" + parameters);
             this.capabilitiesIndex = capabilitiesIndex;
             this.options = options;
+            this.method = method;
+            this.argumentType = argumentType;
         }
     }
 }
