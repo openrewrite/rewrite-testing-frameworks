@@ -731,6 +731,50 @@ class Selenium3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void httpClientThatSeleniumJavaThreeBroughtAlong() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.apache.commons.codec.binary.Base64;
+                  import org.apache.http.client.methods.HttpGet;
+                  import org.apache.http.impl.client.CloseableHttpClient;
+                  import org.apache.http.impl.client.HttpClients;
+                  import org.openqa.selenium.WebDriver;
+                  import org.openqa.selenium.chrome.ChromeDriver;
+
+                  import java.io.IOException;
+
+                  class LoginTest {
+                      WebDriver driver = new ChromeDriver();
+
+                      void token() throws IOException {
+                          try (CloseableHttpClient client = HttpClients.createDefault()) {
+                              client.execute(new HttpGet("https://example.com/" + Base64.encodeBase64String(new byte[0])));
+                          }
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.14.0"),
+              spec -> spec.after(pom -> assertThat(pom)
+                .containsPattern("<artifactId>selenium-java</artifactId>\\s*<version>4\\.\\d+\\.\\d+</version>")
+                .containsPattern("<artifactId>httpclient</artifactId>\\s*<version>4\\.5\\.\\d+</version>\\s*<scope>test</scope>")
+                .doesNotContain("commons-codec", "commons-logging", "httpcore", "gson", "commons-exec")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
     void htmlUnitDriverThatSeleniumJavaThreeBroughtAlong() {
         rewriteRun(
           spec -> spec.typeValidationOptions(TypeValidation.none()),

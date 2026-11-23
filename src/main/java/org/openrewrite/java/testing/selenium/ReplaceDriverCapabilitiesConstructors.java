@@ -40,29 +40,40 @@ import static java.util.Arrays.asList;
 public class ReplaceDriverCapabilitiesConstructors extends Recipe {
 
     private static final String CAPABILITIES = "org.openqa.selenium.Capabilities";
+    private static final String FIREFOX_DRIVER = "org.openqa.selenium.firefox.FirefoxDriver";
+    private static final String FIREFOX_OPTIONS = "org.openqa.selenium.firefox.FirefoxOptions";
+    private static final String FIREFOX_BINARY = "org.openqa.selenium.firefox.FirefoxBinary";
+    private static final String FIREFOX_PROFILE = "org.openqa.selenium.firefox.FirefoxProfile";
 
     private static final List<Replacement> REPLACEMENTS = asList(
             new Replacement("org.openqa.selenium.chrome.ChromeDriver", "(" + CAPABILITIES + ")",
-                    0, "org.openqa.selenium.chrome.ChromeOptions"),
+                    "org.openqa.selenium.chrome.ChromeOptions", merge(0)),
             new Replacement("org.openqa.selenium.chrome.ChromeDriver", "(org.openqa.selenium.chrome.ChromeDriverService, " + CAPABILITIES + ")",
-                    1, "org.openqa.selenium.chrome.ChromeOptions"),
-            new Replacement("org.openqa.selenium.firefox.FirefoxDriver", "(" + CAPABILITIES + ")",
-                    0, "org.openqa.selenium.firefox.FirefoxOptions"),
-            new Replacement("org.openqa.selenium.firefox.FirefoxDriver", "(org.openqa.selenium.firefox.GeckoDriverService, " + CAPABILITIES + ")",
-                    1, "org.openqa.selenium.firefox.FirefoxOptions"),
+                    "org.openqa.selenium.chrome.ChromeOptions", merge(1)),
+            new Replacement(FIREFOX_DRIVER, "(" + CAPABILITIES + ")", FIREFOX_OPTIONS, merge(0)),
+            new Replacement(FIREFOX_DRIVER, "(org.openqa.selenium.firefox.GeckoDriverService, " + CAPABILITIES + ")",
+                    FIREFOX_OPTIONS, merge(1)),
             new Replacement("org.openqa.selenium.ie.InternetExplorerDriver", "(" + CAPABILITIES + ")",
-                    0, "org.openqa.selenium.ie.InternetExplorerOptions"),
+                    "org.openqa.selenium.ie.InternetExplorerOptions", merge(0)),
             new Replacement("org.openqa.selenium.ie.InternetExplorerDriver", "(org.openqa.selenium.ie.InternetExplorerDriverService, " + CAPABILITIES + ")",
-                    1, "org.openqa.selenium.ie.InternetExplorerOptions"),
+                    "org.openqa.selenium.ie.InternetExplorerOptions", merge(1)),
             new Replacement("org.openqa.selenium.edge.EdgeDriver", "(" + CAPABILITIES + ")",
-                    0, "org.openqa.selenium.edge.EdgeOptions"),
+                    "org.openqa.selenium.edge.EdgeOptions", merge(0)),
             new Replacement("org.openqa.selenium.edge.EdgeDriver", "(org.openqa.selenium.edge.EdgeDriverService, " + CAPABILITIES + ")",
-                    1, "org.openqa.selenium.edge.EdgeOptions"),
+                    "org.openqa.selenium.edge.EdgeOptions", merge(1)),
             new Replacement("org.openqa.selenium.safari.SafariDriver", "(" + CAPABILITIES + ")",
-                    0, "org.openqa.selenium.safari.SafariOptions"),
-            // Selenium 2
-            new Replacement("org.openqa.selenium.firefox.FirefoxDriver", "(org.openqa.selenium.firefox.FirefoxProfile)",
-                    0, "org.openqa.selenium.firefox.FirefoxOptions", "setProfile", "org.openqa.selenium.firefox.FirefoxProfile"));
+                    "org.openqa.selenium.safari.SafariOptions", merge(0)),
+            // Selenium 2, whose `FirefoxDriver` also took a binary and a profile, and required capabilities
+            new Replacement(FIREFOX_DRIVER, "(" + FIREFOX_PROFILE + ")", FIREFOX_OPTIONS, setProfile(0)),
+            new Replacement(FIREFOX_DRIVER, "(" + CAPABILITIES + ", " + CAPABILITIES + ")", FIREFOX_OPTIONS,
+                    merge(0), merge(1)),
+            new Replacement(FIREFOX_DRIVER, "(" + FIREFOX_BINARY + ", " + FIREFOX_PROFILE + ")", FIREFOX_OPTIONS,
+                    setBinary(0), setProfile(1)),
+            new Replacement(FIREFOX_DRIVER, "(" + FIREFOX_BINARY + ", " + FIREFOX_PROFILE + ", " + CAPABILITIES + ")",
+                    FIREFOX_OPTIONS, merge(2), setBinary(0), setProfile(1)),
+            new Replacement(FIREFOX_DRIVER, "(" + FIREFOX_BINARY + ", " + FIREFOX_PROFILE + ", " + CAPABILITIES + ", " +
+                                            CAPABILITIES + ")",
+                    FIREFOX_OPTIONS, merge(2), merge(3), setBinary(0), setProfile(1)));
 
     @Getter
     final String displayName = "Pass browser options to driver constructors that took `Capabilities`";
@@ -71,8 +82,9 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
     final String description = "Selenium 4 removed the constructors of `ChromeDriver`, `FirefoxDriver`, " +
             "`InternetExplorerDriver`, `EdgeDriver` and `SafariDriver` that took `Capabilities`. Merge the " +
             "capabilities into the browser's options and pass those instead, also from the `super` call of a subclass. " +
-            "The Selenium 2 `FirefoxDriver(FirefoxProfile)` constructor likewise becomes one taking `FirefoxOptions` " +
-            "with that profile.";
+            "The Selenium 2 `FirefoxDriver` constructors that took a `FirefoxBinary`, a `FirefoxProfile` or required " +
+            "capabilities likewise become the one taking `FirefoxOptions`, set to the same binary, profile and " +
+            "capabilities.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -118,51 +130,114 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
                     }
 
                     private List<Expression> withOptions(MethodCall call, Replacement replacement, Cursor cursor, ExecutionContext ctx) {
-                        List<Expression> args = new ArrayList<>(call.getArguments());
-                        Expression capabilities = args.get(replacement.getCapabilitiesIndex());
+                        List<Expression> args = call.getArguments();
+                        Expression first = args.get(replacement.getFirstIndex());
                         String options = replacement.getOptions();
-                        Expression merged = JavaTemplate.builder("new " + options.substring(options.lastIndexOf('.') + 1) +
-                                                                 "()." + replacement.getMethod() + "(#{any(" + replacement.getArgumentType() + ")})")
+                        StringBuilder template = new StringBuilder("new ")
+                                .append(options.substring(options.lastIndexOf('.') + 1)).append("()");
+                        List<Expression> parameters = new ArrayList<>();
+                        for (Setter setter : replacement.getSetters()) {
+                            Expression argument = args.get(setter.getIndex());
+                            // Selenium 2 took `null` for a binary, profile or capabilities it was not given
+                            if (!J.Literal.isLiteralValue(argument, null)) {
+                                template.append('.').append(setter.getMethod())
+                                        .append("(#{any(").append(setter.getArgumentType()).append(")})");
+                                parameters.add(argument);
+                            }
+                        }
+                        Expression merged = JavaTemplate.builder(template.toString())
                                 .imports(options)
                                 .javaParser(SeleniumDurations.parser(ctx))
                                 .build()
-                                .apply(new Cursor(cursor, capabilities), capabilities.getCoordinates().replace(), capabilities);
+                                .apply(new Cursor(cursor, first), first.getCoordinates().replace(), parameters.toArray());
                         maybeAddImport(options);
-                        args.set(replacement.getCapabilitiesIndex(), merged.withPrefix(capabilities.getPrefix()));
-                        return args;
+                        List<Expression> newArgs = new ArrayList<>();
+                        for (int i = 0; i < args.size(); i++) {
+                            if (i == replacement.getFirstIndex()) {
+                                newArgs.add(merged.withPrefix(first.getPrefix()));
+                            } else if (!replacement.folds(i)) {
+                                newArgs.add(args.get(i));
+                            }
+                        }
+                        return newArgs;
                     }
 
                     private JavaType.@Nullable Method newType(JavaType.@Nullable Method type, Replacement replacement) {
                         if (type == null) {
                             return null;
                         }
-                        List<JavaType> parameterTypes = new ArrayList<>(type.getParameterTypes());
-                        parameterTypes.set(replacement.getCapabilitiesIndex(), JavaType.ShallowClass.build(replacement.getOptions()));
-                        return type.withParameterTypes(parameterTypes);
+                        List<JavaType> parameterTypes = new ArrayList<>();
+                        for (int i = 0; i < type.getParameterTypes().size(); i++) {
+                            if (i == replacement.getFirstIndex()) {
+                                parameterTypes.add(JavaType.ShallowClass.build(replacement.getOptions()));
+                            } else if (!replacement.folds(i)) {
+                                parameterTypes.add(type.getParameterTypes().get(i));
+                            }
+                        }
+                        List<String> parameterNames = new ArrayList<>();
+                        for (int i = 0; i < type.getParameterNames().size(); i++) {
+                            if (i == replacement.getFirstIndex() || !replacement.folds(i)) {
+                                parameterNames.add(type.getParameterNames().get(i));
+                            }
+                        }
+                        return type.withParameterTypes(parameterTypes).withParameterNames(parameterNames);
                     }
                 });
+    }
+
+    private static Setter merge(int index) {
+        return new Setter(index, "merge", CAPABILITIES);
+    }
+
+    private static Setter setBinary(int index) {
+        return new Setter(index, "setBinary", FIREFOX_BINARY);
+    }
+
+    private static Setter setProfile(int index) {
+        return new Setter(index, "setProfile", FIREFOX_PROFILE);
     }
 
     @Value
     private static class Replacement {
         String driver;
         MethodMatcher matcher;
-        int capabilitiesIndex;
         String options;
-        String method;
-        String argumentType;
 
-        Replacement(String driver, String parameters, int capabilitiesIndex, String options) {
-            this(driver, parameters, capabilitiesIndex, options, "merge", CAPABILITIES);
-        }
+        /**
+         * The arguments the options take in place of the constructor, in the order the options are set to them.
+         * The options take the place of the first of these arguments, and the others are dropped.
+         */
+        List<Setter> setters;
 
-        Replacement(String driver, String parameters, int capabilitiesIndex, String options, String method, String argumentType) {
+        Replacement(String driver, String parameters, String options, Setter... setters) {
             this.driver = driver;
             this.matcher = new MethodMatcher(driver + " <constructor>" + parameters);
-            this.capabilitiesIndex = capabilitiesIndex;
             this.options = options;
-            this.method = method;
-            this.argumentType = argumentType;
+            this.setters = asList(setters);
         }
+
+        int getFirstIndex() {
+            int first = Integer.MAX_VALUE;
+            for (Setter setter : setters) {
+                first = Math.min(first, setter.getIndex());
+            }
+            return first;
+        }
+
+        boolean folds(int index) {
+            for (Setter setter : setters) {
+                if (setter.getIndex() == index) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    @Value
+    private static class Setter {
+        int index;
+        String method;
+        String argumentType;
     }
 }

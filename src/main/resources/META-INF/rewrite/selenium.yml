@@ -107,8 +107,8 @@ name: org.openrewrite.java.testing.selenium.AddDependenciesSeleniumThreeBroughtA
 displayName: Add the dependencies that Selenium 3 brought along
 description: >-
   Selenium 3's `selenium-java` depended on the HtmlUnit and PhantomJS drivers and on Commons IO, and its remote driver
-  on OkHttp, none of which Selenium 4 brings along. Declare those of them that a module using Selenium needs for its
-  own code, where nothing else brings them.
+  on OkHttp, Apache HttpClient, Gson and Commons Exec, none of which the latest Selenium 4 brings along. Declare those
+  of them that a module using Selenium needs for its own code, where nothing else brings them.
 tags:
   - testing
   - selenium
@@ -145,6 +145,37 @@ recipeList:
       artifactId: okhttp
       version: 3.x
       onlyIfUsing: okhttp3..*
+      acceptTransitive: true
+  # HttpClient brings HttpCore, Commons Codec and Commons Logging, so it comes before them
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.apache.httpcomponents
+      artifactId: httpclient
+      version: 4.5.x
+      onlyIfUsing: org.apache.http..*
+      acceptTransitive: true
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: commons-codec
+      artifactId: commons-codec
+      version: 1.x
+      onlyIfUsing: org.apache.commons.codec..*
+      acceptTransitive: true
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: commons-logging
+      artifactId: commons-logging
+      version: 1.x
+      onlyIfUsing: org.apache.commons.logging..*
+      acceptTransitive: true
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: com.google.code.gson
+      artifactId: gson
+      version: 2.x
+      onlyIfUsing: com.google.gson..*
+      acceptTransitive: true
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: org.apache.commons
+      artifactId: commons-exec
+      version: 1.x
+      onlyIfUsing: org.apache.commons.exec..*
       acceptTransitive: true
 
 ---
