@@ -656,7 +656,7 @@ class Selenium3to4MigrationTest implements RewriteTest {
             ),
             //language=xml
             pomXml(
-              pom("org.vaadin:addon-test-helpers:2.0.alpha5"),
+              pom("ru.yandex.qatools.htmlelements:htmlelements-java:1.20.0"),
               """
                 <project>
                     <modelVersion>4.0.0</modelVersion>
@@ -667,11 +667,6 @@ class Selenium3to4MigrationTest implements RewriteTest {
                         <dependencies>
                             <dependency>
                                 <groupId>org.seleniumhq.selenium</groupId>
-                                <artifactId>htmlunit-driver</artifactId>
-                                <version>4.13.0</version>
-                            </dependency>
-                            <dependency>
-                                <groupId>org.seleniumhq.selenium</groupId>
                                 <artifactId>selenium-java</artifactId>
                                 <version>4.13.0</version>
                             </dependency>
@@ -679,9 +674,9 @@ class Selenium3to4MigrationTest implements RewriteTest {
                     </dependencyManagement>
                     <dependencies>
                         <dependency>
-                            <groupId>org.vaadin</groupId>
-                            <artifactId>addon-test-helpers</artifactId>
-                            <version>2.0.alpha5</version>
+                            <groupId>ru.yandex.qatools.htmlelements</groupId>
+                            <artifactId>htmlelements-java</artifactId>
+                            <version>1.20.0</version>
                         </dependency>
                     </dependencies>
                 </project>
@@ -762,7 +757,7 @@ class Selenium3to4MigrationTest implements RewriteTest {
             ),
             //language=xml
             pomXml(
-              pom("org.seleniumhq.selenium:selenium-server-standalone:3.141.59")
+              pom("org.seleniumhq.selenium:selenium-server:3.141.59")
             )
           )
         );
