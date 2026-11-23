@@ -389,6 +389,107 @@ class Selenium3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void repositoryWithAModuleOnArquillianDroneBeforeThreeIsLeftAlone() {
+        rewriteRun(
+          //language=xml
+          pomXml(
+            """
+              <project>
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>com.example</groupId>
+                  <artifactId>parent</artifactId>
+                  <version>1.0.0</version>
+                  <packaging>pom</packaging>
+                  <modules>
+                      <module>drone-tests</module>
+                      <module>ui-tests</module>
+                  </modules>
+                  <properties>
+                      <selenium.version>3.141.59</selenium.version>
+                  </properties>
+                  <dependencyManagement>
+                      <dependencies>
+                          <dependency>
+                              <groupId>org.seleniumhq.selenium</groupId>
+                              <artifactId>selenium-java</artifactId>
+                              <version>${selenium.version}</version>
+                          </dependency>
+                      </dependencies>
+                  </dependencyManagement>
+              </project>
+              """,
+            spec -> spec.path("pom.xml")
+          ),
+          mavenProject("drone-tests",
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>com.example</groupId>
+                        <artifactId>parent</artifactId>
+                        <version>1.0.0</version>
+                    </parent>
+                    <artifactId>drone-tests</artifactId>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.jboss.arquillian.extension</groupId>
+                            <artifactId>arquillian-drone-webdriver</artifactId>
+                            <version>2.5.6</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          ),
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.openqa.selenium.WebDriver;
+
+                  import java.util.concurrent.TimeUnit;
+
+                  class AppTest {
+                      void configure(WebDriver driver) {
+                          driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(8))
+              )
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>com.example</groupId>
+                        <artifactId>parent</artifactId>
+                        <version>1.0.0</version>
+                    </parent>
+                    <artifactId>ui-tests</artifactId>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
     void vaadinTestBenchBeforeEightIsLeftAlone() {
         rewriteRun(
           mavenProject("ui-tests",

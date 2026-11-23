@@ -23,6 +23,7 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.javaVersion;
 
 class ReplaceFluentWaitUntilPredicateTest implements RewriteTest {
 
@@ -405,6 +406,51 @@ class ReplaceFluentWaitUntilPredicateTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void javaSevenHasNeitherLambdasNorMethodReferences() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void waitForTitle(WebDriverWait wait, final String title, Predicate<WebDriver> loaded) {
+                      wait.until(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              return driver.getTitle().equals(title);
+                          }
+                      });
+                      wait.until(loaded);
+                  }
+              }
+              """,
+            """
+              import com.google.common.base.Functions;
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void waitForTitle(WebDriverWait wait, final String title, Predicate<WebDriver> loaded) {
+                      wait.until(Functions.forPredicate(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              return driver.getTitle().equals(title);
+                          }
+                      }));
+                      wait.until(Functions.forPredicate(loaded));
+                  }
+              }
+              """,
+            spec -> spec.markers(javaVersion(7))
           )
         );
     }

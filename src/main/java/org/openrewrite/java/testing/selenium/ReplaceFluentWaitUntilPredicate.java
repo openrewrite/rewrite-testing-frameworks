@@ -25,8 +25,11 @@ import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
@@ -42,6 +45,7 @@ import static java.util.Collections.singletonList;
 public class ReplaceFluentWaitUntilPredicate extends Recipe {
 
     private static final String PREDICATE = "com.google.common.base.Predicate";
+    private static final String FUNCTIONS = "com.google.common.base.Functions";
     private static final MethodMatcher UNTIL_PREDICATE = new MethodMatcher(
             "org.openqa.selenium.support.ui.FluentWait until(" + PREDICATE + ")");
     private static final JavaType.FullyQualified FUNCTION = JavaType.ShallowClass.build("java.util.function.Function");
@@ -52,7 +56,9 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
     @Getter
     final String description = "Selenium 3 removed the `FluentWait.until(Predicate)` overload of Selenium 2, which " +
             "took a Guava `Predicate`. An anonymous `Predicate` becomes a lambda, a lambda or method reference loses " +
-            "any cast to `Predicate`, and any other `Predicate` is passed as a reference to its `apply` method.";
+            "any cast to `Predicate`, and any other `Predicate` is passed as a reference to its `apply` method. Code " +
+            "compiled as Java 7, which has neither lambdas nor method references, passes the `Predicate` through " +
+            "Guava's `Functions.forPredicate` instead.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -64,7 +70,7 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
                     return m;
                 }
                 Expression predicate = m.getArguments().get(0);
-                Expression function = asFunction(predicate, getCursor());
+                Expression function = beforeJava8() ? forPredicate(predicate, ctx) : asFunction(predicate, getCursor());
                 maybeRemoveImport(PREDICATE);
                 // Such as the type argument of `Predicate<WebDriver>`, which the lambda no longer names
                 for (JavaType.FullyQualified named : namedTypes(predicate)) {
@@ -75,6 +81,26 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
                 return SeleniumDurations.withArguments(m, singletonList(function))
                         .withName(m.getName().withType(type))
                         .withMethodType(type);
+            }
+
+            private boolean beforeJava8() {
+                JavaSourceFile sourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+                return sourceFile != null && sourceFile.getMarkers().findFirst(JavaVersion.class)
+                        .map(version -> version.getMajorVersion() < 8)
+                        .orElse(false);
+            }
+
+            /**
+             * Guava's `Functions.forPredicate`, whose `Function` is a `java.util.function.Function` from Guava 21 on,
+             * for code that compiles as Java 7 and so can have neither a lambda nor a method reference.
+             */
+            private Expression forPredicate(Expression predicate, ExecutionContext ctx) {
+                maybeAddImport(FUNCTIONS);
+                return JavaTemplate.builder("Functions.forPredicate(#{any()})")
+                        .imports(FUNCTIONS)
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "guava"))
+                        .build()
+                        .apply(new Cursor(getCursor(), predicate), predicate.getCoordinates().replace(), predicate);
             }
         });
     }
