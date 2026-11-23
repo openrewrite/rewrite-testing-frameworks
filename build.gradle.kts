@@ -93,6 +93,7 @@ recipeDependencies {
     testParserClasspath("org.seleniumhq.selenium:selenium-api:2.53.1")
     testParserClasspath("org.seleniumhq.selenium:selenium-firefox-driver:2.53.1")
     testParserClasspath("org.seleniumhq.selenium:selenium-remote-driver:2.53.1")
+    testParserClasspath("org.seleniumhq.selenium:selenium-support:2.53.1")
     testParserClasspath("org.seleniumhq.selenium:selenium-api:3.141.59")
     testParserClasspath("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
     testParserClasspath("org.seleniumhq.selenium:selenium-edge-driver:3.141.59")

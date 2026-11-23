@@ -24,6 +24,7 @@ import org.openrewrite.maven.tree.ResolvedDependency;
 import org.openrewrite.maven.tree.Scope;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 import org.openrewrite.xml.tree.Xml;
 
 import java.util.List;
@@ -445,6 +446,74 @@ class Selenium3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void htmlUnitDriverBesideAVersionPinnedBySpringBootParent() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(USES_SELENIUM, spec -> spec.markers(javaVersion(8)))
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>1.5.9.RELEASE</version>
+                    </parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                            <version>3.12.0</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>htmlunit-driver</artifactId>
+                            <version>2.21</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <parent>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-parent</artifactId>
+                        <version>1.5.9.RELEASE</version>
+                    </parent>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <properties>
+                        <selenium.version>4.13.0</selenium.version>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>htmlunit-driver</artifactId>
+                            <version>4.13.0</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> allSeleniumResolvedAt(pom, "4.13."))
+            )
+          )
+        );
+    }
+
+    @Test
     void seleniumOnlyThroughAnotherLibrary() {
         rewriteRun(
           mavenProject("ui-tests",
@@ -582,6 +651,170 @@ class Selenium3to4MigrationTest implements RewriteTest {
                 .containsPattern("<artifactId>selenium-remote-driver</artifactId>\\s*<version>4\\.13\\.0</version>")
                 .actual())
                 .afterRecipe(pom -> allSeleniumResolvedAt(pom, "4.13."))
+            )
+          )
+        );
+    }
+
+    @Test
+    void dependenciesThatSeleniumJavaThreeBroughtAlong() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.apache.commons.io.FileUtils;
+                  import org.openqa.selenium.OutputType;
+                  import org.openqa.selenium.WebDriver;
+                  import org.openqa.selenium.phantomjs.PhantomJSDriver;
+
+                  import java.io.File;
+                  import java.io.IOException;
+
+                  class ScreenshotTest {
+                      void screenshot() throws IOException {
+                          PhantomJSDriver driver = new PhantomJSDriver();
+                          File file = driver.getScreenshotAs(OutputType.FILE);
+                          FileUtils.copyFile(file, new File("target/screenshot.png"));
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(8))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.5.2"),
+              spec -> spec.after(pom -> assertThat(pom)
+                .containsPattern("<artifactId>selenium-java</artifactId>\\s*<version>4\\.13\\.0</version>")
+                .containsPattern("<artifactId>phantomjsdriver</artifactId>\\s*<version>1\\.5\\.0</version>\\s*<scope>test</scope>")
+                .containsPattern("<artifactId>commons-io</artifactId>\\s*<version>2\\.\\d+(\\.\\d+)?</version>\\s*<scope>test</scope>")
+                .doesNotContain("htmlunit-driver", "selenium-remote-driver")
+                .actual())
+            )
+          )
+        );
+    }
+
+    @Test
+    void htmlUnitDriverThatSeleniumJavaThreeBroughtAlong() {
+        rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.openqa.selenium.WebDriver;
+                  import org.openqa.selenium.htmlunit.HtmlUnitDriver;
+
+                  class HeadlessTest {
+                      WebDriver driver = new HtmlUnitDriver();
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(8))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.5.2"),
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                            <version>4.13.0</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>htmlunit-driver</artifactId>
+                            <version>4.13.0</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """
+            )
+          )
+        );
+    }
+
+    @Test
+    void arquillianSeleniumBomBecomesTheSeleniumBom() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(USES_SELENIUM, spec -> spec.markers(javaVersion(8)))
+            ),
+            //language=xml
+            pomXml(
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <properties>
+                        <selenium.version>3.2.0</selenium.version>
+                    </properties>
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.jboss.arquillian.selenium</groupId>
+                                <artifactId>selenium-bom</artifactId>
+                                <version>${selenium.version}</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>com.example</groupId>
+                    <artifactId>ui-tests</artifactId>
+                    <version>1.0.0</version>
+                    <properties>
+                        <selenium.version>4.13.0</selenium.version>
+                    </properties>
+                    <dependencyManagement>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.seleniumhq.selenium</groupId>
+                                <artifactId>selenium-bom</artifactId>
+                                <version>${selenium.version}</version>
+                                <type>pom</type>
+                                <scope>import</scope>
+                            </dependency>
+                        </dependencies>
+                    </dependencyManagement>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.seleniumhq.selenium</groupId>
+                            <artifactId>selenium-java</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.afterRecipe(pom -> allSeleniumResolvedAt(pom, "4.13."))
             )
           )
         );
