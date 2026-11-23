@@ -90,7 +90,7 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
                         if (replacement == null) {
                             return nc;
                         }
-                        return nc.withArguments(withOptions(nc, replacement, updateCursor(nc), ctx))
+                        return SeleniumDurations.withArguments(nc, withOptions(nc, replacement, updateCursor(nc), ctx))
                                 .withConstructorType(newType(nc.getConstructorType(), replacement));
                     }
 
@@ -103,7 +103,7 @@ public class ReplaceDriverCapabilitiesConstructors extends Recipe {
                             return m;
                         }
                         JavaType.Method type = newType(m.getMethodType(), replacement);
-                        return m.withArguments(withOptions(m, replacement, updateCursor(m), ctx))
+                        return SeleniumDurations.withArguments(m, withOptions(m, replacement, updateCursor(m), ctx))
                                 .withName(m.getName().withType(type))
                                 .withMethodType(type);
                     }

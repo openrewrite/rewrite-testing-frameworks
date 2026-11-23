@@ -19,10 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MigrateWebDriverWaitConstructorsTest implements RewriteTest {
 
@@ -206,6 +208,82 @@ class MigrateWebDriverWaitConstructorsTest implements RewriteTest {
                           }
                       };
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsTheLineBreakBeforeTheClosingParenthesis() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Page {
+                  WebDriverWait await(WebDriver driver, long timeout, long precision) {
+                      return new WebDriverWait(
+                          driver,
+                          timeout,
+                          precision
+                      );
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              import java.time.Duration;
+
+              class Page {
+                  WebDriverWait await(WebDriver driver, long timeout, long precision) {
+                      return new WebDriverWait(
+                          driver,
+                          Duration.ofSeconds(timeout),
+                          Duration.ofMillis(precision)
+                      );
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void kotlinSource() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder()
+            .classpathFromResources(new InMemoryExecutionContext(), "selenium-api-3", "selenium-support-3")),
+          //language=kotlin
+          kotlin(
+            """
+              import org.openqa.selenium.WebDriver
+              import org.openqa.selenium.support.ui.WebDriverWait
+
+              fun WebDriver.await(timeout: Long, precision: Long): WebDriverWait {
+                  return WebDriverWait(
+                      this,
+                      timeout,
+                      precision
+                  )
+              }
+              """,
+            """
+              import org.openqa.selenium.WebDriver
+              import org.openqa.selenium.support.ui.WebDriverWait
+
+              import java.time.Duration
+
+              fun WebDriver.await(timeout: Long, precision: Long): WebDriverWait {
+                  return WebDriverWait(
+                      this,
+                      Duration.ofSeconds(timeout),
+                      Duration.ofMillis(precision)
+                  )
               }
               """
           )

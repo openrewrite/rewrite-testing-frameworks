@@ -65,7 +65,7 @@ public class MigrateWebDriverWaitConstructors extends Recipe {
                         if (args == null) {
                             return nc;
                         }
-                        return nc.withArguments(args).withConstructorType(newType(nc.getConstructorType()));
+                        return SeleniumDurations.withArguments(nc, args).withConstructorType(newType(nc.getConstructorType()));
                     }
 
                     @Override
@@ -77,7 +77,7 @@ public class MigrateWebDriverWaitConstructors extends Recipe {
                             return m;
                         }
                         JavaType.Method type = newType(m.getMethodType());
-                        return m.withArguments(args)
+                        return SeleniumDurations.withArguments(m, args)
                                 .withName(m.getName().withType(type))
                                 .withMethodType(type);
                     }

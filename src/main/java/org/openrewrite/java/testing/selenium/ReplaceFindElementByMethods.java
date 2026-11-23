@@ -102,8 +102,8 @@ public class ReplaceFindElementByMethods extends Recipe {
                         maybeRemoveImport(replacement[2]);
 
                         JavaType.Method type = SeleniumDurations.withSignature(m.getMethodType(), newName, singletonList(BY));
-                        return m.withSelect(withoutFindsByCast(m.getSelect()))
-                                .withArguments(singletonList(by.withPrefix(locator.getPrefix())))
+                        return SeleniumDurations.withArguments(m.withSelect(withoutFindsByCast(m.getSelect())),
+                                        singletonList(by.withPrefix(locator.getPrefix())))
                                 .withName(m.getName().withSimpleName(newName).withType(type))
                                 .withMethodType(type);
                     }

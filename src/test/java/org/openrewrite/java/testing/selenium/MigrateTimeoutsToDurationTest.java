@@ -227,4 +227,40 @@ class MigrateTimeoutsToDurationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void keepsTheLineBreakBeforeTheClosingParenthesis() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import org.openqa.selenium.WebDriver;
+
+              import java.util.concurrent.TimeUnit;
+
+              class Setup {
+                  void configure(WebDriver driver, long timeout) {
+                      driver.manage().timeouts().implicitlyWait(
+                          timeout,
+                          TimeUnit.SECONDS
+                      );
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.WebDriver;
+
+              import java.time.Duration;
+
+              class Setup {
+                  void configure(WebDriver driver, long timeout) {
+                      driver.manage().timeouts().implicitlyWait(
+                          Duration.ofSeconds(timeout)
+                      );
+                  }
+              }
+              """
+          )
+        );
+    }
 }

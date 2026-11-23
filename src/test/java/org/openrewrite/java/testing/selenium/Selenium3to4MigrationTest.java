@@ -291,6 +291,65 @@ class Selenium3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void arquillianDroneBeforeThreeIsLeftAlone() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.openqa.selenium.WebDriver;
+
+                  import java.util.concurrent.TimeUnit;
+
+                  class AppTest {
+                      void configure(WebDriver driver) {
+                          driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(8))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.141.59",
+                "org.jboss.arquillian.extension:arquillian-drone-webdriver:2.5.6")
+            )
+          )
+        );
+    }
+
+    @Test
+    void vaadinTestBenchBeforeEightIsLeftAlone() {
+        rewriteRun(
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.openqa.selenium.WebDriver;
+
+                  import java.util.concurrent.TimeUnit;
+
+                  class AppTest {
+                      void configure(WebDriver driver) {
+                          driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(8))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("com.vaadin:vaadin-testbench-core:6.2.0")
+            )
+          )
+        );
+    }
+
+    @Test
     void relocatedTypesAndRemovedConstants() {
         rewriteRun(
           //language=java

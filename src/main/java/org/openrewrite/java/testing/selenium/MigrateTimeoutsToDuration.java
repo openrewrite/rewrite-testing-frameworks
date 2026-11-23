@@ -88,7 +88,7 @@ public class MigrateTimeoutsToDuration extends Recipe {
 
                         JavaType.Method type = SeleniumDurations.withSignature(m.getMethodType(), newName,
                                 singletonList(SeleniumDurations.DURATION));
-                        return m.withArguments(singletonList(duration))
+                        return SeleniumDurations.withArguments(m, singletonList(duration))
                                 .withName(m.getName().withSimpleName(newName).withType(type))
                                 .withMethodType(type);
                     }

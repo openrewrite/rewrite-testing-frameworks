@@ -22,6 +22,8 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JContainer;
+import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
@@ -131,6 +133,31 @@ final class SeleniumDurations {
             }
         }
         return type;
+    }
+
+    /**
+     * The call with {@code arguments} in place of its arguments. Unlike {@code withArguments}, this keeps the space
+     * after each argument, and so the line break before the closing parenthesis, which belongs to the last argument.
+     */
+    static J.MethodInvocation withArguments(J.MethodInvocation method, List<Expression> arguments) {
+        return method.getPadding().withArguments(withElements(method.getPadding().getArguments(), arguments));
+    }
+
+    static J.NewClass withArguments(J.NewClass newClass, List<Expression> arguments) {
+        JContainer<Expression> container = newClass.getPadding().getArguments();
+        return container == null ? newClass.withArguments(arguments) :
+                newClass.getPadding().withArguments(withElements(container, arguments));
+    }
+
+    private static JContainer<Expression> withElements(JContainer<Expression> container, List<Expression> arguments) {
+        List<JRightPadded<Expression>> before = container.getPadding().getElements();
+        List<JRightPadded<Expression>> after = new ArrayList<>(arguments.size());
+        for (int i = 0; i < arguments.size(); i++) {
+            // The last argument takes the space before the closing parenthesis, wherever it was
+            int from = i == arguments.size() - 1 ? before.size() - 1 : Math.min(i, before.size() - 1);
+            after.add(before.get(from).withElement(arguments.get(i)));
+        }
+        return container.getPadding().withElements(after);
     }
 
     static JavaParser.Builder<?, ?> parser(ExecutionContext ctx) {
