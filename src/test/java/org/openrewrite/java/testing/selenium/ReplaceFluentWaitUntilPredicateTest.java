@@ -108,6 +108,93 @@ class ReplaceFluentWaitUntilPredicateTest implements RewriteTest {
     }
 
     @Test
+    void lambdaKeepsTheIndentationOfAContinuationLine() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.By;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.WebDriverException;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void clickWhenReady(WebDriverWait wait) {
+                      wait
+                              .ignoring(WebDriverException.class)
+                              .until(new Predicate<WebDriver>() {
+                                  @Override
+                                  public boolean apply(WebDriver driver) {
+                                      driver.findElement(By.id("add")).click();
+                                      return true;
+                                  }
+                              });
+                  }
+              }
+              """,
+            """
+              import org.openqa.selenium.By;
+              import org.openqa.selenium.WebDriverException;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void clickWhenReady(WebDriverWait wait) {
+                      wait
+                              .ignoring(WebDriverException.class)
+                              .until(driver -> {
+                                  driver.findElement(By.id("add")).click();
+                                  return true;
+                              });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void parameterNamedLikeALocalVariable() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void waitForTitle(WebDriver driver, final String title) {
+                      new WebDriverWait(driver, 10).until(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              return driver.getTitle().equals(title);
+                          }
+                      });
+                  }
+              }
+              """,
+            """
+              import com.google.common.base.Predicate;
+              import org.openqa.selenium.WebDriver;
+              import org.openqa.selenium.support.ui.WebDriverWait;
+
+              class Waits {
+                  void waitForTitle(WebDriver driver, final String title) {
+                      new WebDriverWait(driver, 10).until(new Predicate<WebDriver>() {
+                          @Override
+                          public boolean apply(WebDriver driver) {
+                              return driver.getTitle().equals(title);
+                          }
+                      }::apply);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void lambdaCastToPredicate() {
         rewriteRun(
           //language=java

@@ -69,6 +69,7 @@ recipeList:
   - org.openrewrite.java.testing.selenium.MigrateTimeoutsToDuration
   - org.openrewrite.java.testing.selenium.MigrateWebDriverWaitConstructors
   - org.openrewrite.java.testing.selenium.ReplaceFluentWaitUntilPredicate
+  - org.openrewrite.java.testing.selenium.ExtendAbstractWebDriverEventListener
   - org.openrewrite.java.testing.selenium.ReplaceFindElementByMethods
   - org.openrewrite.java.testing.selenium.ReplaceDesiredCapabilitiesFactories
   - org.openrewrite.java.testing.selenium.ReplaceDriverCapabilitiesConstructors
@@ -88,14 +89,16 @@ name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependencies
 displayName: Upgrade Selenium dependencies to 4.x
 description: >-
   Upgrade the Selenium dependencies to the latest Selenium 4.x where the oldest Java version in the repository is 11
-  or later, and to 4.13.0, the last release that runs on Java 8, where it is older. Artifacts that Selenium 4 no
-  longer publishes are replaced by their successors, or removed where nothing uses them.
+  or later, and to 4.13.0, the last release that runs on Java 8, where it is older. A repository whose code uses an
+  API that 4.13.0 still has and a later release removed, such as `EventFiringWebDriver` or `FirefoxBinary`, also moves
+  to 4.13.0. Artifacts that Selenium 4 no longer publishes are replaced by their successors, or removed where nothing
+  uses them.
 tags:
   - testing
   - selenium
 recipeList:
-  - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava11
-  - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava8
+  - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesToLatest
+  - org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesTo413
   - org.openrewrite.java.testing.selenium.AddDependenciesSeleniumThreeBroughtAlong
 
 ---
@@ -146,17 +149,17 @@ recipeList:
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava11
+name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesToLatest
 displayName: Upgrade Selenium dependencies to the latest 4.x
 description: >-
   Upgrade the Selenium dependencies to the latest Selenium 4.x, which requires Java 11, in a repository whose oldest
-  Java version is 11 or later.
+  Java version is 11 or later and whose code uses none of the APIs that releases after 4.13.0 removed.
 tags:
   - testing
   - selenium
 preconditions:
-  - org.openrewrite.java.search.HasMinimumJavaVersion:
-      version: 11
+  - org.openrewrite.java.testing.selenium.StaysOnSelenium413:
+      invertMarking: true
 recipeList:
   - org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
   # Arquillian's Selenium BOM ends at 3.4.0, and Selenium's own manages the same artifacts from Selenium 4 on
@@ -177,22 +180,21 @@ recipeList:
       artifactId: selenium-*
       newVersion: 4.x
       overrideManagedVersion: true
-  - org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava11
-  - org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava11
+  - org.openrewrite.java.testing.selenium.AddLatestSeleniumRemoteDriverForPhantomJsDriver
+  - org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesToLatest
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesForJava8
+name: org.openrewrite.java.testing.selenium.UpgradeSeleniumDependenciesTo413
 displayName: Upgrade Selenium dependencies to 4.13.0
 description: >-
   Upgrade the Selenium dependencies to 4.13.0, the last Selenium 4 release that runs on Java 8, in a repository
-  whose oldest Java version is older than 11.
+  whose oldest Java version is older than 11, or whose code uses an API that a later release removed.
 tags:
   - testing
   - selenium
 preconditions:
-  - org.openrewrite.java.search.HasMinimumJavaVersion:
-      version: "[1,11)"
+  - org.openrewrite.java.testing.selenium.StaysOnSelenium413
 recipeList:
   - org.openrewrite.java.testing.selenium.ReplaceRemovedSeleniumArtifacts
   # Arquillian's Selenium BOM ends at 3.4.0, and Selenium's own manages the same artifacts from Selenium 4 on
@@ -213,8 +215,8 @@ recipeList:
       artifactId: selenium-*
       newVersion: 4.13.x
       overrideManagedVersion: true
-  - org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava8
-  - org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava8
+  - org.openrewrite.java.testing.selenium.AddSelenium413RemoteDriverForPhantomJsDriver
+  - org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesTo413
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
@@ -315,7 +317,7 @@ recipeList:
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava11
+name: org.openrewrite.java.testing.selenium.AddLatestSeleniumRemoteDriverForPhantomJsDriver
 displayName: Add the Selenium that PhantomJS driver 1.5.0 needs, at the latest Selenium 4.x
 description: >-
   `com.codeborne:phantomjsdriver` 1.5.0 declares no dependency on Selenium, where earlier releases brought it along.
@@ -339,7 +341,7 @@ recipeList:
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava11
+name: org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesToLatest
 displayName: Manage the Selenium that another library brings at the latest Selenium 4.x
 description: >-
   Where a module's code uses Selenium, but the module only gets it through another library it depends on, such as a
@@ -372,7 +374,7 @@ recipeList:
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.selenium.AddSeleniumRemoteDriverForPhantomJsDriverForJava8
+name: org.openrewrite.java.testing.selenium.AddSelenium413RemoteDriverForPhantomJsDriver
 displayName: Add the Selenium that PhantomJS driver 1.5.0 needs, at Selenium 4.13.0
 description: >-
   `com.codeborne:phantomjsdriver` 1.5.0 declares no dependency on Selenium, where earlier releases brought it along.
@@ -396,7 +398,7 @@ recipeList:
 
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesForJava8
+name: org.openrewrite.java.testing.selenium.UpgradeTransitiveSeleniumDependenciesTo413
 displayName: Manage the Selenium that another library brings at Selenium 4.13.0
 description: >-
   Where a module's code uses Selenium, but the module only gets it through another library it depends on, such as a

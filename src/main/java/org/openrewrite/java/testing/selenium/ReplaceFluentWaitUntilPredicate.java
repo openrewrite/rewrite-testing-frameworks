@@ -17,17 +17,21 @@ package org.openrewrite.java.testing.selenium;
 
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.marker.Markers;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -60,10 +64,7 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
                     return m;
                 }
                 Expression predicate = m.getArguments().get(0);
-                Expression function = asFunction(predicate);
-                if (function instanceof J.Lambda) {
-                    function = autoFormat(function, ctx, getCursor());
-                }
+                Expression function = asFunction(predicate, getCursor());
                 maybeRemoveImport(PREDICATE);
                 // Such as the type argument of `Predicate<WebDriver>`, which the lambda no longer names
                 for (JavaType.FullyQualified named : namedTypes(predicate)) {
@@ -78,12 +79,12 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
         });
     }
 
-    private static Expression asFunction(Expression predicate) {
+    private static Expression asFunction(Expression predicate, Cursor cursor) {
         if (predicate instanceof J.TypeCast && ((J.TypeCast) predicate).getExpression() instanceof J.Lambda) {
             return ((J.TypeCast) predicate).getExpression().withPrefix(predicate.getPrefix());
         }
         if (predicate instanceof J.NewClass) {
-            J.Lambda lambda = asLambda((J.NewClass) predicate);
+            J.Lambda lambda = asLambda((J.NewClass) predicate, cursor);
             if (lambda != null) {
                 return lambda;
             }
@@ -92,9 +93,10 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
     }
 
     /**
-     * An anonymous `Predicate` that declares nothing but `apply`, and does not refer to itself, as a lambda.
+     * An anonymous `Predicate` that declares nothing but `apply`, and does not refer to itself, as a lambda. Unlike
+     * the method of an anonymous class, a lambda cannot declare a name that a local variable around it already has.
      */
-    private static J.@Nullable Lambda asLambda(J.NewClass newClass) {
+    private static J.@Nullable Lambda asLambda(J.NewClass newClass, Cursor cursor) {
         J.Block classBody = newClass.getBody();
         if (classBody == null || classBody.getStatements().size() != 1 ||
             !(classBody.getStatements().get(0) instanceof J.MethodDeclaration)) {
@@ -104,6 +106,14 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
         J.Block body = apply.getBody();
         if (!"apply".equals(apply.getSimpleName()) || body == null || apply.getParameters().size() != 1 ||
             !(apply.getParameters().get(0) instanceof J.VariableDeclarations) || refersToThis(body)) {
+            return null;
+        }
+        Set<String> declared = declaredNames(apply, null);
+        J scope = cursor.firstEnclosing(J.MethodDeclaration.class);
+        if (scope == null) {
+            scope = cursor.firstEnclosing(J.Block.class);
+        }
+        if (scope != null && !Collections.disjoint(declared, declaredNames(scope, newClass))) {
             return null;
         }
         J.VariableDeclarations parameter = (J.VariableDeclarations) apply.getParameters().get(0);
@@ -122,6 +132,13 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
                 lambdaBody = ret.getExpression().withPrefix(Space.SINGLE_SPACE);
             }
         }
+        // The body of `apply` is one level deeper than the anonymous class around it, which the lambda replaces
+        String classIndent = indentation(classBody.getEnd());
+        String methodIndent = indentation(apply.getPrefix());
+        if (classIndent != null && methodIndent != null && methodIndent.length() > classIndent.length() &&
+            methodIndent.startsWith(classIndent)) {
+            lambdaBody = outdent(lambdaBody, methodIndent, classIndent);
+        }
         return new J.Lambda(
                 Tree.randomId(),
                 newClass.getPrefix(),
@@ -131,6 +148,48 @@ public class ReplaceFluentWaitUntilPredicate extends Recipe {
                 Space.SINGLE_SPACE,
                 lambdaBody,
                 FUNCTION);
+    }
+
+    private static @Nullable String indentation(Space space) {
+        String whitespace = space.getComments().isEmpty() ? space.getWhitespace() :
+                space.getComments().get(space.getComments().size() - 1).getSuffix();
+        int newline = whitespace.lastIndexOf('\n');
+        return newline < 0 ? null : whitespace.substring(newline + 1);
+    }
+
+    private static J outdent(J tree, String from, String to) {
+        return new JavaVisitor<Integer>() {
+            @Override
+            public Space visitSpace(@Nullable Space space, Space.Location loc, Integer p) {
+                if (space == null) {
+                    return null;
+                }
+                return space
+                        .withWhitespace(space.getWhitespace().replace("\n" + from, "\n" + to))
+                        .withComments(ListUtils.map(space.getComments(),
+                                comment -> comment.withSuffix(comment.getSuffix().replace("\n" + from, "\n" + to))));
+            }
+        }.visitNonNull(tree, 0);
+    }
+
+    /**
+     * The names of the variables and parameters declared in a tree, other than in the part of it left out.
+     */
+    private static Set<String> declaredNames(J tree, @Nullable J leftOut) {
+        Set<String> names = new HashSet<>();
+        new JavaIsoVisitor<Set<String>>() {
+            @Override
+            public @Nullable J visit(@Nullable Tree t, Set<String> n) {
+                return leftOut != null && t != null && t.getId().equals(leftOut.getId()) ? (J) t : super.visit(t, n);
+            }
+
+            @Override
+            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, Set<String> n) {
+                n.add(variable.getSimpleName());
+                return super.visitVariable(variable, n);
+            }
+        }.visit(tree, names);
+        return names;
     }
 
     private static Set<JavaType.FullyQualified> namedTypes(J tree) {

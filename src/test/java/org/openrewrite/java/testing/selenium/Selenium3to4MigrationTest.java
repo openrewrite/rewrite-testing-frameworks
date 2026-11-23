@@ -190,6 +190,38 @@ class Selenium3to4MigrationTest implements RewriteTest {
     }
 
     @Test
+    void javaElevenUsingAnApiRemovedAfterSelenium413() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(),
+              "selenium-api-3", "selenium-remote-driver-3", "selenium-support-3")),
+          mavenProject("ui-tests",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.openqa.selenium.WebDriver;
+                  import org.openqa.selenium.support.events.EventFiringWebDriver;
+
+                  class LoginTest {
+                      WebDriver listened(WebDriver driver) {
+                          return new EventFiringWebDriver(driver);
+                      }
+                  }
+                  """,
+                spec -> spec.markers(javaVersion(17))
+              )
+            ),
+            //language=xml
+            pomXml(
+              pom("org.seleniumhq.selenium:selenium-java:3.141.59"),
+              pom("org.seleniumhq.selenium:selenium-java:4.13.0")
+            )
+          )
+        );
+    }
+
+    @Test
     void versionManagedBySpringBootParent() {
         rewriteRun(
           mavenProject("ui-tests",
