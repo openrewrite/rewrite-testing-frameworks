@@ -27,6 +27,7 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.List;
@@ -48,7 +49,7 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!ASSERT_THAT_MATCHER.matches(mi)) {
+                if (!ASSERT_THAT_MATCHER.matches(mi) || !HamcrestMatcherUtils.isTyped(mi)) {
                     return mi;
                 }
 
@@ -64,7 +65,10 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
                 }
 
                 // Choose assertion based on whether actual argument is an array
-                boolean isArray = TypeUtils.asArray(actualArgument.getType()) != null;
+                JavaType.Array arrayType = TypeUtils.asArray(actualArgument.getType());
+                boolean isArray = arrayType != null;
+                // the assertion of an array of arrays has no `containsExactly(..)`, and compares them deeply instead
+                boolean isArrayOfArrays = arrayType != null && arrayType.getElemType() instanceof JavaType.Array;
 
                 J.MethodInvocation isInvocation = (J.MethodInvocation) matcherArgument;
                 Expression expectedArgument = isInvocation.getArguments().get(0);
@@ -77,7 +81,9 @@ public class HamcrestIsMatcherToAssertJ extends Recipe {
 
                 String reason = reasonArgument != null ? ".as(#{any(String)})" : "";
                 // Using `#{any(Object)}` and `#{any(Object[])}` here as the actual types could be from the source path
-                String template = isArray ?
+                String template = isArrayOfArrays ?
+                        "assertThat(#{any(Object[][])})" + reason + ".isDeepEqualTo(#{any(Object[][])})" :
+                        isArray ?
                         "assertThat(#{any(Object[])})" + reason + ".containsExactly(#{any(Object[])})" :
                         "assertThat(#{any(Object)})" + reason + ".isEqualTo(#{any(Object)})";
 

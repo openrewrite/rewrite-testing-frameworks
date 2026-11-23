@@ -50,7 +50,7 @@ public class HamcrestHasItemMatcherToAssertJ extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation methodInvocation, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(methodInvocation, ctx);
-                if (!ASSERT_THAT_MATCHER.matches(mi)) {
+                if (!ASSERT_THAT_MATCHER.matches(mi) || !HamcrestMatcherUtils.isTyped(mi)) {
                     return mi;
                 }
 

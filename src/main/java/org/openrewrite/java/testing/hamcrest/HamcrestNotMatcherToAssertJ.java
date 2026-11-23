@@ -72,7 +72,7 @@ public class HamcrestNotMatcherToAssertJ extends Recipe {
         @Override
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
             J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-            if (!ASSERT_THAT_MATCHER.matches(mi)) {
+            if (!ASSERT_THAT_MATCHER.matches(mi) || !HamcrestMatcherUtils.isTyped(mi)) {
                 return mi;
             }
             List<Expression> mia = mi.getArguments();

@@ -40,7 +40,7 @@ public class RemoveIsMatcher extends Recipe {
         return Preconditions.check(Preconditions.and(new UsesMethod<>(IS_MATCHER), new UsesMethod<>(ASSERT_THAT_MATCHER)), new JavaVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation mi, ExecutionContext ctx) {
-                if (ASSERT_THAT_MATCHER.matches(mi)) {
+                if (ASSERT_THAT_MATCHER.matches(mi) && HamcrestMatcherUtils.isTyped(mi)) {
                     getCursor().putMessage("ASSERT_THAT", mi);
                 } else if (IS_MATCHER.matches(mi) && getCursor().pollNearestMessage("ASSERT_THAT") != null) {
                     maybeRemoveImport("org.hamcrest.Matchers.is");

@@ -15,10 +15,14 @@
  */
 package org.openrewrite.java.testing.hamcrest;
 
+import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 final class HamcrestMatcherUtils {
     private HamcrestMatcherUtils() {
@@ -57,5 +61,34 @@ final class HamcrestMatcherUtils {
         }
         JavaType.Parameterized matcher = (JavaType.Parameterized) method.getReturnType();
         return matcher.getTypeParameters().size() != 1 || !TypeUtils.isOfType(parameter, matcher.getTypeParameters().get(0));
+    }
+
+    /**
+     * Whether every call in the matcher of a Hamcrest assertion has a type, and every argument it passes on. javac
+     * picks some overload for an argument whose type it couldn't resolve, so a value would be taken for a matcher, or
+     * the other way around. The value asserted on needs no type, as the matcher's overloads don't depend on it.
+     */
+    static boolean isTyped(J.MethodInvocation assertion) {
+        List<Expression> args = assertion.getArguments();
+        if (args.isEmpty() || !(args.get(args.size() - 1) instanceof J.MethodInvocation)) {
+            return true;
+        }
+        AtomicBoolean typed = new AtomicBoolean(true);
+        new JavaIsoVisitor<AtomicBoolean>() {
+            @Override
+            public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean t) {
+                if (method.getMethodType() == null) {
+                    t.set(false);
+                }
+                for (Expression arg : method.getArguments()) {
+                    if (!(arg instanceof J.Empty) && !(arg instanceof J.Lambda) && !(arg instanceof J.MemberReference) &&
+                        (arg.getType() == null || arg.getType() instanceof JavaType.Unknown)) {
+                        t.set(false);
+                    }
+                }
+                return t.get() ? super.visitMethodInvocation(method, t) : method;
+            }
+        }.visit(args.get(args.size() - 1), typed);
+        return typed.get();
     }
 }

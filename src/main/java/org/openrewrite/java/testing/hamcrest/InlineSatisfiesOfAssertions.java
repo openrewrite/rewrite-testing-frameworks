@@ -26,15 +26,22 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Turns {@code assertThat(x).satisfies(arg -> assertThat(arg).isEqualTo(1))} into {@code assertThat(x).isEqualTo(1)},
  * and likewise for {@code assumeThat(x)}, which the migration of Hamcrest assumptions and of matchers wrapping
- * another matcher produces on the way.
+ * another matcher produces on the way. Several assertions, as the migration of {@code allOf(..)} produces, are chained
+ * when each but the last returns the assertion it is called on: in
+ * {@code assertThat(list).satisfies(arg -> assertThat(arg).contains(a), arg -> assertThat(arg).contains(b))} the
+ * lambdas' parameter is a {@code List<? extends E>}, whose assertion takes no {@code E}, where
+ * {@code assertThat(list).contains(a).contains(b)} compiles.
  */
-public class InlineSatisfiesOfOneAssertion extends Recipe {
+public class InlineSatisfiesOfAssertions extends Recipe {
 
     private static final MethodMatcher SATISFIES = new MethodMatcher("org.assertj.core.api.AbstractAssert satisfies(..)", true);
     private static final MethodMatcher ASSERT_THAT = new MethodMatcher("org.assertj.core.api.Assertions assertThat(..)");
@@ -42,11 +49,12 @@ public class InlineSatisfiesOfOneAssertion extends Recipe {
     private static final MethodMatcher AS = new MethodMatcher("org.assertj.core.api.Descriptable as(..)", true);
 
     @Getter
-    final String displayName = "Inline `satisfies(..)` of one assertion on its argument";
+    final String displayName = "Inline `satisfies(..)` of assertions on its argument";
 
     @Getter
     final String description = "Replace `assertThat(x).satisfies(arg -> assertThat(arg).isEqualTo(1))` with " +
-            "`assertThat(x).isEqualTo(1)`, and the same for `assumeThat(x)`.";
+            "`assertThat(x).isEqualTo(1)`, and the same for `assumeThat(x)`. Several assertions are chained when each " +
+            "but the last returns the assertion it is called on.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
@@ -54,15 +62,56 @@ public class InlineSatisfiesOfOneAssertion extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (!SATISFIES.matches(mi) || mi.getArguments().size() != 1 || !(mi.getArguments().get(0) instanceof J.Lambda) ||
-                    !isAssertionRoot(mi.getSelect())) {
+                if (!SATISFIES.matches(mi) || mi.getArguments().isEmpty() || !isAssertionRoot(mi.getSelect())) {
                     return mi;
                 }
-                J.Lambda lambda = (J.Lambda) mi.getArguments().get(0);
+                List<J.MethodInvocation> bodies = new ArrayList<>();
+                for (Expression argument : mi.getArguments()) {
+                    J.MethodInvocation body = assertionOnParameter(argument);
+                    if (body == null) {
+                        return mi;
+                    }
+                    bodies.add(body);
+                }
+                JavaType receiverType = mi.getSelect().getType();
+                for (int i = 0; i < bodies.size() - 1; i++) {
+                    if (!returnsItsAssertion(bodies.get(i), receiverType)) {
+                        return mi;
+                    }
+                }
+                maybeRemoveImport("org.assertj.core.api.Assertions.assertThat");
+                maybeRemoveImport("org.assertj.core.api.Assertions");
+                Expression chain = mi.getSelect();
+                for (J.MethodInvocation body : bodies) {
+                    J.MethodInvocation innermost = innermost(body);
+                    Expression receiver = chain;
+                    //noinspection DataFlowIssue
+                    chain = new JavaIsoVisitor<Integer>() {
+                        @Override
+                        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, Integer p) {
+                            if (m == innermost) {
+                                return (J.MethodInvocation) receiver.withPrefix(m.getPrefix());
+                            }
+                            return super.visitMethodInvocation(m, p);
+                        }
+                    }.visitMethodInvocation(body, 0);
+                }
+                return (J.MethodInvocation) chain.withPrefix(mi.getPrefix());
+            }
+
+            /**
+             * @return the body of a lambda {@code arg -> assertThat(arg).isEqualTo(1)} that asserts on its parameter
+             * and uses it nowhere else
+             */
+            private J.@Nullable MethodInvocation assertionOnParameter(Expression argument) {
+                if (!(argument instanceof J.Lambda)) {
+                    return null;
+                }
+                J.Lambda lambda = (J.Lambda) argument;
                 if (lambda.getParameters().getParameters().size() != 1 ||
                     !(lambda.getParameters().getParameters().get(0) instanceof J.VariableDeclarations) ||
                     !(lambda.getBody() instanceof J.MethodInvocation)) {
-                    return mi;
+                    return null;
                 }
                 String parameter = ((J.VariableDeclarations) lambda.getParameters().getParameters().get(0))
                         .getVariables().get(0).getSimpleName();
@@ -72,21 +121,55 @@ public class InlineSatisfiesOfOneAssertion extends Recipe {
                     !(innermost.getArguments().get(0) instanceof J.Identifier) ||
                     !parameter.equals(((J.Identifier) innermost.getArguments().get(0)).getSimpleName()) ||
                     references(body, parameter) != 1) {
-                    return mi;
+                    return null;
                 }
-                Expression receiver = mi.getSelect();
-                maybeRemoveImport("org.assertj.core.api.Assertions.assertThat");
-                maybeRemoveImport("org.assertj.core.api.Assertions");
-                //noinspection DataFlowIssue
-                return new JavaIsoVisitor<Integer>() {
-                    @Override
-                    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation m, Integer p) {
-                        if (m == innermost) {
-                            return (J.MethodInvocation) receiver.withPrefix(m.getPrefix());
-                        }
-                        return super.visitMethodInvocation(m, p);
+                return body;
+            }
+
+            /**
+             * Whether every method of the chain returns the assertion it is called on, as AssertJ's methods returning
+             * {@code SELF} do, so that the next assertion can be chained to it. The methods are looked up on the type
+             * of the assertion the chain will be called on, since inside the lambda they may not be attributed.
+             */
+            private boolean returnsItsAssertion(J.MethodInvocation chain, @Nullable JavaType receiverType) {
+                JavaType.FullyQualified assertion = TypeUtils.asFullyQualified(receiverType);
+                if (assertion == null) {
+                    return false;
+                }
+                J.MethodInvocation innermost = innermost(chain);
+                for (J.MethodInvocation m = chain; m != innermost; m = (J.MethodInvocation) m.getSelect()) {
+                    if (!returnsSelf(assertion, m.getSimpleName(), new HashSet<>())) {
+                        return false;
                     }
-                }.visitMethodInvocation(body, 0).withPrefix(mi.getPrefix());
+                }
+                return true;
+            }
+
+            private boolean returnsSelf(JavaType.FullyQualified type, String name, Set<String> visited) {
+                boolean found = false;
+                Deque<JavaType.FullyQualified> types = new ArrayDeque<>();
+                types.add(type);
+                while (!types.isEmpty()) {
+                    JavaType.FullyQualified t = types.poll();
+                    if (!visited.add(t.getFullyQualifiedName())) {
+                        continue;
+                    }
+                    for (JavaType.Method m : t.getMethods()) {
+                        if (m.getName().equals(name)) {
+                            JavaType returnType = m.getReturnType();
+                            if (!(returnType instanceof JavaType.GenericTypeVariable &&
+                                  "SELF".equals(((JavaType.GenericTypeVariable) returnType).getName()))) {
+                                return false;
+                            }
+                            found = true;
+                        }
+                    }
+                    if (t.getSupertype() != null) {
+                        types.add(t.getSupertype());
+                    }
+                    types.addAll(t.getInterfaces());
+                }
+                return found;
             }
 
             private boolean isAssertionRoot(@Nullable Expression select) {

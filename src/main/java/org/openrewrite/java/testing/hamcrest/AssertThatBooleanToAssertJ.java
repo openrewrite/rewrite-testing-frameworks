@@ -27,6 +27,8 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 public class AssertThatBooleanToAssertJ extends Recipe {
     @Getter
@@ -43,9 +45,16 @@ public class AssertThatBooleanToAssertJ extends Recipe {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation mi = super.visitMethodInvocation(method, ctx);
-                if (ASSERT_THAT_MATCHER.matches(mi)) {
+                if (ASSERT_THAT_MATCHER.matches(mi) && HamcrestMatcherUtils.isTyped(mi)) {
                     Expression reasonArgument = mi.getArguments().get(0);
                     Expression booleanArgument = mi.getArguments().get(1);
+                    // javac picks this overload for arguments whose types it couldn't resolve, such as a
+                    // `Matcher` from a missing dependency, so only the arguments' own types tell
+                    if (!TypeUtils.isString(reasonArgument.getType()) ||
+                        !(TypeUtils.isOfType(booleanArgument.getType(), JavaType.Primitive.Boolean) ||
+                          TypeUtils.isOfClassType(booleanArgument.getType(), "java.lang.Boolean"))) {
+                        return mi;
+                    }
                     maybeRemoveImport("org.hamcrest.MatcherAssert.assertThat");
                     maybeAddImport("org.assertj.core.api.Assertions", "assertThat");
                     return JavaTemplate.builder("assertThat(#{any(boolean)}).as(#{any(String)}).isTrue()")
