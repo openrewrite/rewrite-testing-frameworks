@@ -779,6 +779,59 @@ class JUnit5MigrationTest implements RewriteTest {
     }
 
     @Test
+    void springBootGradleBuildGetsTheLauncherSpringBootManages() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          mavenProject("project",
+            //language=groovy
+            buildGradle(
+              """
+                plugins {
+                    id 'java'
+                    id 'org.springframework.boot' version '3.5.6'
+                    id 'io.spring.dependency-management' version '1.1.7'
+                }
+                repositories {
+                    mavenCentral()
+                }
+                dependencies {
+                    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+                    testImplementation 'junit:junit:4.13.2'
+                }
+                """,
+              spec -> spec.after(actual -> assertThat(actual)
+                .containsPattern("testRuntimeOnly [\"']org\\.junit\\.platform:junit-platform-launcher[\"']\n")
+                .doesNotContain("junit-platform-launcher:")
+                .actual())
+            ),
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import org.junit.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void hello() {
+                      }
+                  }
+                  """,
+                """
+                  import org.junit.jupiter.api.Test;
+
+                  public class MyTest {
+                      @Test
+                      public void hello() {
+                      }
+                  }
+                  """
+              )
+            )
+          )
+        );
+    }
+
+    @Test
     void migrateGradleKotlinDslBuild() {
         rewriteRun(
           spec -> spec.beforeRecipe(withToolingApi("9.x")),

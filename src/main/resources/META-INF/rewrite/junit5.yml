@@ -122,6 +122,8 @@ recipeList:
   - org.openrewrite.java.testing.junit5.RemoveJUnit4DependenciesUnlessJUnit3Used
   - org.openrewrite.java.testing.junit5.ExcludeJUnit4UnlessUsingTestcontainers
   - org.openrewrite.java.testing.junit5.AddJupiterDependencies
+  # a Spring Boot build gets the launcher of the JUnit that Spring Boot manages, which the one below then leaves alone
+  - org.openrewrite.java.testing.junit5.AddJUnitPlatformLauncherManagedBySpringBoot
   # Older Gradle versions supply a platform launcher that does not align with the Jupiter engine added above
   - org.openrewrite.gradle.AddDependency:
       groupId: org.junit.platform
@@ -548,3 +550,33 @@ recipeList:
   - org.openrewrite.java.testing.junit5.SystemRulesToSystemStubs
   - org.openrewrite.java.testing.junit5.ExpectedSystemExitToCatchSystemExit
   - org.openrewrite.java.testing.junit5.SystemRulesDependencies
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.junit5.AddJUnitPlatformLauncherManagedBySpringBoot
+displayName: Add the JUnit Platform launcher that Spring Boot manages
+description: >-
+  Spring Boot's Gradle plugin, applied with the Spring dependency management plugin, manages the JUnit Platform launcher
+  at the version of the JUnit Jupiter it manages. The launcher is added without a version, as Spring Initializr does, since
+  a launcher of another version than the Jupiter engine can't start the tests.
+tags:
+  - testing
+  - junit
+  - spring
+preconditions:
+  - org.openrewrite.gradle.search.FindPlugins:
+      pluginId: org.springframework.boot
+  - org.openrewrite.gradle.search.FindPlugins:
+      pluginId: io.spring.dependency-management
+recipeList:
+  - org.openrewrite.gradle.AddDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-launcher
+      onlyIfUsing: org.junit..*
+      configuration: testRuntimeOnly
+      acceptTransitive: true
+  - org.openrewrite.gradle.AddDependency:
+      groupId: org.junit.platform
+      artifactId: junit-platform-launcher
+      onlyIfUsing: junit.framework..*
+      configuration: testRuntimeOnly
+      acceptTransitive: true
