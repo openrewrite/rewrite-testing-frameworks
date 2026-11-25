@@ -1,0 +1,79 @@
+#
+# Copyright 2026 the original author or authors.
+# <p>
+# Licensed under the Moderne Source Available License (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://docs.moderne.io/licensing/moderne-source-available-license
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.sonar.SonarRules
+displayName: Sonar rules for testing frameworks
+description: Fixes or flags code reported by SonarQube Java rules, grouped by the default Sonar severity of each rule.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - org.openrewrite.java.testing.sonar.Blocker
+  - org.openrewrite.java.testing.sonar.Critical
+  - org.openrewrite.java.testing.sonar.Major
+  - org.openrewrite.java.testing.sonar.Minor
+  - org.openrewrite.java.testing.sonar.Info
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.sonar.Blocker
+displayName: Sonar blocker rules for testing frameworks
+description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Blocker.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - org.openrewrite.java.testing.cleanup.FindTestClassesWithoutTests
+  - org.openrewrite.java.testing.cleanup.AddMissingSuperCallInTestCase
+  - org.openrewrite.java.testing.cleanup.TestsShouldIncludeAssertions
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.sonar.Critical
+displayName: Sonar critical rules for testing frameworks
+description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Critical.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - org.openrewrite.java.testing.cleanup.RemoveEmptyTests
+  - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
+  - org.openrewrite.java.testing.junit5.AddMissingNested
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.sonar.Major
+displayName: Sonar major rules for testing frameworks
+description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Major.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.sonar.Minor
+displayName: Sonar minor rules for testing frameworks
+description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Minor.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
+  - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.testing.sonar.Info
+displayName: Sonar info rules for testing frameworks
+description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Info.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
