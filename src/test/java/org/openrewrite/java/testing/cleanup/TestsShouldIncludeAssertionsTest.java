@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.cleanup;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -23,6 +24,7 @@ import org.openrewrite.Parser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import java.util.List;
 
@@ -408,6 +410,100 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
     }
 
     @Test
+    void hasWebTestClientAssertion() {
+        //language=java
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()
+            .classpathFromResources(new InMemoryExecutionContext(), "junit-jupiter-api-5")
+            .dependsOn(
+              """
+                package org.springframework.test.web.support;
+                public abstract class AbstractStatusAssertions<E, R> {
+                    public R isOk() { return null; }
+                }
+                """,
+              """
+                package org.springframework.test.web.reactive.server;
+                public class StatusAssertions extends org.springframework.test.web.support.AbstractStatusAssertions<Object, WebTestClient.ResponseSpec> {
+                }
+                """,
+              """
+                package org.springframework.test.web.reactive.server;
+                public interface WebTestClient {
+                    ResponseSpec exchange();
+                    interface ResponseSpec {
+                        StatusAssertions expectStatus();
+                        BodyContentSpec expectBody();
+                    }
+                    interface BodyContentSpec {
+                        BodyContentSpec json(String json);
+                    }
+                }
+                """
+            )),
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+              import org.springframework.test.web.reactive.server.WebTestClient;
+
+              class HelloTests {
+                  WebTestClient rest;
+
+                  @Test
+                  void statusIsOk() {
+                      this.rest.exchange()
+                          .expectStatus().isOk();
+                  }
+
+                  @Test
+                  void bodyMatches() {
+                      this.rest.exchange()
+                          .expectBody().json("{}");
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepsCommentsAtEndOfBodyOnce() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class AaTest {
+                  @Test
+                  public void methodTest() {
+                      // @formatter:off
+                      Integer it = Integer.valueOf("2");
+                      // @formatter:on
+                  }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+              class AaTest {
+                  @Test
+                  public void methodTest() {
+                      assertDoesNotThrow(() -> {
+                          // @formatter:off
+                          Integer it = Integer.valueOf("2");
+                          // @formatter:on
+                      });
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void ignoreDisabled() {
         //language=java
         rewriteRun(
@@ -516,6 +612,398 @@ class TestsShouldIncludeAssertionsTest implements RewriteTest {
                   @Test
                   fun `backtick test method name`() {
                       println("Not an assertion")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    /**
+     * With the real Spring, ArchUnit and Mockito types on the classpath.
+     */
+    @Nested
+    class WithLibraries implements RewriteTest {
+        @Override
+        public void defaults(RecipeSpec spec) {
+            spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+                "junit-jupiter-api-5", "spring-test-6", "mockito-core-5", "archunit-0"))
+              .typeValidationOptions(TypeValidation.none())
+              .recipe(new TestsShouldIncludeAssertions(null));
+        }
+
+        // Real spring-test 6.1 types: status assertion recognised
+        @Test
+        void webTestClientAssertions() {
+            rewriteRun(java(
+              """
+                import org.junit.jupiter.api.Test;
+                import org.springframework.test.web.reactive.server.WebTestClient;
+
+                class HelloTests {
+                    WebTestClient rest;
+
+                    // spring-core is not on the test classpath, so javac fails to attribute the first expectBody(..) in a file
+                    void warmUp() {
+                        rest.get().uri("/").exchange().expectBody();
+                    }
+
+                    @Test
+                    void statusIsOk() {
+                        rest.get().uri("/").exchange().expectStatus().isOk();
+                    }
+
+                    @Test
+                    void jsonPath() {
+                        rest.get().uri("/").exchange().expectBody().jsonPath("$.a").isEqualTo(1);
+                    }
+
+                    @Test
+                    void listSize() {
+                        rest.get().uri("/").exchange().expectBodyList(String.class).hasSize(1);
+                    }
+                }
+                """));
+        }
+
+        // returnResult() is declared on BodySpec but asserts nothing: should still be wrapped (it is on main)
+        @Test
+        void webTestClientReturnResultIsNoAssertion() {
+            rewriteRun(java(
+              """
+                import org.junit.jupiter.api.Test;
+                import org.springframework.test.web.reactive.server.WebTestClient;
+
+                class HelloTests {
+                    WebTestClient rest;
+
+                    // spring-core is not on the test classpath, so javac fails to attribute the first expectBody(..) in a file
+                    void warmUp() {
+                        rest.get().uri("/").exchange().expectBody();
+                    }
+
+                    @Test
+                    void fetch() {
+                        rest.get().uri("/").exchange().expectBody(String.class).returnResult();
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+                import org.springframework.test.web.reactive.server.WebTestClient;
+
+                import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+                class HelloTests {
+                    WebTestClient rest;
+
+                    // spring-core is not on the test classpath, so javac fails to attribute the first expectBody(..) in a file
+                    void warmUp() {
+                        rest.get().uri("/").exchange().expectBody();
+                    }
+
+                    @Test
+                    void fetch() {
+                        assertDoesNotThrow(() -> {
+                            rest.get().uri("/").exchange().expectBody(String.class).returnResult();
+                        });
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void webTestClientBodyContentReturnResultIsNoAssertion() {
+            rewriteRun(java(
+              """
+                import org.junit.jupiter.api.Test;
+                import org.springframework.test.web.reactive.server.WebTestClient;
+
+                class HelloTests {
+                    WebTestClient rest;
+
+                    // spring-core is not on the test classpath, so javac fails to attribute the first expectBody(..) in a file
+                    void warmUp() {
+                        rest.get().uri("/").exchange().expectBody();
+                    }
+
+                    @Test
+                    void fetch() {
+                        byte[] body = rest.get().uri("/").exchange().expectBody().returnResult().getResponseBody();
+                        System.out.println(body);
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+                import org.springframework.test.web.reactive.server.WebTestClient;
+
+                import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+                class HelloTests {
+                    WebTestClient rest;
+
+                    // spring-core is not on the test classpath, so javac fails to attribute the first expectBody(..) in a file
+                    void warmUp() {
+                        rest.get().uri("/").exchange().expectBody();
+                    }
+
+                    @Test
+                    void fetch() {
+                        assertDoesNotThrow(() -> {
+                            byte[] body = rest.get().uri("/").exchange().expectBody().returnResult().getResponseBody();
+                            System.out.println(body);
+                        });
+                    }
+                }
+                """));
+        }
+
+        // Real ArchUnit fluent rule: declaring type of check
+        @Test
+        void archRuleCheck() {
+            rewriteRun(java(
+              """
+                import com.tngtech.archunit.core.domain.JavaClasses;
+                import org.junit.jupiter.api.Test;
+
+                import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+                class ArchTests {
+                    JavaClasses classes;
+
+                    @Test
+                    void layers() {
+                        noClasses().that().resideInAPackage("..service..").should().dependOnClassesThat().resideInAPackage("..web..").check(classes);
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void archRuleAssertionsCheck() {
+            rewriteRun(java(
+              """
+                import com.tngtech.archunit.core.domain.JavaClasses;
+                import com.tngtech.archunit.lang.ArchRule;
+                import org.junit.jupiter.api.Test;
+
+                class ArchTests {
+                    JavaClasses classes;
+                    ArchRule rule;
+
+                    @Test
+                    void layers() {
+                        ArchRule.Assertions.check(rule, classes);
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void bddMockitoThenShould() {
+            rewriteRun(java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                import java.util.List;
+
+                import static org.mockito.BDDMockito.then;
+                import static org.mockito.Mockito.mock;
+
+                class MyTest {
+                    @Test
+                    void none() {
+                        List<?> list = mock(List.class);
+                        then(list).shouldHaveNoInteractions();
+                    }
+                }
+                """));
+        }
+
+        // Comment moving: several comments with a blank line between them and a trailing same-line comment
+        @Test
+        void keepsSeveralTrailingCommentsOnce() {
+            rewriteRun(java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class AaTest {
+                    @Test
+                    void methodTest() {
+                        Integer it = Integer.valueOf("2"); // trailing
+
+                        // first
+                        /* second */
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+                class AaTest {
+                    @Test
+                    void methodTest() {
+                        assertDoesNotThrow(() -> {
+                            Integer it = Integer.valueOf("2"); // trailing
+
+                            // first
+                            /* second */
+                        });
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void keepsTrailingCommentOfSingleStatementOnce() {
+            rewriteRun(java(
+              """
+                import org.junit.jupiter.api.Test;
+
+                class AaTest {
+                    @Test
+                    void methodTest() {
+                        Integer.valueOf("2");
+                        // @formatter:on
+                    }
+                }
+                """,
+              """
+                import org.junit.jupiter.api.Test;
+
+                import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+                class AaTest {
+                    @Test
+                    void methodTest() {
+                        assertDoesNotThrow(() -> {
+                            Integer.valueOf("2");
+                            // @formatter:on
+                        });
+                    }
+                }
+                """));
+        }
+
+        @Test
+        void archRuleOverridingCheck() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+                  "junit-jupiter-api-5", "archunit-0"))
+                .recipe(new TestsShouldIncludeAssertions(null)),
+              java(
+                """
+                  import com.tngtech.archunit.core.domain.JavaClasses;
+                  import org.junit.jupiter.api.Test;
+
+                  import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
+
+                  class ArchTests {
+                      JavaClasses classes;
+
+                      @Test
+                      void layers() {
+                          layeredArchitecture()
+                              .layer("Web").definedBy("..web..")
+                              .layer("Service").definedBy("..service..")
+                              .whereLayer("Web").mayNotBeAccessedByAnyLayer()
+                              .check(classes);
+                      }
+                  }
+                  """
+              )
+            );
+        }
+
+        private static final String WEB = """
+          import org.hamcrest.Matcher;
+          import org.junit.jupiter.api.Test;
+          import org.springframework.test.web.reactive.server.WebTestClient;
+          import java.util.function.Consumer;
+          import java.util.function.Function;
+
+          class WebTests {
+              WebTestClient client;
+              Consumer<String> consumer;
+              Matcher<String> matcher;
+              Function<String, Integer> length;
+              Matcher<Integer> intMatcher;
+
+              // spring-core is not on the test classpath, so javac fails to attribute the first expectBody(..) in a file
+              void warmUp() {
+                  client.get().uri("/").exchange().expectBody();
+              }
+
+              @Test
+              void body() {
+                  %s
+              }
+          }
+          """;
+
+        private void web(String additional, String call, boolean wrapped) {
+            String before = WEB.formatted(call);
+            String after = WEB.formatted("assertDoesNotThrow(() -> {\n            " + call + "\n        });")
+              .replace("import java.util.function.Function;\n", "import java.util.function.Function;\n\nimport static org.junit.jupiter.api.Assertions.assertDoesNotThrow;\n");
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+                  "junit-jupiter-api-5", "spring-test-6", "hamcrest-3"))
+                .typeValidationOptions(TypeValidation.none())
+                .recipe(new TestsShouldIncludeAssertions(additional)),
+              wrapped ? java(before, after) : java(before)
+            );
+        }
+
+        @Test
+        void webTestClientValueWithMatcher() {
+            web(null, "client.get().uri(\"/\").exchange().expectBody(String.class).value(matcher);", false);
+        }
+
+        @Test
+        void webTestClientValueWithFunctionAndMatcher() {
+            web(null, "client.get().uri(\"/\").exchange().expectBody(String.class).value(length, intMatcher);", false);
+        }
+
+        @Test
+        void webTestClientValueWithConsumerIsNoAssertion() {
+            web(null, "client.get().uri(\"/\").exchange().expectBody(String.class).value(consumer);", true);
+        }
+
+        @Test
+        void additionalAssertsCountValueWithConsumer() {
+            web("org.springframework.test.web.reactive.server.WebTestClient$BodySpec",
+              "client.get().uri(\"/\").exchange().expectBody(String.class).value(consumer);", false);
+        }
+    }
+
+    @Test
+    void keepsCommentOnClosingBraceLineOnce() {
+        //language=java
+        rewriteRun(
+          java(
+            """
+              import org.junit.jupiter.api.Test;
+
+              class AaTest {
+                  @Test
+                  public void methodTest() {
+                      Integer it = Integer.valueOf("2"); /* end */ }
+              }
+              """,
+            """
+              import org.junit.jupiter.api.Test;
+
+              import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+              class AaTest {
+                  @Test
+                  public void methodTest() {
+                      assertDoesNotThrow(() -> {
+                          Integer it = Integer.valueOf("2"); /* end */
+                      });
                   }
               }
               """
