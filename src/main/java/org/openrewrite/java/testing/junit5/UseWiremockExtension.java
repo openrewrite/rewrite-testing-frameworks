@@ -36,6 +36,7 @@ public class UseWiremockExtension extends Recipe {
     private static final String REGISTER_EXTENSION = "org.junit.jupiter.api.extension.RegisterExtension";
     private static final MethodMatcher NEW_WIREMOCK_RULE = new MethodMatcher(WIREMOCK_RULE + " <constructor>(..)");
     private static final AnnotationMatcher RULE = new AnnotationMatcher("@org.junit.Rule");
+    private static final AnnotationMatcher CLASS_RULE = new AnnotationMatcher("@org.junit.ClassRule");
 
     @Getter
     final String displayName = "Use wiremock extension";
@@ -58,8 +59,9 @@ public class UseWiremockExtension extends Recipe {
                     return vd;
                 }
                 maybeRemoveImport("org.junit.Rule");
+                maybeRemoveImport("org.junit.ClassRule");
                 maybeAddImport(REGISTER_EXTENSION);
-                return vd.withLeadingAnnotations(ListUtils.map(vd.getLeadingAnnotations(), a -> RULE.matches(a) ?
+                return vd.withLeadingAnnotations(ListUtils.map(vd.getLeadingAnnotations(), a -> RULE.matches(a) || CLASS_RULE.matches(a) ?
                         a.withAnnotationType(TypeTree.<J.Identifier>build("RegisterExtension").withType(JavaType.ShallowClass.build(REGISTER_EXTENSION)).withPrefix(a.getAnnotationType().getPrefix())) :
                         a));
             }
@@ -69,8 +71,9 @@ public class UseWiremockExtension extends Recipe {
                 J.MethodInvocation mi = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 String getter = "port".equals(mi.getSimpleName()) ? "getPort" : "httpsPort".equals(mi.getSimpleName()) ? "getHttpsPort" : null;
                 if (getter != null && mi.getSelect() != null && mi.getMethodType() != null && TypeUtils.isOfClassType(mi.getSelect().getType(), WIREMOCK_RULE)) {
-                    return mi.withName(mi.getName().withSimpleName(getter))
-                            .withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION)));
+                    return mi.withMethodType(mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION)))
+                            .withName(mi.getName().withSimpleName(getter).withType(
+                                    mi.getMethodType().withName(getter).withDeclaringType(JavaType.ShallowClass.build(WIREMOCK_EXTENSION))));
                 }
                 return mi;
             }

@@ -246,7 +246,10 @@ public class UpdateTestAnnotation extends Recipe {
                             if ("expected".equals(assignParamName)) {
                                 expectedException = e;
                             } else if ("timeout".equals(assignParamName)) {
-                                timeout = e;
+                                if (!(e instanceof J.Literal && ((J.Literal) e).getValue() instanceof Number &&
+                                        ((Number) ((J.Literal) e).getValue()).longValue() == 0)) {
+                                    timeout = e;
+                                }
                             }
                         }
                     }
