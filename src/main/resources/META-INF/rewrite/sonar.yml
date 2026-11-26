@@ -21,6 +21,8 @@ displayName: Sonar rules for testing frameworks
 description: Fixes or flags code reported by SonarQube Java rules, grouped by the default Sonar severity of each rule.
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.FindSourceFiles:
+      filePattern: "**/*.java"
 recipeList:
   - org.openrewrite.java.testing.sonar.Blocker
   - org.openrewrite.java.testing.sonar.Critical
@@ -34,6 +36,8 @@ displayName: Sonar blocker rules for testing frameworks
 description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Blocker.
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.FindSourceFiles:
+      filePattern: "**/*.java"
 recipeList:
   - org.openrewrite.java.testing.cleanup.FindTestClassesWithoutTests
   - org.openrewrite.java.testing.cleanup.AddMissingSuperCallInTestCase
@@ -45,6 +49,8 @@ displayName: Sonar critical rules for testing frameworks
 description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Critical.
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.FindSourceFiles:
+      filePattern: "**/*.java"
 recipeList:
   - org.openrewrite.java.testing.cleanup.RemoveEmptyTests
   - org.openrewrite.java.testing.junit5.AssertThrowsOnLastStatement
@@ -56,6 +62,8 @@ displayName: Sonar major rules for testing frameworks
 description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Major.
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.FindSourceFiles:
+      filePattern: "**/*.java"
 recipeList:
   - org.openrewrite.java.testing.cleanup.AssertionsArgumentOrder
 ---
@@ -65,6 +73,8 @@ displayName: Sonar minor rules for testing frameworks
 description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Minor.
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.FindSourceFiles:
+      filePattern: "**/*.java"
 recipeList:
   - org.openrewrite.java.testing.junit5.RemoveTryCatchFailBlocks
   - org.openrewrite.java.testing.assertj.SimplifyChainedAssertJAssertions
@@ -75,5 +85,7 @@ displayName: Sonar info rules for testing frameworks
 description: Fixes or flags code reported by SonarQube Java rules whose default Sonar severity is Info.
 preconditions:
   - org.openrewrite.Singleton
+  - org.openrewrite.FindSourceFiles:
+      filePattern: "**/*.java"
 recipeList:
   - org.openrewrite.java.testing.cleanup.TestsShouldNotBePublic
