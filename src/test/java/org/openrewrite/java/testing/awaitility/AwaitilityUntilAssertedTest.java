@@ -15,6 +15,7 @@
  */
 package org.openrewrite.java.testing.awaitility;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
@@ -202,66 +203,105 @@ class AwaitilityUntilAssertedTest implements RewriteTest {
     }
 
     @Test
-    void leavePrimitivesThatWouldBoxToADifferentTypeAlone() {
+    void asPartOfAwaitilityBestPractices() {
         rewriteRun(
-          //language=java
-          java(
-            """
-              import static org.awaitility.Awaitility.await;
-
-              class A {
-                  void test(byte b, int i, char c) {
-                      await().until(() -> b == 1);
-                      await().until(() -> i != 5L);
-                      await().until(() -> c == 65);
-                  }
-              }
-              """,
-            WITH_ASSERTJ
-          )
-        );
-    }
-
-    @Test
-    void leaveUnsupportedConditionsAlone() {
-        rewriteRun(
-          //language=java
-          java(
-            """
-              import java.util.concurrent.atomic.AtomicBoolean;
-              import static org.awaitility.Awaitility.await;
-
-              class A {
-                  void test(AtomicBoolean flag, Integer boxed, Integer other) {
-                      await().until(flag::get);
-                      await().until(() -> flag.get() && boxed > 3);
-                      await().until(() -> boxed == other);
-                      await().until(() -> { return boxed != null; });
-                  }
-              }
-              """,
-            WITH_ASSERTJ
-          )
-        );
-    }
-
-    @Test
-    void doNothingWithoutAssertJOnClasspath() {
-        rewriteRun(
+          spec -> spec.recipeFromResources("org.openrewrite.java.testing.awaitility.AwaitilityBestPractices"),
           //language=java
           java(
             """
               import java.util.List;
+              import java.util.concurrent.TimeUnit;
               import static org.awaitility.Awaitility.await;
 
               class A {
                   void test(List<String> list) {
-                      await().until(() -> list.size() == 3);
+                      await().atMost(5, TimeUnit.SECONDS).until(() -> list.size() == 3);
                   }
               }
               """,
-            WITHOUT_ASSERTJ
+            """
+              import java.time.Duration;
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test(List<String> list) {
+                      await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(list).hasSize(3));
+                  }
+              }
+              """,
+            WITH_ASSERTJ
           )
         );
+    }
+
+    @Nested
+    class NoChange {
+
+        @Test
+        void primitivesThatWouldBoxToADifferentType() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import static org.awaitility.Awaitility.await;
+
+                  class A {
+                      void test(byte b, int i, char c) {
+                          await().until(() -> b == 1);
+                          await().until(() -> i != 5L);
+                          await().until(() -> c == 65);
+                      }
+                  }
+                  """,
+                WITH_ASSERTJ
+              )
+            );
+        }
+
+        @Test
+        void unsupportedConditions() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import java.util.concurrent.atomic.AtomicBoolean;
+                  import static org.awaitility.Awaitility.await;
+
+                  class A {
+                      void test(AtomicBoolean flag, Integer boxed, Integer other) {
+                          await().until(flag::get);
+                          await().until(() -> flag.get() && boxed > 3);
+                          await().until(() -> boxed == other);
+                          await().until(() -> { return boxed != null; });
+                      }
+                  }
+                  """,
+                WITH_ASSERTJ
+              )
+            );
+        }
+
+        @Test
+        void withoutAssertJOnClasspath() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import java.util.List;
+                  import static org.awaitility.Awaitility.await;
+
+                  class A {
+                      void test(List<String> list) {
+                          await().until(() -> list.size() == 3);
+                      }
+                  }
+                  """,
+                WITHOUT_ASSERTJ
+              )
+            );
+        }
     }
 }
