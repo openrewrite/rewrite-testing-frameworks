@@ -179,3 +179,11 @@ type: specs.openrewrite.org/v1beta/category
 name: Sonar rules
 packageName: org.openrewrite.java.testing.sonar
 description: Recipes that cover SonarQube Java rules, grouped by the default Sonar severity of each rule.
+---
+type: specs.openrewrite.org/v1beta/category
+name: Awaitility
+packageName: org.openrewrite.java.testing.awaitility
+description: Recipes for [Awaitility](https://github.com/awaitility/awaitility) asynchronous test assertions.
+tags:
+  - testing
+  - awaitility
