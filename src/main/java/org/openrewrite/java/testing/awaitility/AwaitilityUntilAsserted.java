@@ -33,12 +33,14 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AwaitilityUntilAsserted extends Recipe {
 
     private static final MethodMatcher UNTIL = new MethodMatcher("org.awaitility.core.ConditionFactory until(java.util.concurrent.Callable)");
     private static final String ASSERT_THAT = "org.assertj.core.api.Assertions";
+    private static final List<JavaType.Primitive> NUMERIC_WIDENING = Arrays.asList(JavaType.Primitive.Byte, JavaType.Primitive.Short, JavaType.Primitive.Int, JavaType.Primitive.Long, JavaType.Primitive.Float, JavaType.Primitive.Double);
 
     @Getter
     final String displayName = "Use `untilAsserted` with AssertJ instead of `until` with a boolean condition";
@@ -107,7 +109,7 @@ public class AwaitilityUntilAsserted extends Recipe {
 
         Assertion(String template, Object... arguments) {
             this.template = template;
-            this.arguments = java.util.Arrays.asList(arguments);
+            this.arguments = Arrays.asList(arguments);
         }
     }
 
@@ -118,7 +120,7 @@ public class AwaitilityUntilAsserted extends Recipe {
         }
         List<Object> arguments = new ArrayList<>();
         arguments.add(actual);
-        arguments.addAll(java.util.Arrays.asList(args));
+        arguments.addAll(Arrays.asList(args));
         return new Assertion(placeholder + ")." + call + ")", arguments.toArray());
     }
 
@@ -166,8 +168,7 @@ public class AwaitilityUntilAsserted extends Recipe {
                     right.getType() == JavaType.Primitive.Int) {
                 return assertion(((J.MethodInvocation) left).getSelect(), "hasSize(#{any(int)})", right);
             }
-            if (isPrimitive(left) && isPrimitive(right) &&
-                    (left.getType() == JavaType.Primitive.Boolean) == (right.getType() == JavaType.Primitive.Boolean)) {
+            if (isPrimitive(left) && isPrimitive(right) && widens((JavaType.Primitive) right.getType(), (JavaType.Primitive) left.getType())) {
                 String rightType = ((JavaType.Primitive) right.getType()).getKeyword();
                 return assertion(left, (eq ? "isEqualTo" : "isNotEqualTo") + "(#{any(" + rightType + ")})", right);
             }
@@ -178,6 +179,16 @@ public class AwaitilityUntilAsserted extends Recipe {
     private static boolean isPrimitive(Expression e) {
         return e.getType() instanceof JavaType.Primitive && e.getType() != JavaType.Primitive.Null &&
                 e.getType() != JavaType.Primitive.Void && e.getType() != JavaType.Primitive.String;
+    }
+
+    // AssertJ only overloads `isEqualTo` and `isNotEqualTo` for the actual's own primitive type, so any other
+    // expected type falls through to the `Object` overload, which compares a boxed `Integer` with a boxed `Byte`
+    private static boolean widens(JavaType.Primitive from, JavaType.Primitive to) {
+        if (from == to) {
+            return true;
+        }
+        int source = NUMERIC_WIDENING.indexOf(from == JavaType.Primitive.Char ? JavaType.Primitive.Int : from);
+        return source >= 0 && NUMERIC_WIDENING.indexOf(to) >= source;
     }
 
     private static boolean isEmptyCall(J.MethodInvocation call) {

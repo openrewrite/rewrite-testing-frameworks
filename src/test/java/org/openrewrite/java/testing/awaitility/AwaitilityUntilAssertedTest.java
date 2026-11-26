@@ -128,6 +128,61 @@ class AwaitilityUntilAssertedTest implements RewriteTest {
     }
 
     @Test
+    void expectedPrimitiveWidensToActualType() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.concurrent.atomic.AtomicLong;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test(AtomicLong counter, int i) {
+                      await().until(() -> counter.get() == 5);
+                      await().until(() -> i != 'a');
+                  }
+              }
+              """,
+            """
+              import java.util.concurrent.atomic.AtomicLong;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test(AtomicLong counter, int i) {
+                      await().untilAsserted(() -> assertThat(counter.get()).isEqualTo(5));
+                      await().untilAsserted(() -> assertThat(i).isNotEqualTo('a'));
+                  }
+              }
+              """,
+            WITH_ASSERTJ
+          )
+        );
+    }
+
+    @Test
+    void leavePrimitivesThatWouldBoxToADifferentTypeAlone() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test(byte b, int i, char c) {
+                      await().until(() -> b == 1);
+                      await().until(() -> i != 5L);
+                      await().until(() -> c == 65);
+                  }
+              }
+              """,
+            WITH_ASSERTJ
+          )
+        );
+    }
+
+    @Test
     void leaveUnsupportedConditionsAlone() {
         rewriteRun(
           //language=java
