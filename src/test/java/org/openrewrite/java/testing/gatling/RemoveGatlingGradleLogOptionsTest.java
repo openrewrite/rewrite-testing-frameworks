@@ -21,13 +21,12 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.gradle.Assertions.buildGradle;
-import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 
 class RemoveGatlingGradleLogOptionsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new RemoveGatlingGradleLogOptions()).beforeRecipe(withToolingApi());
+        spec.recipe(new RemoveGatlingGradleLogOptions());
     }
 
     @DocumentExample
