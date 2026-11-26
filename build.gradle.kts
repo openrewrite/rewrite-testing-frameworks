@@ -19,6 +19,7 @@ recipeDependencies {
     parserClasspath("io.gatling:gatling-core-java:3.16.0")
     parserClasspath("junit:junit:4.+")
     parserClasspath("org.apiguardian:apiguardian-api:1.1.2")
+    parserClasspath("org.awaitility:awaitility:4.+")
     parserClasspath("org.assertj:assertj-core:3.27.7")
     parserClasspath("org.easytesting:fest-assert-core:2.+")
     parserClasspath("org.hamcrest:hamcrest:3.+")
