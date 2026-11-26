@@ -587,4 +587,118 @@ class AssertionsArgumentOrderTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void junit4AssertSameNotSameWithMessage() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.Assert.assertNotSame;
+              import static org.junit.Assert.assertSame;
+
+              class MyTest {
+                  static final Object EXPECTED = new Object();
+                  void someMethod() {
+                      assertSame("is " + "expected", getValue(), EXPECTED);
+                      assertSame("is " + "expected", EXPECTED, getValue());
+                      assertNotSame("is " + "expected", getValue(), EXPECTED);
+                  }
+                  Object getValue() {
+                      return null;
+                  }
+              }
+              """,
+            """
+              import static org.junit.Assert.assertNotSame;
+              import static org.junit.Assert.assertSame;
+
+              class MyTest {
+                  static final Object EXPECTED = new Object();
+                  void someMethod() {
+                      assertSame("is " + "expected", EXPECTED, getValue());
+                      assertSame("is " + "expected", EXPECTED, getValue());
+                      assertNotSame("is " + "expected", EXPECTED, getValue());
+                  }
+                  Object getValue() {
+                      return null;
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotSwapIntoParameterOfIncompatibleType() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.Assert.assertNotNull;
+
+              class MyTest {
+                  static final Integer LIMIT = 0;
+                  void someMethod(String name) {
+                      assertNotNull("limit of " + name, LIMIT);
+                  }
+              }
+              """
+          ),
+          //language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+              class MyJupiterTest {
+                  static final Integer LIMIT = 0;
+                  void someMethod(String name) {
+                      assertNotNull(LIMIT, "limit of " + name);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void swapBoxedAndPrimitiveArguments() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class MyTest {
+                  void someMethod() {
+                      assertEquals(getCount(), 5);
+                      assertEquals(getId(), 1);
+                  }
+                  Integer getCount() {
+                      return 5;
+                  }
+                  Long getId() {
+                      return 1L;
+                  }
+              }
+              """,
+            """
+              import static org.junit.jupiter.api.Assertions.assertEquals;
+
+              class MyTest {
+                  void someMethod() {
+                      assertEquals(5, getCount());
+                      assertEquals(1, getId());
+                  }
+                  Integer getCount() {
+                      return 5;
+                  }
+                  Long getId() {
+                      return 1L;
+                  }
+              }
+              """
+          )
+        );
+    }
 }

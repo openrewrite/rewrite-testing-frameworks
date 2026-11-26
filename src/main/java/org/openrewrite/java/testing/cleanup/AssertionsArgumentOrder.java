@@ -28,6 +28,7 @@ import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,7 +57,9 @@ public class AssertionsArgumentOrder extends Recipe {
 
     private static final MethodMatcher[] JUNIT_ASSERT_WITH_MESSAGE_MATCHERS = new MethodMatcher[]{
             new MethodMatcher("org.junit.Assert assertEquals(String, ..)"),
-            new MethodMatcher("org.junit.Assert assertArrayEquals(String, ..)")
+            new MethodMatcher("org.junit.Assert assertArrayEquals(String, ..)"),
+            new MethodMatcher("org.junit.Assert assertSame(String, Object, Object)"),
+            new MethodMatcher("org.junit.Assert assertNotSame(String, Object, Object)")
     };
     private static final MethodMatcher JUPITER_ASSERT_ITERABLE_EQUALS_MATCHER = new MethodMatcher("org.junit.jupiter.api.Assertions assertIterableEquals(..)");
 
@@ -138,7 +141,7 @@ public class AssertionsArgumentOrder extends Recipe {
                 return mi;
             }
 
-            if (!isCorrectOrder(expected, actual, mi)) {
+            if (!isCorrectOrder(expected, actual, mi) && isSwapTypeSafe(mi, expected, actual)) {
                 mi = maybeAutoFormat(mi, mi.withArguments(ListUtils.map(mi.getArguments(), arg -> {
                     if (arg.equals(actual)) {
                         return expected;
@@ -150,6 +153,34 @@ public class AssertionsArgumentOrder extends Recipe {
                 })), ctx, getCursor().getParentOrThrow());
             }
             return mi;
+        }
+
+        // The swapped call must still compile, so each argument has to fit the parameter it moves into
+        private boolean isSwapTypeSafe(J.MethodInvocation mi, Expression expected, Expression actual) {
+            JavaType.Method methodType = mi.getMethodType();
+            if (methodType == null) {
+                return false;
+            }
+            List<JavaType> parameterTypes = methodType.getParameterTypes();
+            JavaType expectedParameter = parameterTypes.get(mi.getArguments().indexOf(expected));
+            JavaType actualParameter = parameterTypes.get(mi.getArguments().indexOf(actual));
+            // Jupiter's primitive overloads come in mirrored pairs, e.g. `assertEquals(Long, long)` and `assertEquals(long, Long)`
+            if (TypeUtils.isOfType(expectedParameter, actualParameter) ||
+                (isPrimitiveOrBoxed(expectedParameter) && isPrimitiveOrBoxed(actualParameter))) {
+                return true;
+            }
+            return TypeUtils.isAssignableTo(expectedParameter, actual.getType()) &&
+                   TypeUtils.isAssignableTo(actualParameter, expected.getType());
+        }
+
+        private boolean isPrimitiveOrBoxed(JavaType type) {
+            JavaType.FullyQualified fullyQualified = TypeUtils.asFullyQualified(type);
+            JavaType.Primitive primitive = fullyQualified == null ?
+                    TypeUtils.asPrimitive(type) :
+                    JavaType.Primitive.fromClassName(fullyQualified.getFullyQualifiedName());
+            return primitive != null && (primitive.isNumeric() ||
+                                         primitive == JavaType.Primitive.Boolean ||
+                                         primitive == JavaType.Primitive.Char);
         }
 
         private boolean isEqualityAssertion(J.MethodInvocation mi) {
