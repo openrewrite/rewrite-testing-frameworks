@@ -50,10 +50,7 @@ public class AwaitilityUntilAsserted extends Recipe {
     final String displayName = "Use `untilAsserted` with AssertJ instead of `until` with a boolean condition";
 
     @Getter
-    final String description = "Replace Awaitility `until(() -> condition)` with `untilAsserted(() -> assertThat(...))` " +
-            "so that a timeout reports the actual and expected values rather than just that the condition was not fulfilled. " +
-            "Handles `equals`, `==` and `!=` on primitives or `null`, `size() == n`, `isEmpty()` and `contains(...)`, " +
-            "and only applies when AssertJ is on the classpath.";
+    final String description = "Replace Awaitility `until(() -> condition)` with `untilAsserted(() -> assertThat(...))` so that a timeout reports the actual and expected values rather than just that the condition was not fulfilled. Handles `equals`, `==` and `!=` on primitives or `null`, `size() == n`, `isEmpty()` and `contains(...)`, and only applies when AssertJ is on the classpath.";
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {

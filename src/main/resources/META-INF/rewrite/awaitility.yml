@@ -17,7 +17,7 @@
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.java.testing.awaitility.AwaitilityBestPractices
 displayName: Awaitility best practices
-description: Apply best practices for [Awaitility](https://github.com/awaitility/awaitility) asynchronous test assertions, such as preferring `Duration` over `long` and `TimeUnit`, and `untilAsserted` over a boolean `until` for better failure messages.
+description: Apply best practices for [Awaitility](https://github.com/awaitility/awaitility) asynchronous test assertions, for more readable timeouts and more informative failure messages.
 tags:
   - testing
   - awaitility
