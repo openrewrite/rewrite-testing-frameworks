@@ -147,7 +147,10 @@ public class AwaitilityUntilAsserted extends Recipe {
                 return assertion(call.getSelect(), "contains(#{any(java.lang.Object)})", call.getArguments().get(0));
             }
             if ("equals".equals(call.getSimpleName()) && call.getArguments().size() == 1 && call.getSelect() != null) {
-                return assertion(call.getSelect(), "isEqualTo(#{any(java.lang.Object)})", call.getArguments().get(0));
+                Expression argument = call.getArguments().get(0);
+                return isYoda(call.getSelect(), argument) ?
+                        assertion(argument, "isEqualTo(#{any(java.lang.Object)})", call.getSelect()) :
+                        assertion(call.getSelect(), "isEqualTo(#{any(java.lang.Object)})", argument);
             }
             return null;
         }
@@ -157,8 +160,9 @@ public class AwaitilityUntilAsserted extends Recipe {
             if (!eq && b.getOperator() != J.Binary.Type.NotEqual) {
                 return null;
             }
-            Expression left = unwrap(b.getLeft());
-            Expression right = unwrap(b.getRight());
+            boolean yoda = isYoda(unwrap(b.getLeft()), unwrap(b.getRight()));
+            Expression left = unwrap(yoda ? b.getRight() : b.getLeft());
+            Expression right = unwrap(yoda ? b.getLeft() : b.getRight());
             if (right instanceof J.Literal && ((J.Literal) right).getType() == JavaType.Primitive.Null) {
                 return left.getType() instanceof JavaType.Primitive ? null : assertion(left, eq ? "isNull()" : "isNotNull()");
             }
@@ -174,6 +178,10 @@ public class AwaitilityUntilAsserted extends Recipe {
             }
         }
         return null;
+    }
+
+    private static boolean isYoda(Expression actual, Expression expected) {
+        return actual instanceof J.Literal && !(expected instanceof J.Literal);
     }
 
     private static boolean isPrimitive(Expression e) {

@@ -128,6 +128,44 @@ class AwaitilityUntilAssertedTest implements RewriteTest {
     }
 
     @Test
+    void literalOnTheLeftBecomesTheExpectedValue() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.List;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test(List<String> list, String actual, Object o, int i) {
+                      await().until(() -> 3 == list.size());
+                      await().until(() -> "done".equals(actual));
+                      await().until(() -> null != o);
+                      await().until(() -> 5 == i);
+                  }
+              }
+              """,
+            """
+              import java.util.List;
+
+              import static org.assertj.core.api.Assertions.assertThat;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test(List<String> list, String actual, Object o, int i) {
+                      await().untilAsserted(() -> assertThat(list).hasSize(3));
+                      await().untilAsserted(() -> assertThat(actual).isEqualTo("done"));
+                      await().untilAsserted(() -> assertThat(o).isNotNull());
+                      await().untilAsserted(() -> assertThat(i).isEqualTo(5));
+                  }
+              }
+              """,
+            WITH_ASSERTJ
+          )
+        );
+    }
+
+    @Test
     void expectedPrimitiveWidensToActualType() {
         rewriteRun(
           //language=java
