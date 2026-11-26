@@ -33,12 +33,14 @@ import org.openrewrite.java.tree.TypeUtils;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.util.stream.Collectors.toList;
+
 public class AwaitilityUseDuration extends Recipe {
 
     private static final List<String> METHODS = Arrays.asList("atMost", "atLeast", "pollInterval", "pollDelay", "timeout");
     private static final List<MethodMatcher> MATCHERS = METHODS.stream()
             .map(name -> new MethodMatcher("org.awaitility.core.ConditionFactory " + name + "(long, java.util.concurrent.TimeUnit)"))
-            .collect(java.util.stream.Collectors.toList());
+            .collect(toList());
 
     @Getter
     final String displayName = "Use `Duration` instead of `long` and `TimeUnit` in Awaitility";
@@ -64,9 +66,9 @@ public class AwaitilityUseDuration extends Recipe {
                 if (factory == null) {
                     return m;
                 }
-                maybeAddImport("java.time.Duration");
                 maybeRemoveImport("java.util.concurrent.TimeUnit");
                 maybeRemoveImport("java.util.concurrent.TimeUnit." + unitName(m.getArguments().get(1)));
+                maybeAddImport("java.time.Duration");
                 return JavaTemplate.builder("#{any(org.awaitility.core.ConditionFactory)}." + m.getSimpleName() +
                                 "(Duration." + factory + "(#{any(long)}))")
                         .imports("java.time.Duration")

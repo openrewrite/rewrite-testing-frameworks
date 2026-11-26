@@ -22,8 +22,8 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
-import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpec;
 
 import java.util.function.Consumer;
 
@@ -40,7 +40,9 @@ class AwaitilityUntilAssertedTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
-            "awaitility-4", "hamcrest", "assertj-core-3"))
+            "awaitility-4",
+            "hamcrest",
+            "assertj-core-3"))
           .recipe(new AwaitilityUntilAsserted());
     }
 
