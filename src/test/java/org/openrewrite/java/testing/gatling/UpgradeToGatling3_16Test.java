@@ -26,6 +26,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.Assertions.settingsGradle;
 import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -240,6 +241,18 @@ class UpgradeToGatling3_16Test implements RewriteTest {
     void gradlePlugin() {
         rewriteRun(
           spec -> spec.beforeRecipe(withToolingApi()),
+          // The plugin portal redirects the plugin's dependencies on Maven Central to repo.maven.apache.org, bypassing any mirror
+          //language=groovy
+          settingsGradle(
+            """
+              pluginManagement {
+                  repositories {
+                      mavenCentral()
+                      gradlePluginPortal()
+                  }
+              }
+              """
+          ),
           //language=groovy
           buildGradle(
             """
