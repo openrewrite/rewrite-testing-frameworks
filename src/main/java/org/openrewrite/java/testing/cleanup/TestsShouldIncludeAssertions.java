@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
@@ -32,6 +33,7 @@ import org.openrewrite.staticanalysis.kotlin.KotlinFileChecker;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 
@@ -51,13 +53,43 @@ public class TestsShouldIncludeAssertions extends Recipe {
             "org.jmock",
             "org.junit.Assert", // rarely, the test annotation is junit 5 but the assert is junit 4
             "org.junit.jupiter.api.Assertions",
+            "org.mockito.BDDMockito$Then",
             "org.mockito.Mockito.verify",
             "org.mockito.Mockito.verifyNoInteractions",
             "org.mockito.Mockito.verifyNoMoreInteractions",
             "org.mockito.Mockito.verifyZeroInteractions",
             "org.springframework.test.web.client.MockRestServiceServer.verify",
+            "org.springframework.test.web.reactive.server.CookieAssertions",
+            "org.springframework.test.web.reactive.server.HeaderAssertions",
+            "org.springframework.test.web.reactive.server.JsonPathAssertions",
+            "org.springframework.test.web.reactive.server.StatusAssertions",
+            "org.springframework.test.web.reactive.server.XpathAssertions",
             "org.springframework.test.web.servlet.ResultActions",
+            // Spring Framework 7 declares the status, header, cookie, JSON path and XPath assertions of
+            // `WebTestClient` and `RestTestClient` on these shared base classes
+            "org.springframework.test.web.support.AbstractCookieAssertions",
+            "org.springframework.test.web.support.AbstractHeaderAssertions",
+            "org.springframework.test.web.support.AbstractJsonPathAssertions",
+            "org.springframework.test.web.support.AbstractStatusAssertions",
+            "org.springframework.test.web.support.AbstractXpathAssertions",
             "reactor.test.StepVerifier"
+    );
+
+    private static final List<MethodMatcher> ASSERTION_METHODS = Arrays.asList(
+            new MethodMatcher("com.tngtech.archunit.lang.ArchRule$Assertions check(..)"),
+            // Also the rules that override `check`, such as ArchUnit's layered architecture
+            new MethodMatcher("com.tngtech.archunit.lang.ArchRule check(..)", true),
+            // Of `WebTestClient`'s body specs only these methods assert; `returnResult()`, and `value(Consumer)`
+            // whose consumer may not assert, don't
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$BodyContentSpec isEmpty()"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$BodyContentSpec json(..)"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$BodyContentSpec xml(..)"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$BodySpec isEqualTo(..)"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$BodySpec value(org.hamcrest.Matcher)"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$BodySpec value(java.util.function.Function, org.hamcrest.Matcher)"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$ListBodySpec contains(..)"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$ListBodySpec doesNotContain(..)"),
+            new MethodMatcher("org.springframework.test.web.reactive.server.WebTestClient$ListBodySpec hasSize(..)")
     );
 
     private static final List<MethodMatcher> ASSUMPTIONS = Arrays.asList(
@@ -134,6 +166,15 @@ public class TestsShouldIncludeAssertions extends Recipe {
                                 .classpathFromResources(ctx, "junit-jupiter-api-5"))
                         .build()
                         .apply(updateCursor(md), md.getCoordinates().replaceBody(), body);
+                // Replacing the body moves the comments at its end into the lambda, but JavaTemplate also keeps them
+                // before the closing brace of the new body, so remove them there
+                J.Block wrapped = md.getBody();
+                if (wrapped != null && !wrapped.getEnd().getComments().isEmpty()) {
+                    List<Comment> comments = wrapped.getEnd().getComments();
+                    md = md.withBody(wrapped.withEnd(wrapped.getEnd()
+                            .withComments(emptyList())
+                            .withWhitespace(comments.get(comments.size() - 1).getSuffix())));
+                }
             }
             return md;
         }
@@ -231,6 +272,11 @@ public class TestsShouldIncludeAssertions extends Recipe {
                 }
             }
             String methodFqn = methodInvocation.getMethodType().getDeclaringType().getFullyQualifiedName() + "." + methodInvocation.getSimpleName();
+            for (MethodMatcher assertionMethod : ASSERTION_METHODS) {
+                if (assertionMethod.matches(methodInvocation)) {
+                    return true;
+                }
+            }
             for (String assertMethod : DEFAULT_ASSERTIONS) {
                 if (assertMethod.equals(methodFqn)) {
                     return true;
