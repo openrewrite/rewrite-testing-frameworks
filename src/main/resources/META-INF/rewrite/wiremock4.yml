@@ -39,25 +39,25 @@ recipeList:
       oldArtifactId: wiremock-jetty12
       newGroupId: org.wiremock
       newArtifactId: wiremock
-      newVersion: 4.0.0-beta.41
+      newVersion: 4.0.0-beta.44
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.wiremock
       artifactId: wiremock
-      newVersion: 4.0.0-beta.41
+      newVersion: 4.0.0-beta.44
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: org.wiremock
       artifactId: wiremock-standalone
-      newVersion: 4.0.0-beta.41
+      newVersion: 4.0.0-beta.44
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-junit5
-      version: 4.0.0-beta.41
+      version: 4.0.0-beta.44
       onlyIfUsing: com.github.tomakehurst.wiremock.junit5.*
       scope: test
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-junit4
-      version: 4.0.0-beta.41
+      version: 4.0.0-beta.44
       onlyIfUsing: com.github.tomakehurst.wiremock.junit.WireMock*Rule
       scope: test
   - org.openrewrite.java.dependencies.AddDependency:
@@ -342,15 +342,15 @@ recipeList:
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-httpclient-apache5
-      version: 4.0.0-beta.41
+      version: 4.0.0-beta.44
       onlyIfUsing: com.github.tomakehurst.wiremock.http.client.Apache*
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-httpclient-apache5
-      version: 4.0.0-beta.41
+      version: 4.0.0-beta.44
       onlyIfUsing: com.github.tomakehurst.wiremock.http.NetworkAddressRulesAdheringDnsResolver
   - org.openrewrite.java.dependencies.AddDependency:
       groupId: org.wiremock
       artifactId: wiremock-httpclient-apache5
-      version: 4.0.0-beta.41
+      version: 4.0.0-beta.44
       onlyIfUsing: com.github.tomakehurst.wiremock.http.ssl.TrustSelfSignedStrategy
