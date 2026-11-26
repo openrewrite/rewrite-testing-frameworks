@@ -32,16 +32,16 @@ import static org.openrewrite.java.Assertions.java;
 class AwaitilityUntilAssertedTest implements RewriteTest {
 
     private static final Consumer<SourceSpec<J.CompilationUnit>> WITH_ASSERTJ = spec -> spec.markers(JavaSourceSet.build("main",
-      JavaParser.dependenciesFromResources(new InMemoryExecutionContext(), "awaitility-4", "hamcrest", "assertj-core-3")));
+      JavaParser.dependenciesFromResources(new InMemoryExecutionContext(), "awaitility-4", "hamcrest-3", "assertj-core-3")));
     private static final Consumer<SourceSpec<J.CompilationUnit>> WITHOUT_ASSERTJ = spec -> spec.markers(JavaSourceSet.build("main",
-      JavaParser.dependenciesFromResources(new InMemoryExecutionContext(), "awaitility-4", "hamcrest")));
+      JavaParser.dependenciesFromResources(new InMemoryExecutionContext(), "awaitility-4", "hamcrest-3")));
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
           .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
             "awaitility-4",
-            "hamcrest",
+            "hamcrest-3",
             "assertj-core-3"))
           .recipe(new AwaitilityUntilAsserted());
     }
@@ -92,8 +92,9 @@ class AwaitilityUntilAssertedTest implements RewriteTest {
               import static org.awaitility.Awaitility.await;
 
               class A {
-                  void test(List<String> list, Object o, AtomicInteger counter) {
+                  void test(List<String> list, Object o, AtomicInteger counter, String s) {
                       await().until(() -> list.isEmpty());
+                      await().until(() -> !s.isEmpty());
                       await().until(() -> !list.isEmpty());
                       await().until(() -> list.contains("a"));
                       await().until(() -> o != null);
@@ -111,8 +112,9 @@ class AwaitilityUntilAssertedTest implements RewriteTest {
               import static org.awaitility.Awaitility.await;
 
               class A {
-                  void test(List<String> list, Object o, AtomicInteger counter) {
+                  void test(List<String> list, Object o, AtomicInteger counter, String s) {
                       await().untilAsserted(() -> assertThat(list).isEmpty());
+                      await().untilAsserted(() -> assertThat(s).isNotEmpty());
                       await().untilAsserted(() -> assertThat(list).isNotEmpty());
                       await().untilAsserted(() -> assertThat(list).contains("a"));
                       await().untilAsserted(() -> assertThat(o).isNotNull());

@@ -39,6 +39,10 @@ import java.util.List;
 public class AwaitilityUntilAsserted extends Recipe {
 
     private static final MethodMatcher UNTIL = new MethodMatcher("org.awaitility.core.ConditionFactory until(java.util.concurrent.Callable)");
+    private static final MethodMatcher EQUALS = new MethodMatcher("*..* equals(java.lang.Object)");
+    private static final MethodMatcher SIZE = new MethodMatcher("*..* size()");
+    private static final MethodMatcher IS_EMPTY = new MethodMatcher("*..* isEmpty()");
+    private static final MethodMatcher CONTAINS = new MethodMatcher("*..* contains(java.lang.Object)");
     private static final String ASSERT_THAT = "org.assertj.core.api.Assertions";
     private static final List<JavaType.Primitive> NUMERIC_WIDENING = Arrays.asList(JavaType.Primitive.Byte, JavaType.Primitive.Short, JavaType.Primitive.Int, JavaType.Primitive.Long, JavaType.Primitive.Float, JavaType.Primitive.Double);
 
@@ -61,10 +65,10 @@ public class AwaitilityUntilAsserted extends Recipe {
                     return m;
                 }
                 J.Lambda lambda = (J.Lambda) m.getArguments().get(0);
-                if (!isParameterless(lambda) || !(lambda.getBody() instanceof Expression)) {
+                if (!(lambda.getBody() instanceof Expression)) {
                     return m;
                 }
-                Assertion assertion = toAssertion(unwrap((Expression) lambda.getBody()));
+                Assertion assertion = toAssertion(((Expression) lambda.getBody()).unwrap());
                 if (assertion == null || !assertJAvailable()) {
                     return m;
                 }
@@ -74,7 +78,7 @@ public class AwaitilityUntilAsserted extends Recipe {
                 maybeAddImport(ASSERT_THAT, "assertThat");
                 return JavaTemplate.builder("#{any(org.awaitility.core.ConditionFactory)}.untilAsserted(() -> assertThat(" + assertion.template)
                         .staticImports(ASSERT_THAT + ".assertThat")
-                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "awaitility-4", "hamcrest", "assertj-core-3"))
+                        .javaParser(JavaParser.fromJavaVersion().classpathFromResources(ctx, "awaitility-4", "hamcrest-3", "assertj-core-3"))
                         .build()
                         .apply(updateCursor(m), m.getCoordinates().replace(), params.toArray());
             }
@@ -89,18 +93,6 @@ public class AwaitilityUntilAsserted extends Recipe {
                         .anyMatch(type -> ASSERT_THAT.equals(type.getFullyQualifiedName()));
             }
         });
-    }
-
-    private static boolean isParameterless(J.Lambda lambda) {
-        List<?> params = lambda.getParameters().getParameters();
-        return params.isEmpty() || (params.size() == 1 && params.get(0) instanceof J.Empty);
-    }
-
-    private static Expression unwrap(Expression e) {
-        while (e instanceof J.Parentheses && ((J.Parentheses<?>) e).getTree() instanceof Expression) {
-            e = (Expression) ((J.Parentheses<?>) e).getTree();
-        }
-        return e;
     }
 
     private static final class Assertion {
@@ -126,7 +118,7 @@ public class AwaitilityUntilAsserted extends Recipe {
 
     private static @Nullable Assertion toAssertion(Expression e) {
         if (e instanceof J.Unary && ((J.Unary) e).getOperator() == J.Unary.Type.Not) {
-            Expression operand = unwrap(((J.Unary) e).getExpression());
+            Expression operand = ((J.Unary) e).getExpression().unwrap();
             if (operand instanceof J.MethodInvocation) {
                 J.MethodInvocation call = (J.MethodInvocation) operand;
                 if (isEmptyCall(call)) {
@@ -146,7 +138,7 @@ public class AwaitilityUntilAsserted extends Recipe {
             if (isContainsCall(call)) {
                 return assertion(call.getSelect(), "contains(#{any(java.lang.Object)})", call.getArguments().get(0));
             }
-            if ("equals".equals(call.getSimpleName()) && call.getArguments().size() == 1 && call.getSelect() != null) {
+            if (EQUALS.matches(call) && call.getSelect() != null) {
                 Expression argument = call.getArguments().get(0);
                 return isYoda(call.getSelect(), argument) ?
                         assertion(argument, "isEqualTo(#{any(java.lang.Object)})", call.getSelect()) :
@@ -160,16 +152,13 @@ public class AwaitilityUntilAsserted extends Recipe {
             if (!eq && b.getOperator() != J.Binary.Type.NotEqual) {
                 return null;
             }
-            boolean yoda = isYoda(unwrap(b.getLeft()), unwrap(b.getRight()));
-            Expression left = unwrap(yoda ? b.getRight() : b.getLeft());
-            Expression right = unwrap(yoda ? b.getLeft() : b.getRight());
+            boolean yoda = isYoda(b.getLeft().unwrap(), b.getRight().unwrap());
+            Expression left = (yoda ? b.getRight() : b.getLeft()).unwrap();
+            Expression right = (yoda ? b.getLeft() : b.getRight()).unwrap();
             if (right instanceof J.Literal && ((J.Literal) right).getType() == JavaType.Primitive.Null) {
                 return left.getType() instanceof JavaType.Primitive ? null : assertion(left, eq ? "isNull()" : "isNotNull()");
             }
-            if (eq && left instanceof J.MethodInvocation && "size".equals(((J.MethodInvocation) left).getSimpleName()) &&
-                    ((J.MethodInvocation) left).getArguments().get(0) instanceof J.Empty &&
-                    ((J.MethodInvocation) left).getSelect() != null && isSized(((J.MethodInvocation) left).getSelect()) &&
-                    right.getType() == JavaType.Primitive.Int) {
+            if (eq && SIZE.matches(left) && isSized(((J.MethodInvocation) left).getSelect()) && right.getType() == JavaType.Primitive.Int) {
                 return assertion(((J.MethodInvocation) left).getSelect(), "hasSize(#{any(int)})", right);
             }
             if (isPrimitive(left) && isPrimitive(right) && widens((JavaType.Primitive) right.getType(), (JavaType.Primitive) left.getType())) {
@@ -200,20 +189,17 @@ public class AwaitilityUntilAsserted extends Recipe {
     }
 
     private static boolean isEmptyCall(J.MethodInvocation call) {
-        return "isEmpty".equals(call.getSimpleName()) && call.getSelect() != null && call.getArguments().get(0) instanceof J.Empty &&
-                (isSized(call.getSelect()) || TypeUtils.isAssignableTo("java.lang.CharSequence", call.getSelect().getType()));
+        return IS_EMPTY.matches(call) && (isSized(call.getSelect()) || call.getSelect() != null && TypeUtils.isAssignableTo("java.lang.CharSequence", call.getSelect().getType()));
     }
 
     private static boolean isContainsCall(J.MethodInvocation call) {
-        return "contains".equals(call.getSimpleName()) && call.getSelect() != null && call.getArguments().size() == 1 &&
-                TypeUtils.isAssignableTo("java.util.Collection", call.getSelect().getType());
+        return CONTAINS.matches(call) && call.getSelect() != null && TypeUtils.isAssignableTo("java.util.Collection", call.getSelect().getType());
     }
 
-    private static boolean isSized(Expression e) {
-        return TypeUtils.isAssignableTo("java.util.Collection", e.getType()) || TypeUtils.isAssignableTo("java.util.Map", e.getType());
+    private static boolean isSized(@Nullable Expression e) {
+        return e != null && (TypeUtils.isAssignableTo("java.util.Collection", e.getType()) || TypeUtils.isAssignableTo("java.util.Map", e.getType()));
     }
 
-    /** A typed template placeholder for the actual value, or null when its type can't be named. */
     private static @Nullable String placeholder(@Nullable Expression e) {
         if (e == null) {
             return null;
