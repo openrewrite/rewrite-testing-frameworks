@@ -286,5 +286,23 @@ class AwaitilityUseDurationTest implements RewriteTest {
               )
             );
         }
+
+        @Test
+        void withoutDurationOverload() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import java.time.Duration;
+                  import java.util.concurrent.TimeUnit;
+                  import org.awaitility.core.DurationFactory;
+
+                  class A {
+                      Duration timeout = DurationFactory.of(5, TimeUnit.SECONDS);
+                  }
+                  """
+              )
+            );
+        }
     }
 }

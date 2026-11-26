@@ -31,28 +31,10 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.staticanalysis.SimplifyDurationCreationUnits;
 
-import java.util.List;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toList;
-
 public class AwaitilityUseDuration extends Recipe {
 
     private static final String TIME_UNIT = "java.util.concurrent.TimeUnit";
-    private static final List<MethodMatcher> MATCHERS = Stream.of(
-                    "org.awaitility.core.ConditionFactory atMost(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.core.ConditionFactory atLeast(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.core.ConditionFactory during(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.core.ConditionFactory pollDelay(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.core.ConditionFactory pollInterval(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.core.ConditionFactory timeout(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.Awaitility waitAtMost(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.Awaitility setDefaultPollDelay(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.Awaitility setDefaultPollInterval(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.Awaitility setDefaultTimeout(long, java.util.concurrent.TimeUnit)",
-                    "org.awaitility.pollinterval.FixedPollInterval fixed(long, java.util.concurrent.TimeUnit)")
-            .map(MethodMatcher::new)
-            .collect(toList());
+    private static final MethodMatcher LONG_AND_TIME_UNIT = new MethodMatcher("org.awaitility..* *(long, java.util.concurrent.TimeUnit)");
 
     @Getter
     final String displayName = "Use `Duration` instead of `long` and `TimeUnit` in Awaitility";
@@ -62,11 +44,11 @@ public class AwaitilityUseDuration extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        return Preconditions.check(Preconditions.or(MATCHERS.stream().map(UsesMethod::new).toArray(TreeVisitor[]::new)), new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(new UsesMethod<>(LONG_AND_TIME_UNIT), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 J.MethodInvocation m = super.visitMethodInvocation(method, ctx);
-                if (MATCHERS.stream().noneMatch(matcher -> matcher.matches(m))) {
+                if (!LONG_AND_TIME_UNIT.matches(m) || !hasDurationOverload(m.getMethodType())) {
                     return m;
                 }
                 JavaType.Variable unit = timeUnitConstant(m.getArguments().get(1));
@@ -85,6 +67,10 @@ public class AwaitilityUseDuration extends Recipe {
                         .apply(updateCursor(m), m.getCoordinates().replaceArguments(), m.getArguments().get(0));
             }
         });
+    }
+
+    private static boolean hasDurationOverload(JavaType.Method method) {
+        return method.getDeclaringType().getMethods().stream().anyMatch(overload -> overload.getName().equals(method.getName()) && overload.getParameterTypes().size() == 1 && TypeUtils.isOfClassType(overload.getParameterTypes().get(0), "java.time.Duration"));
     }
 
     private static JavaType.@Nullable Variable timeUnitConstant(Expression unit) {
