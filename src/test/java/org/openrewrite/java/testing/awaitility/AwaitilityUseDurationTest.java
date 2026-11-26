@@ -15,21 +15,29 @@
  */
 package org.openrewrite.java.testing.awaitility;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AwaitilityUseDurationTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
         spec
-          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(), "awaitility-4", "hamcrest"))
+          .parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "awaitility-4",
+            "hamcrest-3"))
+          .parser(KotlinParser.builder().classpathFromResources(new InMemoryExecutionContext(),
+            "awaitility-4",
+            "hamcrest-3"))
           .recipe(new AwaitilityUseDuration());
     }
 
@@ -51,6 +59,7 @@ class AwaitilityUseDurationTest implements RewriteTest {
               """,
             """
               import java.time.Duration;
+
               import static org.awaitility.Awaitility.await;
 
               class A {
@@ -94,24 +103,188 @@ class AwaitilityUseDurationTest implements RewriteTest {
     }
 
     @Test
-    void leaveUnsupportedUnitsAndDurationAlone() {
+    void staticAwaitilityMethods() {
         rewriteRun(
           //language=java
           java(
+            """
+              import java.util.concurrent.TimeUnit;
+              import org.awaitility.Awaitility;
+              import static org.awaitility.Awaitility.waitAtMost;
+              import static org.awaitility.pollinterval.FixedPollInterval.fixed;
+
+              class A {
+                  void test() {
+                      Awaitility.setDefaultTimeout(10, TimeUnit.SECONDS);
+                      waitAtMost(5, TimeUnit.SECONDS).pollInterval(fixed(100, TimeUnit.MILLISECONDS)).during(1, TimeUnit.SECONDS).until(() -> true);
+                  }
+              }
+              """,
+            """
+              import org.awaitility.Awaitility;
+
+              import java.time.Duration;
+              import static org.awaitility.Awaitility.waitAtMost;
+              import static org.awaitility.pollinterval.FixedPollInterval.fixed;
+
+              class A {
+                  void test() {
+                      Awaitility.setDefaultTimeout(Duration.ofSeconds(10));
+                      waitAtMost(Duration.ofSeconds(5)).pollInterval(fixed(Duration.ofMillis(100))).during(Duration.ofSeconds(1)).until(() -> true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void microseconds() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.concurrent.TimeUnit;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test() {
+                      await().pollDelay(5, TimeUnit.MICROSECONDS).until(() -> true);
+                  }
+              }
+              """,
+            """
+              import java.time.Duration;
+              import java.time.temporal.ChronoUnit;
+
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test() {
+                      await().pollDelay(Duration.of(5, ChronoUnit.MICROS)).until(() -> true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void simplifyUnits() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.concurrent.TimeUnit;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test() {
+                      await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> true);
+                  }
+              }
+              """,
+            """
+              import java.time.Duration;
+
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  void test() {
+                      await().atMost(Duration.ofSeconds(5)).until(() -> true);
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void keepTimeUnitImportWhenStillUsed() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import java.util.concurrent.TimeUnit;
+              import static org.awaitility.Awaitility.await;
+
+              class A {
+                  long timeout = TimeUnit.SECONDS.toMillis(5);
+
+                  void test() {
+                      await().atMost(5, TimeUnit.SECONDS).until(() -> true);
+                  }
+              }
+              """,
             """
               import java.time.Duration;
               import java.util.concurrent.TimeUnit;
               import static org.awaitility.Awaitility.await;
 
               class A {
-                  void test(TimeUnit unit) {
+                  long timeout = TimeUnit.SECONDS.toMillis(5);
+
+                  void test() {
                       await().atMost(Duration.ofSeconds(5)).until(() -> true);
-                      await().atMost(5, unit).until(() -> true);
-                      await().pollDelay(5, TimeUnit.MICROSECONDS).until(() -> true);
                   }
               }
               """
           )
         );
+    }
+
+    @Test
+    void kotlinSource() {
+        rewriteRun(
+          //language=kotlin
+          kotlin(
+            """
+              import java.util.concurrent.TimeUnit
+              import org.awaitility.Awaitility.await
+
+              class A {
+                  fun test() {
+                      await().atMost(5, TimeUnit.SECONDS).until { true }
+                  }
+              }
+              """,
+            """
+              import org.awaitility.Awaitility.await
+
+              import java.time.Duration
+
+              class A {
+                  fun test() {
+                      await().atMost(Duration.ofSeconds(5)).until { true }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Nested
+    class NoChange {
+
+        @Test
+        void durationOrVariableUnit() {
+            rewriteRun(
+              //language=java
+              java(
+                """
+                  import java.time.Duration;
+                  import java.util.concurrent.TimeUnit;
+                  import static org.awaitility.Awaitility.await;
+
+                  class A {
+                      void test(TimeUnit unit) {
+                          await().atMost(Duration.ofSeconds(5)).until(() -> true);
+                          await().atMost(5, unit).until(() -> true);
+                      }
+                  }
+                  """
+              )
+            );
+        }
     }
 }
