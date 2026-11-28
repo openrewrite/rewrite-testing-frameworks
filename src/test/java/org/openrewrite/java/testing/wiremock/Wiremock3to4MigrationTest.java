@@ -37,7 +37,7 @@ class Wiremock3to4MigrationTest implements RewriteTest {
     // rejects `-beta.N`; keep this in step with the `newVersion` arguments over there. Only the
     // recipe *input* below needs the exact version; expected output is matched against
     // `WIREMOCK_4_REGEX_VERSION_STRING` instead, so a version bump over there lands here for free.
-    private static final String WIREMOCK_4_VERSION = "4.0.0-beta.41";
+    private static final String WIREMOCK_4_VERSION = "4.0.0-beta.44";
 
     private static final String WIREMOCK_4_REGEX_STRING = "4\\.\\d+\\.\\d+(?:-[\\w.]+)?";
 
